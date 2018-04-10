@@ -1,47 +1,44 @@
 ASYNCOSWEBSECURITYAPPLIANCE-MIB  DEFINITIONS ::= BEGIN
 
 IMPORTS
-        enterprises, Unsigned32, TimeTicks, Gauge32, Counter32,
-        MODULE-IDENTITY, OBJECT-TYPE, Integer32
-                FROM SNMPv2-SMI
+        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+        TimeTicks, Counter32, Integer32
+            FROM SNMPv2-SMI
 
         DisplayString
-                FROM SNMPv2-TC;
+            FROM SNMPv2-TC
+
+        asyncOSAppliances
+            FROM IRONPORT-SMI
+
+        connectionURL
+            FROM ASYNCOS-MAIL-MIB;
 
 asyncOSWebSecurityAppliance MODULE-IDENTITY
-    LAST-UPDATED "200901080000Z"
-    ORGANIZATION "IronPort Systems, Inc."
-    CONTACT-INFO
-            "IronPort Systems, Inc.
+    LAST-UPDATED "201308090000Z" -- August 9, 2013
+    ORGANIZATION "IronPort Systems"
+    CONTACT-INFO "Postal: 950 Elm Avenue
+                  San Bruno, CA 94066
 
-             Postal: 950 Elm Avenue
-                     San Bruno, CA 94066
-                     USA
-
-                Tel: +1 650-989-6500
-
-             E-mail: info@ironport.com"
-
+                  E-mail: tac-content-security@cisco.com"
     DESCRIPTION
-                "Ironport WSA MIB defined for the management of the IronPort S-series Web Security Appliance. See http://www.ironport.com/."
-            
-    REVISION      "200901080000Z"
+                  "Enterprise MIB for IronPort Systems Web Security Appliances."
+    REVISION      "201308090000Z" -- August 9, 2013
     DESCRIPTION
-                "MIB Version 0.1"
+                  "Add missing connectionURL import"
+    REVISION      "201004200000Z" -- April 20, 2010
+    DESCRIPTION
+                  "Add missing cacheMemoryBufferUsagePct, cacheClientReqMisses, cacheClientReqDenials."
+    REVISION      "201004150000Z" -- April 15, 2010
+    DESCRIPTION
+                  "Minor description tweaks"
+    REVISION      "200907130000Z" -- July 13, 2009
+    DESCRIPTION
+                  "Cleaning up integration with IRONPORT-SMI"
+    REVISION      "200703270000Z" -- March 27, 2007
+    DESCRIPTION
+                  "MIB Version 0.1"
     ::= { asyncOSAppliances 2 }
-
-
-
-
-org            OBJECT IDENTIFIER ::= { iso 3 }
-dod            OBJECT IDENTIFIER ::= { org 6 }
-internet       OBJECT IDENTIFIER ::= { dod 1 }
-private        OBJECT IDENTIFIER ::= { internet 4 }
-enterprises    OBJECT IDENTIFIER ::= { private 1 }
-ironPort       OBJECT IDENTIFIER ::= { enterprises 15497 }
-asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
--- asyncOSWebSecurityAppliance    OBJECT IDENTIFIER ::= { asyncOSAppliances 2 }
-
 
 --
 -- OID Assignments
@@ -94,15 +91,15 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                         "The contact responsible for the administration of the proxy. Usually a name and email address."
         ::= { proxyConfig 1 }
 
-        cacheSoftware OBJECT-TYPE      
+        cacheSoftware OBJECT-TYPE
                 SYNTAX DisplayString
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
                         "Name of the proxy sofware."
         ::= { proxyConfig 2 }
-   
-        cacheVersion OBJECT-TYPE      
+
+        cacheVersion OBJECT-TYPE
                 SYNTAX DisplayString
                 MAX-ACCESS read-only
                 STATUS current
@@ -110,7 +107,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                         "Version of the proxy software."
         ::= { proxyConfig 3 }
 
-        licenseExpiration OBJECT-TYPE      
+        licenseExpiration OBJECT-TYPE
                 SYNTAX Integer32
                 MAX-ACCESS read-only
                 STATUS current
@@ -139,7 +136,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS  current
                 DESCRIPTION
-                        "Amount of cpu seconds consumed"
+                        "Amount of CPU seconds consumed"
         ::= { proxySysPerf 1 }
 
         cacheCpuUsage OBJECT-TYPE
@@ -147,7 +144,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS  current
                 DESCRIPTION
-                        "The percentage use of the CPU"
+                        "Proxy CPU percent (0-100) used - measured every 10 seconds"
         ::= { proxySysPerf 2 }
 
         cacheMaxResSize OBJECT-TYPE
@@ -174,9 +171,17 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                         "Percentage busy time of CPU"
         ::= { proxySysPerf 5 }
 
+        cacheMemoryBufferUsagePct OBJECT-TYPE
+                SYNTAX Integer32
+                MAX-ACCESS read-only
+                STATUS  current
+                DESCRIPTION
+                        "Percentage of memory buffers in use."
+        ::= { proxySysPerf 6 }
+
 --
 -- Statistics for the Client side of the Proxy
---     
+--
 
         cacheClientSizeHistTable OBJECT-TYPE
                 SYNTAX            SEQUENCE OF CacheClientSizeHistEntry
@@ -251,7 +256,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
         ::= { proxyClientSidePerf 5 }
 
         cacheClientOutKb OBJECT-TYPE
-                SYNTAX Counter32 
+                SYNTAX Counter32
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
@@ -263,15 +268,15 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
-                        "The number of idle client persistent connections."
+                        "The number of connected but idle persistent client connections."
         ::= { proxyClientSidePerf 7 }
 
         cacheClientTotalConns OBJECT-TYPE
-                SYNTAX Counter32
+                SYNTAX Integer32
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
-                        "The number of total client connections."
+                        "The current number of active + idle client connections."
         ::= { proxyClientSidePerf 8 }
 
         cacheClientMaxConns OBJECT-TYPE
@@ -279,7 +284,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
-                        "The maximal number of client connections."
+                        "The maximum number of simultaneous client connections that will be allowed."
         ::= { proxyClientSidePerf 9 }
 
         cacheClientAccepts OBJECT-TYPE
@@ -330,9 +335,25 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                         "The number of ICP denials that the proxy clients have produced."
         ::= { proxyClientSidePerf 15 }
 
+        cacheClientReqMisses OBJECT-TYPE
+                SYNTAX Counter32
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                        "The number of misses that the proxy clients have produced."
+        ::= { proxyClientSidePerf 16 }
+
+        cacheClientReqDenials OBJECT-TYPE
+                SYNTAX Counter32
+                MAX-ACCESS read-only
+                STATUS current
+                DESCRIPTION
+                        "The number of responses blocked by access control."
+        ::= { proxyClientSidePerf 17 }
+
 --
 -- Statistics for the Server side of the Proxy
---     
+--
 
         cacheServerSizeHistTable OBJECT-TYPE
                 SYNTAX            SEQUENCE OF CacheServerSizeHistEntry
@@ -418,7 +439,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
-                        "The number of idle server persistent connections."
+                        "The number of connected but idle persistent server connections."
         ::= { proxyServerSidePerf 7 }
 
         cacheServerTotalConns OBJECT-TYPE
@@ -426,7 +447,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
-                        "The total number of server connections."
+                        "The current number of active + idle server connections."
         ::= { proxyServerSidePerf 8 }
 
         cacheServerCloseIdleConns OBJECT-TYPE
@@ -434,7 +455,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
-                        "The number server closed idle connections."
+                        "The number of server connections closed due to idle time limits."
         ::= { proxyServerSidePerf 9 }
 
         cacheServerLimitIdleConns OBJECT-TYPE
@@ -442,7 +463,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
                 MAX-ACCESS read-only
                 STATUS current
                 DESCRIPTION
-                        "The number of times the number of idle persistent connections hit the limit."
+                        "The number of times the number of idle persistent connections hit the count limit and caused a connection to be closed."
         ::= { proxyServerSidePerf 10 }
 
         cacheServerConnsThresh OBJECT-TYPE
@@ -526,7 +547,7 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
         ::= { proxyServerSidePerf 20 }
 --
 -- Protocol Statistics for the Proxy
---     
+--
 
         cacheCacheSizeHistTable OBJECT-TYPE
                 SYNTAX            SEQUENCE OF CacheCacheSizeHistEntry
@@ -631,11 +652,11 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
         CacheMedianSvcEntry ::= SEQUENCE {
                 cacheMedianTime         Integer32,
                 cacheHTTPCltSvcTime     Integer32,
-                cacheHTTPMissSvcTime    Integer32,      
+                cacheHTTPMissSvcTime    Integer32,
                 cacheHTTPHitSvcTime     Integer32,
                 cacheHTTPSrvSvcTime     Integer32,
                 cacheDnsSvcTime         Integer32,
-                cacheHTTPSvcWaitTime    Integer32
+                cacheHTTPSrvSvcWaitTime Integer32
         }
 
         cacheMedianTime OBJECT-TYPE
@@ -1835,9 +1856,8 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
 -- The Proxy Traps group { asyncOSWebSecurityAppliance 5 }
 --
 
-        upstreamProxyFailure OBJECT-TYPE
-                SYNTAX DisplayString
-                MAX-ACCESS read-only
+        upstreamProxyFailure NOTIFICATION-TYPE
+                OBJECTS { connectionURL }
                 STATUS current
                 DESCRIPTION
                         "The IP address of an unresponsive upstream proxy."
@@ -1846,4 +1866,3 @@ asyncOSAppliances              OBJECT IDENTIFIER ::= { ironPort 1 }
 -- end of ASYNCOSWEBSECURITYAPPLIANCE-MIB
 
 END
-
