@@ -7,7 +7,7 @@
 --
 -- Copyright (c) 1998, 1999 Redstone Communications, Inc.
 -- Copyright (c) 1999, 2002 Unisphere Networks, Inc.
--- Copyright (c) 2002, 2003, 2004, 2005 Juniper Networks, Inc.
+-- Copyright (c) 2002, 2003, 2004 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -26,11 +26,11 @@ IMPORTS
         FROM IPV6-TC
     juniMibs
         FROM Juniper-MIBs
-    JuniEnable, JuniNextIfIndex, JuniName, JuniNibbleConfig
+    JuniEnable, JuniNextIfIndex, JuniName
         FROM Juniper-TC;
 
 juniPppMIB  MODULE-IDENTITY
-    LAST-UPDATED "200512212013Z"  -- 21-Dec-05 03:13 PM EST
+    LAST-UPDATED "200410052217Z"  -- 05-Oct-04 06:17 PM EDT
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -39,16 +39,9 @@ juniPppMIB  MODULE-IDENTITY
                 USA
         Tel:    +1 978 589 5800
         Email:  mib@Juniper.net"
-
     DESCRIPTION
         "The Point-to-Point Protocol (PPP) MIB for the Juniper enterprise."
     -- Revision History
-    REVISION    "200512212013Z"  -- 21-Dec-05 03:13 PM EST  - JUNOSe 7.3
-    DESCRIPTION
-        "Added new authentication elements to use JuniNibbleConfig."
-    REVISION    "200510191626Z"  -- 19-Oct-05 12:26 PM EDT  - JUNOSe 7.2
-    DESCRIPTION
-	"Added new object to the multi-link group." 
     REVISION    "200410052217Z"  -- 05-Oct-04 06:17 PM EDT -  JUNOSe 6.2
     DESCRIPTION
         "Added support for short keepalives in juniPppLinkConfigKeepalive."
@@ -102,7 +95,7 @@ juniPppMIB  MODULE-IDENTITY
 -- Textual conventions
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 JuniPppAuthentication ::= TEXTUAL-CONVENTION
-    STATUS      deprecated
+    STATUS      current
     DESCRIPTION
         "Specifies the type(s) of PPP authentication used, if any:
           none      No authentication is negotiated.
@@ -116,21 +109,6 @@ JuniPppAuthentication ::= TEXTUAL-CONVENTION
                     chap(2),
                     papChap(3),
                     chapPap(4) }
-
-JuniPppAuthentication2 ::= TEXTUAL-CONVENTION
-    STATUS      current
-    DESCRIPTION
-        "Specifies the type(s) of PPP authentication used, if any:
-          none      No authentication is negotiated.
-          pap       PAP negotiation.
-          chap      CHAP negotiation.
-          eap       EAP negotiation." 
-
-    SYNTAX      INTEGER {
-                    none(0),
-                    pap(1),
-                    chap(2),
-                    eap(3) }
 
 JuniPppMlPppBundleName ::= TEXTUAL-CONVENTION
     STATUS      current
@@ -220,7 +198,7 @@ JuniPppLinkStatusEntry ::= SEQUENCE {
     juniPppLinkStatusKeepaliveFailures       Counter32,
     juniPppLinkStatusLocalMagicNumber        Integer32,
     juniPppLinkStatusRemoteMagicNumber       Integer32,
-    juniPppLinkStatusLocalAuthentication     JuniPppAuthentication2,
+    juniPppLinkStatusLocalAuthentication     JuniPppAuthentication,
     juniPppLinkStatusTunnelIfIndex           InterfaceIndexOrZero }
 
 juniPppLinkStatusTerminateReason OBJECT-TYPE
@@ -343,7 +321,7 @@ juniPppLinkStatusRemoteMagicNumber OBJECT-TYPE
     ::= { juniPppLinkStatusEntry 9 }
 
 juniPppLinkStatusLocalAuthentication OBJECT-TYPE
-    SYNTAX      JuniPppAuthentication2
+    SYNTAX      JuniPppAuthentication
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
@@ -397,8 +375,7 @@ JuniPppLinkConfigEntry ::= SEQUENCE {
     juniPppLinkConfigChapMaxChallengeLength     Integer32,
     juniPppLinkConfigPassiveMode                JuniEnable,
     juniPppLinkConfigAuthenticatorVirtualRouter JuniName,
-    juniPppLinkConfigAaaProfile                 JuniName,
-    juniPppLinkConfigAuthentication2            JuniNibbleConfig }
+    juniPppLinkConfigAaaProfile                 JuniName }
 
 juniPppLinkConfigIfIndex OBJECT-TYPE
     SYNTAX      InterfaceIndex
@@ -463,7 +440,7 @@ juniPppLinkConfigKeepalive OBJECT-TYPE
 juniPppLinkConfigAuthentication OBJECT-TYPE
     SYNTAX      JuniPppAuthentication
     MAX-ACCESS  read-create
-    STATUS      deprecated
+    STATUS      current
     DESCRIPTION
         "Specifies the type(s) of authentication, if any, to be negotiated with
         the peer:
@@ -479,13 +456,7 @@ juniPppLinkConfigAuthentication OBJECT-TYPE
         creation.
 
         Setting this object to none(0) will set
-        juniPppLinkConfigAuthenticatorVirtualRouter object to an empty string.
-
-        This object returns a null(0) value on the get operation. New object
-        juniPppLinkConfigAuthentication2 will reflect the configured values.
-
-        Setting this object along with the juniPppLinkConfigAuthentication2 object
-        will return an inconsistentValue error."
+        juniPppLinkConfigAuthenticatorVirtualRouter object to an empty string."
     DEFVAL    { none }
     ::= { juniPppLinkConfigEntry 5 }
 
@@ -578,46 +549,6 @@ juniPppLinkConfigAaaProfile OBJECT-TYPE
         value of this object is not null and does not correspond to an existing
         AAA profile, then an inconsistentValue error is returned."
     ::= { juniPppLinkConfigEntry 12 }
-
-juniPppLinkConfigAuthentication2 OBJECT-TYPE
-    SYNTAX      JuniNibbleConfig
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "A configuration variable comprised of nibbles i.e. 4 bits, such that 
-         a client can supply a list of 0 to 8 selections.  The least 
-         significant nibble is the first value of the list, and the most 
-         significant nibble is the last value.  The value in each field 
-         ranges from 0 to 15, however the first nibble with value 0 indicates
-         the end of the list.  Repetition of values is not allowed. 
-         Segregation of values is not allowed.
-
-         Valid Values are:
-         none - 0
-         pap  - 1
-         chap - 2
-         eap  - 3
-
-         Example valid encoding:
-         0x00000321
-         0x00000012
-
-         Not a valid encoding:
-         0x00000121
-         0x01002001
-
-         If authentication negotiation is not supported for this PPP interface,
-         then any attempt to explicitly set this object will result in a
-         notWritable error and it will be implicitly set to the DEFVAL on row
-         creation.
-
-         Setting this object to null will set
-         juniPppLinkConfigAuthenticatorVirtualRouter object to an empty string.
-
-         Setting this object along with the juniPppLinkConfigAuthentication object
-         will return an inconsistentValue error."
-    DEFVAL    { 0 }
-    ::= { juniPppLinkConfigEntry 13 }
 
 --
 -- IfIndex selection for creating new PPP interfaces in juniPppLinkConfigTable.
@@ -1428,9 +1359,7 @@ JuniPppMlPppLinkConfigEntry ::= SEQUENCE {
     juniPppMlPppLinkConfigFragmentation                JuniEnable,
     juniPppMlPppLinkConfigReassembly                   JuniEnable,
     juniPppMlPppLinkConfigMaxReceiveReconstructedUnit  Integer32,
-    juniPppMlPppLinkConfigFragmentSize                 Integer32,
-    juniPppMlPppLinkConfigHashLinkSelection            JuniEnable,
-    juniPppMlPppLinkConfigAuthentication2              JuniNibbleConfig }
+    juniPppMlPppLinkConfigFragmentSize                 Integer32 }
 
 juniPppMlPppLinkConfigIfIndex OBJECT-TYPE
     SYNTAX      InterfaceIndex
@@ -1467,7 +1396,7 @@ juniPppMlPppLinkConfigKeepalive OBJECT-TYPE
 juniPppMlPppLinkConfigAuthentication OBJECT-TYPE
     SYNTAX      JuniPppAuthentication
     MAX-ACCESS  read-create
-    STATUS      deprecated
+    STATUS      current
     DESCRIPTION
         "Specifies the type(s) of authentication, if any, to be negotiated with
         the peer:
@@ -1475,22 +1404,7 @@ juniPppMlPppLinkConfigAuthentication OBJECT-TYPE
           pap       PAP negotiation only.
           chap      CHAP negotiation only.
           papChap   PAP negotiation is attempted first; if fails, attempt CHAP.
-          chapPap   CHAP negotiation is attempted first; if fails, attempt PAP.
-
-        If authentication negotiation is not supported for this MLPPP interface,
-        then any attempt to explicitely set this object will result in a
-        notWritable error and it will be implicitily set to the DEFVAL on row
-        creation.
-
-        Setting this object to none(0) will set
-        juniPppMlPppLinkConfigAuthenticatorVirtualRouter object to an empty 
-        string.
-
-        This object returns a none (0) value on the get operation. New object
-        juniPppMlPppLinkConfigAuthentication2 will reflect the configured values.
-
-        Setting this object along with the juniPppMlPppLinkConfigAuthentication2 
-        object will return an inconsistentValue error."
+          chapPap   CHAP negotiation is attempted first; if fails, attempt PAP."
     DEFVAL    { none }
     ::= { juniPppMlPppLinkConfigEntry 5 }
 
@@ -1633,57 +1547,6 @@ juniPppMlPppLinkConfigFragmentSize OBJECT-TYPE
         restarted."
     DEFVAL    { 1 }
     ::= { juniPppMlPppLinkConfigEntry 16 }
-
-juniPppMlPppLinkConfigHashLinkSelection OBJECT-TYPE
-    SYNTAX      JuniEnable
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Enables MLPPP hash-based link selection for non-best-effort traffic.
-	Changing this object has an effect when the link is next restarted."
-    DEFVAL    { disable }
-    ::= { juniPppMlPppLinkConfigEntry 17 }
-
-juniPppMlPppLinkConfigAuthentication2 OBJECT-TYPE
-    SYNTAX      JuniNibbleConfig
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "A configuration variable comprised of nibbles i.e. 4 bits, such that 
-         a client can supply a list of 0 to 8 selections.  The least 
-         significant nibble is the first value of the list, and the most 
-         significant nibble is the last value.  The value in each field 
-         ranges from 0 to 15, however the first nibble with value 0 indicates
-         the end of the list.  Repetition of values is not allowed. 
-         Segregation of values is not allowed.
-
-         Valid Values are:
-         none - 0
-         pap  - 1
-         chap - 2
-         eap  - 3
-
-         Example valid encoding:
-         0x00000321
-         0x00000012
-
-         Not a valid encoding:
-         0x00000121
-         0x01002001
-
-         If authentication negotiation is not supported for this PPP interface,
-         then any attempt to explicitly set this object will result in a
-         notWritable error and it will be implicitly set to the DEFVAL on row
-         creation.
-
-         Setting this object to null will set
-         juniPppMlPppLinkConfigAuthenticatorVirtualRouter object to an empty 
-         string.
-
-         Setting this object along with the juniPppMlPppLinkConfigAuthentication
-         object will return an inconsistentValue error."
-    DEFVAL    { 0 }
-    ::= { juniPppMlPppLinkConfigEntry 18 }
 
 juniPppMlPppNextNetworkIfIndex OBJECT-TYPE
     SYNTAX      JuniNextIfIndex
@@ -3123,11 +2986,10 @@ juniPppCompliance10  MODULE-COMPLIANCE
     ::= { juniPppCompliances 10 }                                  -- JUNOSe 5.3
 
 juniPppCompliance11  MODULE-COMPLIANCE
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-	"Obsolete compliance statement for entities which implement the Juniper
-        PPP MIB.  This statement became obsolete when a new multi-link
-        object was added."
+        "The compliance statement for entities which implement the Juniper PPP
+        MIB."
     MODULE   -- this module
         MANDATORY-GROUPS {
             juniPppLcpGroup5,
@@ -3149,61 +3011,6 @@ juniPppCompliance11  MODULE-COMPLIANCE
                 "The network summary group is mandatory only for PPP entities
                 that support multi-link functionality."
     ::= { juniPppCompliances 11 }                                  -- JUNOSe 6.0
-
-juniPppCompliance12  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-        "Obsolete compliance statement for entities which implement the Juniper
-        PPP MIB.  This statement became obsolete when more new juniPppLcpGroup
-        and juniPppMlPppGroup objects were added."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniPppLcpGroup5,
-            juniPppIpGroup4,
-            juniPppOsiGroup2,
-            juniPppSessionGroup2,
-            juniPppSummaryBasicGroup3,
-            juniPppIpv6Group }
-        GROUP       juniPppMlPppGroup6
-            DESCRIPTION
-                "The multi-link PPP group is mandatory only for PPP entities
-                that support multi-link functionality."
-        GROUP       juniPppSummaryLinkGroup2
-            DESCRIPTION
-                "The link summary group is mandatory only for PPP entities that
-                support multi-link functionality."
-        GROUP       juniPppSummaryNetworkGroup3
-            DESCRIPTION
-                "The network summary group is mandatory only for PPP entities
-                that support multi-link functionality."
-    ::= { juniPppCompliances 12 }                                  -- JUNOSe 7.2
-
-juniPppCompliance13  MODULE-COMPLIANCE
-    STATUS      current
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper PPP
-        MIB."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniPppLcpGroup6,
-            juniPppIpGroup4,
-            juniPppOsiGroup2,
-            juniPppSessionGroup2,
-            juniPppSummaryBasicGroup3,
-            juniPppIpv6Group }
-        GROUP       juniPppMlPppGroup7
-            DESCRIPTION
-                "The multi-link PPP group is mandatory only for PPP entities
-                that support multi-link functionality."
-        GROUP       juniPppSummaryLinkGroup2
-            DESCRIPTION
-                "The link summary group is mandatory only for PPP entities that
-                support multi-link functionality."
-        GROUP       juniPppSummaryNetworkGroup3
-            DESCRIPTION
-                "The network summary group is mandatory only for PPP entities
-                that support multi-link functionality."
-    ::= { juniPppCompliances 13 }                                  -- JUNOSe 7.3
 
 --
 -- units of conformance
@@ -3615,11 +3422,10 @@ juniPppLcpGroup5  OBJECT-GROUP
         juniPppLinkConfigAuthenticatorVirtualRouter,
         juniPppLinkConfigAaaProfile,
         juniPppNextIfIndex }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete collection of objects providing management of link-layer
-        functionality (LCP) of PPP interfaces in a Juniper product.  This group
-        became obsolete when additional objects were added."
+        "A collection of objects providing management of link-layer
+        functionality (LCP) of PPP interfaces in a Juniper product."
     ::= { juniPppGroups 18 }                                       -- JUNOSe 4.1
 
 juniPppMlPppGroup4  OBJECT-GROUP
@@ -3790,11 +3596,10 @@ juniPppMlPppGroup5  OBJECT-GROUP
         juniPppMlPppNetworkBundleName,
         juniPppMlPppNetworkRowStatus,
         juniPppMlPppBindRowStatus }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-	"Obsolete collection of objects providing multi link PPP management
-        support in a Juniper product.  This group became obsolete when
-        additional objects were added."
+        "A collection of objects providing multi link PPP management support in
+        a Juniper product."
     ::= { juniPppGroups 25 }                                       -- JUNOSe 5.3
 
 juniPppSummaryBasicGroup3  OBJECT-GROUP
@@ -3907,101 +3712,6 @@ juniPppSummaryNetworkGroup3  OBJECT-GROUP
         information in a Juniper product."
     ::= { juniPppGroups 28 }                                       -- JUNOSe 6.0
 
-juniPppMlPppGroup6  OBJECT-GROUP
-    OBJECTS {
-        juniPppMlPppBundleRowStatus,
-        juniPppMlPppBundleNetworkIfIndex,
-        juniPppMlPppNextLinkIfIndex,
-        juniPppMlPppLinkConfigLowerIfIndex,
-        juniPppMlPppLinkConfigKeepalive,
-        juniPppMlPppLinkConfigAuthentication,
-        juniPppMlPppLinkConfigMaxAuthenRetries,
-        juniPppMlPppLinkConfigRowStatus,
-        juniPppMlPppLinkConfigChapMinChallengeLength,
-        juniPppMlPppLinkConfigChapMaxChallengeLength,
-        juniPppMlPppLinkConfigPassiveMode,
-        juniPppMlPppLinkConfigAuthenticatorVirtualRouter,
-        juniPppMlPppLinkConfigAaaProfile,
-        juniPppMlPppLinkConfigFragmentation,
-        juniPppMlPppLinkConfigReassembly,
-        juniPppMlPppLinkConfigMaxReceiveReconstructedUnit,
-        juniPppMlPppLinkConfigFragmentSize,
-	juniPppMlPppLinkConfigHashLinkSelection,
-        juniPppMlPppNextNetworkIfIndex,
-        juniPppMlPppNetworkConfigLowerIfIndex,
-        juniPppMlPppNetworkBundleName,
-        juniPppMlPppNetworkRowStatus,
-        juniPppMlPppBindRowStatus }
-    STATUS      obsolete
-    DESCRIPTION
-	"Obsolete collection of objects providing multi link PPP management
-        support in a Juniper product.  This group became obsolete when
-        additional objects were added."
-    ::= { juniPppGroups 29 }                                       -- JUNOSe 7.2
-
-juniPppLcpGroup6  OBJECT-GROUP
-    OBJECTS {
-        juniPppLinkStatusTerminateReason,
-        juniPppLinkStatusTerminateNegFailOption,
-        juniPppLinkStatusInKeepaliveRequests,
-        juniPppLinkStatusOutKeepaliveRequests,
-        juniPppLinkStatusInKeepaliveReplies,
-        juniPppLinkStatusOutKeepaliveReplies,
-        juniPppLinkStatusKeepaliveFailures,
-        juniPppLinkStatusLocalMagicNumber,
-        juniPppLinkStatusRemoteMagicNumber,
-        juniPppLinkStatusLocalAuthentication,
-        juniPppLinkStatusTunnelIfIndex,
-        juniPppLinkConfigRowStatus,
-        juniPppLinkConfigLowerIfIndex,
-        juniPppLinkConfigKeepalive,
-        juniPppLinkConfigAuthentication,
-        juniPppLinkConfigMaxAuthenRetries,
-        juniPppLinkConfigStandardIfIndex,
-        juniPppLinkConfigChapMinChallengeLength,
-        juniPppLinkConfigChapMaxChallengeLength,
-        juniPppLinkConfigPassiveMode,
-        juniPppLinkConfigAuthenticatorVirtualRouter,
-        juniPppLinkConfigAaaProfile,
-        juniPppLinkConfigAuthentication2,
-        juniPppNextIfIndex }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of link-layer
-        functionality (LCP) of PPP interfaces in a Juniper product."
-    ::= { juniPppGroups 30 }                                       -- JUNOSe 7.3
-
-juniPppMlPppGroup7  OBJECT-GROUP
-    OBJECTS {
-        juniPppMlPppBundleRowStatus,
-        juniPppMlPppBundleNetworkIfIndex,
-        juniPppMlPppNextLinkIfIndex,
-        juniPppMlPppLinkConfigLowerIfIndex,
-        juniPppMlPppLinkConfigKeepalive,
-        juniPppMlPppLinkConfigAuthentication,
-        juniPppMlPppLinkConfigMaxAuthenRetries,
-        juniPppMlPppLinkConfigRowStatus,
-        juniPppMlPppLinkConfigChapMinChallengeLength,
-        juniPppMlPppLinkConfigChapMaxChallengeLength,
-        juniPppMlPppLinkConfigPassiveMode,
-        juniPppMlPppLinkConfigAuthenticatorVirtualRouter,
-        juniPppMlPppLinkConfigAaaProfile,
-        juniPppMlPppLinkConfigFragmentation,
-        juniPppMlPppLinkConfigReassembly,
-        juniPppMlPppLinkConfigMaxReceiveReconstructedUnit,
-        juniPppMlPppLinkConfigFragmentSize,
-	juniPppMlPppLinkConfigHashLinkSelection,
-        juniPppMlPppLinkConfigAuthentication2,
-        juniPppMlPppNextNetworkIfIndex,
-        juniPppMlPppNetworkConfigLowerIfIndex,
-        juniPppMlPppNetworkBundleName,
-        juniPppMlPppNetworkRowStatus,
-        juniPppMlPppBindRowStatus }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing multi link PPP management support in
-        a Juniper product."
-    ::= { juniPppGroups 31 }                                       -- JUNOSe 7.3
 
 END
 

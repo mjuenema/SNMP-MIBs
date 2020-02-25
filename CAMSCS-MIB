@@ -1,0 +1,3012 @@
+-- CA, INC.
+-- Proprietary and Confidential Information
+--  
+-- This material contains, and is part of a computer software program
+-- which is, proprietary and confidential information owned by COMPUTER
+-- ASSOCIATES INTERNATIONAL, INC.  The program, including this material,
+-- may not be duplicated, disclosed or reproduced in whole or in part for
+-- any purpose without the express written authorization of COMPUTER
+-- ASSOCIATES. All authorized reproductions must be marked with this
+-- legend.
+-- Computer Associates International, Inc    
+-- 
+-- Copyright (c) 2011
+-- All rights reserved
+-- 
+-- ------------------------------------------------------------------------
+-- Mib name: camscs-aim
+-- ------------------------------------------------------------------------
+-- This is the MIB for Microsoft Cluster
+-- ------------------------------------------------------------------------
+-- 
+
+    CAMSCS-MIB DEFINITIONS ::= BEGIN
+ 
+        IMPORTS
+            OBJECT-TYPE            
+                FROM RFC-1212            
+            TRAP-TYPE            
+                FROM RFC-1215            
+            enterprises, Counter, Gauge
+                FROM RFC1155-SMI            
+            DisplayString            
+                FROM RFC1213-MIB            
+            SnmpAdminString            
+                FROM SNMP-FRAMEWORK-MIB;
+    
+    
+    
+--
+-- Node definitions
+--
+    
+-- *****************************************************************************
+-- OIDs of mscs agent start with 1.3.6.1.4.1.546.16.51
+-- *****************************************************************************
+-- 
+        empire OBJECT IDENTIFIER ::= { enterprises 546 }
+
+        
+--     1.3.6.1.4.1.546.1
+        unix OBJECT IDENTIFIER ::= { empire 1 }
+
+        
+--     1.3.6.1.4.1.546.1.1
+        sysmgmt OBJECT IDENTIFIER ::= { unix 1 }
+
+        
+--     1.3.6.1.4.1.546.1.1.9
+        traps OBJECT IDENTIFIER ::= { empire 9 }
+
+        
+--       1.3.6.1.4.1.546.16
+        applications OBJECT IDENTIFIER ::= { empire 16 }
+
+        
+--       1.3.6.1.4.1.546.16.56
+        camscsaim OBJECT IDENTIFIER ::= { applications 51 }
+
+        
+--       1.3.6.1.4.1.546.16.51.1
+        mscsAimGroup OBJECT IDENTIFIER ::= { camscsaim 1 }
+
+        
+--       1.3.6.1.4.1.546.16.56.1.1
+        mscsAimInstanceCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of instances in mscsAimInstanceTable."
+            ::= { mscsAimGroup 1 }
+
+        
+--       1.3.6.1.4.1.546.16.56.1.2
+        mscsAimInstanceTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimInstanceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "A table containing the MSCS instances."
+            ::= { mscsAimGroup 2 }
+
+        
+--       1.3.6.1.4.1.546.16.56.1.2.1
+        mscsAimInstanceEntry OBJECT-TYPE
+            SYNTAX MscsAimInstanceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The MSCS instances table entry."
+            INDEX { mscsAimInstanceIndex }
+            ::= { mscsAimInstanceTable 1 }
+
+        
+        MscsAimInstanceEntry ::=
+            SEQUENCE { 
+                mscsAimInstanceIndex
+                    INTEGER,
+                mscsAimInstanceName
+                    DisplayString,
+                mscsAimInstanceUserName
+                    DisplayString,
+                mscsAimInstancePassword
+                    DisplayString,
+                mscsAimInstanceRowStatus
+                    INTEGER,
+                mscsAimInstanceDataStatus
+                    INTEGER
+             }
+
+--       1.3.6.1.4.1.546.16.51.1.2.1.1
+        mscsAimInstanceIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                " The unique index of the instance."
+            ::= { mscsAimInstanceEntry 1 }
+
+        
+--       1.3.6.1.4.1.546.16.51.1.2.1.2
+        mscsAimInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "Name of the instance"
+            ::= { mscsAimInstanceEntry 2 }
+
+        
+--       1.3.6.1.4.1.546.16.51.1.2.1.3
+        mscsAimInstanceUserName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "User name for connecting to the instance."
+            ::= { mscsAimInstanceEntry 3 }
+
+        
+--       1.3.6.1.4.1.546.16.51.1.2.1.4
+        mscsAimInstancePassword OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "Password for the user name provided to connect to the instance."
+            ::= { mscsAimInstanceEntry 4 }
+
+        
+--       1.3.6.1.4.1.546.16.51.1.2.1.5
+        mscsAimInstanceRowStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                active(1),
+                notInService(2),
+                notReady(3),
+                createAndGo(4),
+                createAndWait(5),
+                destroy(6)
+                }
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "The status of this monitor entry according to the Textual Conventions for SNMPv2 (see RFC 1443).
+                active(1) - the row is available for usage
+                notInService(2) - setting to this value disables usage of the row
+                notReady(3) - an error occurred during usage of the row
+                createAndGo(4) - setting to this value creates the row with row status set to active(1)
+                createAndWait(5) - setting to this value creates the row with row status set to notInService(2)
+                destroy(6) - setting to this value deletes the row"
+            DEFVAL { 5 }
+            ::= { mscsAimInstanceEntry 5 }
+
+        
+--       1.3.6.1.4.1.546.16.51.1.2.1.6
+        mscsAimInstanceDataStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                ready(1),
+                notReady(2),
+                hostUnreachable(3),
+                hostIsSlave(4),
+                authenticationFailed(5),
+                unknownError(6)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The status of data of the  MSCS Instance (Server), i.e. status of Aim caches for the instance.
+                ready(1) - data are ready in Aim cache, caches were populated
+                notReady(2)  - data are Not ready, caches were not populated yet
+                hostUnreachable(3) - MSCS host unreachable, data are kept in Aim caches
+                hostIsSlave(4) -  MSCS host is a slave server, data are kept in Aim caches
+                authenticationFailed(5) - authentication failed for host, data are kept in Aim caches
+                unknownError(6) - unknow error, data are kept in Aim caches"
+            ::= { mscsAimInstanceEntry 6 }
+
+        
+        mscsAimInstanceUnusedIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "An SNMP GET of this attribute returns an unused Instance UID. This
+                is normally used to expedite safe table row creation."
+            ::= { mscsAimGroup 3 }
+
+        
+--       1.3.6.1.4.1.546.16.51.2
+        mscsAimStatGroup OBJECT IDENTIFIER ::= { camscsaim 2 }
+
+        
+        mscsAimStatClusterGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 1 }
+
+        
+        mscsAimStatClusterCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            ::= { mscsAimStatClusterGroup 1 }
+
+        
+        mscsAimStatClusterTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatClusterEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatClusterGroup 2 }
+
+        
+        mscsAimStatClusterEntry OBJECT-TYPE
+            SYNTAX MscsAimStatClusterEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatClusterIndex }
+            ::= { mscsAimStatClusterTable 1 }
+
+        
+        MscsAimStatClusterEntry ::=
+            SEQUENCE { 
+                mscsAimStatClusterIndex
+                    INTEGER,
+                mscsAimStatClusterInstanceName
+                    DisplayString,
+                mscsAimStatClusterName
+                    DisplayString,
+                mscsAimStatClusterDescription
+                    SnmpAdminString,
+                mscsAimStatClusterBackupInProgress
+                    INTEGER,
+                mscsAimStatClusterGroupWaitDelay
+                    INTEGER,
+                mscsAimStatClusterLogLevel
+                    INTEGER,
+                mscsAimStatClusterLogSize
+                    Gauge,
+                mscsAimStatClusterEnableSharedVolumes
+                    INTEGER,
+                mscsAimStatClusterFixQuorum
+                    INTEGER,
+                mscsAimStatClusterIPv4Addresses
+                    DisplayString,
+                mscsAimStatClusterIPv6Addresses
+                    DisplayString,
+                mscsAimStatClusterMaxNumberOfNodes
+                    INTEGER,
+                mscsAimStatClusterQuorumArbitrationTimeMax
+                    INTEGER,
+                mscsAimStatClusterQuorumArbitrationTimeMin
+                    INTEGER,
+                mscsAimStatClusterQuorumPath
+                    SnmpAdminString,
+                mscsAimStatClusterQuorumType
+                    SnmpAdminString,
+                mscsAimStatClusterQuorumTypeValue
+                    INTEGER,
+                mscsAimStatClusternodeResourceFailure
+                    INTEGER,
+                mscsAimStatClusternodeResourcesOnline
+                    INTEGER,
+                mscsAimStatClusterSharedVolumesRoot
+                    SnmpAdminString,
+                mscsAimStatClusterShutdownTimeoutInMinutes
+                    INTEGER,
+                mscsAimStatClusterWitnessDatabaseWriteTimeout
+                    INTEGER,
+                mscsAimStatClusterWitnessRestartInterval
+                    Gauge,
+                mscsAimStatClusterResourceControls
+                    Counter,
+                mscsAimStatClusterResourceFailureAccessViolation
+                    Counter,
+                mscsAimStatClusterResourceFailureDeadlock
+                    Counter,
+                mscsAimStatClusterResourceTypeControls
+                    Counter,
+                mscsAimStatClusterCryptoCheckpointsRestored
+                    Counter,
+                mscsAimStatClusterCryptoCheckpointsSaved
+                    Counter,
+                mscsAimStatClusterRegistryCheckpointsRestored
+                    Counter,
+                mscsAimStatClusterRegistryCheckpointsSaved
+                    Counter,
+                mscsAimStatClusterFlushes
+                    Counter,
+                mscsAimStatClusterDatabaseUpdateMessages
+                    Counter,
+                mscsAimStatClusterUpdateMessages
+                    Counter,
+                mscsAimStatClusterMessagesOutstanding
+                    Gauge,
+                mscsAimStatClusterMessagesSent
+                    Counter
+             }
+
+        mscsAimStatClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of this table row"
+            ::= { mscsAimStatClusterEntry 1 }
+
+        
+        mscsAimStatClusterInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatClusterEntry 2 }
+
+        
+        mscsAimStatClusterName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies the name of the cluster."
+            ::= { mscsAimStatClusterEntry 3 }
+
+        
+        mscsAimStatClusterDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the cluster"
+            ::= { mscsAimStatClusterEntry 4 }
+
+        
+        mscsAimStatClusterBackupInProgress OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				no(0),
+				yes(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates whether a backup is in progress.
+                This property is not supported before Windows Server 2008.
+                "
+            ::= { mscsAimStatClusterEntry 5 }
+
+        
+        mscsAimStatClusterGroupWaitDelay OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Maximum time in seconds that a group waits for its preferred node to come online during cluster startup before coming online on a different node.
+                This property is not supported before Windows Server 2008 R2.
+                "
+            ::= { mscsAimStatClusterEntry 6 }
+
+        
+        mscsAimStatClusterLogLevel OBJECT-TYPE
+            SYNTAX INTEGER (0..10)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Controls the level of cluster logging.
+                This property is not supported before Windows Server 2008.
+                "
+            ::= { mscsAimStatClusterEntry 7 }
+
+        
+        mscsAimStatClusterLogSize OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Controls the maximum size (in MB) of the cluster log files on each of the nodes.
+                This property is not supported before Windows Server 2008.
+                "
+            ::= { mscsAimStatClusterEntry 8 }
+
+        
+        mscsAimStatClusterEnableSharedVolumes OBJECT-TYPE
+            SYNTAX INTEGER 
+				{
+				disabled(0),
+				enabled(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates if cluster shared volumes on this cluster are enabled.
+                This property is not supported before Windows Server 2008 R2.
+                
+                "
+            ::= { mscsAimStatClusterEntry 9 }
+
+        
+        mscsAimStatClusterFixQuorum OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				notInFixQuorumState(0),
+				inFixQuorumState(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies if the cluster is in a fix quorum state.
+                This property is not supported before Windows Server 2008 R2.
+                "
+            ::= { mscsAimStatClusterEntry 10 }
+
+        
+        mscsAimStatClusterIPv4Addresses OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies the cluster's IPv4 network address(es).
+                "
+            ::= { mscsAimStatClusterEntry 11 }
+
+        
+        mscsAimStatClusterIPv6Addresses OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies the cluster's IPv4 network address(es)
+                "
+            ::= { mscsAimStatClusterEntry 12 }
+
+        
+        mscsAimStatClusterMaxNumberOfNodes OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates the maximum number of nodes that can participate in a cluster. A value of zero indicates that an unlimited number of nodes can participate in the cluster."
+            ::= { mscsAimStatClusterEntry 13 }
+
+        
+        mscsAimStatClusterQuorumArbitrationTimeMax OBJECT-TYPE
+            SYNTAX INTEGER (1..3600)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Controls the maximum time in seconds necessary to decide the Quorum owner node."
+            ::= { mscsAimStatClusterEntry 14 }
+
+        
+        mscsAimStatClusterQuorumArbitrationTimeMin OBJECT-TYPE
+            SYNTAX INTEGER (1..3600)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Controls the minimum time in seconds necessary to decide the Quorum owner node."
+            ::= { mscsAimStatClusterEntry 15 }
+
+        
+        mscsAimStatClusterQuorumPath OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Maintains quorum files.
+                This property is not supported before Windows Server 2008.
+                "
+            ::= { mscsAimStatClusterEntry 16 }
+
+        
+        mscsAimStatClusterQuorumType OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Gets the current quorum type.
+                This property is not supported before Windows Server 2008.
+                
+                The following are the possible values:
+                Majority
+                No Majority"
+            ::= { mscsAimStatClusterEntry 17 }
+
+        
+        mscsAimStatClusterQuorumTypeValue OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				nodeMajority(1),
+				nodeAndFileShareMajority(2),
+				nodeAndDiskMajority(3),
+				noMajority(4)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Value of the current quorum type."
+            ::= { mscsAimStatClusterEntry 18 }
+
+        
+        mscsAimStatClusternodeResourceFailure OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of total encountered resource failures."
+            ::= { mscsAimStatClusterEntry 19 }
+
+        
+        mscsAimStatClusternodeResourcesOnline OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of currently online Resources"
+            ::= { mscsAimStatClusterEntry 20 }
+
+        
+        mscsAimStatClusterSharedVolumesRoot OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Root directory from which the cluster shared volumes are linked.
+                This property is not supported before Windows Server 2008 R2.
+                "
+            ::= { mscsAimStatClusterEntry 21 }
+
+        
+        mscsAimStatClusterShutdownTimeoutInMinutes OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The maximum time in minutes allowed for cluster resources to come offline during cluster service shutdown.
+                This property is not supported before Windows Server 2008 R2.
+                "
+            ::= { mscsAimStatClusterEntry 22 }
+
+        
+        mscsAimStatClusterWitnessDatabaseWriteTimeout OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The maximum time in seconds that a cluster database write to a witness can take before the write is abandoned.
+                This property is not supported before Windows Server 2008.
+                "
+            ::= { mscsAimStatClusterEntry 23 }
+
+        
+        mscsAimStatClusterWitnessRestartInterval OBJECT-TYPE
+            SYNTAX Gauge(5..1440)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The witness restart interval in minutes.
+                This property is not supported before Windows Server 2008.
+                "
+            ::= { mscsAimStatClusterEntry 24 }
+
+        
+        mscsAimStatClusterResourceControls OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter, it tells how many resource controls the resources of the given type are handling on a node"
+            ::= { mscsAimStatClusterEntry 25 }
+
+        
+        mscsAimStatClusterResourceFailureAccessViolation OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter, it tells how many times a resource of this type caused the Resource Host Monitor to get terminated due to a failure of a resource of this type"
+            ::= { mscsAimStatClusterEntry 26 }
+
+        
+        mscsAimStatClusterResourceFailureDeadlock OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 27 }
+
+        
+        mscsAimStatClusterResourceTypeControls OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter, it tells how many resource type controls the resource DLL of the given type is handling on a node"
+            ::= { mscsAimStatClusterEntry 28 }
+
+        
+        mscsAimStatClusterCryptoCheckpointsRestored OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 29 }
+
+        
+        mscsAimStatClusterCryptoCheckpointsSaved OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 30 }
+
+        
+        mscsAimStatClusterRegistryCheckpointsRestored OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 31 }
+
+        
+        mscsAimStatClusterRegistryCheckpointsSaved OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 32 }
+
+        
+        mscsAimStatClusterFlushes OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 33 }
+
+        
+        mscsAimStatClusterDatabaseUpdateMessages OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 34 }
+
+        
+        mscsAimStatClusterUpdateMessages OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 35 }
+
+        
+        mscsAimStatClusterMessagesOutstanding OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 36 }
+
+        
+        mscsAimStatClusterMessagesSent OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster performance counter."
+            ::= { mscsAimStatClusterEntry 37 }
+
+        
+        mscsAimStatNodeGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 2 }
+
+        
+        mscsAimStatNodeCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            ::= { mscsAimStatNodeGroup 1 }
+
+        
+        mscsAimStatNodeTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatNodeEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatNodeGroup 2 }
+
+        
+        mscsAimStatNodeEntry OBJECT-TYPE
+            SYNTAX MscsAimStatNodeEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatNodeIndex }
+            ::= { mscsAimStatNodeTable 1 }
+
+        
+        MscsAimStatNodeEntry ::=
+            SEQUENCE { 
+                mscsAimStatNodeIndex
+                    INTEGER,
+                mscsAimStatNodeInstanceName
+                    DisplayString,
+                mscsAimStatNodeClusterIndex
+                    INTEGER,
+                mscsAimStatNodeName
+                    SnmpAdminString,
+                mscsAimStatNodeDescription
+                    SnmpAdminString,
+                mscsAimStatNodeBuildNumber
+                    INTEGER,
+                mscsAimStatNodeCSDVersion
+                    DisplayString,
+                mscsAimStatNodeHostMemoryTotalMB
+                    INTEGER,
+                mscsAimStatNodeHostMemoryAvailableMB
+                    INTEGER,
+                mscsAimStatNodeHostCPUUtilizationPercent
+                    INTEGER,
+                mscsAimStatNodeMajorVersion
+                    INTEGER,
+                mscsAimStatNodeMinorVersion
+                    INTEGER,
+                mscsAimStatNodeNodeHighestVersion
+                    INTEGER,
+                mscsAimStatNodeNodeLowestVersion
+                    INTEGER,
+                mscsAimStatNodeState
+                    INTEGER,
+                mscsAimStatNodeKBsReceived
+                    Counter,
+                mscsAimStatNodeKBsSent
+                    Counter,
+                mscsAimStatNodeMessagesReceived
+                    Counter,
+                mscsAimStatNodeMessagesSent
+                    Counter,
+                mscsAimStatNodeNormalMessageQueueLength
+                    Gauge,
+                mscsAimStatNodeUnacknowledgedMessageQueueLength
+                    Gauge,
+                mscsAimStatNodeUrgentMessageQueueLength
+                    Gauge,
+                mscsAimStatNodeHostMemoryUtilizationPercent
+                    INTEGER,
+                mscsAimStatNodeClusterName
+                    DisplayString
+             }
+
+        mscsAimStatNodeIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            ::= { mscsAimStatNodeEntry 1 }
+
+        
+        mscsAimStatNodeInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatNodeEntry 2 }
+
+        
+        mscsAimStatNodeClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to."
+            ::= { mscsAimStatNodeEntry 3 }
+
+        
+        mscsAimStatNodeName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Defines the label by which the node is known."
+            ::= { mscsAimStatNodeEntry 4 }
+
+        
+        mscsAimStatNodeDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of this node."
+            ::= { mscsAimStatNodeEntry 5 }
+
+        
+        mscsAimStatNodeBuildNumber OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The node's BuildNumber property."
+            ::= { mscsAimStatNodeEntry 6 }
+
+        
+        mscsAimStatNodeCSDVersion OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The most recent service pack installed on the node, if any."
+            ::= { mscsAimStatNodeEntry 7 }
+
+        
+        mscsAimStatNodeHostMemoryTotalMB OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The total amount of memory available on this node (in MB)"
+            ::= { mscsAimStatNodeEntry 8 }
+
+        
+        mscsAimStatNodeHostMemoryAvailableMB OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The available memory on this node (in MB)."
+            ::= { mscsAimStatNodeEntry 9 }
+
+        
+        mscsAimStatNodeHostCPUUtilizationPercent OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The CPU utilization in percent."
+            ::= { mscsAimStatNodeEntry 10 }
+
+        
+        mscsAimStatNodeMajorVersion OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The major portion of the Windows version installed."
+            ::= { mscsAimStatNodeEntry 11 }
+
+        
+        mscsAimStatNodeMinorVersion OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The minor portion of the Windows version installed."
+            ::= { mscsAimStatNodeEntry 12 }
+
+        
+        mscsAimStatNodeNodeHighestVersion OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The highest possible version of the cluster service with which the node can join or communicate."
+            ::= { mscsAimStatNodeEntry 13 }
+
+        
+        mscsAimStatNodeNodeLowestVersion OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The lowest possible version of the cluster service with which the node can join or communicate."
+            ::= { mscsAimStatNodeEntry 14 }
+
+        
+        mscsAimStatNodeState OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                StateUnknown(-1),
+                Up(0),
+                Down(1),
+                Paused(2),
+                Joining(3)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Returns the current state of a node.
+                Possible values:
+                  StateUnknown (-1)
+                  Up (0)
+                  Down (1)
+                  Paused (2)
+                  Joining (3)
+                "
+            ::= { mscsAimStatNodeEntry 15 }
+
+        
+        mscsAimStatNodeKBsReceived OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster node performance counter.
+                "
+            ::= { mscsAimStatNodeEntry 16 }
+
+        
+        mscsAimStatNodeKBsSent OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster node performance counter.
+                "
+            ::= { mscsAimStatNodeEntry 17 }
+
+        
+        mscsAimStatNodeMessagesReceived OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster node performance counter.
+                "
+            ::= { mscsAimStatNodeEntry 18 }
+
+        
+        mscsAimStatNodeMessagesSent OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster node performance counter.
+                "
+            ::= { mscsAimStatNodeEntry 19 }
+
+        
+        mscsAimStatNodeNormalMessageQueueLength OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster node performance counter.
+                "
+            ::= { mscsAimStatNodeEntry 20 }
+
+        
+        mscsAimStatNodeUnacknowledgedMessageQueueLength OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster node performance counter.
+                "
+            ::= { mscsAimStatNodeEntry 21 }
+
+        
+        mscsAimStatNodeUrgentMessageQueueLength OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Cluster node performance counter."
+            ::= { mscsAimStatNodeEntry 22 }
+
+        
+        mscsAimStatNodeHostMemoryUtilizationPercent OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Memory utilization in percent."
+            ::= { mscsAimStatNodeEntry 23 }
+
+        
+        mscsAimStatNodeClusterName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Name of the cluster this node belongs to."
+            ::= { mscsAimStatNodeEntry 24 }
+
+        
+        mscsAimStatResourceTypeGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 3 }
+
+        
+        mscsAimStatResourceTypeCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            ::= { mscsAimStatResourceTypeGroup 1 }
+
+        
+        mscsAimStatResourceTypeTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatResourceTypeEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatResourceTypeGroup 2 }
+
+        
+        mscsAimStatResourceTypeEntry OBJECT-TYPE
+            SYNTAX MscsAimStatResourceTypeEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatResourceTypeIndex }
+            ::= { mscsAimStatResourceTypeTable 1 }
+
+        
+        MscsAimStatResourceTypeEntry ::=
+            SEQUENCE { 
+                mscsAimStatResourceTypeIndex
+                    INTEGER,
+                mscsAimStatResourceTypeInstanceName
+                    DisplayString,
+                mscsAimStatResourceTypeClusterIndex
+                    INTEGER,
+                mscsAimStatResourceTypeName
+                    DisplayString,
+                mscsAimStatResourceTypeDescription
+                    SnmpAdminString,
+                mscsAimStatResourceTypeCharacteristics
+                    INTEGER,
+                mscsAimStatResourceTypeDeadlockTimeout
+                    Gauge,
+                mscsAimStatResourceTypeDeleteRequiresAllNodes
+                    INTEGER,
+                mscsAimStatResourceTypeDisplayName
+                    SnmpAdminString,
+                mscsAimStatResourceTypeDllName
+                    SnmpAdminString,
+                mscsAimStatResourceTypeIsAlivePollInterval
+                    INTEGER,
+                mscsAimStatResourceTypeLocalQuorumCapable
+                    INTEGER,
+                mscsAimStatResourceTypeLooksAlivePollInterval
+                    INTEGER,
+                mscsAimStatResourceTypePendingTimeout
+                    INTEGER,
+                mscsAimStatResourceTypeQuorumCapable
+                    INTEGER
+             }
+
+        mscsAimStatResourceTypeIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            ::= { mscsAimStatResourceTypeEntry 1 }
+
+        
+        mscsAimStatResourceTypeInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatResourceTypeEntry 2 }
+
+        
+        mscsAimStatResourceTypeClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to."
+            ::= { mscsAimStatResourceTypeEntry 3 }
+
+        
+        mscsAimStatResourceTypeName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the resource type."
+            ::= { mscsAimStatResourceTypeEntry 4 }
+
+        
+        mscsAimStatResourceTypeDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the resource type."
+            ::= { mscsAimStatResourceTypeEntry 5 }
+
+        
+        mscsAimStatResourceTypeCharacteristics OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The characteristics set for the resource type."
+            ::= { mscsAimStatResourceTypeEntry 6 }
+
+        
+        mscsAimStatResourceTypeDeadlockTimeout OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The length of time to wait, in milliseconds, before declaring a deadlock in any call into a resource."
+            ::= { mscsAimStatResourceTypeEntry 7 }
+
+        
+        mscsAimStatResourceTypeDeleteRequiresAllNodes OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				notRequireAllActive(0),
+				requireAllActive(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The resource cannot be deleted unless all nodes are active."
+            ::= { mscsAimStatResourceTypeEntry 8 }
+
+        
+        mscsAimStatResourceTypeDisplayName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name displayed for the resource type."
+            ::= { mscsAimStatResourceTypeEntry 9 }
+
+        
+        mscsAimStatResourceTypeDllName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the dynamic-link library (DLL) for the resource type."
+            ::= { mscsAimStatResourceTypeEntry 10 }
+
+        
+        mscsAimStatResourceTypeIsAlivePollInterval OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The recommended interval in milliseconds at which the Cluster Service should poll the resource to determine whether it is operational."
+            ::= { mscsAimStatResourceTypeEntry 11 }
+
+        
+        mscsAimStatResourceTypeLocalQuorumCapable OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				notCapable(0),
+				capable(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Windows Server 2003:  The resource can be selected as the quorum resource in clusters configured using the -localquorum switch.
+                "
+            ::= { mscsAimStatResourceTypeEntry 12 }
+
+        
+        mscsAimStatResourceTypeLooksAlivePollInterval OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The recommended interval in milliseconds at which the Cluster Service should poll the resource to determine whether it appears operational."
+            ::= { mscsAimStatResourceTypeEntry 13 }
+
+        
+        mscsAimStatResourceTypePendingTimeout OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "If a resource cannot be brought online or taken offline in the number of milliseconds specified by this property, the resource is forcibly terminated.
+                Windows Server 2003:   This property is not supported.
+                "
+            ::= { mscsAimStatResourceTypeEntry 14 }
+
+        
+        mscsAimStatResourceTypeQuorumCapable OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				notCapable(0),
+				capable(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The resource can be selected as the quorum resource for the cluster."
+            ::= { mscsAimStatResourceTypeEntry 15 }
+
+        
+        mscsAimStatResourceGroupGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 4 }
+
+        
+        mscsAimStatResourceGroupCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of rows in the table.
+                "
+            ::= { mscsAimStatResourceGroupGroup 1 }
+
+        
+        mscsAimStatResourceGroupTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatResourceGroupEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatResourceGroupGroup 2 }
+
+        
+        mscsAimStatResourceGroupEntry OBJECT-TYPE
+            SYNTAX MscsAimStatResourceGroupEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatResourceGroupIndex }
+            ::= { mscsAimStatResourceGroupTable 1 }
+
+        
+        MscsAimStatResourceGroupEntry ::=
+            SEQUENCE { 
+                mscsAimStatResourceGroupIndex
+                    INTEGER,
+                mscsAimStatResourceGroupInstanceName
+                    DisplayString,
+                mscsAimStatResourceGroupClusterIndex
+                    INTEGER,
+                mscsAimStatResourceGroupNodeIndex
+                    INTEGER,
+                mscsAimStatResourceGroupName
+                    SnmpAdminString,
+                mscsAimStatResourceGroupDescription
+                    SnmpAdminString,
+                mscsAimStatResourceGroupAutoFailbackType
+                    INTEGER,
+                mscsAimStatResourceGroupDefaultOwner
+                    INTEGER,
+                mscsAimStatResourceGroupFailbackWindowStart
+                    INTEGER,
+                mscsAimStatResourceGroupFailbackWindowEnd
+                    INTEGER,
+                mscsAimStatResourceGroupFailoverPeriod
+                    Gauge,
+                mscsAimStatResourceGroupFailoverThreshold
+                    Gauge,
+                mscsAimStatResourceGroupGroupType
+                    INTEGER,
+                mscsAimStatResourceGroupPersistentState
+                    INTEGER,
+                mscsAimStatResourceGroupPriority
+                    INTEGER,
+                mscsAimStatResourceGroupState
+                    INTEGER,
+                mscsAimStatResourceGroupPreferredNodes
+                    DisplayString,
+                mscsAimStatResourceGroupPreviousNodeIndex
+                    INTEGER,
+                mscsAimStatResourceGroupNodeName
+                    SnmpAdminString,
+                mscsAimStatResourceGroupPreviousNodeName
+                    SnmpAdminString
+             }
+
+        mscsAimStatResourceGroupIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The numeric index of this row.
+                "
+            ::= { mscsAimStatResourceGroupEntry 1 }
+
+        
+        mscsAimStatResourceGroupInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatResourceGroupEntry 2 }
+
+        
+        mscsAimStatResourceGroupClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to."
+            ::= { mscsAimStatResourceGroupEntry 3 }
+
+        
+        mscsAimStatResourceGroupNodeIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the node this table row belongs to."
+            ::= { mscsAimStatResourceGroupEntry 4 }
+
+        
+        mscsAimStatResourceGroupName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the resource group."
+            ::= { mscsAimStatResourceGroupEntry 5 }
+
+        
+        mscsAimStatResourceGroupDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the resource group."
+            ::= { mscsAimStatResourceGroupEntry 6 }
+		
+        mscsAimStatResourceGroupAutoFailbackType OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				clusterGroupPreventFailback(0),
+				ClusterGroupAllowFailback(1),
+				ClusterGroupFailbackTypeCount(2)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies whether the group should automatically be failed back to the node identified as its preferred owner when that node comes back online following a failover."
+            ::= { mscsAimStatResourceGroupEntry 7 }
+
+        
+        mscsAimStatResourceGroupDefaultOwner OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of the last node the resource group was activated on or explicitly moved to.
+                This property is not supported before Windows Server 2008 R2.
+                "
+            ::= { mscsAimStatResourceGroupEntry 8 }
+
+        
+        mscsAimStatResourceGroupFailbackWindowStart OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The earliest time (that is, local time as kept by the cluster) in hours that the group can be moved back to the node identified as its preferred node."
+            ::= { mscsAimStatResourceGroupEntry 9 }
+
+        
+        mscsAimStatResourceGroupFailbackWindowEnd OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The latest time in hours that the group can be moved back to the node identified as its preferred node."
+            ::= { mscsAimStatResourceGroupEntry 10 }
+
+        
+        mscsAimStatResourceGroupFailoverPeriod OBJECT-TYPE
+            SYNTAX Gauge (1..1193)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of hours during which a maximum number of failover attempts, specified by the FailoverThreshold property, can occur."
+            ::= { mscsAimStatResourceGroupEntry 11 }
+
+        
+        mscsAimStatResourceGroupFailoverThreshold OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The maximum number of failover attempts."
+            ::= { mscsAimStatResourceGroupEntry 12 }
+
+			
+        mscsAimStatResourceGroupGroupType OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                fileServer(100),
+                printServer(101),
+                dhcpServer(102),
+                dtc(103),
+                msmq(104),
+                wins(105),
+                standAloneDfs(106),
+                genericApplication(107),
+                genericService(108),
+                genericScript(109),
+                iScsiNameService(110),
+                virtualMachine(111),
+                tsSessionBroker(112),
+                unknown(9999)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The Type of the resource group.
+                Possible values:
+                  fileServer (100)
+                  printServer (101)
+                  dhcpServer (102)
+                  dtc (103)
+                  msmq (104)
+                  wins (105)
+                  standAloneDfs (106)
+                  genericApplication (107)
+                  genericService (108)
+                  genericScript (109)
+                  iScsiNameService (110)
+                  virtualMachine (111)
+                  tsSessionBroker (112)
+                  unknown (9999)"
+            ::= { mscsAimStatResourceGroupEntry 13 }
+
+        
+        mscsAimStatResourceGroupPersistentState OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				offlineWhenServiceStart(0),
+				onlineWhenServiceStart(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies whether a group should be left offline or brought online when the Cluster service starts."
+            ::= { mscsAimStatResourceGroupEntry 14 }
+
+        
+        mscsAimStatResourceGroupPriority OBJECT-TYPE
+            SYNTAX INTEGER (0..512)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Priority value of the resource group
+                This property is not supported before Windows Server 2008 R2.
+                "
+            ::= { mscsAimStatResourceGroupEntry 15 }
+
+        
+        mscsAimStatResourceGroupState OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                StateUnknown(-1),
+                Online(0),
+                Offline(1),
+                Failed(2),
+                PartialOnline(3),
+                Pending(4)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The current state of the resource group.
+                Possible values:
+                  StateUnknown (-1)
+                  Online (0)
+                  Offline (1)
+                  Failed (2)
+                  PartialOnline (3)
+                  Pending (4)"
+            ::= { mscsAimStatResourceGroupEntry 16 }
+
+        
+        mscsAimStatResourceGroupPreferredNodes OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            ::= { mscsAimStatResourceGroupEntry 17 }
+
+        
+        mscsAimStatResourceGroupPreviousNodeIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the previous node this table row belonged to (used for migrate trap)."
+            ::= { mscsAimStatResourceGroupEntry 18 }
+
+        
+        mscsAimStatResourceGroupNodeName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the new node this table row belonged to (used for migrate trap)."
+            ::= { mscsAimStatResourceGroupEntry 19 }
+
+        
+        mscsAimStatResourceGroupPreviousNodeName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the previous node this table row belonged to (used for migrate trap)."
+            ::= { mscsAimStatResourceGroupEntry 20 }
+
+        
+        mscsAimStatResourceGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 5 }
+
+        
+        mscsAimStatResourceCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of rows in the table.
+                "
+            ::= { mscsAimStatResourceGroup 1 }
+
+        
+        mscsAimStatResourceTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatResourceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatResourceGroup 2 }
+
+        
+        mscsAimStatResourceEntry OBJECT-TYPE
+            SYNTAX MscsAimStatResourceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatResourceGroupIndex }
+            ::= { mscsAimStatResourceTable 1 }
+
+        
+        MscsAimStatResourceEntry ::=
+            SEQUENCE { 
+                mscsAimStatResourceIndex
+                    INTEGER,
+                mscsAimStatResourceInstanceName
+                    DisplayString,
+                mscsAimStatResourceClusterIndex
+                    INTEGER,
+                mscsAimStatResourceResourceGroupIndex
+                    INTEGER,
+                mscsAimStatResourceName
+                    DisplayString,
+                mscsAimStatResourceResourceTypeIndex
+                    INTEGER,
+                mscsAimStatResourceDescription
+                    SnmpAdminString,
+                mscsAimStatResourceDeadlockTimeout
+                    INTEGER,
+                mscsAimStatResourceIsAlivePollInterval
+                    Gauge,
+                mscsAimStatResourceIsClusterSharedVolume
+                    INTEGER,
+                mscsAimStatResourceLocalQuorumCapable
+                    INTEGER,
+                mscsAimStatResourceLooksAlivePollInterval
+                    Gauge,
+                mscsAimStatResourcePendingTimeout
+                    INTEGER,
+                mscsAimStatResourcePersistentState
+                    INTEGER,
+                mscsAimStatResourceQuorumCapable
+                    INTEGER,
+                mscsAimStatResourceResourceClass
+                    INTEGER,
+                mscsAimStatResourceResourceSpecificStatus
+                    DisplayString,
+                mscsAimStatResourceRestartAction
+                    INTEGER,
+                mscsAimStatResourceRestartDelay
+                    Gauge,
+                mscsAimStatResourceRestartPeriod
+                    INTEGER,
+                mscsAimStatResourceRestartThreshold
+                    INTEGER,
+                mscsAimStatResourceRetryPeriodOnFailure
+                    INTEGER,
+                mscsAimStatResourceSeparateMonitor
+                    INTEGER,
+                mscsAimStatResourceState
+                    INTEGER,
+                mscsAimStatResourcePossibleOwners
+                    DisplayString,
+                mscsAimStatResourceDependencies
+                    DisplayString
+             }
+
+        mscsAimStatResourceIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The numeric index of this row.
+                "
+            ::= { mscsAimStatResourceEntry 1 }
+
+        
+        mscsAimStatResourceInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatResourceEntry 2 }
+
+        
+        mscsAimStatResourceClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to."
+            ::= { mscsAimStatResourceEntry 3 }
+
+        
+        mscsAimStatResourceResourceGroupIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the Resource Group this table row belongs to.
+                "
+            ::= { mscsAimStatResourceEntry 4 }
+
+        
+        mscsAimStatResourceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the resource.
+                "
+            ::= { mscsAimStatResourceEntry 5 }
+
+        
+        mscsAimStatResourceResourceTypeIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Index of the type of the resource.
+                "
+            ::= { mscsAimStatResourceEntry 6 }
+
+        
+        mscsAimStatResourceDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the resource.
+                "
+            ::= { mscsAimStatResourceEntry 7 }
+
+        
+        mscsAimStatResourceDeadlockTimeout OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates the length of time to wait, in milliseconds, before declaring a deadlock in any call into a resource.
+                This property is not supported before Windows Server 2008.
+                
+                "
+            ::= { mscsAimStatResourceEntry 8 }
+
+        
+        mscsAimStatResourceIsAlivePollInterval OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The recommended interval in milliseconds at which the Cluster Service should poll the resource to determine whether it is operational.
+                "
+            ::= { mscsAimStatResourceEntry 9 }
+
+        
+        mscsAimStatResourceIsClusterSharedVolume OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				no(0),
+				yes(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies if the resource is a cluster shared volume resource.
+                This property is not supported before Windows Server 2008 R2.
+                
+                "
+            ::= { mscsAimStatResourceEntry 10 }
+
+        
+        mscsAimStatResourceLocalQuorumCapable OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				notCapable(0),
+				capable(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The resource can be selected as the quorum resource in clusters configured using the -localquorum switch."
+            ::= { mscsAimStatResourceEntry 11 }
+
+        
+        mscsAimStatResourceLooksAlivePollInterval OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The recommended interval in milliseconds at which the Cluster Service should poll the resource to determine whether it appears operational. 
+                "
+            ::= { mscsAimStatResourceEntry 12 }
+
+        
+        mscsAimStatResourcePendingTimeout OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Provides access to the resource's PendingTimeout property. If a resource cannot be brought online or taken offline in the number of milliseconds specified by the PendingTimeout property, the resource is forcibly terminated.
+                This property is not supported before Windows Server 2008.
+                
+                "
+            ::= { mscsAimStatResourceEntry 13 }
+
+        
+        mscsAimStatResourcePersistentState OBJECT-TYPE
+            SYNTAX INTEGER (0..1)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Specifies whether the resource should be brought online or left offline when the Cluster Service is started."
+            ::= { mscsAimStatResourceEntry 14 }
+
+        
+        mscsAimStatResourceQuorumCapable OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				notCapable(0),
+				capable(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The resource can be selected as the quorum resource for the cluster."
+            ::= { mscsAimStatResourceEntry 15 }
+
+        
+        mscsAimStatResourceResourceClass OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The resource class of a resource."
+            ::= { mscsAimStatResourceEntry 16 }
+
+        
+        mscsAimStatResourceResourceSpecificStatus OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Provides a resource-specific status message that complements the current resource state.
+                This property is not supported before Windows Server 2008.
+                "
+            ::= { mscsAimStatResourceEntry 17 }
+
+        
+        mscsAimStatResourceRestartAction OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                notRestart(0),
+                notRestartIfExceedThreshold(1),
+                restartIfWhinPeriod(2)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The action to be taken by the Cluster Service if the resource fails. 
+                Possible values;
+                  Do not restart the resource after a failure. (0)
+                  Restart the resource after a failure. If the resource exceeds its restart threshold within its restart period, do not attempt to failover the group to another node in the cluster. (1)
+                  Restart the resource after a failure. If the resource exceeds its restart threshold within its restart period, attempt to fail over the group to another node in the cluster. This is the default setting. (2)
+                "
+            ::= { mscsAimStatResourceEntry 18 }
+
+        
+        mscsAimStatResourceRestartDelay OBJECT-TYPE
+            SYNTAX Gauge
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The time delay in milliseconds before a failed resource is restarted.
+                This property is not supported before Windows Server 2008.
+                
+                "
+            ::= { mscsAimStatResourceEntry 19 }
+
+        
+        mscsAimStatResourceRestartPeriod OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The interval of time, in milliseconds, during which a specified number of restart attempts can be made on a nonresponsive resource.
+                "
+            ::= { mscsAimStatResourceEntry 20 }
+
+        
+        mscsAimStatResourceRestartThreshold OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The maximum number of restart attempts that can be made on a resource within an interval defined by the RestartPeriod property before the Cluster Service initiates the action specified by the RestartAction property.
+                "
+            ::= { mscsAimStatResourceEntry 21 }
+
+        
+        mscsAimStatResourceRetryPeriodOnFailure OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The interval of time (in milliseconds) that a resource should remain in a failed state before the Cluster service attempts to restart it.
+                "
+            ::= { mscsAimStatResourceEntry 22 }
+
+        
+        mscsAimStatResourceSeparateMonitor OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				notRequireMonitor(0),
+				requireMonitor(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates whether the resource requires its own Resource Monitor.
+                "
+            ::= { mscsAimStatResourceEntry 23 }
+
+        
+        mscsAimStatResourceState OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                StateUnknown(-1),
+                Inherited(0),
+                Initializing(1),
+                Online(2),
+                Offline(3),
+                Failed(4),
+                Pending(128),
+                OnlinePending(129),
+                OfflinePending(130)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The current state of the resource. 
+                Possible values:
+                  StateUnknown (-1)
+                  Inherited (0)
+                  Initializing (1)
+                  Online (2)
+                  Offline (3)
+                  Failed (4)
+                  Pending (128)
+                  OnlinePending (129)
+                  OfflinePending (130)
+                "
+            ::= { mscsAimStatResourceEntry 24 }
+
+        
+        mscsAimStatResourcePossibleOwners OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Possible owners of that resource"
+            ::= { mscsAimStatResourceEntry 25 }
+
+        
+        mscsAimStatResourceDependencies OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Dependencies of that resource."
+            ::= { mscsAimStatResourceEntry 26 }
+
+        
+        mscsAimStatNetworkGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 6 }
+
+        
+        mscsAimStatNetworkCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of rows in the table.
+                "
+            ::= { mscsAimStatNetworkGroup 1 }
+
+        
+        mscsAimStatNetworkTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatNetworkEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatNetworkGroup 2 }
+
+        
+        mscsAimStatNetworkEntry OBJECT-TYPE
+            SYNTAX MscsAimStatNetworkEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatNetworkIndex }
+            ::= { mscsAimStatNetworkTable 1 }
+
+        
+        MscsAimStatNetworkEntry ::=
+            SEQUENCE { 
+                mscsAimStatNetworkIndex
+                    INTEGER,
+                mscsAimStatNetworkInstanceName
+                    DisplayString,
+                mscsAimStatNetworkClusterIndex
+                    INTEGER,
+                mscsAimStatNetworkName
+                    SnmpAdminString,
+                mscsAimStatNetworkDescription
+                    SnmpAdminString,
+                mscsAimStatNetworkAddress
+                    DisplayString,
+                mscsAimStatNetworkAddressMask
+                    DisplayString,
+                mscsAimStatNetworkAutoMetric
+                    INTEGER,
+                mscsAimStatNetworkCharacteristics
+                    INTEGER,
+                mscsAimStatNetworkIPv4Addresses
+                    DisplayString,
+                mscsAimStatNetworkIPv4PrefixLengths
+                    DisplayString,
+                mscsAimStatNetworkIPv6Addresses
+                    DisplayString,
+                mscsAimStatNetworkIPv6PrefixLengths
+                    DisplayString,
+                mscsAimStatNetworkMetric
+                    INTEGER,
+                mscsAimStatNetworkRole
+                    INTEGER,
+                mscsAimStatNetworkState
+                    INTEGER
+             }
+
+        mscsAimStatNetworkIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The numeric index of this row.
+                "
+            ::= { mscsAimStatNetworkEntry 1 }
+
+        
+        mscsAimStatNetworkInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatNetworkEntry 2 }
+
+        
+        mscsAimStatNetworkClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to.
+                "
+            ::= { mscsAimStatNetworkEntry 3 }
+
+        
+        mscsAimStatNetworkName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the network.
+                "
+            ::= { mscsAimStatNetworkEntry 4 }
+
+        
+        mscsAimStatNetworkDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the network.
+                "
+            ::= { mscsAimStatNetworkEntry 5 }
+
+        
+        mscsAimStatNetworkAddress OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The address for the entire network or subnet."
+            ::= { mscsAimStatNetworkEntry 6 }
+
+        
+        mscsAimStatNetworkAddressMask OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The mask that distinguishes the network and host portions of an address."
+            ::= { mscsAimStatNetworkEntry 7 }
+
+        
+        mscsAimStatNetworkAutoMetric OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				manual(0),
+				automatic(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Determines whether the metric is to be set by the user or determined automatically."
+            ::= { mscsAimStatNetworkEntry 8 }
+
+        
+        mscsAimStatNetworkCharacteristics OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				unknown(0),
+				deleteRequireAllNodes(2),
+				requireStateChangeReason(16),
+				singleClusterInstance(64),
+				singleGroupInstance(128)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Provides access to the characteristics set for the network.
+                "
+            ::= { mscsAimStatNetworkEntry 9 }
+
+        
+        mscsAimStatNetworkIPv4Addresses OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The IPv4 addresses currently assigned to this network."
+            ::= { mscsAimStatNetworkEntry 10 }
+
+        
+        mscsAimStatNetworkIPv4PrefixLengths OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The prefix lengths of the IPv4 addresses currently assigned to this network."
+            ::= { mscsAimStatNetworkEntry 11 }
+
+        
+        mscsAimStatNetworkIPv6Addresses OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The IPv6 addresses currently assigned to this network.
+                "
+            ::= { mscsAimStatNetworkEntry 12 }
+
+        
+        mscsAimStatNetworkIPv6PrefixLengths OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The prefix lengths of the IPv6 addresses currently assigned to this network.
+                "
+            ::= { mscsAimStatNetworkEntry 13 }
+
+        
+        mscsAimStatNetworkMetric OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The metric of a cluster network (networks with lower values are used first). If this value is set, then the AutoMetric property is set to false.
+                "
+            ::= { mscsAimStatNetworkEntry 14 }
+
+        
+        mscsAimStatNetworkRole OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                none(0),
+                cluster(1),
+                client(2),
+                both(3)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Provides access to the network's Role property.
+                Possible values:
+                  none (0)
+                  cluster (1)
+                  client (2)
+                  both (3)
+                "
+            ::= { mscsAimStatNetworkEntry 15 }
+
+        
+        mscsAimStatNetworkState OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                StateUnknown(-1),
+                StateUnavailable(0),
+                Down(1),
+                Partitioned(2),
+                Up(3)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The current state of the network. 
+                Possible values:
+                  StateUnknown (-1)
+                  StateUnavailable (0)
+                  Down (1)
+                  Partitioned (2)
+                  Up (3)
+                "
+            ::= { mscsAimStatNetworkEntry 16 }
+
+        
+        mscsAimStatNetworkInterfaceGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 7 }
+
+        
+        mscsAimStatNetworkInterfaceCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of rows in the table.
+                "
+            ::= { mscsAimStatNetworkInterfaceGroup 1 }
+
+        
+        mscsAimStatNetworkInterfaceTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatNetworkInterfaceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatNetworkInterfaceGroup 2 }
+
+        
+        mscsAimStatNetworkInterfaceEntry OBJECT-TYPE
+            SYNTAX MscsAimStatNetworkInterfaceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatNetworkInterfaceIndex }
+            ::= { mscsAimStatNetworkInterfaceTable 1 }
+
+        
+        MscsAimStatNetworkInterfaceEntry ::=
+            SEQUENCE { 
+                mscsAimStatNetworkInterfaceIndex
+                    INTEGER,
+                mscsAimStatNetworkInterfaceInstanceName
+                    DisplayString,
+                mscsAimStatNetworkInterfaceClusterIndex
+                    INTEGER,
+                mscsAimStatNetworkInterfaceNetworkIndex
+                    INTEGER,
+                mscsAimStatNetworkInterfaceNodeIndex
+                    INTEGER,
+                mscsAimStatNetworkInterfaceName
+                    SnmpAdminString,
+                mscsAimStatNetworkInterfaceDescription
+                    SnmpAdminString,
+                mscsAimStatNetworkInterfaceAdapter
+                    SnmpAdminString,
+                mscsAimStatNetworkInterfaceAddress
+                    SnmpAdminString,
+                mscsAimStatNetworkInterfaceBytesReceivedPersec
+                    INTEGER,
+                mscsAimStatNetworkInterfaceBytesSentPersec
+                    INTEGER,
+                mscsAimStatNetworkInterfaceBytesTotalPersec
+                    INTEGER,
+                mscsAimStatNetworkInterfaceCharacteristics
+                    INTEGER,
+                mscsAimStatNetworkInterfaceDeviceID
+                    DisplayString,
+                mscsAimStatNetworkInterfaceDhcpEnabled
+                    INTEGER,
+                mscsAimStatNetworkInterfaceIPv4Addresses
+                    DisplayString,
+                mscsAimStatNetworkInterfaceIPv6Addresses
+                    DisplayString,
+                mscsAimStatNetworkInterfaceMACAddress
+                    DisplayString,
+                mscsAimStatNetworkInterfaceState
+                    INTEGER,
+                mscsAimStatNetworkInterfaceSystemName
+                    DisplayString
+             }
+
+        mscsAimStatNetworkInterfaceIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The numeric index of this row.
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 1 }
+
+        
+        mscsAimStatNetworkInterfaceInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatNetworkInterfaceEntry 2 }
+
+        
+        mscsAimStatNetworkInterfaceClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to.
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 3 }
+
+        
+        mscsAimStatNetworkInterfaceNetworkIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the network this table row belongs to.
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 4 }
+
+        
+        mscsAimStatNetworkInterfaceNodeIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the node in which the network interface is installed.
+                This property is not supported on Windows 2003
+                
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 5 }
+
+        
+        mscsAimStatNetworkInterfaceName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of this network interface."
+            ::= { mscsAimStatNetworkInterfaceEntry 6 }
+
+        
+        mscsAimStatNetworkInterfaceDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of this network interface."
+            ::= { mscsAimStatNetworkInterfaceEntry 7 }
+
+        
+        mscsAimStatNetworkInterfaceAdapter OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name that is used to uniquely identify the network interface in the cluster.
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 8 }
+
+        
+        mscsAimStatNetworkInterfaceAddress OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The primary network address that the node uses for the network interface.
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 9 }
+
+        
+        mscsAimStatNetworkInterfaceBytesReceivedPersec OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Total bytes per second received by this adapter
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 10 }
+
+        
+        mscsAimStatNetworkInterfaceBytesSentPersec OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Total bytes per second sent by this adapter
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 11 }
+
+        
+        mscsAimStatNetworkInterfaceBytesTotalPersec OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Total bytes per second handled by this adapter
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 12 }
+
+        
+        mscsAimStatNetworkInterfaceCharacteristics OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				unknown(0),
+				deleteRequiresAllNodes(2),
+				requiresStateChangeReason(16),
+				singleClusterInstance(64),
+				singleGroupInstance(128)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The characteristics set for the network interface. 
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 13 }
+
+        
+        mscsAimStatNetworkInterfaceDeviceID OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "An address or other identifying information that uniquely identifies the network interface.
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 14 }
+
+        
+        mscsAimStatNetworkInterfaceDhcpEnabled OBJECT-TYPE
+            SYNTAX INTEGER
+				{
+				no(0),
+				yes(1)
+				}
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates if DHCP is enabled on the network interface.
+                This property is not supported on Windows Server 2003.
+                
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 15 }
+
+        
+        mscsAimStatNetworkInterfaceIPv4Addresses OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The IPv4 addresses currently assigned to this network interface.
+                
+                
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 16 }
+
+        
+        mscsAimStatNetworkInterfaceIPv6Addresses OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The IPv6 addresses currently assigned to this network interface.
+                
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 17 }
+
+        
+        mscsAimStatNetworkInterfaceMACAddress OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The MAC address of this network interface."
+            ::= { mscsAimStatNetworkInterfaceEntry 18 }
+
+        
+        mscsAimStatNetworkInterfaceState OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                StateUnknown(-1),
+                Unavailable(0),
+                Failed(1),
+                Unreachable(2),
+                Up(3)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The current state of the network interface. 
+                Possible values:
+                  StateUnknown (-1)
+                  Unavailable (0)
+                  Failed (1)
+                  Unreachable (2)
+                  Up (3)
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 19 }
+
+        
+        mscsAimStatNetworkInterfaceSystemName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The scoping system's Name
+                "
+            ::= { mscsAimStatNetworkInterfaceEntry 20 }
+
+        
+        mscsAimStatDiskGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 8 }
+
+        
+        mscsAimStatDiskCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of rows in the table.
+                "
+            ::= { mscsAimStatDiskGroup 1 }
+
+        
+        mscsAimStatDisksTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatDisksEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatDiskGroup 2 }
+
+        
+        mscsAimStatDisksEntry OBJECT-TYPE
+            SYNTAX MscsAimStatDisksEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatDiskIndex }
+            ::= { mscsAimStatDisksTable 1 }
+
+        
+        MscsAimStatDisksEntry ::=
+            SEQUENCE { 
+                mscsAimStatDiskIndex
+                    INTEGER,
+                mscsAimStatDiskInstanceName
+                    DisplayString,
+                mscsAimStatDiskClusterIndex
+                    INTEGER,
+                mscsAimStatDiskName
+                    SnmpAdminString,
+                mscsAimStatDiskDescription
+                    SnmpAdminString,
+                mscsAimStatDiskID
+                    DisplayString,
+                mscsAimStatDiskScsiPort
+                    INTEGER,
+                mscsAimStatDiskScsiBus
+                    INTEGER,
+                mscsAimStatDiskScsiTargetID
+                    INTEGER,
+                mscsAimStatDiskScsiLUN
+                    INTEGER,
+                mscsAimStatDiskSignature
+                    INTEGER
+             }
+
+        mscsAimStatDiskIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The numeric index of this row.
+                "
+            ::= { mscsAimStatDisksEntry 1 }
+
+        
+        mscsAimStatDiskInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatDisksEntry 2 }
+
+        
+        mscsAimStatDiskClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to.
+                "
+            ::= { mscsAimStatDisksEntry 3 }
+
+        
+        mscsAimStatDiskName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the disk."
+            ::= { mscsAimStatDisksEntry 4 }
+
+        
+        mscsAimStatDiskDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the disk."
+            ::= { mscsAimStatDisksEntry 5 }
+
+        
+        mscsAimStatDiskID OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The ID of the disk."
+            ::= { mscsAimStatDisksEntry 6 }
+
+        
+        mscsAimStatDiskScsiPort OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The SCSI port number of the disk.
+                "
+            ::= { mscsAimStatDisksEntry 7 }
+
+        
+        mscsAimStatDiskScsiBus OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The SCSI bus of the disk.
+                "
+            ::= { mscsAimStatDisksEntry 8 }
+
+        
+        mscsAimStatDiskScsiTargetID OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The SCSI target ID of the disk.
+                "
+            ::= { mscsAimStatDisksEntry 9 }
+
+        
+        mscsAimStatDiskScsiLUN OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The SCSI LUN of the disk.
+                "
+            ::= { mscsAimStatDisksEntry 10 }
+
+        
+        mscsAimStatDiskSignature OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The signature of the disk.
+                "
+            ::= { mscsAimStatDisksEntry 11 }
+
+        
+        mscsAimStatCSVGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 9 }
+
+        
+        mscsAimStatCSVCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of rows in the table.
+                "
+            ::= { mscsAimStatCSVGroup 1 }
+
+        
+        mscsAimStatCSVTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatCSVEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatCSVGroup 2 }
+
+        
+        mscsAimStatCSVEntry OBJECT-TYPE
+            SYNTAX MscsAimStatCSVEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatCSVIndex }
+            ::= { mscsAimStatCSVTable 1 }
+
+        
+        MscsAimStatCSVEntry ::=
+            SEQUENCE { 
+                mscsAimStatCSVIndex
+                    INTEGER,
+                mscsAimStatCSVInstanceName
+                    DisplayString,
+                mscsAimStatCSVClusterIndex
+                    INTEGER,
+                mscsAimStatCSVName
+                    SnmpAdminString,
+                mscsAimStatCSVDescription
+                    SnmpAdminString,
+                mscsAimStatCSVBackupState
+                    INTEGER,
+                mscsAimStatCSVFaultState
+                    INTEGER,
+                mscsAimStatCSVVolumeName
+                    SnmpAdminString,
+                mscsAimStatCSVVolumeOffset
+                    DisplayString
+             }
+
+        mscsAimStatCSVIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The numeric index of this row.
+                "
+            ::= { mscsAimStatCSVEntry 1 }
+
+        
+        mscsAimStatCSVInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatCSVEntry 2 }
+
+        
+        mscsAimStatCSVClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster this table row belongs to.
+                "
+            ::= { mscsAimStatCSVEntry 3 }
+
+        
+        mscsAimStatCSVName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the cluster shared volume."
+            ::= { mscsAimStatCSVEntry 4 }
+
+        
+        mscsAimStatCSVDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the cluster shared volume."
+            ::= { mscsAimStatCSVEntry 5 }
+
+        
+        mscsAimStatCSVBackupState OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                none(0),
+                inProgress(1)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The backup state of the cluster shared volume.
+                Possible values:
+                  none (0)
+                  inProgress (1)
+                "
+            ::= { mscsAimStatCSVEntry 6 }
+
+        
+        mscsAimStatCSVFaultState OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                noFaults(0),
+                noDirectIO(1),
+                noAccess(2),
+                maintenance(4)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The fault state of the cluster shared volume.
+                Possible values:
+                  noFaults (0)
+                  noDirectIO (1)
+                  noAccess (2)
+                  maintenance (4)"
+            ::= { mscsAimStatCSVEntry 7 }
+
+        
+        mscsAimStatCSVVolumeName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The device Id of the cluster shared volume."
+            ::= { mscsAimStatCSVEntry 8 }
+
+        
+        mscsAimStatCSVVolumeOffset OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The volume offset of the cluster shared volume.
+                "
+            ::= { mscsAimStatCSVEntry 9 }
+
+        
+        mscsAimStatPrivateResourcePropertyGroup OBJECT IDENTIFIER ::= { mscsAimStatGroup 10 }
+
+        
+        mscsAimStatPrivateResourcePropertyCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of rows in the table.
+                "
+            ::= { mscsAimStatPrivateResourcePropertyGroup 1 }
+
+        
+        mscsAimStatPrivateResourcePropertyTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF MscsAimStatPrivateResourcePropertyEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { mscsAimStatPrivateResourcePropertyGroup 2 }
+
+        
+        mscsAimStatPrivateResourcePropertyEntry OBJECT-TYPE
+            SYNTAX MscsAimStatPrivateResourcePropertyEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { mscsAimStatCSVIndex }
+            ::= { mscsAimStatPrivateResourcePropertyTable 1 }
+
+        
+        MscsAimStatPrivateResourcePropertyEntry ::=
+            SEQUENCE { 
+                mscsAimStatPrivateResourcePropertyIndex
+                    INTEGER,
+                mscsAimStatPrivateResourcePropertyInstanceName
+                    DisplayString,
+                mscsAimStatPrivateResourcePropertyResourceIndex
+                    INTEGER,
+                mscsAimStatPrivateResourcePropertyKey
+                    DisplayString,
+                mscsAimStatPrivateResourcePropertyValue
+                    SnmpAdminString
+             }
+
+        mscsAimStatPrivateResourcePropertyIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The numeric index of this row.
+                "
+            ::= { mscsAimStatPrivateResourcePropertyEntry 1 }
+
+        
+        mscsAimStatPrivateResourcePropertyInstanceName OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The instance this table row belongs to."
+            ::= { mscsAimStatPrivateResourcePropertyEntry 2 }
+
+        
+        mscsAimStatPrivateResourcePropertyResourceIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the Resource this table row belongs to.
+                
+                "
+            ::= { mscsAimStatPrivateResourcePropertyEntry 3 }
+
+        
+        mscsAimStatPrivateResourcePropertyKey OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The key name of this private property"
+            ::= { mscsAimStatPrivateResourcePropertyEntry 4 }
+
+        
+        mscsAimStatPrivateResourcePropertyValue OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The value of this private property.
+                "
+            ::= { mscsAimStatPrivateResourcePropertyEntry 5 }
+
+        
+--       1.3.6.1.4.1.546.16.56.3
+        mscsAimConfigGroup OBJECT IDENTIFIER ::= { camscsaim 3 }
+
+        
+--    *****************************************************************************
+-- Configuration Groups
+-- *****************************************************************************
+-- 1.3.6.1.4.1.546.16.51.3.1
+        mscsAimCfgGeneralGroup OBJECT IDENTIFIER ::= { mscsAimConfigGroup 1 }
+
+        
+--       1.3.6.1.4.1.546.16.51.3.1.1
+        mscsAimCfgname OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The agent's name."
+            ::= { mscsAimCfgGeneralGroup 1 }
+
+        
+--       1.3.6.1.4.1.546.16.51.3.1.2
+        mscsAimCfgversion OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Version of the agent."
+            ::= { mscsAimCfgGeneralGroup 2 }
+
+        
+--       1.3.6.1.4.1.546.16.51.3.1.3
+        mscsAimCfgstarttime OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Time the agent was started."
+            ::= { mscsAimCfgGeneralGroup 3 }
+
+        
+--       1.3.6.1.4.1.546.16.51.3.1.4
+        mscsAimCfglastupdatetime OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Time the MIB was last updated."
+            ::= { mscsAimCfgGeneralGroup 4 }
+
+        
+--       1.3.6.1.4.1.546.16.51.3.1.5
+        mscsAimCfgagentpollinterval OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "Poll Interval for the agent."
+            DEFVAL { 120 }
+            ::= { mscsAimCfgGeneralGroup 5 }
+
+        
+    
+--
+-- Trap definitions
+--
+    
+        mscsAimInstanceAddedTrap TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { mscsAimInstanceIndex, mscsAimInstanceName, mscsAimInstanceRowStatus, mscsAimInstanceDataStatus }
+            DESCRIPTION 
+                "This trap is sent when a new Instance/Server is added.
+                
+                Parameters:
+                mscsAimInstanceIndex
+                mscsAimInstanceName
+                mscsAimInstanceRowStatus
+                mscsAimInstanceDataStatus"
+            ::=  165100
+
+        mscsAimInstanceRemovedTrap TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { mscsAimInstanceIndex, mscsAimInstanceName, mscsAimInstanceRowStatus, mscsAimInstanceDataStatus }
+            DESCRIPTION 
+                "This trap is sent when an Instance/Server is removed.
+                
+                Parameters:
+                mscsAimInstanceIndex
+                mscsAimInstanceName
+                mscsAimInstanceRowStatus
+                mscsAimInstanceDataStatus"
+            ::=  165101
+
+        mscsAimInstanceDataStatusChanged TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { mscsAimInstanceIndex, mscsAimInstanceName, mscsAimInstanceRowStatus, mscsAimInstanceDataStatus }
+            DESCRIPTION 
+                "This trap is sent when Instance/Server Data Status is changed.
+                
+                Parameters:
+                mscsAimInstanceIndex
+                mscsAimInstanceName
+                mscsAimInstanceRowStatus
+                mscsAimInstanceDataStatus"
+            ::=  165102
+
+        mscsAimResourceGroupMigration TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { mscsAimStatResourceGroupIndex, mscsAimStatResourceGroupName, mscsAimStatResourceGroupNodeIndex, mscsAimStatResourceGroupNodeName, mscsAimStatResourceGroupPreviousNodeIndex, 
+                mscsAimStatResourceGroupPreviousNodeName, mscsAimStatResourceGroupInstanceName, mscsAimStatResourceGroupClusterIndex }
+            DESCRIPTION 
+                "This trap is sent when a resource group is migrated.
+                
+                Parameters:
+                mscsAimStatResourceGroupIndex
+                mscsAimStatResourceGroupName
+                mscsAimStatResourceGroupNodeIndex
+                mscsAimStatResourceGroupNodeName
+                mscsAimStatResourceGroupPreviousNodeIndex
+                mscsAimStatResourceGroupPreviousNodeName
+                mscsAimStatResourceGroupInstanceName
+                mscsAimStatResourceGroupClusterIndex
+                
+                         
+                "
+            ::=  165103
+
+    
+    END
+
+--

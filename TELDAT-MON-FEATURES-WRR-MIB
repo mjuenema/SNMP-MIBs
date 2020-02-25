@@ -1,0 +1,1001 @@
+
+
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+
+                -- Facilidad WAN Reroute
+
+
+    -- Historial:
+    --      07/02/14  M.A. Pastor   XH 3523. Errors with HP Openview 9.20
+    -- 1.1  19/06/06  M.A. Pastor   Se realiza backup si no se encuentra activa
+    --                              una ruta con un determinado interfaz de
+    --                              salida (en caso de especificar uno concreto)
+    -- 1.0  01/07/04  J. Molina     Archivo procedente de WRR.mib
+
+
+
+
+    -- Historial de WRR.mib:
+    -- 17-11-03  J. Romßn       Posibilidad de que el WRR se realice por
+    --                          deteccin de cada de rutas en vez de por cada
+    --                          de interfaz
+    -- 02-10-01  N.Villase±or   Traduccin a ingl‰s
+    -- 01-12-00  M.A. Pastor    Modificaciones para que pueda ser compilada
+    --                          utilizando compiladores distintos del de Teldat
+    -- 21-06-00  M.A. Pastor    Implementacin inicial
+    --------------------------------------------------------------------------
+
+TELDAT-MON-FEATURES-WRR-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            Counter
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            DisplayString
+        FROM RFC1213-MIB
+            telProdNpMonFeatures
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+-- Grupo telProdNpMonFeatWRR
+-- Incluye los parßmetros referentes a la facilidad WAN Reroute.
+
+    telProdNpMonFeatWRR     OBJECT IDENTIFIER ::= { telProdNpMonFeatures 3 }
+
+
+-- Grupo donde se incluye informacin global acerca de esta facilidad: si estß
+-- o no habilitada, el tiempo de estabilizacin por defecto y el primer tiempo
+-- de estabilizacin por defecto.
+
+    telProdNpFeatWRRGlobalGroup     OBJECT IDENTIFIER ::= { telProdNpMonFeatWRR 1 }
+
+    telProdNpFeatWRRGloStatus OBJECT-TYPE
+        SYNTAX INTEGER{
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Indicates if the WRR Backup function is enabled or not. Possible
+        values are: (1) enabled or (2) disabled."
+        ::= { telProdNpFeatWRRGlobalGroup 1 }
+
+    telProdNpFeatWRRGloDefFirstStTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Default First Stabilization Time, in seconds. The first stabilization
+        time is the length of time the primary interface must be down before
+        activating the secondary (to carry out backup)."
+        ::= { telProdNpFeatWRRGlobalGroup 2 }
+
+    telProdNpFeatWRRGloDefStabTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Default Stabilization Time, in seconds. The stabilization time is the
+        minimum length of time the primary interface must be active for
+        before the secondary deactivates (returns from backup to initial
+        situation)."
+        ::= { telProdNpFeatWRRGlobalGroup 3 }
+
+-- Tabla que proporciona los datos relativos a las asociaciones o pares
+-- enlace primario-enlace secundario.
+
+    telProdNpMonFeatWRRPairsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonFeatWRRPairsEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "Table that provides information concerning the associations. Each entry
+        displays information related to each pair of primary link-secondary link."
+        ::= { telProdNpMonFeatWRR 2 }
+
+    telProdNpMonFeatWRRPairsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonFeatWRRPairsEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "Each entry corresponds to an association or pair of
+        primary link-secondary link, and it consists of interface number,
+        subinterface, and description of the secondary link interface type,
+        variable that indicates if the association is enabled or not for backup,
+        first stabilization time, stabilization time, last event provoked by
+        the primary interface, number of times that a primary link
+        has activated, and number of times that a primary link has gone down or
+        deactivated."
+        INDEX { telProdNpMonFeatWRRPairsIndex }
+        ::= { telProdNpMonFeatWRRPairsTable 1 }
+
+    TelProdNpMonFeatWRRPairsEntry ::=
+        SEQUENCE {
+            telProdNpMonFeatWRRPairsIndex
+                INTEGER,
+            telProdNpMonFeatWRRPairsPrimaryIfc
+                INTEGER,
+            telProdNpMonFeatWRRPairsPriSubnet
+                DisplayString,
+            telProdNpMonFeatWRRPairsPriIfcDesc
+                DisplayString,
+            telProdNpMonFeatWRRPairsSecondIfc
+                INTEGER,
+            telProdNpMonFeatWRRPairsSecondDesc
+                DisplayString,
+            telProdNpMonFeatWRRPairsEnabled
+                INTEGER,
+            telProdNpMonFeatWRRPairsFirstStTime
+                INTEGER,
+            telProdNpMonFeatWRRPairsStabTime
+                INTEGER,
+            telProdNpMonFeatWRRPairsLastEvent
+                INTEGER,
+            telProdNpMonFeatWRRPairsNumAct
+                Counter,
+            telProdNpMonFeatWRRPairsNumInact
+                Counter
+            }
+
+    telProdNpMonFeatWRRPairsIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Table index: order number of the entry or association between
+        a primary link and a secondary or alternative one."
+        ::= { telProdNpMonFeatWRRPairsEntry 1 }
+
+    telProdNpMonFeatWRRPairsPrimaryIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Interface number of the primary link."
+        ::= { telProdNpMonFeatWRRPairsEntry 2 }
+
+    telProdNpMonFeatWRRPairsPriSubnet OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "String that indicates the primary link subinterface."
+        ::= { telProdNpMonFeatWRRPairsEntry 3 }
+
+    telProdNpMonFeatWRRPairsPriIfcDesc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Description of the type of the primary link interface."
+        ::= { telProdNpMonFeatWRRPairsEntry 4 }
+
+    telProdNpMonFeatWRRPairsSecondIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of the interface configured as secondary link."
+        ::= { telProdNpMonFeatWRRPairsEntry 5 }
+
+    telProdNpMonFeatWRRPairsSecondDesc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Description of the type of the secondary link interface."
+        ::= { telProdNpMonFeatWRRPairsEntry 6 }
+
+    telProdNpMonFeatWRRPairsEnabled OBJECT-TYPE
+        SYNTAX INTEGER{
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates if association is enabled (1) or disabled (2) for backup."
+        ::= { telProdNpMonFeatWRRPairsEntry 7 }
+
+    telProdNpMonFeatWRRPairsFirstStTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "First stabilization time. The first stabilization time is
+        the length of time the primary interface must be down
+        before activating the secondary (to carry out backup)."
+        ::= { telProdNpMonFeatWRRPairsEntry 8 }
+
+    telProdNpMonFeatWRRPairsStabTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Stabilization time. The stabilization time is the minimum
+        length of time the primary interface must be active for before
+        the secondary deactivates (returns from backup to initial
+        situation)."
+        ::= { telProdNpMonFeatWRRPairsEntry 9 }
+
+    telProdNpMonFeatWRRPairsLastEvent OBJECT-TYPE
+        SYNTAX INTEGER{
+            unknown(0),
+            primary-up(1),
+            primary-down(2),
+            first-stabilization-time-expired(3),
+            stabilization-time-expired(4)
+            }
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Last event provoked by the primary interface. Various events can
+        occur provoking changes in the state of the system:
+        (0) Unknown: no event has been produced yet, or the event is
+        unknown.
+        (1) Primary Up: one of the primary interfaces associated to a
+        secondary interface has announced the recovery of the link.
+        (2) Primary Down: one of the primary interfaces associated to this
+        secondary interface has announced link failure.
+        secundario ha anunciado una cada del enlace.
+        (3) First Stabilization Time expired: the timer for the first
+        establishment period of time has lapsed. The First Stabilization Time
+        is length of time the primary interface must be down before activating
+        the secondary (to carry out backup).
+        (4) Stabilization Time expired: the timer for the establishment period
+        of time has lapsed. The Stabilization Time is the minimum length of
+        time the primary interface must be active for before the secondary
+        deactivates (returns from backup to initial situation)."
+        ::= { telProdNpMonFeatWRRPairsEntry 10 }
+
+    telProdNpMonFeatWRRPairsNumAct OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of times that the primary link has activated."
+        ::= { telProdNpMonFeatWRRPairsEntry 11 }
+
+    telProdNpMonFeatWRRPairsNumInact OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of times that a primary link has gone down, has deactivated."
+        ::= { telProdNpMonFeatWRRPairsEntry 12 }
+
+-- Tabla que informa sobre el estado de los distintos enlaces secundarios.
+
+    telProdNpMonFeatWRRSecIfcsStatusTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonFeatWRRSecIfcsStatusEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table that displays the various secondary link states.
+        One entry per link."
+        ::= { telProdNpMonFeatWRR 3 }
+
+    telProdNpMonFeatWRRSecIfcsStatusEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonFeatWRRSecIfcsStatusEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry displays information about the state of a secondary link
+        configured. It consists of an index, that is the order number of the
+        entry, the interface number configured as secondary link, description
+        of the type of the secondary link interface, state of secondary link,
+        remaining time for switch to backup, remaining time for backup
+        recovery, number of primary links associated in backup and current
+        time in backup."
+        INDEX { telProdNpMonFeatWRRCountSecIfcsIndex }
+        ::= { telProdNpMonFeatWRRSecIfcsStatusTable 1 }
+
+    TelProdNpMonFeatWRRSecIfcsStatusEntry ::=
+        SEQUENCE {
+            telProdNpMonFeatWRRSecIfcsStatusIfcIndex
+                INTEGER,
+            telProdNpMonFeatWRRSecIfcsStatusIfcSecond
+                INTEGER,
+            telProdNpMonFeatWRRSecIfcsStatusIfcDesc
+                DisplayString,
+            telProdNpMonFeatWRRSecIfcsStatusRRState
+                INTEGER,
+            telProdNpMonFeatWRRSecIfcsStatusTimeBkup
+                INTEGER,
+            telProdNpMonFeatWRRSecIfcsStatusStabTime
+                INTEGER,
+            telProdNpMonFeatWRRSecIfcsStatusNumCirc
+                INTEGER,
+            telProdNpMonFeatWRRSecIfcsStatusCurrDur
+                DisplayString
+            }
+
+    telProdNpMonFeatWRRSecIfcsStatusIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order number of the entry inside the table."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 1 }
+
+    telProdNpMonFeatWRRSecIfcsStatusIfcSecond OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the interface configured as secondary link."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 2 }
+
+    telProdNpMonFeatWRRSecIfcsStatusIfcDesc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Description of the type of the secondary link interface."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 3 }
+
+    telProdNpMonFeatWRRSecIfcsStatusRRState OBJECT-TYPE
+        SYNTAX INTEGER{
+            disabled(0),
+            initial(1),
+            direct(2),
+            alternative(3),
+            direct-alternative(4),
+            alternative-direct(5)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "State of secondary link. Possible values are:
+        (0) Disabled, when there is no enabled association or
+        where the WRR is globally disabled.
+        (1) Initial, state of the device when starting up. The secondary
+        interface is available. If the Primary Up event occurs, then
+        it passes to a Direct state, if the Primary Down event occurs it then
+        passes to Direct->Alternative.
+        (2) Direct, the secondary is available as all the controlled primary
+        links are active.
+        (3) Alternative, when the First Stabilization Time expired out
+        event arrives. With this the secondary interface auto test begins so
+        it will activate.
+        (4) Direct->Alternative (or rerouting), when the secondary link is
+        available but it has received a Primary Down event from one of
+        the associated primaries.
+        (5) Alternative->Direct (or reestablishing), the Primary Up event from
+        one of the primaries associated has occurred."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 4 }
+
+    telProdNpMonFeatWRRSecIfcsStatusTimeBkup OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Remaining time for switch to backup."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 5 }
+
+    telProdNpMonFeatWRRSecIfcsStatusStabTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Remaining time for backup recovery."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 6 }
+
+    telProdNpMonFeatWRRSecIfcsStatusNumCirc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of primary links associated in backup."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 7 }
+
+    telProdNpMonFeatWRRSecIfcsStatusCurrDur OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Current time in backup. It is a string with the format
+        hours:minutes:seconds."
+        ::= { telProdNpMonFeatWRRSecIfcsStatusEntry 8 }
+
+-- Grupo donde se incluyen los estadsticos de la facilidad WRR. Se pueden
+-- dividir ‰stos en una tabla de estadsticos por cada interfaz configurado
+-- como enlace secundario y en un grupo donde se incluyen los contadores
+-- de cambios en el estado de las asociaciones y el tiempo que se encuentra
+-- reencaminando el backup WRR.
+
+    telProdNpMonFeatWRRCountersGroup OBJECT IDENTIFIER ::= { telProdNpMonFeatWRR 4 }
+
+    -- Grupo dentro de los estadsticos correspondientes a la facilidad WRR
+    -- donde se incluyen los contadores de cambios en el estado de
+    -- las asociaciones, el tiempo mßximo que dur un proceso de backup WRR
+    -- y el tiempo acumulado que se encuentra reencaminando el backup WRR.
+
+    telProdNpMonFeatWRRCountSummary OBJECT IDENTIFIER ::= { telProdNpMonFeatWRRCountersGroup 1 }
+
+    telProdNpMonFeatWRRCountSumAltSt OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of times 'alternative' state is reached."
+        ::= { telProdNpMonFeatWRRCountSummary 1 }
+
+    telProdNpMonFeatWRRCountSumAltDir OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of times 'alternative->direct' state is reached."
+        ::= { telProdNpMonFeatWRRCountSummary 2 }
+
+    telProdNpMonFeatWRRCountSumDirSt OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of times 'direct' state is reached."
+        ::= { telProdNpMonFeatWRRCountSummary 3 }
+
+    telProdNpMonFeatWRRCountSumDirAlt OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of times 'direct->alternative' state is reached."
+        ::= { telProdNpMonFeatWRRCountSummary 4 }
+
+    telProdNpMonFeatWRRCountSumLongest OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Backup WRR longest duration. It is a string with the format
+        hours:minutes:seconds."
+        ::= { telProdNpMonFeatWRRCountSummary 5 }
+
+    telProdNpMonFeatWRRCountSumAccTime OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total or accumulated time in backup WRR. It is a string with the format
+        hours:minutes:seconds."
+        ::= { telProdNpMonFeatWRRCountSummary 6 }
+
+    -- Tabla de los estadsticos por interfaz configurado como enlace secundario.
+
+    telProdNpMonFeatWRRCountSecIfcsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonFeatWRRCountSecIfcsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table that displays statistics related to a secondary link.
+        One entry per secondary link."
+        ::= { telProdNpMonFeatWRRCountersGroup 2 }
+
+    telProdNpMonFeatWRRCountSecIfcsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonFeatWRRCountSecIfcsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry shows the statistics related to a secondary link.
+        It consists of an index, that is the order number of the table
+        entry, number of the interface configured as secondary link,
+        description of the type of the secondary link interface, counters
+        of the number of times that the backup has passed to the states
+        'Direct', 'Alternative', 'Direct->Alternative' and 'Alternative->Direct',
+        current rerouting process time, accumulated rerouting process time
+        and maximum rerouting process time."
+        INDEX { telProdNpMonFeatWRRCountSecIfcsIndex }
+        ::= { telProdNpMonFeatWRRCountSecIfcsTable 1 }
+
+    TelProdNpMonFeatWRRCountSecIfcsEntry ::=
+        SEQUENCE {
+            telProdNpMonFeatWRRCountSecIfcsIndex
+                INTEGER,
+            telProdNpMonFeatWRRCountSecIfcsSecond
+                INTEGER,
+            telProdNpMonFeatWRRCountSecIfcsDescrip
+                DisplayString,
+            telProdNpMonFeatWRRCountSecIfcsNumDir
+                Counter,
+            telProdNpMonFeatWRRCountSecIfcsNumDA
+                Counter,
+            telProdNpMonFeatWRRCountSecIfcsNumAlt
+                Counter,
+            telProdNpMonFeatWRRCountSecIfcsNumAD
+                Counter,
+            telProdNpMonFeatWRRCountSecIfcsCurrDur
+                DisplayString,
+            telProdNpMonFeatWRRCountSecIfcsAccuDur
+                DisplayString,
+            telProdNpMonFeatWRRCountSecIfcsLongest
+                DisplayString
+            }
+
+    telProdNpMonFeatWRRCountSecIfcsIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order number of the entry."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 1 }
+
+    telProdNpMonFeatWRRCountSecIfcsSecond OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the interface configured as secondary link."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 2 }
+
+    telProdNpMonFeatWRRCountSecIfcsDescrip OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Description of the type of the secondary link interface."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 3 }
+
+    telProdNpMonFeatWRRCountSecIfcsNumDir OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that the backup has passed to a 'Direct' state."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 4 }
+
+    telProdNpMonFeatWRRCountSecIfcsNumDA OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that the backup has passed to a 'Direct->Alternative'
+        state."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 5 }
+
+    telProdNpMonFeatWRRCountSecIfcsNumAlt OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that the backup has passed to an 'Alternative' state."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 6 }
+
+    telProdNpMonFeatWRRCountSecIfcsNumAD OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that the backup has passed to a 'Alternative->Direct'
+        state."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 7 }
+
+    telProdNpMonFeatWRRCountSecIfcsCurrDur OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Current rerouting process time. String with the format
+        hours:minutes:seconds."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 8 }
+
+    telProdNpMonFeatWRRCountSecIfcsAccuDur OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Accumulated rerouting process time. String with the format
+        hours:minutes:seconds."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 9 }
+
+    telProdNpMonFeatWRRCountSecIfcsLongest OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Maximum rerouting process time. String with the format
+        hours:minutes:seconds."
+        ::= { telProdNpMonFeatWRRCountSecIfcsEntry 10 }
+
+-- Grupo que proporciona los datos relativos a las asociaciones o pares
+-- primario-secundario.
+
+    telProdNpMonFeatWRRPairsGroup     OBJECT IDENTIFIER ::= { telProdNpMonFeatWRR 5 }
+
+    -- Tabla que proporciona los datos relativos a las asociaciones o pares
+    -- enlace primario-enlace secundario.
+
+    telProdNpMonFeatWRRPairsIfcTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonFeatWRRPairsIfcEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table that provides information concerning the associations. Each entry
+        displays information related to each pair of primary link-secondary link."
+        ::= { telProdNpMonFeatWRRPairsGroup 1 }
+
+    telProdNpMonFeatWRRPairsIfcEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonFeatWRRPairsIfcEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry corresponds to an association or pair of
+        primary link-secondary link, and it consists of interface number,
+        subinterface, and description of the secondary link interface type,
+        variable that indicates if the association is enabled or not for backup,
+        first stabilization time, stabilization time, last event provoked by
+        the primary interface, number of times that a primary link
+        has activated, and number of times that a primary link has gone down or
+        deactivated."
+        INDEX { telProdNpMonFeatWRRPairsIfcIndex }
+        ::= { telProdNpMonFeatWRRPairsIfcTable 1 }
+
+    TelProdNpMonFeatWRRPairsIfcEntry ::=
+        SEQUENCE {
+            telProdNpMonFeatWRRPairsIfcIndex
+                INTEGER,
+            telProdNpMonFeatWRRPairsIfcPrimaryIfc
+                INTEGER,
+            telProdNpMonFeatWRRPairsIfcPriSubnet
+                DisplayString,
+            telProdNpMonFeatWRRPairsIfcPriIfcDesc
+                DisplayString,
+            telProdNpMonFeatWRRPairsIfcSecondIfc
+                INTEGER,
+            telProdNpMonFeatWRRPairsIfcSecondDesc
+                DisplayString,
+            telProdNpMonFeatWRRPairsIfcEnabled
+                INTEGER,
+            telProdNpMonFeatWRRPairsIfcFirstStTime
+                INTEGER,
+            telProdNpMonFeatWRRPairsIfcStabTime
+                INTEGER,
+            telProdNpMonFeatWRRPairsIfcLastEvent
+                INTEGER,
+            telProdNpMonFeatWRRPairsIfcNumAct
+                Counter,
+            telProdNpMonFeatWRRPairsIfcNumInact
+                Counter
+            }
+
+    telProdNpMonFeatWRRPairsIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order number of the entry or association between
+        a primary link and a secondary or alternative one."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 1 }
+
+    telProdNpMonFeatWRRPairsIfcPrimaryIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the primary link."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 2 }
+
+    telProdNpMonFeatWRRPairsIfcPriSubnet OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "String that indicates the primary link subinterface."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 3 }
+
+    telProdNpMonFeatWRRPairsIfcPriIfcDesc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Description of the type of the primary link interface."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 4 }
+
+    telProdNpMonFeatWRRPairsIfcSecondIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the interface configured as secondary link."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 5 }
+
+    telProdNpMonFeatWRRPairsIfcSecondDesc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Description of the type of the secondary link interface."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 6 }
+
+    telProdNpMonFeatWRRPairsIfcEnabled OBJECT-TYPE
+        SYNTAX INTEGER{
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Indicates if association is enabled (1) or disabled (2) for backup."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 7 }
+
+    telProdNpMonFeatWRRPairsIfcFirstStTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First stabilization time. The first stabilization time is
+        the length of time the primary interface must be down
+        before activating the secondary (to carry out backup)."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 8 }
+
+    telProdNpMonFeatWRRPairsIfcStabTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Stabilization time. The stabilization time is the minimum
+        length of time the primary interface must be active for before
+        the secondary deactivates (returns from backup to initial
+        situation)."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 9 }
+
+    telProdNpMonFeatWRRPairsIfcLastEvent OBJECT-TYPE
+        SYNTAX INTEGER{
+            unknown(0),
+            primary-up(1),
+            primary-down(2),
+            first-stabilization-time-expired(3),
+            stabilization-time-expired(4)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Last event provoked by the primary interface. Various events can
+        occur provoking changes in the state of the system:
+        (0) Unknown: no event has been produced yet, or the event is
+        unknown.
+        (1) Primary Up: one of the primary interfaces associated to a
+        secondary interface has announced the recovery of the link.
+        (2) Primary Down: one of the primary interfaces associated to this
+        secondary interface has announced link failure.
+        (3) First Stabilization Time expired: the timer for the first
+        establishment period of time has lapsed. The First Stabilization Time
+        is length of time the primary interface must be down before activating
+        the secondary (to carry out backup).
+        (4) Stabilization Time expired: the timer for the establishment period
+        of time has lapsed. The Stabilization Time is the minimum length of
+        time the primary interface must be active for before the secondary
+        deactivates (returns from backup to initial situation)."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 10 }
+
+    telProdNpMonFeatWRRPairsIfcNumAct OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that the primary link has activated."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 11 }
+
+    telProdNpMonFeatWRRPairsIfcNumInact OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that a primary link has gone down, has deactivated."
+        ::= { telProdNpMonFeatWRRPairsIfcEntry 12 }
+
+    -- Tabla que proporciona los datos relativos a las asociaciones o pares
+    -- ruta ip primaria-enlace secundario.
+
+    telProdNpMonFeatWRRPairsRteTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonFeatWRRPairsRteEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table that provides information concerning the associations. Each entry
+        displays information related to each pair of primary ip route-secondary link."
+        ::= { telProdNpMonFeatWRRPairsGroup 2 }
+
+    telProdNpMonFeatWRRPairsRteEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonFeatWRRPairsRteEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry corresponds to an association or pair of primary
+        ip route-secondary link, and it consists of ip route, ip route mask,
+        and description of the secondary link interface type,
+        variable that indicates if the association is enabled or not for backup,
+        first stabilization time, stabilization time, last event provoked by
+        the primary interface, number of times that a primary link
+        has activated, and number of times that a primary link has gone down or
+        deactivated."
+        INDEX { telProdNpMonFeatWRRPairsRteIndex }
+        ::= { telProdNpMonFeatWRRPairsRteTable 1 }
+
+    TelProdNpMonFeatWRRPairsRteEntry ::=
+        SEQUENCE {
+            telProdNpMonFeatWRRPairsRteIndex
+                INTEGER,
+            telProdNpMonFeatWRRPairsRtePrimaryRte
+                IpAddress,
+            telProdNpMonFeatWRRPairsRtePrimaryMsk
+                IpAddress,
+            telProdNpMonFeatWRRPairsRteSecondIfc
+                INTEGER,
+            telProdNpMonFeatWRRPairsRteSecondDesc
+                DisplayString,
+            telProdNpMonFeatWRRPairsRteEnabled
+                INTEGER,
+            telProdNpMonFeatWRRPairsRteFirstStTime
+                INTEGER,
+            telProdNpMonFeatWRRPairsRteStabTime
+                INTEGER,
+            telProdNpMonFeatWRRPairsRteLastEvent
+                INTEGER,
+            telProdNpMonFeatWRRPairsRteNumAct
+                Counter,
+            telProdNpMonFeatWRRPairsRteNumInact
+                Counter,
+            telProdNpMonFeatWRRPairsRteOutIfcNum
+                INTEGER,
+            telProdNpMonFeatWRRPairsRteOutIfcDesc
+                DisplayString
+            }
+
+    telProdNpMonFeatWRRPairsRteIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order number of the entry or association between
+        a primary route and a secondary or alternative one."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 1 }
+
+    telProdNpMonFeatWRRPairsRtePrimaryRte OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Primary ip destination route."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 2 }
+
+    telProdNpMonFeatWRRPairsRtePrimaryMsk OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Primary ip route mask."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 3 }
+
+    telProdNpMonFeatWRRPairsRteSecondIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the interface configured as secondary link."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 4 }
+
+    telProdNpMonFeatWRRPairsRteSecondDesc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Description of the type of the secondary link interface."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 5 }
+
+    telProdNpMonFeatWRRPairsRteEnabled OBJECT-TYPE
+        SYNTAX INTEGER{
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Indicates if association is enabled (1) or disabled (2) for backup."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 6 }
+
+    telProdNpMonFeatWRRPairsRteFirstStTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First stabilization time. The first stabilization time is
+        the length of time the primary interface must be down
+        before activating the secondary (to carry out backup)."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 7 }
+
+    telProdNpMonFeatWRRPairsRteStabTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Stabilization time. The stabilization time is the minimum
+        length of time the primary ip route must be active for before
+        the secondary deactivates (returns from backup to initial
+        situation)."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 8 }
+
+    telProdNpMonFeatWRRPairsRteLastEvent OBJECT-TYPE
+        SYNTAX INTEGER{
+            unknown(0),
+            primary-up(1),
+            primary-down(2),
+            first-stabilization-time-expired(3),
+            stabilization-time-expired(4)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Last event provoked by the primary ip route. Various events can
+        occur provoking changes in the state of the system:
+        (0) Unknown: no event has been produced yet, or the event is
+        unknown.
+        (1) Primary Up: one of the primary routes associated to a
+        secondary interface has announced the recovery of the route.
+        (2) Primary Down: one of the primary routes associated to this
+        secondary interface has announced route failure.
+        (3) First Stabilization Time expired: the timer for the first
+        establishment period of time has lapsed. The First Stabilization Time
+        is length of time the primary route must be down before activating
+        the secondary (to carry out backup).
+        (4) Stabilization Time expired: the timer for the establishment period
+        of time has lapsed. The Stabilization Time is the minimum length of
+        time the primary route must be active for before the secondary
+        deactivates (returns from backup to initial situation)."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 9 }
+
+    telProdNpMonFeatWRRPairsRteNumAct OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that the primary route has activated."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 10 }
+
+    telProdNpMonFeatWRRPairsRteNumInact OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times that a primary link has gone down, has deactivated."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 11 }
+
+    telProdNpMonFeatWRRPairsRteOutIfcNum OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the outgoing interface specified for this IP route."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 12 }
+
+    telProdNpMonFeatWRRPairsRteOutIfcDesc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Description of the outgoing interface specified for this IP route."
+        ::= { telProdNpMonFeatWRRPairsRteEntry 13 }
+
+END

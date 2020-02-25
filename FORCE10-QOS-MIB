@@ -1,0 +1,967 @@
+-- *****************************************************************
+-- FORCE10-QOS-MIB
+--
+--
+-- Copyright (c) 2003 by Force10 Networks, Inc.
+-- All rights reserved.
+-- *****************************************************************
+--
+
+FORCE10-QOS-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+        MODULE-IDENTITY,
+        OBJECT-TYPE
+            FROM SNMPv2-SMI
+   
+        MODULE-COMPLIANCE,
+        OBJECT-GROUP
+            FROM SNMPv2-CONF
+ 
+        RowStatus,
+        TruthValue,
+        TEXTUAL-CONVENTION,
+        DisplayString
+            FROM SNMPv2-TC
+ 
+        ifIndex
+            FROM RFC1213-MIB
+    
+        f10Mgmt
+            FROM FORCE10-SMI
+        
+        F10SlotState
+            FROM FORCE10-TC
+
+        F10QueueID
+            FROM FORCE10-TC           
+        ;
+ 
+f10QosMib   MODULE-IDENTITY
+        LAST-UPDATED    "200011021030Z"
+        ORGANIZATION    "Force10 Networks, Inc."
+        CONTACT-INFO
+            "Force10 Networks, Inc
+            1440 McCarthy Blvd
+            Milpitas, CA 95035
+            (408) 571-3500
+            support@force10networks.com
+            http://www.force10networks.com"
+        DESCRIPTION
+            "Force10 QOS MIB.
+            --------------------------------------------------------------
+            f10QosInterface
+            
+            f10QosIfPolicyMapTable
+                f10QosIfPolicyMapIndex      (index 1)
+                ifIndex                     (index 2)
+                f10QosIfPolicyMapRowStatus
+
+
+            --------------------------------------------------------------
+            f10QosPolicyMap
+            
+            f10QosPolicyMapTable
+                f10QosPolicyMapIndex    (index)
+                f10QosPolicyMapName
+                f10QosPolicyMapDirection
+                f10QosPolicyMapHonoring
+                f10QosPolicyMapAggPolicyIndex    which policy used as aggregate policy in/out
+                f10QosPolicyMapRowStatus
+
+            f10QosPolicyMapQueueTable
+                f10QosPolicyMapIndex    (index 1)    which PolicyMap
+                f10QosPolicyMapQueueId  (index 2)    which Queue# (0..7)
+                f10QosPolicyMapClassMapIndex         which ClassMap
+                f10QosPolicyMapPolicyIndex           which Policy
+                f10QosPolicyMapQueueRowStatus
+
+            --------------------------------------------------------------
+            f10QosClassMap
+            
+            f10QosClassMapTable
+                f10QosClassMapIndex     (index)
+                f10QosClassMapName
+                f10QosClassMapMatch
+                    QosClassMapMatchType
+                f10QosClassMapRowStatus
+
+
+            --------------------------------------------------------------
+            f10QosMatchObject
+
+            f10QosMatchObjectTable
+                f10QosClassMapIndex         (index 1)
+                f10QosMatchObjectSequence   (index 2)
+                f10QosMatchObjectType
+                f10QosMatchObjectString
+                
+                
+            --------------------------------------------------------------
+            f10QosPolicy
+            
+            f10QosPolicyTable
+                f10QosPolicyIndex        (index)
+                f10QosPolicyName
+                f10QosPolicyDirection
+    
+                f10QosPolicyInRatePoliceState
+                f10QosPolicyInRatePoliceCmtRate
+                f10QosPolicyInRatePoliceCmtBurst
+                f10QosPolicyInRatePolicePeakRate
+                f10QosPolicyInRatePoliceCmtBurst
+    
+                f10QosPolicyInMarkIpDscp
+                f10QosPolicyInMarkDot1p
+                f10QosPolicyInMarkMplsExp
+    
+                f10QosPolicyOutRateLimitState
+                f10QosPolicyOutRateLimitCmtRate
+                f10QosPolicyOutRateLimitCmtBurst
+                f10QosPolicyOutRateLimitPeakRate
+                f10QosPolicyOutRateLimitPeakBurst
+    
+                f10QosPolicyOutRateShapeState
+                f10QosPolicyOutRateShapeCmtRate
+                f10QosPolicyOutRateShapeCmtBurst
+    
+                f10QosPolicyOutBandwidth
+                f10QosPolicyOutWredIndex    point to a WRED profile
+    
+                f10QosPolicyRowStatus
+    
+            f10QosWredProfileTable
+                f10QosWredIndex        (index)
+                f10QosWredName
+                f10QosWredType
+                f10QosWredThresholdLow
+                f10QosWredThresholdHigh
+                f10QosWredRowStatus
+            --------------------------------------------------------------
+            "
+        ::= { f10Mgmt 4 }   
+
+--
+--
+-- Textual Conventions
+--
+--
+
+TrafficDirection ::= TEXTUAL-CONVENTION
+        STATUS  current
+        DESCRIPTION
+            "Enums to indicate whether the network traffic is for Input or
+            Output direction. 
+            "
+        SYNTAX  INTEGER 
+        {
+            input(1),
+            output(2)
+        }
+
+QosClassMapMatchType ::= TEXTUAL-CONVENTION
+        STATUS  current
+        DESCRIPTION
+            "Enums to indicate whether the Class Map is for 
+            Match All or Match Any.
+            If matchAll is specified, the packet will be considered in this
+            class only if all the match clause in the Class Map are satisfied
+            If matchAny is specified, the packet will be considered in this 
+            class if any of the match clause in the Class Map is satisfied.
+            "
+        SYNTAX  INTEGER 
+        {
+            matchAll(1),
+            matchAny(2)
+        }
+
+PolicyMapHonoringType ::= TEXTUAL-CONVENTION
+        STATUS  current
+        DESCRIPTION
+            "This is the type of Dynamic Classification.
+            Dynamic Classification honor packets marking according to the
+            standard definitions of DSCP, dot1p, and MPLS EXP.
+            "
+        SYNTAX  INTEGER 
+        {
+            disabled(1),
+            dscp(2),
+            mplsExp(3),
+            dot1p(4)
+        }
+
+MatchObjectType ::= TEXTUAL-CONVENTION
+        STATUS  current
+        DESCRIPTION
+            "
+            "
+        SYNTAX  INTEGER 
+        {
+            other(1),
+            embededClassMap(2),
+            ipAcl(3),
+            macAcl(4),
+            ipPrecedence(5),
+            ipDscp(6),
+            ipProtocol(7),
+            macProtocol(8),
+            vlan(9),
+            mplsExp(10),
+            dot1p(11)
+        }
+
+QosPolicyState ::= TEXTUAL-CONVENTION
+        STATUS  current
+        DESCRIPTION
+                "Force10 QOS Policy State.
+                "
+        SYNTAX  INTEGER {
+                    enabled(1),
+                    disabled(2),
+                    notApplicable(3)
+                }
+
+
+f10QosGroup             OBJECT IDENTIFIER ::= { f10QosMib 1 } 
+f10QosInterface         OBJECT IDENTIFIER ::= { f10QosMib 2 }
+f10QosPolicyMap         OBJECT IDENTIFIER ::= { f10QosMib 3 } 
+f10QosClassMap          OBJECT IDENTIFIER ::= { f10QosMib 4 } 
+f10QosMatchObject       OBJECT IDENTIFIER ::= { f10QosMib 5 } 
+f10QosPolicy            OBJECT IDENTIFIER ::= { f10QosMib 6 } 
+f10QosNotification      OBJECT IDENTIFIER ::= { f10QosMib 7 } 
+
+--
+--  The F10QosGroup
+--
+f10QosMibVersion  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    version1(1)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "
+            version1(1) - initial version, does not support SNMP SET.
+        "
+    ::= { f10QosGroup 1 }
+
+f10QosMaxWredProfile OBJECT-TYPE
+    SYNTAX      INTEGER 
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The maximum number of WRED (Weighted Random Early Detection)
+        Profiles supported by Force10 QOS.
+        "
+    ::= { f10QosGroup 2 }
+
+
+
+-- 
+--  QOS Interface/PolicyMap Table
+-- 
+f10QosIfPolicyMapTable  OBJECT-TYPE
+	SYNTAX		SEQUENCE OF F10QosIfPolicyMapEntry
+	MAX-ACCESS	not-accessible
+	STATUS		current
+	DESCRIPTION   "The QOS Interface/Policy Map Table.
+        This table represents the mapping between QOS Policy Map and Interface.
+        Force10 QOS supports re-usable QOS Policy, i.e. the same QOS Policy can
+        be applied to multiple interfaces. Thus, two index are used in the table,
+        the first index represents the QOS Policy Map and the second index associate
+        the QOS Policy Map to an interface. The combination of Policy Map index 
+        and interface index describes an N-to-N relationship, i.e. one
+        interface can have multiple PolicyMap (input and output) and one
+        PolicyMap can support unlimited number of interfaces.
+        "
+	::= { f10QosInterface 1 }
+
+f10QosIfPolicyMapEntry OBJECT-TYPE
+	SYNTAX      F10QosIfPolicyMapEntry
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION   "An entry in the QOS Interface/Policy Map table."
+	INDEX		 { f10QosIfPolicyMapIndex, ifIndex}
+	::= { f10QosIfPolicyMapTable 1 }
+
+F10QosIfPolicyMapEntry ::= SEQUENCE {
+    f10QosIfPolicyMapIndex
+		INTEGER,
+    f10QosIfPolicyMapRowStatus
+        RowStatus
+}
+
+f10QosIfPolicyMapIndex  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "This is the second index of this table, this index points to
+        an entry in the f10QosPolicyMapTable. The PolicyMap in the 
+        f10QosPolicyMapTable supports the interface (index by the first index 
+        ifIndex).
+        "
+    ::= { f10QosIfPolicyMapEntry 1 }
+
+f10QosIfPolicyMapRowStatus  OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "In this version1(1) release, RowStatus is not settable and
+        will always return active(1) when queried.
+        "
+    ::= { f10QosIfPolicyMapEntry 2 }
+
+
+--
+--  Force10 QOS Policy Map Table
+--
+f10QosPolicyMapTable    OBJECT-TYPE
+	SYNTAX		SEQUENCE OF F10QosPolicyMapEntry
+	MAX-ACCESS	not-accessible
+	STATUS		current
+	DESCRIPTION   "The QOS Policy Map Table."
+	::= { f10QosPolicyMap 1 }
+
+f10QosPolicyMapEntry OBJECT-TYPE
+	SYNTAX      F10QosPolicyMapEntry
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION   "An entry in the QOS Policy Map table."
+	INDEX		 { f10QosPolicyMapIndex }
+	::= { f10QosPolicyMapTable 1 }
+
+F10QosPolicyMapEntry ::= SEQUENCE {
+    f10QosPolicyMapIndex
+		INTEGER,
+    f10QosPolicyMapName
+        DisplayString,
+    f10QosPolicyMapDirection
+        TrafficDirection,
+    f10QosPolicyMapHonoring
+        PolicyMapHonoringType,
+    f10QosPolicyMapAggPolicyIndex    
+        INTEGER,
+    f10QosPolicyMapRowStatus
+        RowStatus
+}
+
+f10QosPolicyMapIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosPolicyMapEntry 1 }
+            
+f10QosPolicyMapName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosPolicyMapEntry 2 }
+            
+f10QosPolicyMapDirection OBJECT-TYPE
+    SYNTAX      TrafficDirection
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosPolicyMapEntry 3 }
+            
+f10QosPolicyMapHonoring OBJECT-TYPE
+    SYNTAX      PolicyMapHonoringType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "This is the type of Dynamic Classification.
+        Dynamic Classification honor packets marking according to the
+        standard definitions of DSCP, dot1p, and MPLS EXP.
+        "
+    DEFVAL      {1}        
+    ::= { f10QosPolicyMapEntry 4 }
+            
+f10QosPolicyMapAggPolicyIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "This object points to an entry in the f10QosPolicyTable,
+        the QOS Policy being addressed will be used as the Aggregate QOS 
+        Policy for this PolicyMap.
+        If the PolicyMap doesn't have aggregate QOS Policy, the value will be
+        -1.
+        "
+    DEFVAL      {-1}
+    ::= { f10QosPolicyMapEntry 5 }
+
+f10QosPolicyMapRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "In this version1(1) release, RowStatus is not settable and
+        will always return active(1) when queried.
+        "
+    ::= { f10QosPolicyMapEntry 6 }
+
+            
+--
+--  Force10 QOS Policy-Map-Queue Table
+--
+f10QosPolicyMapQueueTable OBJECT-TYPE
+	SYNTAX		SEQUENCE OF F10QosPolicyMapQueueEntry
+	MAX-ACCESS	not-accessible
+	STATUS		current
+	DESCRIPTION   "The QOS PolicyMapQueue Table.
+        "
+	::= { f10QosPolicyMap 2 }
+
+f10QosPolicyMapQueueEntry OBJECT-TYPE
+	SYNTAX      F10QosPolicyMapQueueEntry
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION   "An entry in the QOS Interface Statistics table."
+	INDEX		 { f10QosPolicyMapIndex, f10QosPolicyMapQueueId }
+	::= { f10QosPolicyMapQueueTable 1 }
+
+F10QosPolicyMapQueueEntry ::= SEQUENCE {
+    f10QosPolicyMapQueueId
+		F10QueueID,
+    f10QosPolicyMapQueueClassMapIndex
+        INTEGER,
+    f10QosPolicyMapQueuePolicyIndex
+        INTEGER,
+    f10QosPolicyMapQueueRowStatus
+        RowStatus
+}
+
+f10QosPolicyMapQueueId OBJECT-TYPE
+    SYNTAX      F10QueueID
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosPolicyMapQueueEntry 1 }
+
+f10QosPolicyMapQueueClassMapIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosPolicyMapQueueEntry 2 }
+
+f10QosPolicyMapQueuePolicyIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosPolicyMapQueueEntry 3 }
+
+f10QosPolicyMapQueueRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "In this version1(1) release, RowStatus is not settable and
+        will always return active(1) when queried.
+        "
+    ::= { f10QosPolicyMapQueueEntry 4 }
+
+
+
+--
+--  Force10 QOS Class Map Table
+--
+f10QosClassMapTable OBJECT-TYPE
+	SYNTAX		SEQUENCE OF F10QosClassMapEntry
+	MAX-ACCESS	not-accessible
+	STATUS		current
+	DESCRIPTION   "The QOS Interface Queue Statistics Table."
+	::= { f10QosClassMap 1 }
+
+f10QosClassMapEntry OBJECT-TYPE
+	SYNTAX      F10QosClassMapEntry
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION   "An entry in the QOS Interface Statistics table."
+	INDEX		 { f10QosClassMapIndex }
+	::= { f10QosClassMapTable 1 }
+
+F10QosClassMapEntry ::= SEQUENCE {
+    f10QosClassMapIndex
+		INTEGER,
+    f10QosClassMapName
+        DisplayString,
+    f10QosClassMapMatch
+        QosClassMapMatchType,
+    f10QosClassMapRowStatus
+        RowStatus
+}
+
+f10QosClassMapIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosClassMapEntry 1 }
+
+f10QosClassMapName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosClassMapEntry 2 }
+
+f10QosClassMapMatch OBJECT-TYPE
+    SYNTAX      QosClassMapMatchType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosClassMapEntry 3 }
+
+f10QosClassMapRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "In this version1(1) release, RowStatus is not settable and
+        will always return active(1) when queried.
+        "
+    ::= { f10QosClassMapEntry 4 }
+
+
+--
+--  Force10 QOS Match Objects Table
+--
+f10QosMatchObjectTable OBJECT-TYPE
+	SYNTAX		SEQUENCE OF F10QosMatchObjectEntry
+	MAX-ACCESS	not-accessible
+	STATUS		current
+	DESCRIPTION   "The QOS Match Object Table."
+	::= { f10QosMatchObject 1 }
+
+f10QosMatchObjectEntry OBJECT-TYPE
+	SYNTAX      F10QosMatchObjectEntry
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION   "An entry in the QOS Match Object table."
+	INDEX		 { f10QosClassMapIndex, f10QosMatchObjectSequence }
+	::= { f10QosMatchObjectTable 1 }
+
+F10QosMatchObjectEntry ::= SEQUENCE {
+    f10QosMatchObjectSequence
+		INTEGER,
+    f10QosMatchObjectType
+        MatchObjectType,    
+    f10QosMatchObjectString
+        DisplayString
+}
+
+
+f10QosMatchObjectSequence OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosMatchObjectEntry 1 }
+
+f10QosMatchObjectType OBJECT-TYPE
+    SYNTAX      MatchObjectType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosMatchObjectEntry 2 }
+
+f10QosMatchObjectString OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "
+        "
+    ::= { f10QosMatchObjectEntry 3 }
+
+
+--
+--  Force10 QOS Policy Table
+--
+f10QosPolicyTable  OBJECT-TYPE
+	SYNTAX		SEQUENCE OF F10QosPolicyEntry
+	MAX-ACCESS	not-accessible
+	STATUS		current
+	DESCRIPTION   "The QOS Policy Table."
+	::= { f10QosPolicy 1 }
+
+f10QosPolicyEntry OBJECT-TYPE
+	SYNTAX      F10QosPolicyEntry
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION   "An entry in the QOS Policy table."
+	INDEX		 { f10QosPolicyIndex }
+	::= { f10QosPolicyTable 1 }
+
+F10QosPolicyEntry ::= SEQUENCE {
+    f10QosPolicyIndex
+        INTEGER,
+    f10QosPolicyName
+        DisplayString,
+    f10QosPolicyDirection
+        TrafficDirection,    
+    f10QosPolicyInRatePoliceState
+		QosPolicyState,
+    f10QosPolicyInRatePoliceCmtRate
+		INTEGER,
+    f10QosPolicyInRatePoliceCmtBurst
+		INTEGER,
+    f10QosPolicyInRatePolicePeakRate
+		INTEGER,
+    f10QosPolicyInRatePolicePeakBurst
+		INTEGER,
+    f10QosPolicyInMarkIpDscp
+		INTEGER,
+    f10QosPolicyInMarkDot1p
+		INTEGER,
+    f10QosPolicyInMarkMplsExp
+		INTEGER,
+    f10QosPolicyOutRateLimitState
+		QosPolicyState,
+    f10QosPolicyOutRateLimitCmtRate
+		INTEGER,
+    f10QosPolicyOutRateLimitCmtBurst
+		INTEGER,
+    f10QosPolicyOutRateLimitPeakRate
+		INTEGER,
+    f10QosPolicyOutRateLimitPeakBurst
+		INTEGER,
+    f10QosPolicyOutRateShapeState
+		QosPolicyState,
+    f10QosPolicyOutRateShapeCmtRate
+		INTEGER,
+    f10QosPolicyOutRateShapeCmtBurst
+		INTEGER,
+    f10QosPolicyOutBandwidth
+		INTEGER,
+    f10QosPolicyOutWredIndex    
+		INTEGER,
+    f10QosPolicyRowStatus
+        RowStatus
+}
+
+f10QosPolicyIndex  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "An integer value uniquely identify this entry of QOS Policy.
+        "
+    ::= { f10QosPolicyEntry 1 }
+    
+f10QosPolicyName  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "An unique QOS Policy name.
+        "
+    ::= { f10QosPolicyEntry 2 }
+    
+f10QosPolicyDirection  OBJECT-TYPE
+    SYNTAX      TrafficDirection
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "INPUT or OUTPUT QOS Policy.
+        "
+    ::= { f10QosPolicyEntry 3 }
+    
+f10QosPolicyInRatePoliceState  OBJECT-TYPE
+    SYNTAX      QosPolicyState
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        For the OUTPUT QOS Policy the value will be notApplicable(3).        
+        "
+    ::= { f10QosPolicyEntry 4 }
+    
+f10QosPolicyInRatePoliceCmtRate  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        "
+    ::= { f10QosPolicyEntry 5 }
+    
+f10QosPolicyInRatePoliceCmtBurst  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        "
+    ::= { f10QosPolicyEntry 6 }
+    
+f10QosPolicyInRatePolicePeakRate  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        "
+    ::= { f10QosPolicyEntry 7 }
+    
+f10QosPolicyInRatePolicePeakBurst  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        "
+    ::= { f10QosPolicyEntry 8 }
+    
+f10QosPolicyInMarkIpDscp  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        "
+    ::= { f10QosPolicyEntry 9 }
+    
+f10QosPolicyInMarkDot1p  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        "
+    ::= { f10QosPolicyEntry 10 }
+    
+f10QosPolicyInMarkMplsExp  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS INPUT Policy only.
+        "
+    ::= { f10QosPolicyEntry 11 }
+    
+f10QosPolicyOutRateLimitState  OBJECT-TYPE
+    SYNTAX      QosPolicyState
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS Output Policy only.
+        For the INPUT QOS Policy the value will be notApplicable(3).        
+        "
+    ::= { f10QosPolicyEntry 12 }
+    
+f10QosPolicyOutRateLimitCmtRate  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 13 }
+    
+f10QosPolicyOutRateLimitCmtBurst  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 14 }
+    
+f10QosPolicyOutRateLimitPeakRate  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 15 }
+    
+f10QosPolicyOutRateLimitPeakBurst  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 16 }
+    
+f10QosPolicyOutRateShapeState  OBJECT-TYPE
+    SYNTAX      QosPolicyState
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The current state of QOS Output Policy Rate Shaping.
+        This object is provided for QOS Output Policy only.
+        For the Input QOS Policy the value will be notApplicable(3).        
+        "
+    ::= { f10QosPolicyEntry 17 }
+    
+f10QosPolicyOutRateShapeCmtRate  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The committed rate of Output Policy Rate Shaping.
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 18 }
+    
+f10QosPolicyOutRateShapeCmtBurst  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The committed burst rate of Output Policy Rate Shaping.
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 19 }
+    
+f10QosPolicyOutBandwidth  OBJECT-TYPE
+    SYNTAX      INTEGER (0..100)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "The QOS Policy Scheduing bindwidth percentage.
+        This object represents the Class-Based WFQ (Weight Fari Queueing).
+        The value is 0 if the bandwidth scheduling is disabled for this
+        QOS Policy/QOS Class.
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 20 }
+    
+f10QosPolicyOutWredIndex  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "This is the index to the f10QosWredProfileTable, showing the
+        WRED Profile is used by this QOS Policy.
+        If the value is -1, no WRED Profile is used and the default WRED
+        configuration will be applied.
+        This object is provided for QOS Output Policy only.
+        "
+    ::= { f10QosPolicyEntry 21 }
+    
+f10QosPolicyRowStatus  OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "In this version1(1) release, RowStatus is not settable and
+        will always return active(1) when queried.
+        "
+    ::= { f10QosPolicyEntry 22 }
+    
+
+--
+--  Force10 QOS Policy WRED (Weighted Random Early Detection) Profile Table
+--
+f10QosWredProfileTable  OBJECT-TYPE
+	SYNTAX		SEQUENCE OF F10QosWredProfileEntry
+	MAX-ACCESS	not-accessible
+	STATUS		current
+	DESCRIPTION   "The QOS Policy WRED Profile Table.
+        WRED Profile are configurable under global context. The maximu number
+        of WRED Profiles is defined in the object f10QosMaxWredProfile.
+        "
+	::= { f10QosPolicy 2 }
+
+f10QosWredProfileEntry OBJECT-TYPE
+	SYNTAX      F10QosWredProfileEntry
+	MAX-ACCESS  not-accessible
+	STATUS      current
+	DESCRIPTION   "An entry in the QOS Policy WRED Profile table."
+	INDEX		 { f10QosWredIndex }
+	::= { f10QosWredProfileTable 1 }
+
+F10QosWredProfileEntry ::= SEQUENCE {
+    f10QosWredIndex
+        INTEGER,
+    f10QosWredName
+        DisplayString,
+    f10QosWredType
+        INTEGER,
+    f10QosWredThresholdLow
+        INTEGER,
+    f10QosWredThresholdHigh
+        INTEGER,
+    f10QosWredRowStatus
+        RowStatus
+    }
+    
+f10QosWredIndex  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "an integer uniquely identify this entry of WRED Profile.
+        "
+    ::= { f10QosWredProfileEntry 1 }
+    
+f10QosWredName  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "This is the name of this WRED Profile. A WRED Profile name
+        must be unique among WRED Profiles.
+        "
+    ::= { f10QosWredProfileEntry 2 }
+    
+f10QosWredType  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    linear(1),
+                    exponential(2)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "
+        "
+    DEFVAL      {2}
+    ::= { f10QosWredProfileEntry 3 }
+    
+f10QosWredThresholdLow OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The WRED Profile low threshold value in MBytes.
+        "
+    ::= { f10QosWredProfileEntry 4 }
+    
+f10QosWredThresholdHigh  OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The WRED Profile high threshold value in MBytes.
+        "
+    ::= { f10QosWredProfileEntry 5 }
+    
+f10QosWredRowStatus  OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "In this version1(1) release, RowStatus is not settable and
+        will always return active(1) when queried.
+        "
+    ::= { f10QosWredProfileEntry 6 }
+    
+
+--
+--  QOS Notification
+--
+f10QosAlarm     OBJECT IDENTIFIER ::= { f10QosNotification 0 }
+f10QosAlarmData OBJECT IDENTIFIER ::= { f10QosNotification 1 }
+
+f10QosAlarmDescription OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION    ""
+    ::= { f10QosAlarmData 1 }
+
+f10QosAlarmGeneric   NOTIFICATION-TYPE
+    OBJECTS     { f10QosAlarmDescription
+                }
+    STATUS      current
+    DESCRIPTION "This defines a generic QOS TRAP.
+        "
+    ::= { f10QosAlarm 1 }
+    
+END

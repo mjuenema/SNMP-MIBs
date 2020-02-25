@@ -8,7 +8,6 @@
 -- Copyright (c) 1998, 1999 Redstone Communications, Inc.
 -- Copyright (c) 2000, 2001 Unisphere Networks, Inc.
 -- Copyright (c) 2002, 2004 Juniper Networks, Inc.
--- Copyright (c) 2005 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -29,7 +28,7 @@ IMPORTS
         FROM Juniper-MIBs;
 
 juniSnmpMIB  MODULE-IDENTITY
-    LAST-UPDATED "200506231349Z"  -- 23-Jun-05 09:49 AM EDT
+    LAST-UPDATED "200406231349Z"  -- 23-Jun-04 09:49 AM EDT
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -42,15 +41,6 @@ juniSnmpMIB  MODULE-IDENTITY
         "MIB objects for configuring SNMP-based management access into Juniper
         E-series products."
     -- Revision History
-	REVISION    "200601010000Z"  -- 01-Jan-06 00:00 AM EDT  - JUNOSe 7.3
-    DESCRIPTION
-        "Added support for DOS Protection Traps."
-    REVISION    "200506231349Z"  -- 23-Jun-05 09:49 AM EDT  - JUNOSe 7.2
-    DESCRIPTION
-        "Added support for dynamic SNMP MIB views and secure traps."
-    REVISION    "200505122153Z"  -- 12-May-05 05:53 PM EDT  - JUNOSe 7.1
-    DESCRIPTION
-        "RLI 1925: Added support for ip traps."
     REVISION    "200406231349Z"  -- 23-Jun-04 09:49 AM EDT  - JUNOSe 6.1
     DESCRIPTION
         "RLI 1684: Added support for route table traps."
@@ -183,12 +173,7 @@ JuniSnmpTrapMask ::= TEXTUAL-CONVENTION
         22      PIM traps
         23      High Availability Redundancy traps
         24      Route Table traps
-        25      IP Traps 
-        26      Mirror Traps 
-		27      Vpn Traps
-		28      Bfd Traps
-		29      Dos Protection Platform Traps
-        30-31   Undefined."
+        25-31   Undefined."
     SYNTAX      OCTET STRING (SIZE(4))
 
 JuniTrapSeverity ::= TEXTUAL-CONVENTION
@@ -509,7 +494,7 @@ JuniSnmpCommunityEntry ::= SEQUENCE {
     juniSnmpCommunityPrivilege       INTEGER,
     juniSnmpCommunityAccessList      Integer32,
     juniSnmpCommunityAccessListName  JuniSnmpAccessListName,
-    juniSnmpCommunityView            SnmpAdminString }
+    juniSnmpCommunityView            INTEGER }
 
 juniSnmpCommunityName  OBJECT-TYPE
     SYNTAX      JuniSnmpCommunityName
@@ -568,25 +553,21 @@ juniSnmpCommunityAccessListName  OBJECT-TYPE
     ::= { juniSnmpCommunityEntry 5 }
 
 juniSnmpCommunityView  OBJECT-TYPE
-    SYNTAX      SnmpAdminString (SIZE(0..32))
+    SYNTAX      INTEGER {
+                    everything(1),
+                    user(2),
+                    nothing(3) }
     MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
-        "The view associated with an SNMP Community authenticated by this entry. 
-         Following is the list of built-in system views.
- 
-            everything    Access to the entire MIB except packet mirror MIB.
+        "The view associated with an SNMP Community authenticated by this entry.
+            everything    Access to the entire MIB.
             user          Access to non-administrative portions of MIB.
             nothing       No access.
-            mirrorAdmin   Access to packet mirror MIB.
 
         'Administrative' portions of the MIB are those portions that pertain to
-        management access into the managed device. Administrator can also create 
-        a new SNMP MIB view dynamically and assign it to community entry. Access
-        to packet mirror MIB is only thorugh 'mirrorAdmin' view. A community with
-        'mirrorAdmin' view can be configure only through CLI administrator with 
-        mirror configuration privileges."
-    DEFVAL    { "user" }
+        management access into the managed device."
+    DEFVAL    { user }
     ::= { juniSnmpCommunityEntry 6 }
 
 --
@@ -599,8 +580,7 @@ juniSnmpTrapGlobalFilter  OBJECT-TYPE
     DESCRIPTION
         "This object provides global control over trap generation by this agent.
         For each bit position, a '1' or '0' indicates the corresponding trap
-        category is enabled or disabled, respectively. For security reasons, 
-        ‘Mirror’ category will not be allowed to be configured through SNMP."
+        category is enabled or disabled, respectively."
     ::= { juniSnmpTrap 1 }
 
 juniSnmpTrapSource  OBJECT-TYPE
@@ -712,9 +692,7 @@ juniSnmpTrapHostFilter  OBJECT-TYPE
     DESCRIPTION
         "Bit mask designating the specific trap types enabled for transmission
         to this trap destination.  For each bit position, a '1' or '0' indicates
-        the corresponding trap type is enabled or disabled, respectively. For 
-        security reasons, ‘Mirror’ category will not be allowed to be configured 
-        through SNMP.
+        the corresponding trap type is enabled or disabled, respectively.
 
         Note, trap generation is further constrained by the value
         juniSnmpTrapGlobalFilter."

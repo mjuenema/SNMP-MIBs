@@ -16,11 +16,17 @@ IMPORTS
 
     InetAddressType, InetAddress                FROM INET-ADDRESS-MIB
 
-    ServiceAdminStatus, 
+    ServiceAdminStatus, TmnxActionType, TmnxAdminState,
     TmnxServId, TmnxCustId, TNamedItem, SdpBindId, TNamedItemOrEmpty,
     TmnxVRtrMplsLspID, TmnxOperState, TmnxIgmpVersion,
     TmnxEnabledDisabled, TItemDescription, TPolicyStatementNameOrEmpty,
-    TmnxVPNRouteDistinguisher                   FROM TIMETRA-TC-MIB
+    TCpmProtPolicyID, TmnxVPNRouteDistinguisher,
+    TmnxPwGlobalId, TmnxSpokeSdpId, TmnxPwGlobalIdOrZero,
+    TmnxBsxTransitIpPolicyIdOrZero, TmnxBsxTransPrefPolicyIdOrZero,
+    TmnxBsxAarpIdOrZero, TmnxBsxAarpServiceRefType, TmnxPortID, TmnxVcId,
+    TSdpIngressPolicyID, TSdpEgressPolicyID, TQosQGrpInstanceIDorZero,
+    TmnxMplsTpGlobalID, TmnxMplsTpNodeID
+                                                FROM TIMETRA-TC-MIB
 
     tmnxServObjs, tmnxServConformance, tmnxServNotifications, tmnxSvcObjs,
     custId, svcId, svcVpnId, tstpTraps,
@@ -32,12 +38,14 @@ IMPORTS
     svcTlsMacMoveMaxRate, svcDhcpProxyError, svcDhcpCoAError,
     svcDhcpPacketProblem, svcDhcpSubAuthError,
     ServObjName, ServObjDesc,
-    VpnId, SdpId, PWTemplateId, SdpBindTlsBpduTranslation,
+    VpnId, SdpId, PWTemplateId, TlsBpduTranslation,
     TlsLimitMacMoveLevel, TlsLimitMacMove, SdpBindVcType,
     StpExceptionCondition, LspIdList, BridgeId, TStpPortState,
     StpPortRole, StpProtocol, MvplsPruneState, TdmOptionsSigPkts,
     TdmOptionsCasTrunkFraming, SdpBFHundredthsOfPercent, SdpBindBandwidth,
-    L2ptProtocols, L2RouteOrigin, ConfigStatus  FROM TIMETRA-SERV-MIB
+    L2ptProtocols, L2RouteOrigin, ConfigStatus,
+    TmnxSiteId, protectedMacForNotify
+                                                FROM TIMETRA-SERV-MIB
 
     timetraSRMIBModules                         FROM TIMETRA-GLOBAL-MIB
 
@@ -46,36 +54,49 @@ IMPORTS
     tmnxMDASlotNum                              FROM TIMETRA-CHASSIS-MIB;
 
 timetraServicesSdpMIBModule   MODULE-IDENTITY
-    LAST-UPDATED    "0710010000Z"
-    ORGANIZATION    "Alcatel"
-    CONTACT-INFO
-        "Alcatel 7x50 Support
-         Web: http://www.alcatel.com/comps/pages/carrier_support.jhtml"
+        LAST-UPDATED "201102010000Z"
+        ORGANIZATION "Alcatel-Lucent"
+        CONTACT-INFO
+            "Alcatel-Lucent SROS Support
+             Web: http://support.alcatel-lucent.com"
     DESCRIPTION
-        "This  document  is the SNMP MIB module to manage and provision
-        the various services of the Alcatel 7x50 SR system.
+        "This document is the SNMP MIB module to manage and provision
+        the various services of the Alcatel-Lucent SROS system.
 
-        Copyright  2003-2008 Alcatel-Lucent. All rights reserved. Reproduction
-        of  this  document  is  authorized  on  the  condition that the
-        foregoing copyright notice is included.
+        Copyright 2003-2013 Alcatel-Lucent. All rights reserved. 
+        Reproduction of this document is authorized on the condition that
+        the foregoing copyright notice is included.
 
-        This   SNMP   MIB  module  (Specification)  embodies  Alcatel's
-        proprietary  intellectual  property.  Alcatel retains all title
-        and ownership in the Specification, including any revisions.
+        This SNMP MIB module (Specification) embodies Alcatel-Lucent's
+        proprietary intellectual property.  Alcatel-Lucent retains
+        all title and ownership in the Specification, including any
+        revisions.
 
-        Alcatel  grants  all interested parties a non-exclusive license
-        to  use and distribute an unmodified copy of this Specification
-        in  connection with management of Alcatel products, and without
-        fee,  provided  this copyright notice and license appear on all
-        copies.
+        Alcatel-Lucent grants all interested parties a non-exclusive
+        license to use and distribute an unmodified copy of this
+        Specification in connection with management of Alcatel-Lucent
+        products, and without fee, provided this copyright notice and
+        license appear on all copies.
 
-        This  Specification  is  supplied `as is', and Alcatel makes no
-        warranty,  either express or implied, as to the use, operation,
-        condition, or performance of the Specification."
+        This Specification is supplied 'as is', and Alcatel-Lucent
+        makes no warranty, either express or implied, as to the use,
+        operation, condition, or performance of the Specification."
 
 --
 --  Revision History
 --
+    REVISION        "1102010000Z"
+    DESCRIPTION     "Rev 9.0                1 Feb 2011 00:00
+                     9.0 release of the TIMETRA-SDP-MIB."
+
+    REVISION        "0902280000Z"
+    DESCRIPTION     "Rev 7.0                28 Feb 2009 00:00
+                     7.0 release of the TIMETRA-SDP-MIB."
+
+    REVISION        "0807010000Z"
+    DESCRIPTION     "Rev 6.1                01 Jul 2008 00:00
+                     6.1 release of the TIMETRA-SDP-MIB."
+
     REVISION        "0710010000Z"
     DESCRIPTION     "Rev 1.0                01 Oct 2007 00:00
                      1.0 release of the TIMETRA-SDP-MIB from TIMETRA-SERV-MIB."
@@ -174,7 +195,22 @@ SdpInfoEntry ::=
         sdpAvailableBandwidth                    Unsigned32,
         sdpMaxBookableBandwidth                  Unsigned32,
         sdpBookedBandwidth                       Unsigned32,
-        sdpCreationOrigin                        L2RouteOrigin
+        sdpCreationOrigin                        L2RouteOrigin,
+        sdpEnforceDiffServLspFc                  TruthValue,
+        sdpMixedLspModeEnabled                   TruthValue,
+        sdpLspRevertTime                         Integer32,
+        sdpLspRevertTimeCountDown                Integer32,
+        sdpLdpLspId                              Unsigned32,
+        sdpLdpActive                             TruthValue,
+        sdpNetDomainName                         TNamedItemOrEmpty,
+        sdpEgressIfsNetDomainConsistent          INTEGER,  
+        sdpBgpTunnelEnabled                      TruthValue,
+        sdpBgpTunnelLspId                        Unsigned32,
+        sdpTunnelFarEndIpAddress                 IpAddress,
+        sdpActiveLspType                         INTEGER,
+        sdpBindingPort                           TmnxPortID,
+        sdpFarEndNodeId                          TmnxMplsTpNodeID,
+        sdpFarEndGlobalId                        TmnxMplsTpGlobalID
     }
 
 sdpId OBJECT-TYPE
@@ -199,12 +235,12 @@ sdpRowStatus OBJECT-TYPE
 sdpDelivery OBJECT-TYPE
     SYNTAX          INTEGER {
                         gre  (1),
-                        mpls (2)
+                        mpls   (2)
                     }
     MAX-ACCESS      read-create
     STATUS          current
     DESCRIPTION     "This object specifies the type of delivery used
-                     by this SDP: e.g. GRE or MPLS. The value of this
+                     by this SDP. The value of this
                      object must be specified when the row is created
                      and cannot be changed while the row status is
                      'active'."
@@ -214,12 +250,17 @@ sdpFarEndIpAddress OBJECT-TYPE
     SYNTAX          IpAddress
     MAX-ACCESS      read-create
     STATUS          current
-    DESCRIPTION     "This object specifies the IP address of the
-                     remote end of the GRE or MPLS tunnel defined
-                     by this SDP. The value of this object must
-                     be set for the row to become 'active', and
-                     can only be changed while the admin status
-                     of the SDP is 'down'."
+    DESCRIPTION     "This object specifies the IP address of the remote
+                     end of the GRE or MPLS tunnel defined by this SDP.
+                     If sdpTunnelFarEndIpAddress is not set, then
+                     sdpFarEndIpAddress also specifies the remote end of
+                     the TLDP session.
+
+                     The value of this object must be set to a non-default value
+                     when the sdpDelivery is set to 'gre' or 'mpls' for the
+                     row to become 'active', and can only be changed while the
+                     admin status of the SDP is 'down'."
+    DEFVAL { 0 }
     ::= { sdpInfoEntry 4 }
 
 sdpLspList OBJECT-TYPE
@@ -230,12 +271,13 @@ sdpLspList OBJECT-TYPE
                      is 'mpls', this object specifies the list of
                      LSPs used to reach the far-end ESR device.
                      All the LSPs in this list must terminate at the
-                     IP address specified by sdpFarEndIpAddress. This
-                     object is otherwise insignificant and should
+                     IP address specified by sdpFarEndIpAddress
+                     or sdpFarEndNodeId (for sdpDelivery of 'mpls').
+                     This object is otherwise insignificant and should
                      contain a value of 0.
 
                      When this list has more than one element, the
-                     Alcatel 7x50 SR router will use all of the LSPs for
+                     Alcatel-Lucent SROS router will use all of the LSPs for
                      load balancing purposes. Each LSP ID in the list
                      corresponds to the vRtrMplsLspIndex of the given
                      MPLS LSP."
@@ -252,7 +294,8 @@ sdpDescription OBJECT-TYPE
 sdpLabelSignaling OBJECT-TYPE
     SYNTAX          INTEGER {
                         none (1),
-                        tldp (2)
+                        tldp (2),
+                        bgp  (3)
                     }
     MAX-ACCESS      read-create
     STATUS          current
@@ -263,8 +306,14 @@ sdpLabelSignaling OBJECT-TYPE
                      'none' then the labels are manually assigned
                      at the time the SDP is bound to a service. The
                      value of this object can only be changed while
-                     the admin status of the SDP is 'down'."
-    DEFVAL          { tldp }
+                     the admin status of the SDP is 'down'.
+                     
+                     An 'inconsistentValue' error is returned if this object
+                     is not set to 'none' when sdpDelivery is set to 'mpls'.
+
+                     Default value of this object is set to 'none' when
+                     sdpDelivery is set to 'mpls' otherwise default value
+                     for this object is set to 'tldp'."
     ::= { sdpInfoEntry 7 }
 
 sdpAdminStatus OBJECT-TYPE
@@ -323,7 +372,8 @@ sdpOperPathMtu OBJECT-TYPE
                      through this SDP to the far-end ESR, without
                      requiring the packet to be fragmented. In order
                      to be able to bind this SDP to a given service,
-                     the value of this object must be equal to or
+                     the value of this object minus the control word
+                     size (if applicable) must be equal to or
                      larger than the MTU of the service, as defined
                      by its svcMtu."
     ::= { sdpInfoEntry 11 }
@@ -499,7 +549,8 @@ sdpOperFlags OBJECT-TYPE
                         keepaliveFailure        (3),
                         invalidEgressInterface  (4),
                         noSystemIpAddress       (5),
-                        transportTunnelUnstable (6)
+                        transportTunnelUnstable (6),
+                        notOnBindingPort        (7)
                     }
     MAX-ACCESS      read-only
     STATUS          current
@@ -703,6 +754,207 @@ sdpCreationOrigin   OBJECT-TYPE
                      mechanism which created this SDP."
     ::= { sdpInfoEntry 44 }
 
+sdpEnforceDiffServLspFc OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpEnforceDiffServLspFc specifies 
+                     whether service manager must validate with RSVP the 
+                     support of the FC by the LSP.  
+
+                     By default, the SDP uses the direct configuration 
+                     without validation with RSVP. "
+    DEFVAL           { false}
+    ::= { sdpInfoEntry 45 }
+
+sdpMixedLspModeEnabled  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpMixedLspModeEnabled specifies whether
+                     mixed mode LSPs is enabled on this SDP.  Setting the
+                     value to 'true' allows LDP to be enabled and LSPs to
+                     be configured at the same time on this SDP."
+    DEFVAL           { false }
+    ::= { sdpInfoEntry 46 }
+
+sdpLspRevertTime  OBJECT-TYPE
+    SYNTAX          Integer32 (-1 | 0..600)
+    UNITS           "seconds"
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpLspRevertTime specifies the time to wait
+                     before reverting back from LDP to the configured LSPs,
+                     after having failed over to LDP.
+
+                     When the value is -1, the sdp will never revert back."
+    DEFVAL           { 0 }
+    ::= { sdpInfoEntry 47 }
+
+sdpLspRevertTimeCountDown OBJECT-TYPE
+    SYNTAX          Integer32 (-1 | 0..600)
+    UNITS           "seconds"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpLspRevertTimeCountDown indicated the timer
+                     countdown before reverting back from LDP on this SDP.
+                     The timer countdown begins after the first configured LSP
+                     becomes active.
+
+                     The value of -1 indicates when the revert time countdown
+                     is not applicable."
+    ::= { sdpInfoEntry 48 }
+
+sdpLdpLspId     OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpLdpLspId indicates the Id for the LDP
+                     LSP if sdpLdpEnabled is set to 'true' and there is a
+                     valid LDP route to the sdpFarEndIpAddress or
+                     sdpFarEndNodeId."
+    ::= { sdpInfoEntry 49 }
+
+sdpLdpActive    OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-only
+    STATUS          obsolete
+    DESCRIPTION     "The value of sdpLdpActive indicates whether LDP is active
+                     for the current SDP."
+    ::= { sdpInfoEntry 50 }
+
+sdpNetDomainName     OBJECT-TYPE
+    SYNTAX      TNamedItemOrEmpty
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpNetDomainName specifies the network-domain name 
+         configured on this SDP. The dafault value of this object is the 
+         'default' network-domain."
+    DEFVAL { "default" }
+    ::= { sdpInfoEntry 51 }
+
+sdpEgressIfsNetDomainConsistent     OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    notApplicable (1),
+                    consistent    (2),
+                    inconsistent  (3)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpEgressIfsNetDomainConsistent indicates whether all 
+         the egress network interfaces that can carry traffic on this SDP are 
+         associated with the network-domain configured on this SDP.
+
+         A value of 'notApplicable' indicates that there is no egress 
+         network interface that can carry traffic on this SDP.
+ 
+         A value of 'consistent' indicates that the network-domains for all the 
+         egress network interfaces that can carry traffic on this SDP are 
+         consistent.
+
+         A value of 'inconsistent' indicates that the network-domain for one or 
+         more egress network interfaces that can carry traffic on this SDP are 
+         inconsistent."
+    ::= { sdpInfoEntry 52 }
+
+sdpBgpTunnelEnabled  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpBgpTunnelEnabled specifies whether
+                     the transport tunnel is BGP as opposed to LDP or
+                     RSVP signalled LSPs.
+
+                     This value cannot be set to 'true' if sdpLdpEnabled is
+                     'true' or if there is at least one RSVP or static LSP
+                     provisioned.
+
+                     This object applies to MPLS SDPs."
+    DEFVAL { false }
+    ::= { sdpInfoEntry 53 }
+
+sdpBgpTunnelLspId    OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpBgpTunnelLspId indicates the Id for the
+                     BGP Tunnel LSP if sdpBgpTunnelEnabled is set to 'true'
+                     and there is a valid LDP route to the sdpFarEndIpAddress."
+    ::= { sdpInfoEntry 54 }
+
+sdpTunnelFarEndIpAddress OBJECT-TYPE
+    SYNTAX          IpAddress
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpTunnelFarEndIpAddress specifies the
+                     IP address of the remote end of the tranport tunnel for
+                     this SDP.
+
+                     The value can only be changed while the admin status
+                     of the SDP is 'down'."
+    ::= { sdpInfoEntry 55 }
+
+sdpActiveLspType OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        not-applicable (0),
+                        rsvp           (1),
+                        ldp            (2),
+                        bgp            (3),
+                        none           (4)
+                    }
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpActiveLspType indicates the type of LSP
+                     that is currently active on this SDP.
+
+                     For sdpDelivery 'gre', the value is always
+                     'not-applicable'.
+
+                     For sdpDelivery 'mpls', the values can be
+                     'rsvp', 'ldp', 'bgp' or 'none'."
+    ::= { sdpInfoEntry 56 }
+
+sdpBindingPort OBJECT-TYPE
+    SYNTAX           TmnxPortID
+    MAX-ACCESS       read-create
+    STATUS           current
+    DESCRIPTION      "The value of sdpBindingPort specifies the port id for
+                      the binding on this SDP. 
+
+                      The value of sdpPwPortOperStatus will be set to 'down' of
+                      all the related SDP pseudo-wire ports, if the SDP
+                      resolves to another port than the one specified here.
+
+                      An 'inconsistentValue' error is returned when this object
+                      is set to a non-default value when sdpDelivery is set to
+                      'gre'."
+    DEFVAL { '1e000000'H } -- invalid port-id
+    ::= { sdpInfoEntry 57 }
+
+sdpFarEndNodeId OBJECT-TYPE
+    SYNTAX          TmnxMplsTpNodeID
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpFarEndNodeId specifies the node identifier
+                     of the far-end for this sdp.
+                     
+                     The value of this object must be set to a non-default value
+                     when the sdpDelivery is set to 'mpls' for the
+                     row to become 'active', and can only be changed while the
+                     admin status of the SDP is 'down'."
+    DEFVAL { 0 }
+    ::= { sdpInfoEntry 58 }
+    
+sdpFarEndGlobalId OBJECT-TYPE
+    SYNTAX          TmnxMplsTpGlobalID
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpFarEndGlobalId specifies the global
+                     identifier of the far-end for this sdp."
+    DEFVAL { 0 }
+    ::= { sdpInfoEntry 59 }
 -- -------------------------
 -- SDP Bind Table
 -- -------------------------
@@ -763,7 +1015,34 @@ SdpBindEntry ::=
         sdpBindClassFwdingOperState         TmnxOperState,
         sdpBindForceVlanVcForwarding        TruthValue,
         sdpBindAdminBandwidth               SdpBindBandwidth,
-        sdpBindOperBandwidth                SdpBindBandwidth
+        sdpBindOperBandwidth                SdpBindBandwidth,
+        sdpBindCreationOrigin               L2RouteOrigin,
+        sdpBindDescription                  TItemDescription,
+        sdpBindSiteName                     TNamedItemOrEmpty,
+        sdpBindHashLabel                    TruthValue,
+        sdpBindIsaAaApplicationProfile      ServObjName,
+        sdpBindStandbySigSlave              TruthValue,
+        sdpBindHashLabelSignalCapability    TruthValue,
+        sdpBindIngressFlowspec              TruthValue,
+        sdpBindCpmProtPolicyId              TCpmProtPolicyID,
+        sdpBindCpmProtMonitorMac            TruthValue,
+        sdpBindCpmProtEthCfmMonitorFlags    BITS,
+        sdpBindTransitIpPolicyId            TmnxBsxTransitIpPolicyIdOrZero,
+        sdpBindPwStatusSignaling            TruthValue,
+        sdpBindOperGrp                      TNamedItemOrEmpty,
+        sdpBindMonitorOperGrp               TNamedItemOrEmpty,
+        sdpBindOperHashLabel                TruthValue,
+        sdpBindTransitPrefixPolicyId        TmnxBsxTransPrefPolicyIdOrZero,
+        sdpBindAarpId                       TmnxBsxAarpIdOrZero,
+        sdpBindIngressQoSNetworkPlcyId      TSdpIngressPolicyID,
+        sdpBindEgressQoSNetworkPlcyId       TSdpEgressPolicyID,
+        sdpBindIngressQoSFpRedirectQGrp     TNamedItemOrEmpty,
+        sdpBindEgressQoSPortRedirectQGrp    TNamedItemOrEmpty,    
+        sdpBindIngressQoSInstanceId         TQosQGrpInstanceIDorZero,
+        sdpBindEgressQoSInstanceId          TQosQGrpInstanceIDorZero,
+        sdpBindAarpServRefType              TmnxBsxAarpServiceRefType,
+        sdpBindPwLocalStatusBits            BITS,
+        sdpBindBlockOnPeerFault             TruthValue
     }
 
 sdpBindId OBJECT-TYPE
@@ -873,7 +1152,9 @@ sdpBindOperStatus OBJECT-TYPE
                                and the far-end devices.
 
             'sdpPathMtuTooSmall' The operating path MTU of the corresponding
-                                 SDP is smaller than the service MTU.
+                                 SDP minus the size of the SDP Bind control
+                                 word (if applicable) is smaller than the
+                                 service MTU.
 
             'sdpNotReady'      The SDP's signaling session is down.
 
@@ -997,27 +1278,102 @@ sdpBindOperFlags OBJECT-TYPE
     SYNTAX          BITS {
                         sdpBindAdminDown       (0), -- SDP Bind is admin down
                         svcAdminDown           (1), -- Service is admin down
-                        sapOperDown            (2), -- SAP is oper down (VLL's only)
+                        sapOperDown            (2), -- SAP is oper down 
+                                                    -- (VLL's only)
                         sdpOperDown            (3), -- SDP is oper down
-                        sdpPathMtuTooSmall     (4), -- SDP's path MTU is less than Service MTU
+                        sdpPathMtuTooSmall     (4), -- SDP's path MTU minus SDP
+                                                    -- Bind control word size is
+                                                    -- less than Service MTU
                         noIngressVcLabel       (5), -- No ingress VC label
                         noEgressVcLabel        (6), -- No egress VC label
-                        svcMtuMismatch         (7), -- Service MTU mismatch with the remote PE
-                        vcTypeMismatch         (8), -- VC type mismatch with the remote PE
-                        relearnLimitExceeded   (9), -- MAC relearn limit was exceeded (TLS only)
-                        iesIfAdminDown         (10),-- IP interface is admin down (IES and VPRN only)
-                        releasedIngressVcLabel (11),-- Peer released our ingress VC label
-                        labelsExhausted        (12),-- Label Manager has ran out of labels
-                        svcParamMismatch       (13),-- Service-specific parameter mismatch
-                        insufficientBandwidth  (14),-- Insufficient bandwidth to allocate to SDP binding
-                        pwPeerFaultStatusBits  (15),-- Received PW fault status bits from peer      
-                        meshSdpDown            (16) -- Mesh SDP Down
-                        
+                        svcMtuMismatch         (7), -- Service MTU mismatch with
+                                                    -- the remote PE
+                        vcTypeMismatch         (8), -- VC type mismatch with the
+                                                    -- remote PE
+                        relearnLimitExceeded   (9), -- MAC relearn limit was
+                                                    -- exceeded (TLS only)
+                        iesIfAdminDown         (10),-- IP interface is admin
+                                                    -- down (IES and VPRN only)
+                        releasedIngressVcLabel (11),-- Peer released our ingress
+                                                    -- VC label
+                        labelsExhausted        (12),-- Label Manager has ran out
+                                                    -- of labels
+                        svcParamMismatch       (13),-- Service-specific
+                                                    -- parameter mismatch
+                        insufficientBandwidth  (14),-- Insufficient bandwidth to
+                                                    -- allocate to SDP binding
+                        pwPeerFaultStatusBits  (15),-- Received PW fault status
+                                                    -- bits from peer      
+                        meshSdpDown            (16),-- Mesh SDP Down
+                        notManagedByMcRing     (17),-- Not managed by mc-ring
+                        outOfResource          (18),-- Such as memory
+                        mhStandby              (19),-- Standby due to BGP
+                                                    -- multi-home protocol
+                        oamDownMepFault        (20),-- ETH-CFM down MEP fault
+                                                    -- detected. 
+                        oamUpMepFault          (21),-- ETH-CFM up MEP fault
+                                                    -- detected. 
+                        standbySigSlaveTxDown  (22),-- Transmit is down for
+                                                    -- standby-sig-spoke.
+                        operGrpDown            (23),-- Operational group is down
+                        withdrawnIngressVcLabel(24),-- Ingress label withdrawn
+                                                    -- due to incompatibility.
+                        vplsPmsiDown           (25),-- provider-tunnel down
+                        recProtSrcMac          (26),-- Received a packet with a 
+                                                    -- protected source MAC 
+                        peerFaultStatusTxDown  (27) -- Transmit is down because 
+                                                    -- block-on-peer-fault is
+                                                    -- enabled and received PW
+                                                    -- faults status from peer
                     }
     MAX-ACCESS      read-only
     STATUS          current
-    DESCRIPTION     "This object specifies all the conditions that
-                     affect the operating status of this SDP Bind."
+    DESCRIPTION     "This object specifies all the conditions that affect the
+                     operating status of this SDP Bind.
+                     
+                     The bit values are as follows:
+
+             sdpBindAdminDown        (0) - SDP Bind is admin down.
+             svcAdminDown            (1) - Service is admin down.
+             sapOperDown             (2) - SAP is oper down (VLL's only).
+             sdpOperDown             (3) - SDP is oper down.
+             sdpPathMtuTooSmall      (4) - SDP's path MTU minus SDP Bind control
+                                           word size is less than Service MTU.
+             noIngressVcLabel        (5) - No ingress VC label.
+             noEgressVcLabel         (6) - No egress VC label.
+             svcMtuMismatch          (7) - Service MTU mismatch with the
+                                           remote PE.
+             vcTypeMismatch          (8) - VC type mismatch with the remote PE.
+             relearnLimitExceeded    (9) - MAC relearn limit was exceeded
+                                           (TLS only).
+             iesIfAdminDown         (10) - IP interface is admin down
+                                           (IES and VPRN only).
+             releasedIngressVcLabel (11) - Peer released our ingress VC label.
+             labelsExhausted        (12) - Label Manager has ran out of labels.
+             svcParamMismatch       (13) - Service-specific parameter mismatch.
+             insufficientBandwidth  (14) - Insufficient bandwidth to allocate
+                                           to SDP binding.
+             pwPeerFaultStatusBits  (15) - Received PW fault status bits from
+                                           peer.      
+             meshSdpDown            (16) - Mesh SDP Down.
+             notManagedByMcRing     (17) - Not managed by mc-ring.
+             outOfResource          (18) - Such as memory.
+             mhStandby              (19) - Standby due to BGP.
+                                         - multi-home protocol.
+             oamDownMepFault        (20) - ETH-CFM down MEP fault detected.
+             oamUpMepFault          (21) - ETH-CFM up MEP fault detected.
+             standbySigSlaveTxDown  (22) - Transmit is down for 
+                                         - standby-sig-spoke.
+             operGrpDown            (23) - Operational group is down.
+             withdrawnIngressVcLabel(24) - Withdrawn due to Incompatiblity.
+             vplsPmsiDown           (25),- provider-tunnel down.
+             recProtSrcMac          (26) - Received a packet with a 
+                                         - protected source MAC.
+             peerFaultStatusTxDown  (27) - Transmit is down because 
+                                         - block-on-peer-fault is
+                                         - enabled and received PW
+                                         - faults status from peer
+             "
     ::= { sdpBindEntry 20 }
 
 sdpBindLastStatusChange OBJECT-TYPE
@@ -1122,8 +1478,8 @@ sdpBindPwPeerStatusBits OBJECT-TYPE
                     }
     MAX-ACCESS      read-only
     STATUS          current
-    DESCRIPTION     "sdpBindPwPeerStatusBits indicates the bits set by the LDP
-                     peer when there is a fault on its side of the pseudowire.
+        DESCRIPTION     "sdpBindPwPeerStatusBits indicates the bits set by the LDP
+                         peer when there is a fault on its side of the pseudowire.
                      LAC failures occur on the SAP that has been configured on
                      the PIPE service, PSN bits are set by SDP-binding failures
                      on the PIPE service.  The pwNotForwarding bit is set when
@@ -1316,6 +1672,435 @@ sdpBindOperBandwidth    OBJECT-TYPE
                      ipipe(9) and cpipe(10) services."
     ::= { sdpBindEntry 41 } 
     
+sdpBindCreationOrigin   OBJECT-TYPE
+    SYNTAX          L2RouteOrigin
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindCreationOrigin indicates the protocol or 
+                     mechanism which created this SDP binding."
+    ::= { sdpBindEntry 42 }
+
+sdpBindDescription        OBJECT-TYPE
+    SYNTAX          TItemDescription
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindDescription specifies a 
+                     user-provided description for the SDP Bind."
+    DEFVAL          { "" }
+    ::= { sdpBindEntry 43 }
+
+sdpBindSiteName OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindSiteName indicates the site-name
+                     associated with this SDP Bind."
+    ::= { sdpBindEntry 44 }
+
+sdpBindHashLabel        OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION     "The value of sdpBindHashLabel specifies whether the use of 
+                     hash-label is enabled or not on this SDP Bind."
+    DEFVAL      { false }
+    ::= { sdpBindEntry 45 }
+
+sdpBindIsaAaApplicationProfile OBJECT-TYPE
+    SYNTAX          ServObjName
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindIsaAaApplicationProfile specifies
+                     the ISA-AA application profile for this sdp. The
+                     specified application profile needs to exist in the
+                     TIMETRA-BSX-NG-MIB::tmnxBsxAppProfTable."
+    DEFVAL          { "" }
+    ::= { sdpBindEntry  46 }
+
+sdpBindStandbySigSlave     OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION     "The value of sdpBindStandbySigSlave specifies whether
+                     transmission of the spoke will be blocked when the spoke
+                     receives standby status notification from its peer."
+    DEFVAL      { false }
+    ::= { sdpBindEntry 47 }
+
+sdpBindHashLabelSignalCapability  OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION     "The value of sdpBindHashLabel specifies whether to signal
+                     the hash label capability to the remote PE.
+
+                     The default value is 'false' and cannot be changed unless
+                     sdpBindHashLabel is set to 'true'."
+    DEFVAL      { false }
+    ::= { sdpBindEntry 48 }
+
+sdpBindIngressFlowspec   OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpBindIngressFlowspec specifies whether ingress Flowspec 
+         is enabled for this sdp."
+    DEFVAL { false }
+    ::= { sdpBindEntry 49 }
+
+sdpBindCpmProtPolicyId  OBJECT-TYPE
+    SYNTAX          TCpmProtPolicyID
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindCpmProtPolicyId specifies the CPM protection policy
+         for this SDP binding.
+
+         Zero specifies that no CPM protection policy is associated with this
+         SDP binding.  A non-zero value must be the index of an active
+         tmnxCpmProtPolTable row.
+
+         If the SDP binding can support Eth-CFM MEPs or MIPs, the default CPM
+         protection policy is 255 (which is the default CPU protection policy
+         for a network interface).  Zero is not supported in this case.
+
+         If the SDP binding cannot support Eth-CFM MEPs or MIPs, the default CPM
+         protection policy is zero.  Changing the CPM protection policy value 
+         is not supported in this case."
+    DEFVAL { 255 }
+    ::= { sdpBindEntry 50 }
+
+sdpBindCpmProtMonitorMac OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindCpmProtMonitorMac specifies whether the
+         tmnxCpmProtPolPerSrcRateLimit of the CPM protection policy (as
+         specified by sdpBindCpmProtPolicyId) must be applied.
+
+         If the value of sdpBindCpmProtMonitorMac is 'true', the per-source rate
+         limit must be applied.
+
+         If the value of sdpBindCpmProtPolicyId is zero, the value of
+         sdpBindCpmProtMonitorMac is irrelevant and will be ignored.
+
+         At most one of sdpBindCpmProtMonitorMac and the
+         sdpBindCpmProtEthCfmMonitorFlags option 'ethCfmMonitor(0)' can be enabled
+         for this SDP binding."
+    DEFVAL { false }
+    ::= { sdpBindEntry 51 }
+
+sdpBindCpmProtEthCfmMonitorFlags   OBJECT-TYPE
+    SYNTAX      BITS {
+        ethCfmMonitor(0),
+        ethCfmMonitorAggregate(1),
+        ethCfmMonitorCommittedAccessRate(2)
+    }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpBindCpmProtEthCfmMonitorFlags specifies whether or not
+         to apply rate limiting (using the tmnxCpmProtEthCfmPolTable
+         configuration) to Ethernet Connectivity Fault Management (Eth-CFM)
+         packets served by the SDP binding.  Two associated options are also
+         specified.
+
+         Five combinations of flag values are supported, as shown in the
+         following table.
+
+         Flag                                    Value (0=Disabled, 1=Enabled)
+         -------------------------------------   -----------------------------
+         'ethCfmMonitor(0)'                      0   0   0   0   1   1   1   1
+         'ethCfmMonitorAggregate(1)'             0   0   1   1   0   0   1   1
+         'ethCfmMonitorCommittedAccessRate(2)'   0   1   0   1   0   1   0   1
+         -------------------------------------   -----------------------------
+         Supported Combination?                  Y   N   N   N   Y   Y   Y   Y
+
+         If 'ethCfmMonitor(0)' is disabled, Eth-CFM rate limiting is disabled on
+         this SDP binding.
+
+         If 'ethCfmMonitor(0)' is enabled, Eth-CFM rate limiting is enabled on
+         this SDP binding.  Excess packets are discarded.  The configured
+         information used to perform the Eth-CFM rate limiting (e.g. the rate
+         limit(s)) resides in the tmnxCpmProtEthCfmPolTable row(s) indexed by
+         the SDP binding's sdpBindCpmProtPolicyId.
+
+         At most one of 'ethCfmMonitor(0)' and sdpBindCpmProtMonitorMac can be
+         enabled for this SDP binding.
+
+         The flags 'ethCfmMonitorAggregate(1)' and
+         'ethCfmMonitorCommittedAccessRate(2)' adjust the behavior of Eth-CFM
+         rate limiting.  Therefore, they are only significant if Eth-CFM rate 
+         limiting is enabled (i.e. when 'ethCfmMonitor(0)' is enabled).  The
+         remainder of this DESCRIPTION assumes 'ethCfmMonitor(0)' is enabled.
+
+         If 'ethCfmMonitorAggregate(1)' is disabled, the applicable Eth-CFM
+         packet rate limit (tmnxCpmProtEthCfmPolRateLimit) applies per peer
+         (i.e. on a source MAC address basis).  For example, if the SDP
+         binding's rate limit for all Eth-CFM packets is 100 packets/sec, and
+         two peers are served by the SDP binding, then 100 Eth-CFM packets/sec
+         from each peer is within the limit.
+
+         If 'ethCfmMonitorAggregate(1)' is enabled, the applicable Eth-CFM
+         packet rate limit (tmnxCpmProtEthCfmPolRateLimit) applies to the
+         aggregated traffic flow.  For example, if the SDP binding's rate limit
+         for all Eth-CFM packets is 100 packets/sec, and two peers are served by
+         this SDP binding, then the combined rate of the two peers cannot exceed
+         100 packets/sec.
+
+         'ethCfmMonitorCommittedAccessRate(2)' controls the interaction 
+         between two features:  Eth-CFM rate limiting, and overall rate limiting
+         (as configured using tmnxCpmProtPolOverallRateLimit).
+
+         If 'ethCfmMonitorCommittedAccessRate(2)' is disabled, an Eth-CFM
+         packet is subjected to two rate limits, in the following order.
+         a) The applicable tmnxCpmProtEthCfmPolRateLimit is applied, as
+            described above.  If the packet exceeds the limit, it is discarded.
+            Otherwise...
+         b) The SDP binding's tmnxCpmProtPolOverallRateLimit (which is applied
+            to Eth-CFM packets, and the other rate limited packet types) is
+            applied.
+
+         If 'ethCfmMonitorCommittedAccessRate(2)' is enabled, an Eth-CFM packet
+         is subjected to one rate limit:  the applicable
+         tmnxCpmProtEthCfmPolRateLimit, as described above.  Eth-CFM packets
+         are neither counted nor discarded when performing the
+         tmnxCpmProtPolOverallRateLimit rate limiting."
+    DEFVAL { {} }
+    ::= { sdpBindEntry 52 }
+
+sdpBindTransitIpPolicyId     OBJECT-TYPE
+    SYNTAX      TmnxBsxTransitIpPolicyIdOrZero
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpBindTransitIpPolicyId specifies the transit IP
+         policy to be associated with this SDP binding. The value must
+         either be '0' indicating an invalid transit IP policy or the
+         specified transit IP policy needs to exist in the
+         TIMETRA-BSX-NG-MIB::tmnxBsxTransitIpPolicyTable.
+
+         At most one of sdpBindTransitIpPolicyId and 
+         sdpBindTransitPrefixPolicyId can be non-zero."
+    DEFVAL { 0 }
+    ::= { sdpBindEntry 53 }
+
+sdpBindPwStatusSignaling    OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpBindPwStatusSignaling specified whether this SDP
+         binding supports pseudowire status signaling.
+
+         Default value depends on the type of service:
+         - For VPLS services it is 'true' and configurable.
+         - For EPIPE services it is 'true' and configurable.
+         - For all other VLL services it is 'true' but not configurable.
+         - For Mirror services it is 'true' but not configurable.
+         - For IES/VPRN services it is 'true' but not configurable.
+         - For all other services it is 'false' and not configurable.
+
+         An 'inconsistentValue' error is returned when an attempt is made to
+         change this value for a SDP binding that is not configurable."
+    ::= { sdpBindEntry 54 }
+
+sdpBindOperGrp OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of the sdpBindOperGrp specifies the
+                     Operational-Group identifier associated with this SDP
+                     Bind.
+
+                     An 'inconsistentValue' error is returned when
+                     both sdpBindOperGrp and sdpBindMonitorOperGrp are set
+                     together and atleast one of them to a non-default value."
+    DEFVAL { "" }
+    ::= { sdpBindEntry 55 }
+
+sdpBindMonitorOperGrp OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of the sdpBindMonitorOperGrp specifies the
+                     Operational-Group identifier which will affect the state
+                     of this SDP Bind.
+
+                     An 'inconsistentValue' error is returned when
+                     both sdpBindOperGrp and sdpBindMonitorOperGrp are set
+                     together and atleast one of them to a non-default value."
+    DEFVAL { "" }
+    ::= { sdpBindEntry 56 }
+
+sdpBindOperHashLabel  OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION     "The value of sdpBindOperHashLabel indicates the
+                     negotiated value of hash label that is used on this SDP
+                     binding.
+
+                     If the value of sdpBindHashLabel is set to 'true' but
+                     the value of sdpBindHashLabelSignalCapability is set to
+                     'false' then sdpBindOperHashLabel will be 'true'.
+
+                     If the value of sdpBindHashLabelSignalCapability set to
+                     'true' then the value of sdpBindOperHashLabel is 'true'
+                     if peer capability is 'true' and the 7xxx SR router
+                     hardware supports this capability.
+
+                     If the service has svcVcSwitching set to 'true', the value
+                     of sdpBindOperHashLabel will be 'true' if peer capability
+                     is 'true' and the 7xxx SR router hardware supports this
+                     capability."
+    ::= { sdpBindEntry 57 }
+
+sdpBindTransitPrefixPolicyId  OBJECT-TYPE
+    SYNTAX      TmnxBsxTransPrefPolicyIdOrZero
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpBindTransitPrefixPolicyId specifies the transit prefix
+         policy to be associated with this SDP binding. The value must
+         either be '0' indicating an invalid transit prefix policy or the
+         specified transit prefix policy needs to exist in the
+         TIMETRA-BSX-NG-MIB::tmnxBsxTransPrefPolicyTable.
+
+         At most one of sdpBindTransitIpPolicyId and 
+         sdpBindTransitPrefixPolicyId can be non-zero."
+    DEFVAL { 0 }
+    ::= { sdpBindEntry 58 }
+
+sdpBindAarpId   OBJECT-TYPE
+    SYNTAX      TmnxBsxAarpIdOrZero
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpBindAarpId specifies the AA Redundancy
+         Protocol (AARP) instance associated with this SDP binding.
+         If set to 0, no AARP instance is associated with
+         this SDP binding."
+    DEFVAL { 0 }
+    ::= { sdpBindEntry 59 }
+        
+sdpBindIngressQoSNetworkPlcyId OBJECT-TYPE
+    SYNTAX          TSdpIngressPolicyID
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of the sdpBindIngressQoSNetworkPlcyId specifies the
+         ingress QoS network policy applied to this SDP binding."
+    DEFVAL { 0 }
+    ::= { sdpBindEntry 60 }
+
+sdpBindEgressQoSNetworkPlcyId OBJECT-TYPE
+    SYNTAX          TSdpEgressPolicyID
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of the sdpBindEgressQoSNetworkPlcyId specifies the 
+         egress QoS network policy applied to this SDP binding."
+    DEFVAL { 0 }
+    ::= { sdpBindEntry 61 }
+
+sdpBindIngressQoSFpRedirectQGrp OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindIngressQoSFpRedirectQGrp specifies the
+         forwarding-plane queue group Policy for this SDP binding.
+                  
+         This object must be set along with 
+         sdpBindIngressQoSNetworkPlcyId object."
+    DEFVAL { "" }
+    ::= { sdpBindEntry 62 }
+
+sdpBindEgressQoSPortRedirectQGrp OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindEgressQoSPortRedirectQGrp specifies the
+         forwarding-plane queue group Policy for this SDP binding.
+                  
+         This object must be set along with 
+         sdpBindEgressQoSNetworkPlcyId object."
+    DEFVAL { "" }
+    ::= { sdpBindEntry 63 }
+
+sdpBindIngressQoSInstanceId  OBJECT-TYPE
+    SYNTAX          TQosQGrpInstanceIDorZero
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindIngressQoSInstanceId specifies the 
+         instance of the forwarding-plane ingress Queue Group for this SDP
+         binding."
+    DEFVAL { 0 }
+    ::= { sdpBindEntry 64 }
+
+sdpBindEgressQoSInstanceId  OBJECT-TYPE
+    SYNTAX          TQosQGrpInstanceIDorZero
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindEgressQoSInstanceId specifies the 
+         instance of the forwarding-plane egress Queue Group for this SDP
+         binding."
+    DEFVAL { 0 }
+    ::= { sdpBindEntry 65 }
+
+sdpBindAarpServRefType  OBJECT-TYPE
+    SYNTAX      TmnxBsxAarpServiceRefType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of sdpBindAarpServRefType specifies the role of
+         the Spoke SDP referenced by the Redundancy Protocol (AARP) 
+         instance identified by sdpBindAarpId. If sdpBindAarpId 
+         is the invalid AARP instance '0', then the 
+         service reference type is 'none(0)'."
+    DEFVAL { none }
+    ::= { sdpBindEntry 66 }
+
+sdpBindPwLocalStatusBits OBJECT-TYPE
+    SYNTAX          BITS {
+                        pwNotForwarding (0),    -- Pseudo Wire Not Forwarding
+                        lacIngressFault (1),    -- Local Attachment Circuit Rx 
+                                                -- Fault
+                        lacEgresssFault (2),    -- Local Attachment Circuit Tx 
+                                                -- Fault
+                        psnIngressFault (3),    -- Local PSN-facing PW Rx Fault
+                        psnEgressFault  (4),    -- Local PSN-facing PW Tx Fault
+                        pwFwdingStandby (5)     -- Pseudo Wire in Standby mode
+                    }
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "sdpBindPwLocalStatusBits indicates the bits set locally
+                     when there is a fault.
+                     LAC failures occur on the SAP that has been configured on
+                     the PIPE service, PSN bits are set by SDP-binding failures
+                     on the PIPE service.  The pwNotForwarding bit is set when
+                     none of the above failures apply, such as an MTU mismatch
+                     failure.  This value is sent to the peer via pseudowire
+                     status signalling method to indicate faults only if
+                     sdpBindPwStatusSignaling is set to true."
+    ::= { sdpBindEntry 67 }
+
+sdpBindBlockOnPeerFault OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The sdpBindBlockOnPeerFault specifies whether to block the user
+         traffic on this SDP bind when peer pw status has fault bits set."
+    DEFVAL      { false }
+    ::= { sdpBindEntry 68 }
+
 
 -- ----------------------------------
 -- Base SDP Binding Statistics Table
@@ -1455,7 +2240,7 @@ SdpBindTlsEntry ::=
         sdpBindTlsMvplsMgmtSdpBndId     SdpBindId,
         sdpBindTlsStpException          StpExceptionCondition,
         sdpBindTlsL2ptTermination       TmnxEnabledDisabled,
-        sdpBindTlsBpduTranslation       SdpBindTlsBpduTranslation,
+        sdpBindTlsBpduTranslation       TlsBpduTranslation,
         sdpBindTlsStpRootGuard          TruthValue,
         sdpBindTlsStpInMstBpdus         Gauge32,
         sdpBindTlsStpOutMstBpdus        Gauge32,
@@ -1466,7 +2251,12 @@ SdpBindTlsEntry ::=
         sdpBindTlsBpduTransOper         INTEGER,
         sdpBindTlsL2ptProtocols         L2ptProtocols,
         sdpBindTlsIgnoreStandbySig      TruthValue,
-        sdpBindTlsBlockOnMeshFail       TruthValue
+        sdpBindTlsBlockOnMeshFail       TruthValue,
+        sdpBindTlsInTcBitBpdus          Counter32,
+        sdpBindTlsOutTcBitBpdus         Counter32,
+        sdpBindTlsRestProtSrcMac        TruthValue,
+        sdpBindTlsRestProtSrcMacAction  INTEGER,
+        sdpBindTlsAutoLearnMacProtect   TruthValue
     }
 
 sdpBindTlsStpAdminStatus OBJECT-TYPE
@@ -1662,16 +2452,25 @@ sdpBindTlsStpCustId OBJECT-TYPE
     ::= { sdpBindTlsEntry 18 }
 
 sdpBindTlsMacAddressLimit OBJECT-TYPE
-    SYNTAX          Integer32(0..196607)
+    SYNTAX          Integer32(0..511999)
     MAX-ACCESS      read-write
     STATUS          current
     DESCRIPTION     "The value of the object sdpBindTlsMacAddressLimit
                      specifies the maximum number of learned and static entries
                      allowed in the FDB for this  SDP  Bind.  The value 0
                      means: no limit for this SDP Bind. The command is valid
-                     only for spoke SDPs. When the value of
-                     TIMETRA-CHASSIS-MIB::tmnxChassisOperMode is not 'c', the
-                     maximum value of sdpBindTlsMacAddressLimit is '131071'."
+                     only for spoke SDPs.
+                     
+                     The maximum value of sdpBindTlsMacAddressLimit is '511999',
+                     when the the value of
+                     TIMETRA-CHASSIS-MIB::tmnxChassisOperMode is 'd'.
+
+                     The maximum value of sdpBindTlsMacAddressLimit is '196607',
+                     when the the value of
+                     TIMETRA-CHASSIS-MIB::tmnxChassisOperMode is 'c'.
+
+                     In other cases, the maximum value of
+                     sdpBindTlsMacAddressLimit is '131071'."
     DEFVAL          { 0 }
     ::= { sdpBindTlsEntry 19 }
 
@@ -1884,7 +2683,7 @@ sdpBindTlsL2ptTermination OBJECT-TYPE
     ::= { sdpBindTlsEntry 37 }
 
 sdpBindTlsBpduTranslation OBJECT-TYPE
-    SYNTAX          SdpBindTlsBpduTranslation
+    SYNTAX          TlsBpduTranslation
     MAX-ACCESS      read-write
     STATUS          current
     DESCRIPTION     "The value of the object sdpBindTlsBpduTranslation
@@ -1941,9 +2740,13 @@ sdpBindTlsMacMoveNextUpTime OBJECT-TYPE
                      has been brought down due to exceeding the TLS 
                      svcTlsMacMoveMaxRate, sdpBindOperFlags 
                      'relearnLimitExceeded', is automatically brought up again. 
+
                      When this value is 0xffff, the SDP bind will never be 
-                     automatically brought up. The value is zero when 
-                     sdpBindOperStatus is 'up'."
+                     automatically brought up.
+
+                     When sdpBindOperStatus is 'up', this object counts down the
+                     time in seconds until the value of
+                     sdpBindTlsMacMoveRateExcdLeft is reset."
     ::= { sdpBindTlsEntry 43 }
 
 sdpBindTlsMacMoveRateExcdLeft   OBJECT-TYPE
@@ -1974,7 +2777,8 @@ sdpBindTlsBpduTransOper OBJECT-TYPE
                         undefined (1),
                         disabled  (2),
                         pvst      (3),
-                        stp       (4)
+                        stp       (4),
+                        pvst-rw   (5)
                     }
     MAX-ACCESS      read-only
     STATUS          current
@@ -1987,7 +2791,7 @@ sdpBindTlsL2ptProtocols OBJECT-TYPE
     SYNTAX          L2ptProtocols
     MAX-ACCESS      read-write
     STATUS          current
-    DESCRIPTION     "The value of the object sdpBindTlsL2ptTermination
+    DESCRIPTION     "The value of the object sdpBindTlsL2ptProtocols
                      specifies which L2 Protocol Tunnel pdu's are
                      terminated on this port or sdp"
     DEFVAL          { { stp }  }
@@ -2039,6 +2843,77 @@ sdpBindTlsBlockOnMeshFail     OBJECT-TYPE
     DEFVAL      { false }
     ::= { sdpBindTlsEntry 49 } 
 
+sdpBindTlsInTcBitBpdus OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindTlsInTcBitBpdus
+                     indicates the number BPDUs received on this SDP Bind
+                     with the Topology Change bit set."
+    ::= { sdpBindTlsEntry 50 }
+
+sdpBindTlsOutTcBitBpdus OBJECT-TYPE
+    SYNTAX          Counter32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindTlsOutTcBitBpdus
+                     indicates the number BPDUs sent out this SDP Bind
+                     with the Topology Change bit set."
+    ::= { sdpBindTlsEntry 51 }
+
+sdpBindTlsRestProtSrcMac OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindTlsRestProtSrcMac specifies
+                     how the agent will handle relearn requests for protected
+                     MAC addresses. When the value of this object is 'true'
+                     requests to relearn a protected MAC address will be
+                     ignored.
+
+                     In addition, if the value of sdpBindTlsRestProtSrcMacAction
+                     is 'disable', then the SDP-BIND where the protected source
+                     MAC was seen will be brought operationally down."
+    DEFVAL          { false }
+    ::= { sdpBindTlsEntry 52 }
+
+sdpBindTlsRestProtSrcMacAction OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        disable      (1),
+                        alarmOnly    (2),
+                        discardFrame (3)
+                    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindTlsRestProtSrcMacAction
+                     indicates the action to take whenever a relearn request
+                     for a protected MAC is received on a restricted SAP.
+
+                     When the value of this object is 'disable' the SAP
+                     will be placed in the operational down state, with the
+                     operating flag 'recProtSrcMac' set.
+                     
+                     When the value of this object is 'alarmOnly', the SDP-BIND
+                     will be left up and only a notification,
+                     sdpBindReceivedProtSrcMac,  will be generated.
+
+                     When the value of this object is 'discardFrame', the
+                     SDP-BIND will start discarding the frame in addition to 
+                     generating sdpBindReceivedProtSrcMac notification."
+    DEFVAL          { disable }    
+    ::= { sdpBindTlsEntry 53 }
+
+sdpBindTlsAutoLearnMacProtect   OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION    "The value of sdpBindTlsAutoLearnMacProtect specifies whether
+                    to enable automatic population of the MAC protect list with
+                    source MAC addresses learned on the associated SDP binding."
+    DEFVAL { false }
+    ::= { sdpBindTlsEntry 54 }
+
+
 -- ------------------------------------------
 -- TLS Mesh SDP Bind Table
 -- ------------------------------------------
@@ -2063,8 +2938,10 @@ SdpBindMeshTlsEntry ::=
         sdpBindMeshTlsPortState         TStpPortState,
         sdpBindMeshTlsHoldDownTimer     INTEGER,
         sdpBindMeshTlsTransitionState   INTEGER,
-        sdpBindMeshTlsNotInMstRegion    TruthValue
-
+        sdpBindMeshTlsNotInMstRegion    TruthValue,
+        sdpBindMeshTlsRestProtSrcMac    TruthValue,
+        sdpBindMeshTlsRestProtSrcMacAct INTEGER,
+        sdpBindMeshTlsAutoLearnMacProt  TruthValue
     }
 
 sdpBindMeshTlsPortState OBJECT-TYPE
@@ -2130,6 +3007,61 @@ sdpBindMeshTlsNotInMstRegion OBJECT-TYPE
                      via mesh SDPs are in the same MST-region. If not the mesh
                      will NOT become operational."
     ::= { sdpBindMeshTlsEntry 4 }
+
+sdpBindMeshTlsRestProtSrcMac OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindMeshTlsRestProtSrcMac
+                     specifies how the agent will handle relearn requests for
+                     protected MAC addresses. When the value of this object is
+                     'true' requests to relearn a protected MAC address will be
+                     ignored.
+
+                     In addition, if the value of
+                     sdpBindMeshTlsRestProtSrcMacAct is 'disable', then the
+                     SDP-BIND where the protected source MAC was seen will be
+                     brought operationally down."
+    DEFVAL          { false }
+    ::= { sdpBindMeshTlsEntry 5 }
+
+sdpBindMeshTlsRestProtSrcMacAct OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        disable      (1),
+                        alarmOnly    (2),
+                        discardFrame (3)
+                    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindMeshTlsRestProtSrcMacAct
+                     indicates the action to take whenever a relearn request
+                     for a protected MAC is received on a restricted SAP.
+
+                     When the value of this object is 'disable' the SAP
+                     will be placed in the operational down state, with the
+                     operating flag 'recProtSrcMac' set.
+                     
+                     When the value of this object is 'alarmOnly', the SDP-BIND
+                     will be left up and only a notification,
+                     sdpBindReceivedProtSrcMac,  will be generated.
+
+                     When the value of this object is 'discardFrame', the
+                     SDP-BIND will start discarding the frame in addition to 
+                     generating sdpBindReceivedProtSrcMac notification."
+    DEFVAL          { disable }    
+    ::= { sdpBindMeshTlsEntry 6 }
+
+sdpBindMeshTlsAutoLearnMacProt   OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION    "The value of sdpBindMeshTlsAutoLearnMacProt specifies
+                    whether to enable automatic population of the MAC protect
+                    list with source MAC addresses learned on the associated
+                    SDP binding."
+    DEFVAL { false }
+    ::= { sdpBindMeshTlsEntry 7 }
+
 
 -- ------------------------------------
 -- APIPE SDP Bind Table
@@ -2437,7 +3369,13 @@ sdpBindIpipeEntry OBJECT-TYPE
 SdpBindIpipeEntry ::=
     SEQUENCE {
         sdpBindIpipeCeInetAddressType               InetAddressType,
-        sdpBindIpipeCeInetAddress                   InetAddress
+        sdpBindIpipeCeInetAddress                   InetAddress,
+        sdpBindIpipePeerCeInetAddrType              InetAddressType,
+        sdpBindIpipePeerCeInetAddr                  InetAddress,
+        sdpBindIpipePeerIpv6Capability              TruthValue,
+        sdpBindIpipePeerLLCeInetAddr                InetAddress,
+        sdpBindIpipePeerGlobalCeInetAddr            InetAddress
+
     }
 
 sdpBindIpipeCeInetAddressType OBJECT-TYPE
@@ -2445,8 +3383,11 @@ sdpBindIpipeCeInetAddressType OBJECT-TYPE
     MAX-ACCESS      read-write
     STATUS          current
     DESCRIPTION     "The value of the object sdpBindIpipeCeInetAddressType
-                     specifies the addresstype of the IP address of the CE
-                     device reachable throught this IPIPE SDP binding."
+                     specifies the address type of the IP address of the CE
+                     device reachable throught this IPIPE SDP binding.
+
+                     This object is only configurable if the value of 
+                     'svcIpipeCeAddressDiscovery' is 'disabled."
     ::= { sdpBindIpipeEntry 1 }
 
 sdpBindIpipeCeInetAddress OBJECT-TYPE
@@ -2457,8 +3398,63 @@ sdpBindIpipeCeInetAddress OBJECT-TYPE
                      the sdpBindIpipeCeInetAddressType object.
 
                      This object specifies the IPv4 address of the
-                     CE device reachable through this SDP binding."
+                     CE device reachable through this SDP binding.
+
+                     This object is only configurable if the value of 
+                     'svcIpipeCeAddressDiscovery' is 'disabled."
     ::= { sdpBindIpipeEntry 2 }
+
+sdpBindIpipePeerCeInetAddrType OBJECT-TYPE
+    SYNTAX          InetAddressType
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "If the value of 'svcIpipeCeAddressDiscovery' is enabled,
+                     the value of the object sdpBindIpipeCeInetAddressType
+                     indicates the address type of the IP address of the CE
+                     device that is learnt via LDP on this IPIPE SDP binding."
+    ::= { sdpBindIpipeEntry 3 }
+
+sdpBindIpipePeerCeInetAddr OBJECT-TYPE
+    SYNTAX          InetAddress (SIZE(0|4))
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "If the value of 'svcIpipeCeAddressDiscovery' is enabled,
+                     the type of this address is determined by the value of
+                     the sdpBindIpipeCeInetAddressType object.
+
+                     This object indicates the IPv4 address of the
+                     CE device that is learnt via LDP on this SDP binding."
+    ::= { sdpBindIpipeEntry 4 }
+
+sdpBindIpipePeerIpv6Capability OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindIpipePeerIpv6Capability indicates
+                     whether the far end sent us the IPv6 Stack capability
+                     TLV."
+    ::= { sdpBindIpipeEntry 5 }
+
+sdpBindIpipePeerLLCeInetAddr OBJECT-TYPE
+    SYNTAX          InetAddress (SIZE(0|16))
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "If the value of svcIpipeIpv6CeAddressDiscovery is
+                     'enabled (1)', this object indicates the discovered link
+                     local IPv6 address of the far end CE device that is learnt
+                     via NS/NA messages received on this SDP binding."
+    ::= { sdpBindIpipeEntry 6 }
+
+sdpBindIpipePeerGlobalCeInetAddr OBJECT-TYPE
+    SYNTAX          InetAddress (SIZE(0|16))
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "If the value of svcIpipeIpv6CeAddressDiscovery is
+                     'enabled (1)', this object indicates the discovered global
+                     IPv6 address of the far end CE device that is learnt via
+                     NS/NA messages received on this SDP binding."
+    ::= { sdpBindIpipeEntry 7 }
+
 
 -- --------------------------------------------
 -- SDP Egress forwarding-class mapping table
@@ -3310,7 +4306,23 @@ PwTemplateEntry ::=
         pwTemplateIgmpMcacPolicyName           TPolicyStatementNameOrEmpty,
         pwTemplateIgmpMcacUnconstBW            Integer32,
         pwTemplateIgmpMcacPrRsvMndBW           Integer32,
-        pwTemplateIgmpVersion                  TmnxIgmpVersion
+        pwTemplateIgmpVersion                  TmnxIgmpVersion,
+        pwTemplateForceVlanVcForwarding        TruthValue,
+        pwTemplateHashLabel                    TruthValue,
+        pwTemplateControlWord                  TruthValue,
+        pwTemplateHashLabelSignalCap           TruthValue,
+        pwTemplateRestProtSrcMac               TruthValue,
+        pwTemplateRestProtSrcMacAction         INTEGER,
+        pwTemplateAutoLearnMacProtect          TruthValue,
+        pwTemplateShgRestProtSrcMacAct         INTEGER,
+        pwTemplateShgAutoLearnMacProtect       TruthValue,
+        pwTemplateIngQoSNetworkPlcyId          TSdpIngressPolicyID,
+        pwTemplateEgrQoSNetworkPlcyId          TSdpEgressPolicyID,
+        pwTemplateIngQoSFpRedirectQGrp         TNamedItemOrEmpty,
+        pwTemplateEgrQoSPortRedirectQGrp       TNamedItemOrEmpty,    
+        pwTemplateIngQoSInstanceId             TQosQGrpInstanceIDorZero,
+        pwTemplateEgrQoSInstanceId             TQosQGrpInstanceIDorZero,
+        pwTemplateBlockOnPeerFault             TruthValue
     }
 
 pwTemplateId        OBJECT-TYPE
@@ -3471,16 +4483,23 @@ pwTemplateVlanVcTag        OBJECT-TYPE
     ::= { pwTemplateEntry 13 }
 
 pwTemplateMacAddressLimit        OBJECT-TYPE
-    SYNTAX          Unsigned32 (0..196607)
+    SYNTAX          Unsigned32 (0..524287)
     MAX-ACCESS      read-create
     STATUS          current
     DESCRIPTION     "The value of pwTemplateMacAddressLimit specifies
                      the maximum number of learned and static entries
                      allowed in the FDB for the SDP Bind. The value 0
                      specifies no limit for the SDP Bind. The command is
-                     valid only for spoke SDPs. When the value of
-                     TIMETRA-CHASSIS-MIB::tmnxChassisOperMode is not 'c', the
-                     maximum value of pwTemplateMacAddressLimit is '131071'."
+                     valid only for spoke SDPs.
+
+                     When the value of TIMETRA-CHASSIS-MIB::tmnxChassisOperMode
+                     is 'a' or 'b', the maximum value of this object is '131071'.
+
+                     When the value of TIMETRA-CHASSIS-MIB::tmnxChassisOperMode
+                     is 'c', the maximum value of this object is '196607'.
+
+                     When the value of TIMETRA-CHASSIS-MIB::tmnxChassisOperMode
+                     is 'd', the maximum value of this object is '524287'."
     DEFVAL          { 0 }
     ::= { pwTemplateEntry 14 }
 
@@ -3704,7 +4723,7 @@ pwTemplateIgmpSendQueries        OBJECT-TYPE
 pwTemplateIgmpMcacPolicyName OBJECT-TYPE
     SYNTAX     TPolicyStatementNameOrEmpty
     MAX-ACCESS read-create
-    STATUS     current
+    STATUS     obsolete
     DESCRIPTION
         "The value of pwTemplateIgmpMcacPolicyName indicates the name
          of the multicast CAC policy."
@@ -3715,7 +4734,7 @@ pwTemplateIgmpMcacUnconstBW OBJECT-TYPE
     SYNTAX      Integer32 (-1|0..2147483647)
     UNITS       "kbps"
     MAX-ACCESS  read-create
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The value of pwTemplateIgmpMcacUnconstBW specifies the bandwidth
          assigned for interface's multicast CAC policy traffic in kilo-bits per
@@ -3734,7 +4753,7 @@ pwTemplateIgmpMcacPrRsvMndBW OBJECT-TYPE
     SYNTAX      Integer32 (-1|0..2147483647)
     UNITS       "kbps"
     MAX-ACCESS  read-create
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The value of pwTemplateIgmpMcacPrRsvMndBW specifies the bandwidth
          pre-reserved for all the mandatory channels on a given interface
@@ -3768,6 +4787,246 @@ pwTemplateIgmpVersion OBJECT-TYPE
     DEFVAL { version3 }
     ::= { pwTemplateEntry 36 }
 
+pwTemplateForceVlanVcForwarding OBJECT-TYPE
+    SYNTAX           TruthValue
+    MAX-ACCESS       read-create
+    STATUS           current
+    DESCRIPTION
+        "The value of pwTemplateForceVlanVcForwarding specifies whether
+         or not vc-vlan-type forwarding is forced in the data-path when
+         pwTemplateVcType is set to 'ether'.  When
+         pwTemplateForceVlanVcForwarding is set to 'true', vc-vlan-type
+         forwarding is forced.
+ 
+         An 'inconsistentValue' error is returned when an attempt is
+         made to set the value of pwTemplateForceVlanVcForwarding
+         to 'true' and pwTemplateVcType is not set to 'ether'."
+    DEFVAL { false }
+    ::= { pwTemplateEntry 37 }
+
+pwTemplateHashLabel OBJECT-TYPE
+    SYNTAX           TruthValue
+    MAX-ACCESS       read-create
+    STATUS           current
+    DESCRIPTION
+        "The value of pwTemplateHashLabel specifies whether the use of 
+         hash-label is enabled or not for the PW template."
+    DEFVAL { false }
+    ::= { pwTemplateEntry 38 }
+
+pwTemplateControlWord OBJECT-TYPE
+    SYNTAX           TruthValue
+    MAX-ACCESS       read-create
+    STATUS           current
+    DESCRIPTION
+        "The value of pwTemplateControlWord specifies whether the use of 
+         'ControlWord' is enabled on pseudowire packets or not. 
+           
+         When the value of the object is set to 'true', all VPLS packets
+         are encapsulated with the control word when sent over the pseudowire.
+         When the value of the object is set to 'false', the use of 
+         'ControlWord' is disabled."
+    DEFVAL { false }
+    ::= { pwTemplateEntry 39 }
+
+pwTemplateHashLabelSignalCap OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+         "The value of pwTemplateHashLabelSignalCap specifies whether to signal
+          the hash label capability to the remote PE.
+
+          The default value is 'false' and cannot be changed unless
+          pwTemplateHashLabel is set to 'true'."
+    DEFVAL { false }
+    ::= { pwTemplateEntry 40 }
+
+pwTemplateRestProtSrcMac OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     
+        "The value of the object pwTemplateRestProtSrcMac specifies
+         how the agent will handle relearn requests for protected
+         MAC addresses. When the value of this object is 'true'
+         requests to relearn a protected MAC address will be
+         ignored.
+
+         In addition, if the value of pwTemplateRestProtSrcMacAction
+         is 'disable', then the SAP or SDP-BIND where the protected source
+         MAC was seen will be brought operationally down."
+    DEFVAL          { false }
+    ::= { pwTemplateEntry 52 }
+
+pwTemplateRestProtSrcMacAction OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        disable      (1),
+                        alarmOnly    (2),
+                        discardFrame (3)
+                    }
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     
+        "The value of the object pwTemplateRestProtSrcMacAction
+         indicates the action to take whenever a relearn request
+         for a protected MAC is received on a restricted SAP.
+
+         When the value of this object is 'disable' the SAP
+         will be placed in the operational down state, with the
+         operating flag 'recProtSrcMac' set.
+                     
+         When the value of this object is 'alarmOnly', the SAP or SDP-BIND
+         which sets the restricted MAC will be left up and only a notification,
+         sapReceivedProtSrcMac or sdpBindReceivedProtSrcMac, will be generated.
+
+         When the value of this object is 'discardFrame', the
+         SAP or SDP-BIND which sees the restricted MAC will start discarding
+         the frame in addition to generating sapReceivedProtSrcMac or
+         sdpBindReceivedProtSrcMac notification."
+    DEFVAL          { disable }    
+    ::= { pwTemplateEntry 53 }
+
+pwTemplateAutoLearnMacProtect   OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of pwTemplateAutoLearnMacProtect specifies whether
+         to enable automatic population of the MAC protect list with
+         source MAC addresses learned on the SAP belonging to this template."
+    DEFVAL { false }
+    ::= { pwTemplateEntry 54 }
+
+pwTemplateShgRestProtSrcMacAct OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        disable      (1),
+                        alarmOnly    (2),
+                        discardFrame (3)
+                    }
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of the object pwTemplateShgRestProtSrcMacAct
+         indicates the action to take whenever a relearn request
+         for a protected MAC is received on a restricted SAP or SDP-BIND
+         belonging to pwTemplateShgName.
+
+         When the value of this object is 'disable' the SAP or SDP-BIND
+         belonging to pwTemplateShgName will be placed in the operational
+         down state, with the operating flag 'recProtSrcMac' set.
+                     
+         When the value of this object is 'alarmOnly', the SAP belonging to
+         pwTemplateShgName will be left up and only a notification,
+         sapReceivedProtSrcMac or sdpBindReceivedProtSrcMac,  will be generated.
+
+         When the value of this object is 'discardFrame', the
+         SAP or SDP-BIND belonging to pwTemplateShgName will start discarding
+         the frame in addition to generating sapReceivedProtSrcMac or
+         sdpBindReceivedProtSrcMac notification."
+    DEFVAL          { disable }    
+    ::= { pwTemplateEntry 55 }
+
+pwTemplateShgAutoLearnMacProtect   OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of pwTemplateShgAutoLearnMacProtect specifies whether
+         to enable automatic population of the MAC protect list with
+         source MAC addresses learned on the SAP or SDP-BIND belonging to
+         pwTemplateShgName."
+    DEFVAL { false }
+    ::= { pwTemplateEntry 56 }
+
+pwTemplateIngQoSNetworkPlcyId OBJECT-TYPE
+    SYNTAX          TSdpIngressPolicyID
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of the pwTemplateIngQoSNetworkPlcyId specifies the
+         ingress QoS network policy applied to this PW template."
+    DEFVAL { 0 }
+    ::= { pwTemplateEntry 57 }
+
+pwTemplateEgrQoSNetworkPlcyId OBJECT-TYPE
+    SYNTAX          TSdpEgressPolicyID
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of the pwTemplateEgrQoSNetworkPlcyId specifies the 
+         egress QoS network policy applied to this PW template."
+    DEFVAL { 0 }
+    ::= { pwTemplateEntry 58 }
+
+pwTemplateIngQoSFpRedirectQGrp OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of pwTemplateIngQoSFpRedirectQGrp specifies the
+         forwarding-plane queue group Policy for this PW template.
+                  
+         This object must be set along with 
+         pwTemplateIngQoSNetworkPlcyId object.
+
+         An 'inconsistentValue' error is returned if 
+         pwTemplateIngQoSFpRedirectQGrp is set to a non-default value and an 
+         entry corresponding to tmnxFPNum to which this PW template belongs does
+         not exist in tmnxFPAccIngQGrpTable."
+    DEFVAL { "" }
+    ::= { pwTemplateEntry 59 }
+
+pwTemplateEgrQoSPortRedirectQGrp OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of pwTemplateEgrQoSPortRedirectQGrp specifies the
+         forwarding-plane queue group Policy for this PW template.
+                  
+         This object must be set along with 
+         pwTemplateEgrQoSNetworkPlcyId object.
+
+         An 'inconsistentValue' error is returned if 
+         pwTemplateEgrQoSPortRedirectQGrp is set to a non-default value and an 
+         entry corresponding to tmnxFPNum to which this PW template belongs does
+         not exist in tmnxFPAccIngQGrpTable."
+    DEFVAL { "" }
+    ::= { pwTemplateEntry 60 }
+
+pwTemplateIngQoSInstanceId  OBJECT-TYPE
+    SYNTAX          TQosQGrpInstanceIDorZero
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of pwTemplateIngQoSInstanceId specifies the 
+         instance of the forwarding-plane ingress Queue Group for this PW
+         template."
+    DEFVAL { 0 }
+    ::= { pwTemplateEntry 61 }
+
+pwTemplateEgrQoSInstanceId  OBJECT-TYPE
+    SYNTAX          TQosQGrpInstanceIDorZero
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of pwTemplateEgrQoSInstanceId specifies the 
+         instance of the forwarding-plane egress Queue Group for this PW 
+         template."
+    DEFVAL { 0 }
+    ::= { pwTemplateEntry 62 }
+
+pwTemplateBlockOnPeerFault OBJECT-TYPE
+    SYNTAX           TruthValue
+    MAX-ACCESS       read-create
+    STATUS           current
+    DESCRIPTION
+        "The value of pwTemplateBlockOnPeerFault specifies whether to block
+         user traffic being forwarded when peer pw status bits have faults
+         for this PW template."
+    DEFVAL { false }
+    ::= { pwTemplateEntry 63 }
 
 -- ----------------------------------------------
 -- PW Template IGMP Snooping Group Source Table
@@ -3978,7 +5237,8 @@ SdpBindTlsMrpEntry ::=
         sdpBindTlsMrpTxInEvent          Counter32,
         sdpBindTlsMrpTxJoinEmptyEvent   Counter32,
         sdpBindTlsMrpTxEmptyEvent       Counter32,
-        sdpBindTlsMrpTxLeaveEvent       Counter32
+        sdpBindTlsMrpTxLeaveEvent       Counter32,
+        sdpBindTlsMrpPolicy             TNamedItemOrEmpty
     }
 
 sdpBindTlsMrpLastChngd        OBJECT-TYPE
@@ -4184,6 +5444,17 @@ sdpBindTlsMrpTxLeaveEvent OBJECT-TYPE
         MRP events transmitted on this SDP Bind."
     ::= { sdpBindTlsMrpEntry 21 }
 
+sdpBindTlsMrpPolicy OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindTlsMrpPolicy specifies the mrp
+                     policy to control which Group BMAC attributes will 
+                     advertise on the egress SDP Bind.
+                    "
+    DEFVAL         { "" }
+    ::= { sdpBindTlsMrpEntry 22 }
+
 -- -------------------------
 -- SDP Bind TLS MMRP Table
 -- -------------------------
@@ -4211,7 +5482,8 @@ SdpBindTlsMmrpEntry ::=
     SEQUENCE {
         sdpBindTlsMmrpMacAddr              MacAddress,
         sdpBindTlsMmrpDeclared             TruthValue,
-        sdpBindTlsMmrpRegistered           TruthValue
+        sdpBindTlsMmrpRegistered           TruthValue,
+        sdpBindTlsMmrpEndStation           TruthValue
     }
 
 sdpBindTlsMmrpMacAddr OBJECT-TYPE
@@ -4241,6 +5513,15 @@ sdpBindTlsMmrpRegistered OBJECT-TYPE
         registrant on this SAP has notified MMRP of a registration of this MAC
         address."
     ::= { sdpBindTlsMmrpEntry 3 }
+
+sdpBindTlsMmrpEndStation OBJECT-TYPE
+    SYNTAX        TruthValue
+    MAX-ACCESS    read-only
+    STATUS        current
+    DESCRIPTION
+        "The value of sdpBindTlsMmrpEndStation indicates whether the MRP
+        registrant on this SAP originated per end-station."
+    ::= { sdpBindTlsMmrpEntry 4 }
 
 -- ---------------------------------------------------------------------
 --  SDP Auto Bind Bgp Auto-Discovery Info
@@ -4311,7 +5592,7 @@ sdpAutoBindBgpInfoAGI  OBJECT-TYPE
     MAX-ACCESS      read-only
     STATUS          current
     DESCRIPTION     "The value of sdpAutoBindBgpInfoAGI indicates the
-                     Attachment Group Indentifier (AGI) portion of the
+                     Attachment Group Identifier (AGI) portion of the
                      Generalized Id FEC element from the pseudowire
                      setup for this SDP Bind."
     ::= { sdpAutoBindBgpInfoEntry 2 }
@@ -4321,7 +5602,7 @@ sdpAutoBindBgpInfoSAII   OBJECT-TYPE
     MAX-ACCESS      read-only
     STATUS          current
     DESCRIPTION     "The value of sdpAutoBindBgpInfoSAII indicates the
-                     Source Attachment Individual Indentifier (SAII) portion
+                     Source Attachment Individual Identifier (SAII) portion
                      of the Generalized Id FEC element from the pseudowire
                      setup for this SDP Bind."
     ::= { sdpAutoBindBgpInfoEntry 3 }
@@ -4331,7 +5612,7 @@ sdpAutoBindBgpInfoTAII   OBJECT-TYPE
     MAX-ACCESS      read-only
     STATUS          current
     DESCRIPTION     "The value of sdpAutoBindBgpInfoTAII indicates the
-                     Target Attachment Individual Indentifier (TAII) portion
+                     Target Attachment Individual Identifier (TAII) portion
                      of the Generalized Id FEC element from the pseudowire
                      setup for this SDP Bind."
     ::= { sdpAutoBindBgpInfoEntry 4 }
@@ -4374,7 +5655,8 @@ svcTlsBgpADPWTempBindEntry    OBJECT-TYPE
 SvcTlsBgpADAutoBindPlcyEntry ::=    SEQUENCE {
     svcTlsBgpADPWTempBindRowStatus  RowStatus,
     svcTlsBgpADPWTempBindLastChngd  TimeStamp,
-    svcTlsBgpADPWTempBindSHG        TNamedItemOrEmpty
+    svcTlsBgpADPWTempBindSHG        TNamedItemOrEmpty,
+    svcTlsBgpADPWTempBindOperGrp    TNamedItemOrEmpty
 }
 
 svcTlsBgpADPWTempBindRowStatus OBJECT-TYPE
@@ -4420,6 +5702,16 @@ svcTlsBgpADPWTempBindSHG       OBJECT-TYPE
                     returned."
      DEFVAL       { "" }
     ::= { svcTlsBgpADPWTempBindEntry 3 }
+
+svcTlsBgpADPWTempBindOperGrp OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION     "The value of the svcTlsBgpADPWTempBindOperGrp specifies the
+                     Operational-Group identifier associated with this 
+                     pseudo-wire template binding."
+    DEFVAL { "" }
+    ::= { svcTlsBgpADPWTempBindEntry 4 }
 
 -- -----------------------------------------
 -- BGP Auto-Discovery SDP Auto Policy Route Target Table
@@ -4526,7 +5818,10 @@ SvcL2RteEntry ::= SEQUENCE {
     svcL2RteNextHopType         InetAddressType,
     svcL2RteNextHop             InetAddress,
     svcL2RteSdpBindId           SdpBindId,
-    svcL2RtePwTemplateId        PWTemplateId
+    svcL2RtePwTemplateId        PWTemplateId,
+    svcL2RteError               DisplayString,
+    svcL2RteLastErrorTime       TimeStamp,
+    svcL2RteStatus              INTEGER
 }
 
 svcL2RteVsiPrefix   OBJECT-TYPE
@@ -4571,7 +5866,12 @@ svcL2RteSdpBindId     OBJECT-TYPE
     DESCRIPTION     "The value of svcL2RteSdpBindId indicates the SDP bind
                      ID of the SDP bind that binds this VPLS context to
                      the VSI indicated by svcL2RteRouteDistinguisher,
-                     svcL2RteVsiPrefix, and svcL2RteNextHop."
+                     svcL2RteVsiPrefix, and svcL2RteNextHop.
+
+                     The value of svcL2RteSdpBindId will be
+                     '0000000000000000'H if there was an error in creating
+                     the L2 route and the svcL2RteError will contain
+                     a string describing the error." 
     ::= { svcL2RteEntry 5 }
 
 svcL2RtePwTemplateId  OBJECT-TYPE
@@ -4584,6 +5884,1442 @@ svcL2RtePwTemplateId  OBJECT-TYPE
                      svcL2RteRouteDistinguisher, svcL2RteVsiPrefix,
                      and svcL2RteNextHop."
     ::= { svcL2RteEntry 6 }
+
+svcL2RteError       OBJECT-TYPE
+    SYNTAX          DisplayString
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2RteError indicates an error message
+                     describing an error encountered when establishing
+                     this L2 route entry. The value of svcL2RteError will
+                     be a zero-length string when the L2 route is
+                     successfully established."
+    DEFVAL { "" }
+    ::= { svcL2RteEntry 7 }
+
+svcL2RteLastErrorTime  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2RteLastErrorTime indicates the
+                     sysUpTime at the time of the last error for
+                     this L2 route entry.
+
+                     If no errors were encountered for this entry since
+                     the last re-initialization of the local network
+                     management subsystem, then this object contains
+                     a zero value."
+    DEFVAL { 0 }
+    ::= { svcL2RteEntry 8 }
+
+svcL2RteStatus      OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        active   (1),
+                        inactive (2)
+                    }
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2RteStatus indicates the status of the
+                     this L2 Route."
+    ::= { svcL2RteEntry 9 }
+
+-- -------------------------
+-- L2 Route Table
+-- -------------------------
+
+svcL2BgpVplsRteTable       OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SvcL2BgpVplsRteEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "svcL2BgpVplsRteTable contains entries for L2 routes."
+    ::= { tmnxSvcObjs 84 }
+
+svcL2BgpVplsRteEntry       OBJECT-TYPE
+    SYNTAX          SvcL2BgpVplsRteEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "An L2 route entry in the svcL2BgpVplsRteTable."
+    INDEX           { svcId,
+                      svcL2BgpVplsRteVeId,
+                      svcL2BgpVplsRteRD,
+                      svcL2BgpVplsRteNextHopType,
+                      svcL2BgpVplsRteNextHop }
+    ::= { svcL2BgpVplsRteTable 1}
+
+SvcL2BgpVplsRteEntry ::= SEQUENCE {
+    svcL2BgpVplsRteVeId                TmnxSiteId,
+    svcL2BgpVplsRteRD                  TmnxVPNRouteDistinguisher,
+    svcL2BgpVplsRteNextHopType         InetAddressType,
+    svcL2BgpVplsRteNextHop             InetAddress,
+    svcL2BgpVplsRteSdpBindId           SdpBindId,
+    svcL2BgpVplsRtePwTemplateId        PWTemplateId,
+    svcL2BgpVplsRteError               DisplayString,
+    svcL2BgpVplsRteLastErrorTime       TimeStamp,
+    svcL2BgpVplsRteControlWord         Unsigned32,
+    svcL2BgpVplsRtePathMtu             Integer32,
+    svcL2BgpVplsRteState               INTEGER,
+    svcL2BgpVplsRteSeqDelivery         Unsigned32,
+    svcL2BgpVplsRteDF                  TruthValue,
+    svcL2BgpVplsRteStatus              INTEGER
+}
+
+svcL2BgpVplsRteVeId   OBJECT-TYPE
+    SYNTAX          TmnxSiteId
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteVeId is the low-order 4 bytes
+                     of the Virtual Switch Instance idendifier (VSI-id) of the
+                     remote VSI for this L2 route."
+    ::= { svcL2BgpVplsRteEntry 1 }
+
+svcL2BgpVplsRteRD  OBJECT-TYPE
+    SYNTAX          TmnxVPNRouteDistinguisher
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteRD is the high-order
+                     6 bytes of the Virtual Switch Instance idendifier (VSI-id)
+                     of the remote VSI for this L2 route."
+    ::= { svcL2BgpVplsRteEntry 2 }
+
+svcL2BgpVplsRteNextHopType OBJECT-TYPE
+    SYNTAX          InetAddressType
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteNextHopType indicates the address
+                     type of svcL2BgpVplsRteNextHop."
+    ::= { svcL2BgpVplsRteEntry 3 }
+
+svcL2BgpVplsRteNextHop     OBJECT-TYPE
+    SYNTAX          InetAddress
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteNextHop indicates the IP next hop
+                     for this L2 route. This value is equivilant to the
+                     IP address of the Far End of this L2 route."
+    ::= { svcL2BgpVplsRteEntry 4 }
+
+svcL2BgpVplsRteSdpBindId     OBJECT-TYPE
+    SYNTAX          SdpBindId
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteSdpBindId indicates the SDP bind
+                     ID of the SDP bind that binds this VPLS context to
+                     the VSI indicated by svcL2BgpVplsRteRD,
+                     svcL2BgpVplsRteVeId, and svcL2BgpVplsRteNextHop.
+
+                     The value of svcL2BgpVplsRteSdpBindId will be
+                     '0000000000000000'H if there was an error in creating
+                     the L2 route and the svcL2BgpVplsRteError will contain
+                     a string describing the error." 
+    ::= { svcL2BgpVplsRteEntry 5 }
+
+svcL2BgpVplsRtePwTemplateId  OBJECT-TYPE
+    SYNTAX          PWTemplateId
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRtePwTemplateId indicates the PW
+                     template associated with the SDP bind that binds
+                     this VPLS context to the VSI indicated by
+                     svcL2BgpVplsRteRD, svcL2BgpVplsRteVeId,
+                     and svcL2BgpVplsRteNextHop."
+    ::= { svcL2BgpVplsRteEntry 6 }
+
+svcL2BgpVplsRteError       OBJECT-TYPE
+    SYNTAX          DisplayString
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteError indicates an error message
+                     describing an error encountered when establishing
+                     this L2 route entry. The value of svcL2BgpVplsRteError will
+                     be a zero-length string when the L2 route is
+                     successfully established."
+    DEFVAL { "" }
+    ::= { svcL2BgpVplsRteEntry 7 }
+
+svcL2BgpVplsRteLastErrorTime  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteLastErrorTime indicates the
+                     sysUpTime at the time of the last error for
+                     this L2 route entry.
+
+                     If no errors were encountered for this entry since
+                     the last re-initialization of the local network
+                     management subsystem, then this object contains
+                     a zero value."
+    DEFVAL { 0 }
+    ::= { svcL2BgpVplsRteEntry 8 }
+
+svcL2BgpVplsRteControlWord  OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteControlWord indicates the
+                     control word advertised for this route."
+    ::= { svcL2BgpVplsRteEntry 9 }
+
+svcL2BgpVplsRtePathMtu  OBJECT-TYPE
+    SYNTAX          Integer32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRtePathMtu indicates the layer-2
+                     path MTU for the pseudo-wire to the PE for this route."
+    ::= { svcL2BgpVplsRteEntry 10 }
+
+svcL2BgpVplsRteState  OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        up   (1),
+                        down (2)
+                    }
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteState indicates state of the
+                     object for this route."
+    ::= { svcL2BgpVplsRteEntry 11 }
+
+svcL2BgpVplsRteSeqDelivery  OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteSeqDelivery indicates the
+                     sequenced delivery flag advertiesed for this route."
+    ::= { svcL2BgpVplsRteEntry 12 }
+
+svcL2BgpVplsRteDF  OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteDF indicates the value of DF
+                     bit associated with this BGP VPLS L2 route entry."
+    ::= { svcL2BgpVplsRteEntry 13 }
+
+svcL2BgpVplsRteStatus      OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        active   (1),
+                        inactive (2)
+                    }
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of svcL2BgpVplsRteStatus indicates the status
+                     of the this BGP VPLS L2 Route."
+    ::= { svcL2BgpVplsRteEntry 14 }
+
+
+-- --------------------------------------------------------
+--  svcApplyEvalPwTemplate
+-- --------------------------------------------------------
+-- The svcApplyEvalPwTemplate group allows to request an
+-- action to be performed upon a service.
+--
+-- Write the service id in the object  'svcApplyEvalPwTemplateSvcId' and
+-- pseudowire template id 'pwTemplateId' in the 'svcApplyEvalPwTemplateId' object
+-- and the required action in the object 'svcApplyEvalPwTemplateAction'. 
+-- Writing the value 'doAction (1)' in the object 'svcApplyEvalPwTemplateAction'
+-- triggers a request to perform the specified action.
+--
+-- If the action could be performed successfully, the value of the object
+-- svcApplyEvalPwTemplateSuccess equals 'true'.
+-- If the value of the object equals 'false', then the value of
+-- svcApplyEvalPwTemplateErrorMsg indicates the reason of the failure.
+--
+
+svcApplyEvalPwTemplate OBJECT IDENTIFIER ::= { tmnxSdpObjs 28 }
+
+svcApplyEvalPwTemplateSvcId OBJECT-TYPE
+    SYNTAX      TmnxServId
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of the object svcApplyEvalPwTemplateSvcId specifies
+         the service identifier to which this action applies."
+    DEFVAL { 0 }
+    ::= { svcApplyEvalPwTemplate 1 }
+
+svcApplyEvalPwTemplateId OBJECT-TYPE
+    SYNTAX      PWTemplateId
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of the object svcApplyEvalPwTemplateId specifies the
+         pwTemplateId to apply on the service 'svcApplyEvalPwTemplateSvcId'."
+    DEFVAL { 0 }
+    ::= { svcApplyEvalPwTemplate 2 }
+
+svcApplyEvalPwTemplateAction OBJECT-TYPE
+    SYNTAX      TmnxActionType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of svcApplyEvalPwTemplateAction when set to 'doAction'
+         triggers the action to re-evaluate pseduo-wire template policy
+         'svcApplyEvalPwTemplateId' on the 'svcApplyEvalPwTemplateSvcId'
+         service.
+
+         Reading this object returns the value 'notApplicable'."
+    DEFVAL { notApplicable }
+    ::= { svcApplyEvalPwTemplate 3 }
+
+svcApplyEvalPwTemplateSuccess OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of the object svcApplyEvalPwTemplateSuccess indicates
+         whether the action was successful.
+
+         If the value of the object equals 'false', then the value of
+         svcApplyEvalPwTemplateErrorMsg indicates the reason of the failure."
+    DEFVAL { false }
+    ::= { svcApplyEvalPwTemplate 4 }
+
+svcApplyEvalPwTemplateErrorMsg OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..255))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of the object svcApplyEvalPwTemplateErrorMsg indicates
+         the reason of failure, in case the value of the object
+         svcApplyEvalPwTemplateSuccess is equal to 'false'.
+         
+         If the value of the object svcApplyEvalPwTemplateSuccess is equal to
+         'true', this object contains an empty string."
+    ::= { svcApplyEvalPwTemplate 5 }
+
+svcApplyEvalPwTemplateTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of the object svcApplyEvalPwTemplateTime indicates
+         the value of sysUpTime at the last time that the object 
+         svcApplyEvalPwTemplateSuccess was written by the system."
+    ::= { svcApplyEvalPwTemplate 6 }
+
+-- ------------------------------------------
+-- PBB SDP Bind Table
+-- ------------------------------------------
+sdpBindPbbTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpBindPbbEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "A table that contains 
+                     Provider Backbone Bridging (PBB/IEEE 802.1ah) spoke SDP 
+                     Bind information."
+    ::= { tmnxSdpObjs 29 }
+
+sdpBindPbbEntry OBJECT-TYPE
+    SYNTAX          SdpBindPbbEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "PBB I-Component instance-specific information about 
+                     an SDP Bind in the B-Component instance.
+
+                     Entries in this table can be created or deleted 
+                     via SNMP operations."
+    INDEX           { sdpBindPbbSvcIdIVpls, 
+                      sdpBindPbbSvcIdBVpls,
+                      sdpBindPbbId }
+    ::= { sdpBindPbbTable 1 }
+
+SdpBindPbbEntry ::=
+    SEQUENCE {
+        sdpBindPbbSvcIdIVpls             TmnxServId,
+        sdpBindPbbSvcIdBVpls             TmnxServId,
+        sdpBindPbbId                     SdpBindId,
+        sdpBindPbbRowStatus              RowStatus,
+        sdpBindPbbLastMgmtChange         TimeStamp,
+        sdpBindPbbIgmpSnpgMRouter        TruthValue
+    }
+
+sdpBindPbbSvcIdIVpls OBJECT-TYPE
+    SYNTAX          TmnxServId
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindPbbSvcIdIVpls specifies the
+                     Service identifier of the I-Component instance."
+    ::= { sdpBindPbbEntry 1 }
+
+sdpBindPbbSvcIdBVpls OBJECT-TYPE
+    SYNTAX          TmnxServId
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindPbbSvcIdBVpls specifies the
+                     Service identifier of the B-Component instance."
+    ::= { sdpBindPbbEntry 2 }
+
+sdpBindPbbId OBJECT-TYPE
+    SYNTAX          SdpBindId
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpBindPbbId specifies 
+                     the identifier of the SDP Binding in the B-Component 
+                     instance."
+    ::= { sdpBindPbbEntry 3 }
+
+sdpBindPbbRowStatus OBJECT-TYPE
+    SYNTAX          RowStatus
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindPbbRowStatus specifies 
+                     the row status of this row. 
+                     
+                     The only values supported during a set operation are
+                     'createAndGo' and 'destroy'."
+    ::= { sdpBindPbbEntry 4 }
+
+sdpBindPbbLastMgmtChange OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+                    "The value of sdpBindPbbLastMgmtChange indicates 
+                     the sysUpTime at the time of the most recent 
+                     management-initiated change to this table row."
+    ::= { sdpBindPbbEntry 5 }
+
+sdpBindPbbIgmpSnpgMRouter OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+                    "The value of the object sdpBindPbbIgmpSnpgMRouter specifies 
+                     if a multicast router is attached behind this SDP Bind."
+    DEFVAL { false }
+    ::= { sdpBindPbbEntry 6 }
+
+-- ----------------------------------------------------------------
+-- SDP Binding Fault Propagation Backbone Mac (BMac) Address Table
+-- ----------------------------------------------------------------
+
+sdpBindFPropBMacAddrTblLastChgd OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindFPropBMacAddrTblLastChgd indicates the sysUpTime
+         at the last modification of sdpBindFPropBMacAddrTable.
+
+         If no changes were made to the table since the last re-initialization
+         of the local network management subsystem, this object contains a zero
+         value."
+    ::= { tmnxSdpObjs 30 }
+
+sdpBindFPropBMacAddrTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpBindFPropBMacAddrEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "sdpBindFPropBMacAddrTable contains the optional configured backbone MAC
+         (BMac) addresses (or MAC names) for each SDP binding.  This table
+         extends the information in sdpBindTable."
+    ::= { tmnxSdpObjs 31 }
+
+sdpBindFPropBMacAddrEntry OBJECT-TYPE
+    SYNTAX          SdpBindFPropBMacAddrEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "sdpBindFPropBMacAddrEntry defines a row in the
+         sdpBindFPropBMacAddrTable.  Rows are created and destroyed using
+         sdpBindFPropBMacAddrRowStatus.  A prerequisite for row creation:  a
+         row with the same svcId and sdpBindId must be present in the
+         sdpBindTable."
+    INDEX           {
+                        svcId,
+                        sdpBindId,
+                        sdpBindFPropBMacAddrOrMacNameTag,
+                        sdpBindFPropBMacAddrOrMacName
+                    }
+    ::= { sdpBindFPropBMacAddrTable 1 }
+
+SdpBindFPropBMacAddrEntry ::=
+    SEQUENCE {
+        sdpBindFPropBMacAddrOrMacNameTag INTEGER,
+        sdpBindFPropBMacAddrOrMacName    TNamedItem,
+        sdpBindFPropBMacAddrRowStatus    RowStatus
+    }
+
+sdpBindFPropBMacAddrOrMacNameTag OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        macName (1),
+                        macAddr (2)
+                    }
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindFPropBMacAddrOrMacNameTag specifies whether
+         sdpBindFPropBMacAddrOrMacName contains a MAC name, or a MAC address."
+    ::= { sdpBindFPropBMacAddrEntry 1 }
+
+sdpBindFPropBMacAddrOrMacName OBJECT-TYPE
+    SYNTAX          TNamedItem
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindFPropBMacAddrOrMacName specifies a MAC name or MAC
+         address configured against a <svcId, sdpBindId> index pair.
+
+         When sdpBindFPropBMacAddrOrMacNameTag is 'macName (1)',
+         sdpBindFPropBMacAddrOrMacName must contain a MAC name which is
+         present in the svcMacName column of the svcMacNameTable.
+
+         When sdpBindFPropBMacAddrOrMacNameTag is 'macAddr (2)',
+         sdpBindFPropBMacAddrOrMacName must contain a MAC address, encoded in
+         network byte order and IEEE 802.3 canonical bit order as defined in
+         IEEE Std 802-2001.
+
+         All the MAC addresses configured for a particular SDP (whether
+         configured as MAC addresses, or via MAC names) must refer to one
+         B-VPLS on the remote system."
+    ::= { sdpBindFPropBMacAddrEntry 2 }
+
+sdpBindFPropBMacAddrRowStatus OBJECT-TYPE
+    SYNTAX          RowStatus
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindFPropBMacAddrRowStatus specifies the status of this
+         row."
+    ::= { sdpBindFPropBMacAddrEntry 3 }
+
+-- ---------------------------------------------------------------------
+--  SDP Auto Bind Bgp VPLS Info
+-- 
+--  Sparse Dependent Extention of the sdpBindTable.
+--
+--  The same indexes are used for both the base table, sdpBindTable,
+--  and the sparse dependent table, sdpAutoBindBgpVplsTable.
+--
+--  This in effect extends the sdpBindTable with additional columns.
+--  Rows are created in the sdpAutoBindBgpVplsTable only for those entries
+--  in the sdpBindTable that are created as a result of BGP VPLS bindings.
+--
+--  Deletion of a row in the sdpBindTable results in the
+--  same fate for the row in the sdpAutoBindBgpVplsTable.
+-- ---------------------------------------------------------------------
+sdpAutoBindBgpVplsTableLC  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpAutoBindBgpVplsTableLC indicates
+                     the sysUpTime at the time of the last modification
+                     of sdpAutoBindBgpVplsTable.
+
+                     If no changes were made to the entry since the last
+                     re-initialization of the local network management 
+                     subsystem, then this object contains a zero value."
+    ::= { tmnxSdpObjs 32 }
+
+sdpAutoBindBgpVplsTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpAutoBindBgpVplsEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The sdpAutoBindBgpVplsTable has an entry for each
+                     SDP Bind entry from sdpBindTable which was
+                     created as a result of BGP VPLS binding."
+    ::= { tmnxSdpObjs 33 }
+
+sdpAutoBindBgpVplsEntry OBJECT-TYPE
+    SYNTAX          SdpAutoBindBgpVplsEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Each row entry contains BGP-related information for an
+                     SDP Bind entry created as a result of BGP VPLS binding."
+    INDEX           { svcId, sdpBindId }
+    ::= { sdpAutoBindBgpVplsTable 1 }
+
+SdpAutoBindBgpVplsEntry ::=
+    SEQUENCE {
+        sdpAutoBindBgpVplsTemplateId   PWTemplateId
+    }
+
+sdpAutoBindBgpVplsTemplateId OBJECT-TYPE
+    SYNTAX          PWTemplateId
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpAutoBindBgpVplsTemplateId indicates the
+                     the value of the pwTemplateId object for the
+                     PW template entry used to create this
+                     SDP Bind."
+    ::= { sdpAutoBindBgpVplsEntry 1 }
+
+-- ---------------------------------------------------------------------
+--  SDP Auto Bind Bgp Auto-Discovery 
+-- 
+--  Sparse Dependent Extention of the sdpBindTable.
+--
+--  The same indexes are used for both the base table, sdpBindTable,
+--  and the sparse dependent table, sdpAtBndBgp129Type2Table.
+--
+--  This in effect extends the sdpBindTable with additional columns.
+--  Rows are created in the sdpAtBndBgp129Type2Table only for those entries
+--  in the sdpBindTable that are created as a result of BGP Auto-discovery.
+--
+--  Deletion of a row in the sdpBindTable results in the
+--  same fate for the row in the sdpAtBndBgp129Type2Table.
+-- ---------------------------------------------------------------------
+sdpAtBndBgp129Type2TableLC  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpAtBndBgp129Type2TableLC indicates
+                     the sysUpTime at the time of the last modification
+                     of sdpAtBndBgp129Type2Table.
+
+                     If no changes were made to the entry since the last
+                     re-initialization of the local network management 
+                     subsystem, then this object contains a zero value."
+    ::= { tmnxSdpObjs 34 }
+
+sdpAtBndBgp129Type2Table OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpAtBndBgp129Type2Entry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The sdpAtBndBgp129Type2Table has an entry for each
+                     SDP Bind entry from sdpBindTable which was
+                     created as a result of BGP Auto-discovery with a FEC-129
+                     Type 2."
+    ::= { tmnxSdpObjs 35 }
+
+sdpAtBndBgp129Type2Entry OBJECT-TYPE
+    SYNTAX          SdpAtBndBgp129Type2Entry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Each row entry contains BGP-related information for an
+                     SDP Bind entry created as a result of BGP Auto-discovery
+                     with a FEC-129 Type 2."
+    INDEX           { svcId, sdpBindId }
+    ::= { sdpAtBndBgp129Type2Table 1 }
+
+SdpAtBndBgp129Type2Entry ::=
+    SEQUENCE {
+        sdpAtBndBgp129Type2TemplateId   PWTemplateId,
+        sdpAtBndBgp129Type2SaiiGlobalId TmnxPwGlobalId,
+        sdpAtBndBgp129Type2SaiiPrefix   Unsigned32,
+        sdpAtBndBgp129Type2SaiiAcId     Unsigned32,
+        sdpAtBndBgp129Type2TaiiGlobalId TmnxPwGlobalId,
+        sdpAtBndBgp129Type2TaiiPrefix   Unsigned32,
+        sdpAtBndBgp129Type2TaiiAcId     Unsigned32
+    }
+
+sdpAtBndBgp129Type2TemplateId OBJECT-TYPE
+    SYNTAX          PWTemplateId
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpAtBndBgp129Type2TemplateId indicates the
+                     the value of the pwTemplateId object for the
+                     PW template entry used to create this
+                     SDP Bind."
+    ::= { sdpAtBndBgp129Type2Entry 1 }
+
+sdpAtBndBgp129Type2SaiiGlobalId OBJECT-TYPE
+    SYNTAX     TmnxPwGlobalId
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpAtBndBgp129Type2SaiiGlobalId specifies the global
+         identifier of Source Attachment Individual Identifier (SAII) portion
+         of the Generalized Id FEC element as used by
+         this multi-segment pseudo-wire provider-edge in this service."
+    ::= { sdpAtBndBgp129Type2Entry 2 }
+
+sdpAtBndBgp129Type2SaiiPrefix OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpAtBndBgp129Type2SaiiPrefix specifies the prefix to the
+         Source Attachment Individual Identifier (SAII) portion
+         of the Generalized Id FEC element as used by
+         this multi-segment pseudo-wire provider-edge in this service."
+    ::= { sdpAtBndBgp129Type2Entry 3 }
+
+sdpAtBndBgp129Type2SaiiAcId OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpAtBndBgp129Type2SaiiAcId specifies the attachment
+         circuit identifier part of Source Attachment Individual Identifier
+         (SAII) portion of the Generalized Id FEC element as used by
+         this multi-segment pseudo-wire provider-edge in this service."
+    ::= { sdpAtBndBgp129Type2Entry 4 }
+
+sdpAtBndBgp129Type2TaiiGlobalId OBJECT-TYPE
+    SYNTAX     TmnxPwGlobalId
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpAtBndBgp129Type2TaiiGlobalId specifies the global
+         identifier of Taget Attachment Individual Identifier (TAII) portion
+         of the Generalized Id FEC element as used by
+         this multi-segment pseudo-wire provider-edge in this service."
+    ::= { sdpAtBndBgp129Type2Entry 5 }
+
+sdpAtBndBgp129Type2TaiiPrefix OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpAtBndBgp129Type2TaiiPrefix specifies the prefix to the
+         Taget Attachment Individual Identifier (TAII) portion
+         of the Generalized Id FEC element as used by
+         this multi-segment pseudo-wire provider-edge in this service."
+    ::= { sdpAtBndBgp129Type2Entry 6 }
+
+sdpAtBndBgp129Type2TaiiAcId OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpAtBndBgp129Type2TaiiAcId specifies the attachment
+         circuit identifier part of Taget Attachment Individual Identifier
+         (TAII) portion of the Generalized Id FEC element as used by
+         this multi-segment pseudo-wire provider-edge in this service."
+    ::= { sdpAtBndBgp129Type2Entry 7 }
+
+-- ---------------------------------------------------------------------
+--  SDP-Binding ETH-CFM Extension Table
+-- 
+--  Sparse Dependent Extention of the sdpBindTable.
+--
+--  The same indexes are used for both the base table, sdpBindTable
+--
+--  This in effect extends the sdpBindTable with additional columns.
+--  Rows are created in the sdpBindEthCfmTable only for those entries
+--  in the sdpBindTable that are created on services with ETH-CFM support.
+--
+--  Deletion of a row in the sdpBindTable results in the
+--  same fate for the row in the sdpBindEthCfmTable.
+-- ---------------------------------------------------------------------
+sdpBindEthCfmTableLastChanged    OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindEthCfmTableLastChanged indicates
+                     the sysUpTime at the time of the last modification
+                     of the sdpBindEthCfmTable.
+
+                     If no changes were made to the entry since the last
+                     re-initialization of the local network management
+                     subsystem, then this object contains a zero value."
+    ::= { tmnxSdpObjs 36 }
+
+sdpBindEthCfmTable               OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpBindEthCfmEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "The sdpBindEthCfmEntry has an entry for each
+                     SDP Bind entry from sdpBindTable which was
+                     created on a service with ETH-CFM support."
+    ::= { tmnxSdpObjs 37 }
+
+sdpBindEthCfmEntry OBJECT-TYPE
+    SYNTAX          SdpBindEthCfmEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "Each row entry contains BGP-related information for an
+                     SDP Bind entry created as a result of BGP Auto-discovery
+                     with a FEC-129 Type 2."
+    INDEX           { svcId, sdpBindId }
+    ::= { sdpBindEthCfmTable 1 }
+
+SdpBindEthCfmEntry               ::= SEQUENCE {
+    sdpBindEthCfmRowLastChanged      TimeStamp,
+    sdpBindEthCfmVMepFilter          TruthValue
+}
+
+sdpBindEthCfmRowLastChanged      OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindEthCfmRowLastChanged indicates the
+                     sysUpTime at the time of the last modification to an object
+                     for this row.
+
+                     If no changes were made to the entry since the
+                     instantiation of the row, then this object contains a zero
+                     value."
+    ::= { sdpBindEthCfmEntry 1 }
+
+sdpBindEthCfmVMepFilter          OBJECT-TYPE
+    SYNTAX          TruthValue
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     "The value of sdpBindEthCfmVMepFilter specifies whether
+                     ETH-CFM PDUs egressing the sap or sdp-binding at the same
+                     level or lower than that of the configured service MEP
+                     (the virtual MEP) should be discarded or continue to
+                     egress.
+
+                     Only PDUs that were originated from the virtual MEP or from
+                     the networks side of the service will be affected, local
+                     down MEP ETH-CFM transmission are not.  When set to 'true'
+                     ETH-CFM PDUs with the same or lower level as the virtual
+                     MEP will be discarded.  When set to 'false', egressing
+                     ETH-CFM PDUs will pass freely as per the existing ETH-CFM
+                     configuration."
+   DEFVAL { false }
+   ::= { sdpBindEthCfmEntry 2 }
+
+-- sdpBind shortest path bridging (SPB) table
+
+sdpBindTlsSpbTblLastChanged  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindTlsSpbTblLastChanged indicates the sysUpTime
+         at the time of the last modification of sdpBindTlsSpbTable.
+
+         If no changes were made to the entry since the last re-initialization
+         of the local network management subsystem, then this object contains a
+         zero value."
+    ::= { tmnxSdpObjs 38 }
+
+sdpBindTlsSpbTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpBindTlsSpbEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "A table that contains TLS SDP-Bind specific Shortest Path Bridging
+        (SPB) information."
+    ::= { tmnxSdpObjs 39 }
+
+sdpBindTlsSpbEntry OBJECT-TYPE
+    SYNTAX          SdpBindTlsSpbEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "A row-entry that contains TLS SDP-Bind specific SPB information."
+    INDEX           { svcId, sdpBindId }
+    ::= { sdpBindTlsSpbTable 1 }
+
+SdpBindTlsSpbEntry ::=
+    SEQUENCE {
+        sdpBindTlsSpbRowStatus         RowStatus,
+        sdpBindTlsSpbLastChgd          TimeStamp,
+        sdpBindTlsSpbIfIndex           InterfaceIndexOrZero,
+        sdpBindTlsSpbAdminState        TmnxAdminState
+    }
+
+sdpBindTlsSpbRowStatus OBJECT-TYPE
+    SYNTAX          RowStatus
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "This value of the object sdpBindTlsSpbRowStatus specifies the
+         status of this row."
+    ::= { sdpBindTlsSpbEntry 1 }
+
+sdpBindTlsSpbLastChgd OBJECT-TYPE
+    SYNTAX       TimeStamp
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION  
+        "The value of sdpBindTlsSpbLastChgd indicates the timestamp of last
+        change to this row in sdpBindTlsSpbTable."
+    ::= { sdpBindTlsSpbEntry 2 }  
+
+sdpBindTlsSpbIfIndex OBJECT-TYPE
+    SYNTAX       InterfaceIndexOrZero
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION  
+        "The value of sdpBindTlsSpbIfIndex indicates the interface index
+         assigned to this SDP-Bind for Shortest Path Bridging."
+    ::= { sdpBindTlsSpbEntry 3 }  
+     
+sdpBindTlsSpbAdminState OBJECT-TYPE
+    SYNTAX      TmnxAdminState
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The sdpBindTlsSpbAdminState indicates the  desired administrative state
+         for Shortest Path Bridging on this sdp-bind."
+    DEFVAL { outOfService }
+    ::= { sdpBindTlsSpbEntry 4 }
+     
+-- SDP binding Pseudo-Wire Port table
+
+sdpPwPortTblLastChanged  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpPwPortTblLastChanged indicates the sysUpTime
+         at the time of the last modification of sdpPwPortTable.
+
+         If no changes were made to the entry since the last re-initialization
+         of the local network management subsystem, then this object contains a
+         zero value."
+    ::= { tmnxSdpObjs 40 }
+
+sdpPwPortTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpPwPortEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "A table that contains SDP specific pseudo-wire port information."
+    ::= { tmnxSdpObjs 41 }
+
+sdpPwPortEntry OBJECT-TYPE
+    SYNTAX          SdpPwPortEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "A row-entry that contains port specific pseudo-wire information."
+    INDEX           { sdpId, sdpPwPortId }
+    ::= { sdpPwPortTable 1 }
+
+SdpPwPortEntry ::=
+    SEQUENCE {
+        sdpPwPortId                    Unsigned32,
+        sdpPwPortRowStatus             RowStatus,
+        sdpPwPortLastChgd              TimeStamp,
+        sdpPwPortAdminStatus           ServiceAdminStatus,
+        sdpPwPortVcId                  TmnxVcId,
+        sdpPwPortEncapType             INTEGER,
+        sdpPwPortOperStatus            INTEGER,
+        sdpPwPortOperFlags             BITS,
+        sdpPwPortVcType                SdpBindVcType,
+        sdpPwPortVlanVcTag             Unsigned32,
+        sdpPwPortEgrShapVPort          TNamedItemOrEmpty,
+        sdpPwPortEgrShapDefIntDestId   TNamedItemOrEmpty
+    }
+
+sdpPwPortId OBJECT-TYPE
+    SYNTAX          Unsigned32 (1..10239)
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "This value of the object sdpPwPortId specifies the pseudo-wire
+         port identifier associated with the SDP."
+    ::= { sdpPwPortEntry 1 }
+
+sdpPwPortRowStatus OBJECT-TYPE
+    SYNTAX          RowStatus
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "This value of the object sdpPwPortRowStatus specifies the
+         status of this row.
+
+         The value of sdpPwPortVcId must be set to a non-default value when
+         creating a row."
+    ::= { sdpPwPortEntry 2 }
+
+sdpPwPortLastChgd OBJECT-TYPE
+    SYNTAX       TimeStamp
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION  
+        "The value of sdpPwPortLastChgd indicates the timestamp of last
+        change to this row in sdpPwPortTable."
+    ::= { sdpPwPortEntry 3 }  
+
+sdpPwPortAdminStatus OBJECT-TYPE
+    SYNTAX          ServiceAdminStatus
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION     
+        "The value of the object sdpPwPortAdminStatus specifies
+         the administrative state of this pseudo-wire port entry."
+    DEFVAL          { down }
+    ::= { sdpPwPortEntry 4 }
+
+sdpPwPortVcId OBJECT-TYPE
+    SYNTAX       TmnxVcId
+    MAX-ACCESS   read-create
+    STATUS       current
+    DESCRIPTION  
+        "The value of sdpPwPortVcId specifies the virtual-circuit identifier
+         associated with this pseudo-wire port entry.
+
+         An 'inconsitentValue' error is returned if an attempt is made to create
+         a row-entry in this table without specifying value of this object."
+    ::= { sdpPwPortEntry 5 }  
+
+sdpPwPortEncapType OBJECT-TYPE
+    SYNTAX       INTEGER {
+                     dot1q (2),
+                     qinq  (10)
+                 }
+    MAX-ACCESS   read-create
+    STATUS       current
+    DESCRIPTION  
+        "The value of sdpPwPortEncapType specifies the encapsulation type
+         of this pseudo-wire port entry."
+    DEFVAL { dot1q }
+    ::= { sdpPwPortEntry 6 }  
+
+
+sdpPwPortOperStatus OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        up                 (1),
+                        down               (5)
+                    }
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpPwPortOperStatus indicates the operating status of
+         this Service-SDP binding.
+            'up'               The Service-SDP binding is operational.
+
+            'down'             The binding is administratively down.
+        "
+
+    ::= { sdpPwPortEntry 7 }
+
+sdpPwPortOperFlags OBJECT-TYPE
+    SYNTAX          BITS {
+                        sdpBindAdminDown       (0), -- SDP Bind is admin down
+                        svcAdminDown           (1), -- Service is admin down
+                        sapOperDown            (2), -- SAP is oper down 
+                                                    -- (VLL's only)
+                        sdpOperDown            (3), -- SDP is oper down
+                        sdpPathMtuTooSmall     (4), -- SDP's path MTU minus SDP
+                                                    -- Bind control word size is
+                                                    -- less than Service MTU
+                        noIngressVcLabel       (5), -- No ingress VC label
+                        noEgressVcLabel        (6), -- No egress VC label
+                        svcMtuMismatch         (7), -- Service MTU mismatch with
+                                                    -- the remote PE
+                        vcTypeMismatch         (8), -- VC type mismatch with the
+                                                    -- remote PE
+                        relearnLimitExceeded   (9), -- MAC relearn limit was
+                                                    -- exceeded (TLS only)
+                        iesIfAdminDown         (10),-- IP interface is admin
+                                                    -- down (IES and VPRN only)
+                        releasedIngressVcLabel (11),-- Peer released our ingress
+                                                    -- VC label
+                        labelsExhausted        (12),-- Label Manager has ran out
+                                                    -- of labels
+                        svcParamMismatch       (13),-- Service-specific
+                                                    -- parameter mismatch
+                        insufficientBandwidth  (14),-- Insufficient bandwidth to
+                                                    -- allocate to SDP binding
+                        pwPeerFaultStatusBits  (15),-- Received PW fault status
+                                                    -- bits from peer      
+                        meshSdpDown            (16),-- Mesh SDP Down
+                        notManagedByMcRing     (17),-- Not managed by mc-ring
+                        outOfResource          (18),-- Such as memory
+                        mhStandby              (19),-- Standby due to BGP
+                                                    -- multi-home protocol
+                        oamDownMepFault        (20),-- ETH-CFM down MEP fault
+                                                    -- detected. 
+                        oamUpMepFault          (21),-- ETH-CFM up MEP fault
+                                                    -- detected. 
+                        standbySigSlaveTxDown  (22),-- Transmit is down for
+                                                    -- standby-sig-spoke.
+                        operGrpDown            (23),-- Operational group is down
+                        withdrawnIngressVcLabel(24) -- Ingress label withdrawn
+                                                    -- due to incompatibility.
+                    }
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "This object specifies all the conditions that affect the
+                     operating status of this pseudo-wire port:
+                     
+                     The bit values are as follows:
+
+             sdpBindAdminDown        (0) - SDP Bind is admin down.
+             svcAdminDown            (1) - Service is admin down.
+             sapOperDown             (2) - SAP is oper down (VLL's only).
+             sdpOperDown             (3) - SDP is oper down.
+             sdpPathMtuTooSmall      (4) - SDP's path MTU minus SDP Bind control
+                                           word size is less than Service MTU.
+             noIngressVcLabel        (5) - No ingress VC label.
+             noEgressVcLabel         (6) - No egress VC label.
+             svcMtuMismatch          (7) - Service MTU mismatch with the
+                                           remote PE.
+             vcTypeMismatch          (8) - VC type mismatch with the remote PE.
+             relearnLimitExceeded    (9) - MAC relearn limit was exceeded
+                                           (TLS only).
+             iesIfAdminDown         (10) - IP interface is admin down
+                                           (IES and VPRN only).
+             releasedIngressVcLabel (11) - Peer released our ingress VC label.
+             labelsExhausted        (12) - Label Manager has ran out of labels.
+             svcParamMismatch       (13) - Service-specific parameter mismatch.
+             insufficientBandwidth  (14) - Insufficient bandwidth to allocate
+                                           to SDP binding.
+             pwPeerFaultStatusBits  (15) - Received PW fault status bits from
+                                           peer.      
+             meshSdpDown            (16) - Mesh SDP Down.
+             notManagedByMcRing     (17) - Not managed by mc-ring.
+             outOfResource          (18) - Such as memory.
+             mhStandby              (19) - Standby due to BGP.
+                                         - multi-home protocol.
+             oamDownMepFault        (20) - ETH-CFM down MEP fault detected.
+             oamUpMepFault          (21) - ETH-CFM up MEP fault detected.
+             standbySigSlaveTxDown  (22) - Transmit is down for 
+                                         - standby-sig-spoke.
+             operGrpDown            (23) - Operational group is down.
+             withdrawnIngressVcLabel(24) - Withdrawn due to Incompatiblity."
+    ::= { sdpPwPortEntry 8 }
+
+sdpPwPortVcType OBJECT-TYPE
+    SYNTAX          SdpBindVcType
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpPwPortVcType specifies the type of virtual circuit
+        (VC) associated with this pseudo-wire port entry."
+    DEFVAL          { ether }
+    ::= { sdpPwPortEntry 9 }
+
+sdpPwPortVlanVcTag OBJECT-TYPE
+    SYNTAX          Unsigned32 ('0000'H..'0fff'H)
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpPwPortVlanVcTag specifies the VLAN VC tag
+         for this pseudo-wire port entry."
+    DEFVAL          { '0fff'H }
+    ::= { sdpPwPortEntry 10 }
+
+sdpPwPortEgrShapVPort OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpPwPortEgrShapVPort specifies the virtual port name of
+         the shaper on the egress side for this pseudo-wire port entry."
+    DEFVAL          { ''H }
+    ::= { sdpPwPortEntry 11 }
+
+sdpPwPortEgrShapDefIntDestId OBJECT-TYPE
+    SYNTAX          TNamedItemOrEmpty
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpPwPortEgrShapDefIntDestId specifies the default 
+         intermediate destination identifier on the egress side which will
+         eventualy map to an HSMDAv2 secondary shaper for this
+         pseudo-wire port entry."
+    DEFVAL          { ''H }
+    ::= { sdpPwPortEntry 12 }
+
+-- -------------------------
+-- SDP Bind PW Path Table
+-- -------------------------
+sdpBindPwPathTableLastChanged  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindPwPathTableLastChanged indicates the
+         sysUpTime at the time of the last modification
+         of sdpBindPwPathTable.
+
+         If no changes were made to the entry since the last
+         re-initialization of the local network management subsystem,
+         then this object contains a zero value."
+    ::= { tmnxSdpObjs 50 }
+
+sdpBindPwPathTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpBindPwPathEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "The sdpBindPwPathTable contains Pseudo-Wire path information per
+         SDP binding."
+    ::= { tmnxSdpObjs 51 }
+
+sdpBindPwPathEntry OBJECT-TYPE
+    SYNTAX          SdpBindPwPathEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "The sdpBindPwPathEntry contains Pseudo-Wire path information for
+         specific SDP binding."
+    INDEX           { svcId, sdpBindId }
+    ::= { sdpBindPwPathTable 1 }
+
+SdpBindPwPathEntry ::=
+    SEQUENCE {
+        sdpBindPwPathRowStatus      RowStatus,
+        sdpBindPwPathLastChanged    TimeStamp,
+        sdpBindPwPathAgi            TmnxVPNRouteDistinguisher,
+        sdpBindPwPathSaiiGlobalId   TmnxMplsTpGlobalID,
+        sdpBindPwPathSaiiNodeId     TmnxMplsTpNodeID,
+        sdpBindPwPathSaiiAcId       Unsigned32,
+        sdpBindPwPathTaiiGlobalId   TmnxMplsTpGlobalID,
+        sdpBindPwPathTaiiNodeId     TmnxMplsTpNodeID,
+        sdpBindPwPathTaiiAcId       Unsigned32
+    }
+
+sdpBindPwPathRowStatus        OBJECT-TYPE
+    SYNTAX          RowStatus
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindPwPathRowStatus is used for the
+         creation and deletion of entries in the table."
+    ::= { sdpBindPwPathEntry 1 }
+
+sdpBindPwPathLastChanged        OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindPwPathLastChanged indicates the 
+         sysUpTime at the time of the last modification of this
+         entry.
+
+         If no changes were made to the entry since the last
+         re-initialization of the local network management
+         subsystem, then this object contains a zero value."
+    ::= { sdpBindPwPathEntry 2 }
+
+sdpBindPwPathAgi  OBJECT-TYPE
+    SYNTAX          TmnxVPNRouteDistinguisher
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindPwPathAgi indicates the Attachment Group
+         Identifier (AGI) portion of the Generalized Id FEC element from the
+         pseudowire setup for this SDP Bind."
+    DEFVAL { '0000000000000000'H }
+    ::= { sdpBindPwPathEntry 3 }
+
+sdpBindPwPathSaiiGlobalId OBJECT-TYPE
+    SYNTAX     TmnxMplsTpGlobalID
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindPwPathSaiiGlobalId specifies the global identifier
+         of Source Attachment Individual Identifier (SAII) portion
+         of the Generalized Id FEC element as used by
+         this SDP binding in this service."
+    DEFVAL { 0 }
+    ::= { sdpBindPwPathEntry 4 }
+
+sdpBindPwPathSaiiNodeId OBJECT-TYPE
+    SYNTAX     TmnxMplsTpNodeID
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindPwPathSaiiNodeId specifies the MPLS-TP node
+         identifier to the Source Attachment Individual Identifier (SAII)
+         portion of the Generalized Id FEC element as used by
+         this SDP binding in this service."
+    DEFVAL { 0 }
+    ::= { sdpBindPwPathEntry 5 }
+
+sdpBindPwPathSaiiAcId OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindPwPathSaiiAcId specifies the attachment circuit
+         identifier part of Source Attachment Individual Identifier (SAII)
+         portion of the Generalized Id FEC element as used by
+         this SDP binding in this service."
+    DEFVAL { 0 }
+    ::= { sdpBindPwPathEntry 6 }
+
+sdpBindPwPathTaiiGlobalId OBJECT-TYPE
+    SYNTAX     TmnxMplsTpGlobalID
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindPwPathTaiiGlobalId specifies the global identifier
+         of Target Attachment Individual Identifier (TAII) portion
+         of the Generalized Id FEC element as used by
+         this SDP binding in this service."
+    DEFVAL { 0 }
+    ::= { sdpBindPwPathEntry 7 }
+
+sdpBindPwPathTaiiNodeId OBJECT-TYPE
+    SYNTAX     TmnxMplsTpNodeID
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindPwPathTaiiNodeId specifies the MPLS-TP node
+         identifier to the Target Attachment Individual Identifier (TAII)
+         portion of the Generalized Id FEC element as used by
+         this SDP binding in this service."
+    DEFVAL { 0 }
+    ::= { sdpBindPwPathEntry 8 }
+
+sdpBindPwPathTaiiAcId OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindPwPathTaiiAcId specifies the attachment circuit
+         identifier part of Target Attachment Individual Identifier (TAII)
+         portion of the Generalized Id FEC element as used by
+         this SDP binding in this service."
+    DEFVAL { 0 }
+    ::= { sdpBindPwPathEntry 9 }
+
+-- -------------------------
+-- SDP Bind Control Channel PW Table
+-- -------------------------
+sdpBindCtrlChanPwTableLastChgd  OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwTableLastChgd indicates the
+         sysUpTime at the time of the last modification
+         of sdpBindCtrlChanPwTable.
+
+         If no changes were made to the entry since the last
+         re-initialization of the local network management subsystem,
+         then this object contains a zero value."
+    ::= { tmnxSdpObjs 52 }
+
+sdpBindCtrlChanPwTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF SdpBindCtrlChanPwEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "The sdpBindCtrlChanPwTable contains control channel Pseudo-Wire 
+         information per SDP binding."
+    ::= { tmnxSdpObjs 53 }
+
+sdpBindCtrlChanPwEntry OBJECT-TYPE
+    SYNTAX          SdpBindCtrlChanPwEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "The sdpBindCtrlChanPwEntry contains control channel Pseudo-Wire
+         information for specific SDP binding."
+    INDEX           { svcId, sdpBindId }
+    ::= { sdpBindCtrlChanPwTable 1 }
+
+SdpBindCtrlChanPwEntry ::=
+    SEQUENCE {
+        sdpBindCtrlChanPwLastChanged    TimeStamp,
+        sdpBindCtrlChanPwStatus         TmnxEnabledDisabled,
+        sdpBindCtrlChanPwRefreshTimer   Unsigned32,
+        sdpBindCtrlChanPwPeerExpired    TruthValue,
+        sdpBindCtrlChanPwRequestTimer   Unsigned32,
+        sdpBindCtrlChanPwRetryTimer     Unsigned32,
+        sdpBindCtrlChanPwTimeoutMult    Unsigned32,
+        sdpBindCtrlChanPwAck            TruthValue
+    }
+
+sdpBindCtrlChanPwLastChanged        OBJECT-TYPE
+    SYNTAX          TimeStamp
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwLastChanged indicates the 
+         sysUpTime at the time of the last modification of this
+         entry.
+                     
+         If no changes were made to the entry since the last 
+         re-initialization of the local network management 
+         subsystem, then this object contains a zero value."
+    ::= { sdpBindCtrlChanPwEntry 1 }
+
+sdpBindCtrlChanPwStatus OBJECT-TYPE
+    SYNTAX     TmnxEnabledDisabled
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwStatus specifies the status of 
+         control channel for the pseudo-wire path for this SDP binding."
+    DEFVAL { disabled }
+    ::= { sdpBindCtrlChanPwEntry 2 }
+
+sdpBindCtrlChanPwRefreshTimer OBJECT-TYPE
+    SYNTAX     Unsigned32 (0|10..65535)
+    UNITS      "seconds"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwRefreshTimer specifies the refresh timer
+         value to be used when control channel for the psuedo-wire path is
+         enabled for this SDP binding."
+    DEFVAL { 0 }
+    ::= { sdpBindCtrlChanPwEntry 3 }
+
+sdpBindCtrlChanPwPeerExpired OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwPeerExpired indicates whether
+         sdpBindCtrlChanPwStatus was not received after 3.5 times of
+         sdpBindCtrlChanPwRefreshTimer value for the pseudo-wire path for 
+         this SDP binding."
+    ::= { sdpBindCtrlChanPwEntry 4 }
+
+
+sdpBindCtrlChanPwRequestTimer OBJECT-TYPE
+    SYNTAX     Unsigned32 (0|10..65535)
+    UNITS      "seconds"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwRequestTimer specifies the request timer
+         value to be used when control channel for the psuedo-wire path is
+         enabled for this SDP binding.
+
+         An 'inconsistentValue' error is returned if the value of
+         sdpBindCtrlChanPwRequestTimer is set to non-zero when
+         sdpBindCtrlChanPwRefreshTimer is set to non-zero.
+         
+         An 'inconsistentValue' error is returned if the value of
+         sdpBindCtrlChanPwRequestTimer is set to non-zero when value of either
+         sdpBindCtrlChanPwRetryTimer or sdpBindCtrlChanPwTimeoutMult is
+         also set to zero."
+    DEFVAL { 0 }
+    ::= { sdpBindCtrlChanPwEntry 5 }
+
+sdpBindCtrlChanPwRetryTimer OBJECT-TYPE
+    SYNTAX     Unsigned32 (0|3..60)
+    UNITS      "seconds"
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwRetryTimer specifies the retry timer
+         value to be used for the request timer when control channel for the
+         psuedo-wire path is enabled for this SDP binding.
+
+         An 'inconsistentValue' error is returned if the value of
+         sdpBindCtrlChanPwRequestTimer is set to non-zero when value of either
+         sdpBindCtrlChanPwRetryTimer or sdpBindCtrlChanPwTimeoutMult is
+         also set to zero."
+    DEFVAL { 0 }
+    ::= { sdpBindCtrlChanPwEntry 6 }
+
+sdpBindCtrlChanPwTimeoutMult OBJECT-TYPE
+    SYNTAX     Unsigned32 (0|3..15)
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwTimeoutMult specifies the timeout
+         multiplier value to be used for the retry timer to resend the request
+         when control channel for the psuedo-wire path is enabled for this SDP
+         binding.
+
+         An 'inconsistentValue' error is returned if the value of
+         sdpBindCtrlChanPwRequestTimer is set to non-zero when value of either
+         sdpBindCtrlChanPwRetryTimer or sdpBindCtrlChanPwTimeoutMult is
+         also set to zero."
+    DEFVAL { 0 }
+    ::= { sdpBindCtrlChanPwEntry 7 }
+
+sdpBindCtrlChanPwAck OBJECT-TYPE
+    SYNTAX     TruthValue
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "The value of sdpBindCtrlChanPwAck specifies whether
+         acknowledgement was not received after 3.5 times of
+         sdpBindCtrlChanPwRefreshTimer value for the pseudo-wire path for 
+         this SDP binding."
+    DEFVAL { false }
+    ::= { sdpBindCtrlChanPwEntry 8 }
+
+
 
 -- --------------------------------------
 -- SDP Notification Objects
@@ -4639,6 +7375,54 @@ dynamicSdpBindCreationError OBJECT-TYPE
                    indicates the reason why the system was unable to create
                    the dynamic SDP Binding."
     ::= { tmnxSdpNotifyObjs 5 }
+
+sdpBindNotifyMacAddr OBJECT-TYPE
+    SYNTAX         MacAddress
+    MAX-ACCESS     accessible-for-notify
+    STATUS         current
+    DESCRIPTION    "The value of the object sdpBindNotifyMacAddr
+                    indicates the MAC address associated with
+                    a VPLS SDP Binding."
+    ::= { tmnxSdpNotifyObjs 6 }
+
+sdpEgIfNetDomainInconsCount      OBJECT-TYPE
+    SYNTAX          Unsigned32
+    MAX-ACCESS      accessible-for-notify
+    STATUS          current
+    DESCRIPTION     "The value of the object sdpEgIfNetDomainInconsCount 
+                     indicates the number of SDPs which have an inconsistent
+                     network-domain for the SDP and egress network interfaces 
+                     of the SDP."
+    ::= { tmnxSdpNotifyObjs 7 }
+
+sdpMSPwPeId OBJECT-TYPE
+    SYNTAX          TmnxSpokeSdpId
+    MAX-ACCESS      accessible-for-notify
+    STATUS          current
+    DESCRIPTION
+        "The value of the object sdpMSPwPeId specifies the
+         multi-segment pseudo-wire provider-edge identifier for the service
+         associated with this notification."
+    ::= { tmnxSdpNotifyObjs 8 }
+
+sdpBindIpipeCeIpAddrType OBJECT-TYPE
+    SYNTAX         InetAddressType 
+    MAX-ACCESS     accessible-for-notify
+    STATUS         current
+    DESCRIPTION
+        "The value of sdpBindIpipeCeIpAddrType indicates the type of CE address
+         on an IPIPE SDP. The CE IP address is specified by 
+         sdpBindIpipeCeIpAddress."
+    ::= { tmnxSdpNotifyObjs 9 }
+
+sdpBindIpipeCeIpAddress OBJECT-TYPE
+    SYNTAX          InetAddress (SIZE(0|4|16))
+    MAX-ACCESS      accessible-for-notify
+    STATUS          current
+    DESCRIPTION
+        "The value of sdpBindIpipeCeIpAddress indicates the CE IP address 
+         of type sdpBindIpipeCeIpAddrType on an IPIPE SDP."
+    ::= { tmnxSdpNotifyObjs 10 }
 
 -- --------------------------------------------
 -- SDP traps
@@ -4723,12 +7507,13 @@ sdpTlsMacAddrLimitAlarmRaised  NOTIFICATION-TYPE
         custId,
         svcId,
         svcVpnId,
-        sdpId
+        sdpId,
+        sdpBindId
     }
     STATUS          current
     DESCRIPTION     "The sdpTlsMacAddrLimitAlarmRaised notification is sent
                      whenever the number of MAC addresses stored in the FDB
-                     for this spoke sdp increases to reach the watermark
+                     for this spoke sdp-bind increases to reach the watermark
                      specified by the object svcTlsFdbTableFullHighWatermark."
     ::= { sdpTraps 7 }
 
@@ -4737,12 +7522,13 @@ sdpTlsMacAddrLimitAlarmCleared  NOTIFICATION-TYPE
         custId,
         svcId,
         svcVpnId,
-        sdpId
+        sdpId,
+        sdpBindId
     }
     STATUS          current
     DESCRIPTION     "The sdpTlsMacAddrLimitAlarmCleared notification is sent
                      whenever the number of MAC addresses stored in the FDB for
-                     this spoke SDP drops to the watermark specified by the
+                     this spoke sdp-bind drops to the watermark specified by the
                      object svcTlsFdbTableFullLowWatermark."
     ::= { sdpTraps 8 }
 
@@ -4851,7 +7637,8 @@ sdpBindTlsMacMoveExceeded NOTIFICATION-TYPE
         sdpBindOperStatus,
         sdpBindTlsMacMoveRateExcdLeft,
         sdpBindTlsMacMoveNextUpTime,
-        svcTlsMacMoveMaxRate
+        svcTlsMacMoveMaxRate,
+        sdpBindNotifyMacAddr
     }
     STATUS          current
     DESCRIPTION     "The sdpBindTlsMacMoveExceeded notification is generated
@@ -4992,12 +7779,21 @@ dynamicSdpBindConfigChanged NOTIFICATION-TYPE
        dynamicSdpOrigin,
        sdpId,
        svcL2RteSdpBindId,
-       dynamicSdpStatus
+       dynamicSdpStatus,
+       sdpMSPwPeId
    }
    STATUS          current
-   DESCRIPTION     "The dynamicSdpBindConfigChanged notification is generated when a
-                    dynamic SDP Bind is 'created', 'modified', or 'deleted', with the
-                    value of dynamicSdpStatus indicated which state it has entered."
+   DESCRIPTION
+       "The dynamicSdpBindConfigChanged notification is generated when a
+        dynamic SDP Bind is 'created', 'modified', or 'deleted'.  New state
+        of the SDP Bind is indicated by the value of dynamicSdpStatus. The
+        affected SDP is indicated by the value of 'sdpId' or by Spoke-SDP FEC
+        identifier 'sdpMSPwPeId'.
+
+        [EFFECT] This is an informational notification. Depending on the type
+        of change, new layer-2 route may have been created, modified or deleted.
+
+        [RECOVERY] No recovery action is required."
    ::= { sdpTraps 25 }
 
 dynamicSdpCreationFailed NOTIFICATION-TYPE
@@ -5023,6 +7819,78 @@ dynamicSdpBindCreationFailed NOTIFICATION-TYPE
    DESCRIPTION     "The dynamicSdpBindCreationFailed notification is generated
                     when the system fails to create a dynamic SDP Bind."
    ::= { sdpTraps 27 }
+
+sdpEgrIfsNetDomInconsCntChanged NOTIFICATION-TYPE
+    OBJECTS {
+        sdpEgIfNetDomainInconsCount
+    }
+    STATUS          current
+    DESCRIPTION     "The sdpEgrIfsNetDomInconsCntChanged notification is 
+                    generated when the value of sdpEgIfNetDomainInconsCount 
+                    changes." 
+    ::= { sdpTraps 28 }
+
+sdpBindIpipeCeIpAddressChange NOTIFICATION-TYPE
+    OBJECTS {
+        svcId,
+        sdpBindId,
+        sdpBindIpipeCeIpAddrType,
+        sdpBindIpipeCeIpAddress
+    }
+    STATUS          current
+    DESCRIPTION     
+        "[CAUSE] The sdpBindIpipeCeIpAddressChange notification indicates
+         an IP address has been discovered for the far end CE device 
+         on a specified IPIPE SDP. The type of IP address is specified by
+         sdpBindIpipeCeIpAddrType. The IP address is specified by 
+         sdpBindIpipeCeIpAddress.
+
+         [EFFECT] The IP address specified by sdpBindIpipeCeIpAddress and 
+         of type sdpBindIpipeCeIpAddrType has been discovered on the remote 
+         CE device.
+
+         [RECOVERY] No action is required."
+    ::= { sdpTraps 29 }
+
+sdpBindReceivedProtSrcMac NOTIFICATION-TYPE
+    OBJECTS {
+        svcId,
+        sdpBindId,
+        protectedMacForNotify,
+        sdpBindTlsRestProtSrcMacAction
+    }
+    STATUS          current
+    DESCRIPTION
+        "[CAUSE] The sdpBindReceivedProtSrcMac notification is generated when a
+         protected source MAC is received on a TLS SDP-BIND with 
+         sdpBindTlsRestProtSrcMac 'true', or if the TLS
+         SDP-BIND belongs to an SHG with tlsShgRestProtSrcMac set to 'true'.
+         
+         [EFFECT] If the sdpBindTlsRestProtSrcMacAction is set to
+         'discardFrame', the frame will be discarded.
+         
+         [RECOVERY] No action is required."
+    ::= { sdpTraps 30 }
+
+sdpBindPwLocalStatusBitsChanged NOTIFICATION-TYPE
+    OBJECTS {
+        custId,
+        svcId,
+        svcVpnId,
+        sdpBindId,
+        sdpBindPwLocalStatusBits
+    }
+    STATUS          current
+    DESCRIPTION
+        "[CAUSE] The sdpBindPwLocalStatusBitsChanged notification is generated
+         when there is a change in the local PW status bits.
+
+         [EFFECT] Based on the change in the sdpBindPwLocalStatusBits traffic
+         on the SDP-BIND may be impacted.
+
+         [RECOVERY] Based on the change in the sdpBindPwLocalStatusBits
+         appropriate configuration changes may be required."
+    ::= { sdpTraps 31 }
 
 -- ------------------------------------
 -- TLS STP traps
@@ -5218,11 +8086,11 @@ tmnxSdpGroups       OBJECT IDENTIFIER ::= { tmnxSdpConformance 2 }
 -- Compliance Statements
 -- ----------------------------------------------
 
-tmnxSdp77x0V6v0Compliance MODULE-COMPLIANCE
-    STATUS  current
+tmnxSdp77x0V6v1Compliance MODULE-COMPLIANCE
+    STATUS  obsolete
     DESCRIPTION
         "The compliance statement for management of services SDPs
-         on Alcatel 7750 SR and 7710 SR series systems."
+         on Alcatel-Lucent 7750 SR and 7710 SR series systems."
     MODULE  -- this module
         MANDATORY-GROUPS
         {
@@ -5234,7 +8102,7 @@ tmnxSdp77x0V6v0Compliance MODULE-COMPLIANCE
              tmnxSdpBindDhcpV6v0Group,
              tmnxSdpBindIpipeV6v0Group,
              tmnxSdpBindTlsL2ptV6v0Group,
-             tmnxSdpAutoBindV6v0Group,
+             tmnxSdpAutoBindV6v1Group,
              tmnxSdpBindTlsMrpV6v0Group,
              tmnxSdpTlsBgpV6v0Group,
              tmnxSdpNotifyV6v0Group,
@@ -5242,13 +8110,13 @@ tmnxSdp77x0V6v0Compliance MODULE-COMPLIANCE
              tmnxSdpFCV6v0Group,
              tmnxSdpBindCpipeV6v0Group
         }
-    ::= { tmnxSdpCompliances 8 }
-             
-tmnxSdp7450V6v0Compliance MODULE-COMPLIANCE
-    STATUS  current
+    ::= { tmnxSdpCompliances 10 }
+
+tmnxSdp7450V6v1Compliance MODULE-COMPLIANCE
+    STATUS  obsolete
     DESCRIPTION
         "The compliance statement for management of services SDPs
-         on Alcatel 7450 ESS series systems."
+         on Alcatel-Lucent 7450 ESS series systems."
     MODULE  -- this module
         MANDATORY-GROUPS
         {
@@ -5260,7 +8128,7 @@ tmnxSdp7450V6v0Compliance MODULE-COMPLIANCE
              tmnxSdpBindDhcpV6v0Group,
              tmnxSdpBindIpipeV6v0Group,
              tmnxSdpBindTlsL2ptV6v0Group,
-             tmnxSdpAutoBindV6v0Group,
+             tmnxSdpAutoBindV6v1Group,
              tmnxSdpBindTlsMrpV6v0Group,
              tmnxSdpTlsBgpV6v0Group,
              tmnxSdpNotifyV6v0Group,
@@ -5268,8 +8136,452 @@ tmnxSdp7450V6v0Compliance MODULE-COMPLIANCE
              tmnxSdpFCV6v0Group
              -- tmnxSdpBindCpipeV6v0Group
         }
-    ::= { tmnxSdpCompliances 9 }
+    ::= { tmnxSdpCompliances 11 }
 
+tmnxSdp77x0V7v0Compliance MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7750 SR and 7710 SR series systems."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV6v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             tmnxSdpBindCpipeV6v0Group,
+             tmnxSdpBindIpipeV7v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup
+        }
+    ::= { tmnxSdpCompliances 12 }
+
+tmnxSdp7450V7v0Compliance MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7450 ESS series systems."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             -- tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV6v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             -- tmnxSdpBindCpipeV6v0Group
+             tmnxSdpBindIpipeV7v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup
+        }
+    ::= { tmnxSdpCompliances 13 }
+
+tmnxSdp77x0V8v0Compliance MODULE-COMPLIANCE
+    STATUS  obsolete 
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7750 SR and 7710 SR series systems."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             tmnxSdpBindCpipeV6v0Group,
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpLdpBackupV8v0Group,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindCpmProtGroup
+        }
+    ::= { tmnxSdpCompliances 14 }
+
+tmnxSdp7450V8v0Compliance MODULE-COMPLIANCE
+    STATUS  obsolete 
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7450 ESS series systems."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             -- tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             -- tmnxSdpBindCpipeV6v0Group
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpLdpBackupV8v0Group,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindCpmProtGroup
+        }
+    ::= { tmnxSdpCompliances 15 }
+
+-- 9.0 Compliance
+tmnxSdp77x0V9v0Compliance MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7750 SR and 7710 SR series systems release R9.0."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             tmnxSdpBindCpipeV6v0Group,
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV9v0Group,
+             tmnxSdpBindBsxV9v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpV9v0Group,
+             tmnxSdpBindCpmProtGroup,
+             tmnxSdpMixedLspModeV9v0Group,
+             tmnxSdpBindEthCfmGroup,
+             tmnxSdpBindIpipeNotifyGroup 
+        }
+    ::= { tmnxSdpCompliances 16 }
+
+tmnxSdp7450V9v0Compliance MODULE-COMPLIANCE
+    STATUS  obsolete
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7450 ESS series systems release R9.0."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             -- tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             -- tmnxSdpBindCpipeV6v0Group
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV9v0Group,
+             tmnxSdpBindBsxV9v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpV9v0Group,
+             tmnxSdpBindCpmProtGroup,
+             tmnxSdpMixedLspModeV9v0Group,
+             tmnxSdpBindEthCfmGroup,
+             tmnxSdpBindIpipeNotifyGroup 
+        }
+    ::= { tmnxSdpCompliances 17 }
+
+-- 10.0 Compliance
+tmnxSdp77x0V10v0Compliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7750 SR and 7710 SR series systems release R9.0."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             tmnxSdpBindCpipeV6v0Group,
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV9v0Group,
+             tmnxSdpBindBsxV9v0Group,
+             tmnxSdpBindBsxV10v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpV9v0Group,
+             tmnxSdpBindCpmProtGroup,
+             tmnxSdpMixedLspModeV9v0Group,
+             tmnxSdpBindEthCfmGroup,
+             tmnxSdpBindIpipeNotifyGroup,
+             tmnxSdpPwPortGroup,
+             tmnxSdpSpbGroup,
+             tmnxSdpNotifyV10v0Group,
+             tmnxSdpBindBlockOnPeerFaultGroup,
+             tmnxSdpV10v0Group
+        }
+    ::= { tmnxSdpCompliances 18 }
+
+tmnxSdp7450V10v0Compliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7450 ESS series systems release R9.0."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             -- tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             -- tmnxSdpBindCpipeV6v0Group
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV9v0Group,
+             tmnxSdpBindBsxV9v0Group,
+             tmnxSdpBindBsxV10v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpV9v0Group,
+             tmnxSdpBindCpmProtGroup,
+             tmnxSdpMixedLspModeV9v0Group,
+             tmnxSdpBindEthCfmGroup,
+             tmnxSdpBindIpipeNotifyGroup,
+             tmnxSdpPwPortGroup,
+             tmnxSdpSpbGroup,
+             tmnxSdpNotifyV10v0Group,
+             tmnxSdpV10v0Group,
+             tmnxSdpBindBlockOnPeerFaultGroup,
+             tmnxSdpBindQGrpObjsV10v0Group
+        }
+    ::= { tmnxSdpCompliances 19 }
+
+-- 11.0 Compliance
+tmnxSdp77x0V11v0Compliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7750 SR and 7710 SR series systems release R11.0."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             tmnxSdpBindCpipeV6v0Group,
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV9v0Group,
+             tmnxSdpBindBsxV9v0Group,
+             tmnxSdpBindBsxV10v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpV9v0Group,
+             tmnxSdpBindCpmProtGroup,
+             tmnxSdpMixedLspModeV9v0Group,
+             tmnxSdpBindEthCfmGroup,
+             tmnxSdpBindIpipeNotifyGroup,
+             tmnxSdpPwPortGroup,
+             tmnxSdpSpbGroup,
+             tmnxSdpNotifyV10v0Group,
+             tmnxSdpV10v0Group,
+             tmnxSdpBindBlockOnPeerFaultGroup,
+             tmnxSdpBindPwPortGroup,
+             tmnxSdpBindCtrlChanGroup
+
+        }
+    ::= { tmnxSdpCompliances 20 }
+
+tmnxSdp7450V11v0Compliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for management of services SDPs
+         on Alcatel-Lucent 7450 ESS series systems release R11.0."
+    MODULE  -- this module
+        MANDATORY-GROUPS
+        {
+             tmnxSdpV6v0Group,
+             tmnxSdpBindV6v0Group,
+             tmnxSdpBindTlsV6v0Group,
+             tmnxSdpBindTlsV8v0Group,
+             tmnxSdpBindMeshV6v0Group,
+             -- tmnxSdpApipeV6v0Group,
+             tmnxSdpBindDhcpV6v0Group,
+             tmnxSdpBindTlsL2ptV6v0Group,
+             tmnxSdpAutoBindV7v0Group,
+             tmnxSdpBindTlsMrpV8v0Group,
+             tmnxSdpTlsBgpV6v0Group,
+             tmnxSdpNotifyV6v0Group,
+             tmnxSdpL2V6v0Group,
+             tmnxSdpFCV6v0Group,
+             -- tmnxSdpBindCpipeV6v0Group
+             tmnxSdpBindIpipeV8v0Group,
+             tmnxSdpL2V7v0Group,
+             tmnxSdpEvalPwTempV7v0Group,
+             tmnxSdpPbbGroup,
+             tmnxSdpBindGenGroup,
+             tmnxSdpV8v0Group,
+             tmnxSdpBindV9v0Group,
+             tmnxSdpBindBsxV9v0Group,
+             tmnxSdpBindBsxV10v0Group,
+             tmnxSdpNotifyV8v0Group,
+             tmnxSdpAutoBindV8v0Group,
+             tmnxSdpBgpVplsV8v0Group,
+             tmnxSdpL2V8v0Group,
+             tmnxSdpPwV8v0Group,
+             tmnxSdpBindV8v0Group,
+             tmnxSdpV9v0Group,
+             tmnxSdpBindCpmProtGroup,
+             tmnxSdpMixedLspModeV9v0Group,
+             tmnxSdpBindEthCfmGroup,
+             tmnxSdpBindIpipeNotifyGroup,
+             tmnxSdpPwPortGroup,
+             tmnxSdpSpbGroup,
+             tmnxSdpNotifyV10v0Group,
+             tmnxSdpV10v0Group,
+             tmnxSdpBindQGrpObjsV10v0Group,
+             tmnxSdpBindBlockOnPeerFaultGroup,
+             tmnxSdpBindPwPortGroup,
+             tmnxSdpBindCtrlChanGroup
+
+        }
+    ::= { tmnxSdpCompliances 21 }
 -- Object groups
 
 tmnxSdpV6v0Group OBJECT-GROUP
@@ -5321,7 +8633,7 @@ tmnxSdpV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP base feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 100 }
 
 tmnxSdpBindV6v0Group OBJECT-GROUP
@@ -5373,13 +8685,12 @@ tmnxSdpBindV6v0Group OBJECT-GROUP
       sdpBindAdminEgressLabel,
       sdpBindOperIngressLabel,
       sdpBindOperEgressLabel,
-      sdpBindPwFaultInetAddress,
-      sdpBindIpipeCeInetAddress
+      sdpBindPwFaultInetAddress
     }
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP Bind feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 101 }
 
 tmnxSdpBindTlsV6v0Group OBJECT-GROUP
@@ -5437,7 +8748,7 @@ tmnxSdpBindTlsV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP Bind TLS feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 102 }
 
 tmnxSdpBindMeshV6v0Group OBJECT-GROUP
@@ -5450,7 +8761,7 @@ tmnxSdpBindMeshV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting mesh SDP bind feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 103 }
 
 tmnxSdpApipeV6v0Group OBJECT-GROUP
@@ -5465,7 +8776,7 @@ tmnxSdpApipeV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP A-Pipe feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 104 }
 
 tmnxSdpBindDhcpV6v0Group OBJECT-GROUP
@@ -5486,17 +8797,18 @@ tmnxSdpBindDhcpV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP Bind DHCP feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 105 }
 
 tmnxSdpBindIpipeV6v0Group OBJECT-GROUP
     OBJECTS {
-      sdpBindIpipeCeInetAddressType
+      sdpBindIpipeCeInetAddressType,
+      sdpBindIpipeCeInetAddress
     }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
-        "The  group  of objects supporting SDP Bind I-Pipe feature
-         on Alcatel 7x50 SR series systems."
+        "The  group  of objects supporting SDP Bind Ipipe Service
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 106 }
 
 tmnxSdpFCV6v0Group OBJECT-GROUP
@@ -5507,7 +8819,7 @@ tmnxSdpFCV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP FC feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 107 }
 
 tmnxSdpBindCpipeV6v0Group OBJECT-GROUP
@@ -5530,7 +8842,7 @@ tmnxSdpBindCpipeV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP bind C-Pipe feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 108 }
 
 tmnxSdpBindTlsL2ptV6v0Group OBJECT-GROUP
@@ -5591,9 +8903,9 @@ tmnxSdpBindTlsL2ptV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP bind L2pt feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 109 }
-      
+
 tmnxSdpAutoBindV6v0Group OBJECT-GROUP
     OBJECTS {
       pwTemplateTableLastChanged,
@@ -5643,10 +8955,10 @@ tmnxSdpAutoBindV6v0Group OBJECT-GROUP
       sdpAutoBindBgpInfoSAII,
       sdpAutoBindBgpInfoTAII
     }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The  group  of objects supporting SDP auto-bind feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 112 }
 
 tmnxSdpBindTlsMrpV6v0Group OBJECT-GROUP
@@ -5676,10 +8988,10 @@ tmnxSdpBindTlsMrpV6v0Group OBJECT-GROUP
       sdpBindTlsMmrpDeclared,
       sdpBindTlsMmrpRegistered
     }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The  group  of objects supporting SDP MRP feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 113 }
 
 tmnxSdpTlsBgpV6v0Group OBJECT-GROUP
@@ -5694,21 +9006,448 @@ tmnxSdpTlsBgpV6v0Group OBJECT-GROUP
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP BGP feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 114 }
 
 tmnxSdpL2V6v0Group OBJECT-GROUP
     OBJECTS {
       sdpCreationOrigin,
+      sdpBindCreationOrigin,
       svcL2RteTableLastChanged,
       svcL2RteSdpBindId,
-      svcL2RtePwTemplateId
+      svcL2RtePwTemplateId,
+      svcL2RteError,
+      svcL2RteLastErrorTime
     }
     STATUS      current
     DESCRIPTION
         "The  group  of objects supporting SDP L2 Route feature
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 115 }
+
+tmnxSdpAutoBindV6v1Group OBJECT-GROUP
+    OBJECTS {
+      pwTemplateTableLastChanged,
+      pwTemplateRowStatus,
+      pwTemplateLastChanged,
+      pwTemplateVcType,
+      pwTemplateAccountingPolicyId,
+      pwTemplateCollectAcctStats,
+      pwTemplateMacLearning,
+      pwTemplateMacAgeing,
+      pwTemplateDiscardUnknownSource,
+      pwTemplateLimitMacMove,
+      pwTemplateMacPinning,
+      pwTemplateMacAddressLimit,
+      pwTemplateShgName,
+      pwTemplateShgDescription,
+      pwTemplateShgRestProtSrcMac,
+      pwTemplateShgRestUnprotDstMac,
+      pwTemplateEgressMacFilterId,
+      pwTemplateEgressIpFilterId,
+      pwTemplateEgressIpv6FilterId,
+      pwTemplateIngressMacFilterId,
+      pwTemplateIngressIpFilterId,
+      pwTemplateIngressIpv6FilterId,
+      pwTemplateIgmpFastLeave,
+      pwTemplateIgmpImportPlcy,
+      pwTemplateIgmpLastMembIntvl,
+      pwTemplateIgmpMaxNbrGrps,
+      pwTemplateIgmpGenQueryIntvl,
+      pwTemplateIgmpQueryRespIntvl,
+      pwTemplateIgmpRobustCount,
+      pwTemplateIgmpSendQueries,
+      pwTemplateIgmpVersion,
+      pwTemplateIgmpSnpgGrpSrcTblLC,
+      pwTemplateIgmpSnpgRowStatus,
+      pwTemplateIgmpSnpgLastChngd,
+      pwTemplateMfibAllowedMdaTblLC,
+      pwTemplateMfibMdaRowStatus,
+      pwTemplateUseProvisionedSdp,
+      pwTemplateVlanVcTag,
+      sdpAutoBindBgpInfoTableLC,
+      sdpAutoBindBgpInfoTemplateId,
+      sdpAutoBindBgpInfoAGI,
+      sdpAutoBindBgpInfoSAII,
+      sdpAutoBindBgpInfoTAII
+    }
+    STATUS      obsolete
+    DESCRIPTION
+        "The  group  of objects supporting SDP auto-bind feature
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 116 }
+
+tmnxSdpAutoBindV7v0Group OBJECT-GROUP
+    OBJECTS {
+      pwTemplateTableLastChanged,
+      pwTemplateRowStatus,
+      pwTemplateLastChanged,
+      pwTemplateVcType,
+      pwTemplateAccountingPolicyId,
+      pwTemplateCollectAcctStats,
+      pwTemplateMacLearning,
+      pwTemplateMacAgeing,
+      pwTemplateDiscardUnknownSource,
+      pwTemplateLimitMacMove,
+      pwTemplateMacPinning,
+      pwTemplateMacAddressLimit,
+      pwTemplateShgName,
+      pwTemplateShgDescription,
+      pwTemplateShgRestProtSrcMac,
+      pwTemplateShgRestUnprotDstMac,
+      pwTemplateEgressMacFilterId,
+      pwTemplateEgressIpFilterId,
+      pwTemplateEgressIpv6FilterId,
+      pwTemplateIngressMacFilterId,
+      pwTemplateIngressIpFilterId,
+      pwTemplateIngressIpv6FilterId,
+      pwTemplateIgmpFastLeave,
+      pwTemplateIgmpImportPlcy,
+      pwTemplateIgmpLastMembIntvl,
+      pwTemplateIgmpMaxNbrGrps,
+      pwTemplateIgmpGenQueryIntvl,
+      pwTemplateIgmpQueryRespIntvl,
+      pwTemplateIgmpRobustCount,
+      pwTemplateIgmpSendQueries,
+      pwTemplateIgmpVersion,
+      pwTemplateForceVlanVcForwarding,
+      pwTemplateIgmpSnpgGrpSrcTblLC,
+      pwTemplateIgmpSnpgRowStatus,
+      pwTemplateIgmpSnpgLastChngd,
+      pwTemplateMfibAllowedMdaTblLC,
+      pwTemplateMfibMdaRowStatus,
+      pwTemplateUseProvisionedSdp,
+      pwTemplateVlanVcTag,
+      sdpAutoBindBgpInfoTableLC,
+      sdpAutoBindBgpInfoTemplateId,
+      sdpAutoBindBgpInfoAGI,
+      sdpAutoBindBgpInfoSAII,
+      sdpAutoBindBgpInfoTAII
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP auto-bind feature
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 117 }
+
+tmnxSdpBindIpipeV7v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpBindIpipeCeInetAddressType,
+      sdpBindIpipeCeInetAddress,
+      sdpBindIpipePeerCeInetAddrType,
+      sdpBindIpipePeerCeInetAddr
+    }
+    STATUS      obsolete
+    DESCRIPTION
+        "The  group  of objects supporting SDP Bind Ipipe feature
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 118 }
+
+tmnxSdpL2V7v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpEnforceDiffServLspFc
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting 'DiffServ' TE feature for SDP 
+        on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 119 }
+
+tmnxSdpEvalPwTempV7v0Group OBJECT-GROUP
+    OBJECTS {
+       svcApplyEvalPwTemplateAction,  
+       svcApplyEvalPwTemplateErrorMsg,  
+       svcApplyEvalPwTemplateId,  
+       svcApplyEvalPwTemplateSuccess,  
+       svcApplyEvalPwTemplateSvcId,  
+       svcApplyEvalPwTemplateTime
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting evaluating pseudowite template
+        on Alcatel-Lucent SROS series systems in release 7.0."
+    ::= { tmnxSdpGroups 120 }
+
+tmnxSdpLdpBackupV8v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpMixedLspModeEnabled,
+      sdpLspRevertTime,
+      sdpLspRevertTimeCountDown,
+      sdpLdpLspId,
+      sdpLdpActive
+    }
+    STATUS      obsolete
+    DESCRIPTION
+        "The  group  of objects supporting LDP backup feature for SDP
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 121 }
+
+tmnxSdpPbbGroup OBJECT-GROUP
+    OBJECTS {
+      sdpBindPbbRowStatus,
+      sdpBindPbbLastMgmtChange,
+      sdpBindPbbIgmpSnpgMRouter
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting 
+         Provider Backbone Bridging (PBB/IEEE 802.1ah) feature for SDP
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 122 }
+
+tmnxSdpBindGenGroup OBJECT-GROUP
+    OBJECTS {
+      sdpBindDescription
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting additional SDP bind features
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 123 }
+
+tmnxSdpBindTlsMrpV8v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpBindTlsMrpTableLastChanged,
+      sdpBindTlsMrpLastChngd,
+      sdpBindTlsMrpJoinTime,
+      sdpBindTlsMrpLeaveTime,
+      sdpBindTlsMrpLeaveAllTime,
+      sdpBindTlsMrpPeriodicTime,
+      sdpBindTlsMrpPeriodicEnabled,
+      sdpBindTlsMrpRxPdus,
+      sdpBindTlsMrpDroppedPdus,
+      sdpBindTlsMrpTxPdus,
+      sdpBindTlsMrpRxNewEvent,
+      sdpBindTlsMrpRxJoinInEvent,
+      sdpBindTlsMrpRxInEvent,
+      sdpBindTlsMrpRxJoinEmptyEvent,
+      sdpBindTlsMrpRxEmptyEvent,
+      sdpBindTlsMrpRxLeaveEvent,
+      sdpBindTlsMrpTxNewEvent,
+      sdpBindTlsMrpTxJoinInEvent,
+      sdpBindTlsMrpTxInEvent,
+      sdpBindTlsMrpTxJoinEmptyEvent,
+      sdpBindTlsMrpTxEmptyEvent,
+      sdpBindTlsMrpTxLeaveEvent,
+      sdpBindTlsMmrpDeclared,
+      sdpBindTlsMmrpRegistered,
+      sdpBindTlsMmrpEndStation,
+      sdpBindTlsMrpPolicy
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP MRP feature
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 124 }
+
+tmnxSdpV8v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpNetDomainName,
+      sdpEgressIfsNetDomainConsistent,
+      sdpBgpTunnelEnabled,
+      sdpBgpTunnelLspId,
+      sdpTunnelFarEndIpAddress
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP feature on Alcatel-Lucent SROS
+         series systems in the 8.0 release."
+    ::= { tmnxSdpGroups 125 }
+
+tmnxSdpBindV8v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpBindSiteName,
+      sdpBindHashLabel,
+      sdpBindHashLabelSignalCapability,
+      sdpBindIsaAaApplicationProfile,
+      sdpBindFPropBMacAddrTblLastChgd,
+      sdpBindFPropBMacAddrRowStatus,
+      sdpBindPwStatusSignaling
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP Bind feature on Alcatel-Lucent
+         SROS series systems in the 8.0 release."
+    ::= { tmnxSdpGroups 126 }
+
+tmnxSdpAutoBindV8v0Group OBJECT-GROUP
+    OBJECTS {
+      pwTemplateHashLabel,
+      pwTemplateControlWord,
+      pwTemplateHashLabelSignalCap,
+      sdpAutoBindBgpVplsTableLC,
+      sdpAutoBindBgpVplsTemplateId
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP auto-bind feature
+         on Alcatel-Lucent SROS series systems in the 8.0 release."
+    ::= { tmnxSdpGroups 127 }
+
+
+tmnxSdpBindIpipeV8v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpBindIpipeCeInetAddressType,
+      sdpBindIpipeCeInetAddress,
+      sdpBindIpipePeerCeInetAddrType,
+      sdpBindIpipePeerCeInetAddr,
+      sdpBindIpipePeerIpv6Capability,
+      sdpBindIpipePeerLLCeInetAddr,
+      sdpBindIpipePeerGlobalCeInetAddr
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP Bind Ipipe feature
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 128 }
+
+tmnxSdpBindV9v0Group OBJECT-GROUP
+    OBJECTS {
+        sdpBindIngressFlowspec
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP Bind feature on Alcatel-Lucent
+         SROS series systems in the 9.0 release."
+    ::= { tmnxSdpGroups 129 }
+
+tmnxSdpBindCpmProtGroup OBJECT-GROUP
+    OBJECTS {
+        sdpBindCpmProtPolicyId,
+        sdpBindCpmProtMonitorMac,
+        sdpBindCpmProtEthCfmMonitorFlags
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting management of SDP binding CPM
+         protection capabilities on release 8.0 R5 of Alcatel-Lucent SROS
+         series systems."
+    ::= { tmnxSdpGroups 130 }
+
+tmnxSdpBindBsxV9v0Group OBJECT-GROUP
+    OBJECTS {
+        sdpBindTransitIpPolicyId,
+        sdpBindTransitPrefixPolicyId
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP Bind BSX capabilities on
+         Alcatel-Lucent SROS series systems in the 9.0 release."
+    ::= { tmnxSdpGroups 131 }
+
+tmnxSdpBindTlsV8v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpBindTlsInTcBitBpdus,
+      sdpBindTlsOutTcBitBpdus
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects on Alcatel-Lucent SROS series systems
+         supporting SDP Bind TLS feature, added in release 8.0."
+    ::= { tmnxSdpGroups 132 }
+
+tmnxSdpV9v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpAtBndBgp129Type2SaiiAcId,
+      sdpAtBndBgp129Type2SaiiGlobalId,
+      sdpAtBndBgp129Type2SaiiPrefix,
+      sdpAtBndBgp129Type2TableLC,
+      sdpAtBndBgp129Type2TaiiAcId,
+      sdpAtBndBgp129Type2TaiiGlobalId,
+      sdpAtBndBgp129Type2TaiiPrefix,
+      sdpAtBndBgp129Type2TemplateId,
+      svcTlsBgpADPWTempBindOperGrp,
+      sdpBindOperGrp,
+      sdpBindMonitorOperGrp,
+      sdpBindOperHashLabel
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects on Alcatel-Lucent SROS series systems
+         supporting SDP feature, added in release 9.0."
+    ::= { tmnxSdpGroups 133 }
+
+tmnxSdpMixedLspModeV9v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpMixedLspModeEnabled,
+      sdpLspRevertTime,
+      sdpLspRevertTimeCountDown,
+      sdpLdpLspId,
+      sdpActiveLspType
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting Mixed LSP Mode feature for SDP
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 134 }
+
+tmnxSdpSpbGroup OBJECT-GROUP
+    OBJECTS {
+       sdpBindTlsSpbAdminState,  
+       sdpBindTlsSpbIfIndex,  
+       sdpBindTlsSpbLastChgd,  
+       sdpBindTlsSpbRowStatus,  
+       sdpBindTlsSpbTblLastChanged
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting Shortest Path Bridging feature for
+         SDP on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 135 }
+
+tmnxSdpBindBsxV10v0Group OBJECT-GROUP
+    OBJECTS {
+       sdpBindAarpId,
+       sdpBindAarpServRefType
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP Bind BSX capabilities on
+         Alcatel-Lucent SROS series systems in the 10.0 release."
+    ::= { tmnxSdpGroups 136 }
+
+tmnxSdpPwPortGroup OBJECT-GROUP
+    OBJECTS {
+       sdpPwPortAdminStatus,
+       sdpPwPortEncapType,
+       sdpPwPortLastChgd,
+       sdpPwPortRowStatus,
+       sdpPwPortTblLastChanged,
+       sdpPwPortVcId,
+       sdpPwPortOperStatus,
+       sdpPwPortOperFlags,
+       sdpPwPortVcType,
+       sdpPwPortVlanVcTag,
+       sdpPwPortEgrShapDefIntDestId,
+       sdpPwPortEgrShapVPort,
+       sdpBindingPort
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP MPLS pseudo-wire port support on
+         Alcatel-Lucent SROS series systems in the 10.0 release."
+    ::= { tmnxSdpGroups 137 }
+
+tmnxSdpV10v0Group OBJECT-GROUP
+    OBJECTS {
+       sdpBindPwLocalStatusBits,
+       pwTemplateAutoLearnMacProtect,  
+       pwTemplateRestProtSrcMac,  
+       pwTemplateRestProtSrcMacAction,  
+       pwTemplateShgAutoLearnMacProtect,  
+       pwTemplateShgRestProtSrcMacAct,  
+       sdpBindTlsAutoLearnMacProtect,
+       sdpBindTlsRestProtSrcMac,
+       sdpBindTlsRestProtSrcMacAction,
+       sdpBindMeshTlsAutoLearnMacProt,
+       sdpBindMeshTlsRestProtSrcMac,
+       sdpBindMeshTlsRestProtSrcMacAct
+    }
+    STATUS      current
+    DESCRIPTION
+        "The  group  of objects supporting SDP general capabilities on
+         Alcatel-Lucent SROS series systems in the 10.0 release."
+    ::= { tmnxSdpGroups 138 }
 
 -- Notification objects
 tmnxSdpNotifyObjsV6v0Group OBJECT-GROUP
@@ -5721,13 +9460,155 @@ tmnxSdpNotifyObjsV6v0Group OBJECT-GROUP
       dynamicSdpCreationError,
       dynamicSdpBindCreationError
     }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The  group  of objects supporting SDP notification objects
-         on Alcatel 7x50 SR series systems."
+         on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 200 }
 
+tmnxSdpNotifyObjsV7v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpNotifySdpId,
+      sdpMaxBookableBandwidth,
+      sdpBookedBandwidth,
+      dynamicSdpStatus,
+      dynamicSdpOrigin,
+      dynamicSdpCreationError,
+      dynamicSdpBindCreationError,
+      sdpBindNotifyMacAddr
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP notification objects
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 201 }
+
+tmnxSdpNotifyObjsV8v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpEgIfNetDomainInconsCount
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP notification objects
+         on Alcatel-Lucent SROS series systems 8.0 release."
+    ::= { tmnxSdpGroups 202 }
+
+tmnxSdpBgpVplsV8v0Group OBJECT-GROUP
+    OBJECTS {
+       svcL2BgpVplsRteControlWord,  
+       svcL2BgpVplsRteError,  
+       svcL2BgpVplsRteLastErrorTime,  
+       svcL2BgpVplsRtePathMtu,  
+       svcL2BgpVplsRtePwTemplateId,  
+       svcL2BgpVplsRteSdpBindId,  
+       svcL2BgpVplsRteSeqDelivery,  
+       svcL2BgpVplsRteState,
+       svcL2BgpVplsRteDF
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP specific BGP VPLS feature
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 203 }
+
+tmnxSdpL2V8v0Group OBJECT-GROUP
+    OBJECTS {
+       svcL2RteStatus,
+       svcL2BgpVplsRteStatus
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP specific L2 feature
+         in 8.0 on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 204 }
+
+tmnxSdpPwV8v0Group OBJECT-GROUP
+    OBJECTS {
+       sdpBindStandbySigSlave
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP specific pseudo-wire feature
+         in 8.0 on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 205 }
+
+tmnxSdpBindEthCfmGroup OBJECT-GROUP
+    OBJECTS {
+       sdpBindEthCfmTableLastChanged,
+       sdpBindEthCfmRowLastChanged,
+       sdpBindEthCfmVMepFilter
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting Ethernet Connectivity Fault Management
+         (CFM) for the SDP-BIND feature on Alcatel-Lucent SROS series systems
+         for Release 9.0."
+    ::= { tmnxSdpGroups 206 }
+
+tmnxSdpNotifyObjsV9v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpMSPwPeId
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP notification objects
+         on Alcatel-Lucent SROS series systems 9.0 release."
+    ::= { tmnxSdpGroups 207 }
+
+tmnxSdpBindIpipeNotifyObjsGroup OBJECT-GROUP
+    OBJECTS {
+      sdpBindIpipeCeIpAddrType,
+      sdpBindIpipeCeIpAddress
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting Ipipe SDP notification objects
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 208}
+
 -- Obsoleted Group (300) 
+tmnxSdpObsoletedObjsV6v1Group OBJECT-GROUP
+    OBJECTS {
+      pwTemplateIgmpMcacPolicyName,
+      pwTemplateIgmpMcacPrRsvMndBW,
+      pwTemplateIgmpMcacUnconstBW
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of obsolete objects for the service SDPs
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 300 }
+
+tmnxSdpObsoletedObjsV9v0Group OBJECT-GROUP
+    OBJECTS {
+      sdpLdpActive
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of obsolete objects for the service SDPs
+         on Alcatel-Lucent SROS series systems."
+    ::= { tmnxSdpGroups 301 }
+
+tmnxSdpBindQGrpObjsV10v0Group OBJECT-GROUP
+    OBJECTS {
+        sdpBindIngressQoSNetworkPlcyId,
+        sdpBindEgressQoSNetworkPlcyId,
+        sdpBindIngressQoSFpRedirectQGrp,
+        sdpBindEgressQoSPortRedirectQGrp,    
+        sdpBindIngressQoSInstanceId,       
+        sdpBindEgressQoSInstanceId,
+        pwTemplateIngQoSNetworkPlcyId,
+        pwTemplateEgrQoSNetworkPlcyId,
+        pwTemplateIngQoSFpRedirectQGrp,
+        pwTemplateEgrQoSPortRedirectQGrp,    
+        pwTemplateIngQoSInstanceId,
+        pwTemplateEgrQoSInstanceId            
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of objects supporting SDP binding queue group objects
+         on Alcatel-Lucent SROS series systems 10.0 release."
+    ::= { tmnxSdpGroups 302 }
 
 -- Notification group
 tmnxSdpNotifyV6v0Group NOTIFICATION-GROUP
@@ -5766,7 +9647,7 @@ tmnxSdpNotifyV6v0Group NOTIFICATION-GROUP
     }
     STATUS      current
     DESCRIPTION
-        "The  group  of SDP notifications on Alcatel 7x50 SR series systems."
+        "The group of SDP notifications on Alcatel-Lucent SROS series systems."
     ::= { tmnxSdpGroups 400 }
 
 tmnxSdpObsoletedNotifyV6v0Group NOTIFICATION-GROUP
@@ -5781,7 +9662,86 @@ tmnxSdpObsoletedNotifyV6v0Group NOTIFICATION-GROUP
       }
     STATUS      current
     DESCRIPTION
-        "The  group  of obsoleted SDP objects on Alcatel 7x50 SR series systems."
+        "The  group  of obsoleted SDP objects on Alcatel-Lucent SROS series 
+         systems."
     ::= { tmnxSdpGroups 401 }
+
+tmnxSdpNotifyV8v0Group NOTIFICATION-GROUP
+    NOTIFICATIONS   {
+      sdpEgrIfsNetDomInconsCntChanged
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of SDP notifications on Alcatel-Lucent SROS series 
+         systems 8.0 release."
+    ::= { tmnxSdpGroups 402 }
+
+tmnxSdpBindIpipeNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS   {
+      sdpBindIpipeCeIpAddressChange 
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of Ipipe SDP notifications on Alcatel-Lucent 
+         SROS series systems."
+    ::= { tmnxSdpGroups 403 }
+
+tmnxSdpNotifyV10v0Group NOTIFICATION-GROUP
+    NOTIFICATIONS   {
+      sdpBindPwLocalStatusBitsChanged,
+      sdpBindReceivedProtSrcMac
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of SDP notifications on Alcatel-Lucent SROS series systems 
+        10.0 release."
+    ::= { tmnxSdpGroups 404 }
+
+tmnxSdpBindBlockOnPeerFaultGroup OBJECT-GROUP
+    OBJECTS {
+        pwTemplateBlockOnPeerFault,
+        sdpBindBlockOnPeerFault
+    }
+    STATUS current
+    DESCRIPTION
+        "The group of objects supporting specific SDP feature
+         on Alcatel-Lucnet SROS series systems."
+    ::= { tmnxSdpGroups 501 }
+tmnxSdpBindPwPortGroup OBJECT-GROUP
+    OBJECTS {
+         sdpFarEndNodeId,
+         sdpFarEndGlobalId,
+         sdpBindPwPathRowStatus,
+         sdpBindPwPathAgi,
+         sdpBindPwPathLastChanged,
+         sdpBindPwPathSaiiAcId,
+         sdpBindPwPathSaiiGlobalId,
+         sdpBindPwPathSaiiNodeId,
+         sdpBindPwPathTableLastChanged,
+         sdpBindPwPathTaiiAcId,
+         sdpBindPwPathTaiiGlobalId,
+         sdpBindPwPathTaiiNodeId
+    }
+    STATUS current
+    DESCRIPTION
+        "The group of objects supporting specific SDP feature
+         on Alcatel-Lucnet SROS series systems."
+    ::= { tmnxSdpGroups 503 }
+    
+
+
+tmnxSdpBindCtrlChanGroup OBJECT-GROUP
+    OBJECTS {
+         sdpBindCtrlChanPwStatus,
+         sdpBindCtrlChanPwLastChanged,
+         sdpBindCtrlChanPwRefreshTimer,
+         sdpBindCtrlChanPwPeerExpired,
+         sdpBindCtrlChanPwTableLastChgd
+    }
+    STATUS current
+    DESCRIPTION
+        "The group of objects supporting specific SDP pseudo-wire
+         control-channel feature on Alcatel-Lucnet SROS series systems."
+    ::= { tmnxSdpGroups 512 }
 
 END

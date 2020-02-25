@@ -1,0 +1,538 @@
+-- 
+-- This file contains the enterprise-specific MIB definitions for Blue
+-- Coat CacheFlow appliances.  All Blue Coat-defined MIBs relevant to
+-- the CacheFlow appliance are contained herein.
+--
+-- In addition, the CacheFlow appliance also supports the following
+-- public standard MIBs:
+--
+--   RFC    MIB Name                    Title
+--   ----   --------------------------  -------------------------------
+--   1213   MIB-2                       Management Information Base for Network 
+--                                      Management of TCP/IP-based internets 
+--
+--   3418   SNMPv2-MIB                  Management Information Base for the
+--                                      Simple Network Management Protocol
+--
+--   2863   IF-MIB                      The Interfaces Group MIB
+--
+--   2594   WWW-MIB                     Definitions of Managed Objects for WWW
+--                                      Services
+--
+--   3411   SNMP-FRAMEWORK-MIB          An Architecture for Describing Simple
+--                                      Network Management Protocol (SNMP) 
+--                                      Management Frameworks
+--
+--   3412   SNMP-MPD-MIB                Message Processing and Dispatching for 
+--                                      the Simple Network Management Protocol
+-- 
+--   3414   SNMP-USER-BASED-SM-MIB      User-based Security Model (USM) for 
+--                                      version 3 of the Simple Network 
+--
+--                                      Management Protocol (SNMPv3)
+--   3415   SNMP-VIEW-BASED-ACM-MIB     View-based Access Control Model (VACM) 
+--                                      for the Simple Network Management 
+--                                      Protocol (SNMP)
+--
+-- Please consult the documentation for your SNMP Management Station
+-- for assistance in loading and accessing these public MIBs.
+--
+--
+
+BCSI-CFLO-CAPACITY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE, Integer32, Counter64
+		FROM SNMPv2-SMI
+	TEXTUAL-CONVENTION
+	    FROM SNMPv2-TC
+	MODULE-COMPLIANCE, OBJECT-GROUP
+	    FROM SNMPv2-CONF
+	cacheflow 
+	    FROM BCSI-MIB;
+
+cfloCapacityMIB MODULE-IDENTITY
+    LAST-UPDATED    "201002110000Z"
+    ORGANIZATION    "Blue Coat Systems, Inc."
+    CONTACT-INFO    "support.services@bluecoat.com
+                     http://www.bluecoat.com"
+    DESCRIPTION     "The capacity MIB is used for capacity monitoring
+		             and planning for Blue Coat CacheFlow appliances."
+	REVISION        "201002110000Z"
+    DESCRIPTION     "Initial revision of this MIB."
+   ::= { cacheflow 2 }
+
+cfloCapacityObjects 		OBJECT IDENTIFIER ::= { cfloCapacityMIB 1 }
+cfloCapacityConformance 	OBJECT IDENTIFIER ::= { cfloCapacityMIB 2 }
+
+--
+-- Textual Conventions
+--
+PerMille ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT    "d-1"
+    STATUS          current
+    DESCRIPTION     "Value in thousandths (fractional percentage)."
+    SYNTAX Integer32
+
+CfloLoadState ::= TEXTUAL-CONVENTION
+    STATUS          current
+	DESCRIPTION     "An enumerated state value representing the overall
+		             load-readiness of a caching appliance.  Values are:
+		
+		underused(1)    - operating normally with ample headroom; an appliance
+		                  in this state is advertising special willingness to
+					  	  accept more load
+		normal(2)       - operating normally
+		burdened(3)     - operating normally, but nearing a level of resource
+		                  constraint; headroom is limited
+		stressed(4)     - effective capacity limits have been reached; load
+		                  on this appliance should not be increased
+		overtaxed(5)    - effective capacity limits have been exceeded; load
+		                  on this appliance should be decreased; the 
+						  appliance may be implementing emergency load-shedding
+						  measures which impact its bandwidth-saving 
+						  effectiveness
+		overloaded(6)   - the current load is unsustainable and must be 
+		                  decreased immediately; if load is not reduced, there
+						  is a significant risk of appliance instability or 
+						  failure
+		halting(7)      - the appliance is in the process of shutting down; 
+	                      existing connections will be serviced but no 
+						  additional traffic should be directed to 
+						  the appliance
+		offline(8)      - the appliance is out of service and will not accept
+		                  any traffic
+		initializing(9) - the appliance is preparing to enter service but is
+		                  not yet ready to handle traffic"
+	SYNTAX INTEGER {
+		underused(1),
+		normal(2),
+		burdened(3),
+		stressed(4),
+		overtaxed(5),
+		overloaded(6),
+		halting(7),
+		offline(8),
+		initializing(9)
+    }
+
+--
+-- Network Capacity
+--
+
+cfloCapacityNetwork     OBJECT IDENTIFIER ::= { cfloCapacityObjects 1 }
+cfloCapacityBandwidth   OBJECT IDENTIFIER ::= { cfloCapacityNetwork 1 }
+
+--
+-- HTTP Proxied Bandwidth
+--
+cfloCapacityBWHttp    	    OBJECT IDENTIFIER ::= { cfloCapacityBandwidth 1 }
+
+cfloCapacityBWHttpProxiedClient OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes transferred between clients and the appliance
+                     for proxied HTTP connections."
+    ::= { cfloCapacityBWHttp 1 }
+
+cfloCapacityBWHttpProxiedServer OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes transferred between servers and the appliance
+                     for proxied HTTP connections."
+    ::= { cfloCapacityBWHttp 2 }
+
+cfloCapacityBWHttpTunnelled OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes tunnelled through the appliance for connections
+		             on ports allocated to the HTTP service.
+                     The connections are not proxied and do not result 
+					 in any net bandwidth savings.  
+					 The appliance terminates the client connection, 
+					 opens a matching connection to the server, 
+					 and merely relays bytes between the two."
+    ::= { cfloCapacityBWHttp 3 }
+
+cfloCapacityBWHttpBypassed OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes bypassed by the appliance 
+		             on ports allocated to the HTTP service.
+                     The connections are not proxied and do not result 
+					 in any net bandwidth savings.  
+					 The appliance does not terminate the client connection,
+					 but merely forwards packets between client and server."
+    ::= { cfloCapacityBWHttp 4 }
+
+cfloCapacityBWHttpAllClient OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "All bytes transferred between clients and the appliance
+		             on ports allocated to the HTTP service.
+                     This measurement is the sum of client-side proxied,
+                     tunnelled, and bypassed bytes."
+    ::= { cfloCapacityBWHttp 5 }
+
+cfloCapacityBWHttpAllServer OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "All bytes transferred between servers and the appliance
+		             on ports allocated to the HTTP service.
+                     This measurement is the sum of server-side proxied,
+                     tunnelled, and bypassed bytes."
+    ::= { cfloCapacityBWHttp 6 }
+
+--
+-- Non-Proxied Bandwidth
+--
+cfloCapacityBWDflt   OBJECT IDENTIFIER ::= { cfloCapacityBandwidth 2 }
+
+cfloCapacityBWDfltTunnelled OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes tunnelled through the appliance for 
+                     connections on non-proxied ports (the Default service).
+                     The connections are not proxied and do not result 
+					 in any net bandwidth savings.  
+					 The appliance terminates the client connection, 
+					 opens a matching connection to the server, 
+					 and merely relays bytes between the two."
+    ::= { cfloCapacityBWDflt 1 }
+
+cfloCapacityBWDfltBypassed OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes bypassed by the appliance 
+		             on non-proxied ports (the Default service).
+                     The connections are not proxied and do not result 
+					 in any net bandwidth savings.  
+					 The appliance does not terminate the client connection,
+					 but merely forwards packets between client and server."
+    ::= { cfloCapacityBWDflt 2 }
+
+--
+-- Total Bandwidth (HTTP + non-HTTP)
+--
+cfloCapacityBWTotal    	    OBJECT IDENTIFIER ::= { cfloCapacityBandwidth 3 }
+
+cfloCapacityBWTotalProxiedClient OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes transferred between clients and the appliance
+                     for all proxied connections."
+    ::= { cfloCapacityBWTotal 1 }
+
+cfloCapacityBWTotalProxiedServer OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes transferred between servers and the appliance
+                     for all proxied connections."
+    ::= { cfloCapacityBWTotal 2 }
+
+cfloCapacityBWTotalTunnelled OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes tunnelled through the appliance for connections
+		             on all ports."
+    ::= { cfloCapacityBWTotal 3 }
+
+cfloCapacityBWTotalBypassed OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes bypassed by the appliance 
+		             on all ports."
+    ::= { cfloCapacityBWTotal 4 }
+
+cfloCapacityBWTotalAllClient OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "All bytes transferred between clients and the appliance
+		             on all ports.
+                     This measurement is the sum of client-side proxied,
+                     tunnelled, and bypassed bytes."
+    ::= { cfloCapacityBWTotal 5 }
+
+cfloCapacityBWTotalAllServer OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "All bytes transferred between servers and the appliance
+		             on all ports.
+                     This measurement is the sum of server-side proxied,
+                     tunnelled, and bypassed bytes."
+    ::= { cfloCapacityBWTotal 6 }
+
+--
+-- Bandwidth Savings
+-- 
+cfloCapacityBWSavings    	OBJECT IDENTIFIER ::= { cfloCapacityBandwidth 4 }
+
+--
+-- NOTE: the following Bandwidth Savings (BWS) values are calculated as
+--       BWS = 1 - ( client-bytes / server-bytes )
+--
+-- for the appropriate selection of client and server values.  These
+-- are cumulative, since-boot values.  Ongoing monitoring of bandwidth
+-- savings is best done by performing the same calculation on delta
+-- values for synchronized time periods.  For example, if samples of
+-- cfloCapacityBWHttpProxiedServer and cfloCapacityBWHttpProxiedClient
+-- are taken every N minutes, an accurate value for BWS over that N
+-- minute period can be obtained via the calculation:
+--
+--   BWS = 1 - ( delta(cfloCapacityBWHttpProxiedServer) 
+--               / delta(cfloCapacityBWHttpProxiedClient) )
+--
+-- and similarly for the other, more general BWS figures.
+--
+
+cfloCapacityBWSHttpProxied OBJECT-TYPE
+    SYNTAX          PerMille
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Percentage of bandwidth savings achieved since boot for 
+		             proxied HTTP connections."
+
+    ::= { cfloCapacityBWSavings 1 }
+
+cfloCapacityBWSHttpOverall OBJECT-TYPE
+    SYNTAX          PerMille
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Percentage of bandwidth savings achieved since boot for 
+		             all connections (proxied and non-proxied)
+					 on ports allocated to HTTP.  
+					 This figure takes into account non-proxied or
+					 non-proxyable traffic (including traffic which does not
+					 use the HTTP protocol) on ports normally reserved 
+					 for proxyable HTTP traffic."
+    ::= { cfloCapacityBWSavings 2 }
+
+cfloCapacityBWSTotalProxied OBJECT-TYPE
+    SYNTAX          PerMille
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Percentage of bandwidth savings achieved since boot for 
+		             all proxied connections."
+
+    ::= { cfloCapacityBWSavings 3 }
+
+cfloCapacityBWSTotalOverall OBJECT-TYPE
+    SYNTAX          PerMille
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Percentage of bandwidth savings achieved since boot for 
+		             all connections (proxied and non-proxied)
+					 on all ports."
+	::= { cfloCapacityBWSavings 4 }
+
+
+--
+-- Cumulative Bandwidth: counters not reset except by explicit gesture
+-- 
+cfloCapacityCumBandwidth    OBJECT IDENTIFIER ::= { cfloCapacityNetwork 2 }
+cfloCapacityCumBWHttp    	OBJECT IDENTIFIER ::= { cfloCapacityCumBandwidth 1 }
+
+cfloCapacityCumBWHttpClient OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes transferred between clients and the appliance
+                     for proxied HTTP connections.  This counter is 
+					 cumulative since appliance initialization or
+					 explicit statistics reset."
+    ::= { cfloCapacityCumBWHttp 1 }
+
+cfloCapacityCumBWHttpServer OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes transferred between servers and the appliance
+                     for proxied HTTP connections.  This counter is 
+					 cumulative since appliance initialization or
+					 explicit statistics reset."
+    ::= { cfloCapacityCumBWHttp 2 }
+
+cfloCapacityCumBWHttpTunnelled OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes tunnelled through the appliance for connections
+		             on ports allocated to the HTTP service.
+                     This counter is cumulative since appliance 
+					 initialization or explicit statistics reset."
+    ::= { cfloCapacityCumBWHttp 3 }
+
+cfloCapacityCumBWHttpBypassed OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes bypassed by the appliance 
+		             on ports allocated to the HTTP service.
+                     This counter is cumulative since appliance 
+					 initialization or explicit statistics reset."
+    ::= { cfloCapacityCumBWHttp 4 }
+
+cfloCapacityCumBWDflt   OBJECT IDENTIFIER ::= { cfloCapacityCumBandwidth 2 }
+
+cfloCapacityCumBWDfltTunnelled OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes tunnelled through the appliance for 
+                     connections on non-proxied ports (the Default service).
+                     This counter is cumulative since appliance 
+					 initialization or explicit statistics reset."
+    ::= { cfloCapacityCumBWDflt 1 }
+
+cfloCapacityCumBWDfltBypassed OBJECT-TYPE
+    SYNTAX          Counter64
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     "Bytes bypassed by the appliance 
+		             on non-proxied ports (the Default service).
+                     This counter is cumulative since appliance 
+					 initialization or explicit statistics reset."
+    ::= { cfloCapacityCumBWDflt 2 }
+
+
+--
+-- System Capacity
+--
+cfloCapacitySystem        OBJECT IDENTIFIER ::= { cfloCapacityObjects 2 }
+
+cfloCapacitySystemResourceLoad    OBJECT-TYPE
+    SYNTAX          PerMille
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     
+		"System load expressed as a percentage of maximum system throughput.
+		 This metric takes into account the overall resource
+		 availability and utilization of the appliance. 
+		 It will not normally be possible to operate an appliance at
+		 greater than 100% system resource load."
+	::= { cfloCapacitySystem 1 }
+
+cfloCapacitySystemLoadState	    OBJECT-TYPE
+    SYNTAX          CfloLoadState
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION     
+		"System load expressed as a state value. This metric is intended to
+		 guide load balancers as to the readiness (relative to other
+		 caches in the same farm) of this appliance to accept current or 
+		 increased levels of traffic."
+	::= { cfloCapacitySystem 3 }
+
+--
+-- Compliance/Conformance/Groups 
+--
+
+cfloCapacityCompliances OBJECT IDENTIFIER ::= { cfloCapacityConformance 1 }
+cfloCapacityGroups      OBJECT IDENTIFIER ::= { cfloCapacityConformance 2 }
+
+cfloCapacityBasicCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "Basic compliance for CacheFlow Appliance Capacity Monitoring."
+    MODULE  -- this module
+    MANDATORY-GROUPS {
+		cfloCapacityHttpGroup,
+		cfloCapacityDfltGroup,
+		cfloCapacitySummaryGroup,
+		cfloCapacityCumulativeGroup,
+		cfloCapacitySystemGroup
+    }
+    ::= { cfloCapacityCompliances 1 }
+
+cfloCapacityHttpGroup OBJECT-GROUP
+    OBJECTS {
+	    cfloCapacityBWHttpProxiedClient,
+	    cfloCapacityBWHttpProxiedServer,
+	    cfloCapacityBWHttpTunnelled,
+	    cfloCapacityBWHttpBypassed,
+	    cfloCapacityBWSHttpProxied,
+
+	    cfloCapacityBWHttpAllClient,
+	    cfloCapacityBWHttpAllServer,
+	    cfloCapacityBWSHttpOverall
+	}
+    STATUS      current
+    DESCRIPTION
+        "A collection of capacity planning and monitoring metrics for
+		 traffic handled by the appliance on 
+		 ports designated for HTTP proxy use."
+    ::= { cfloCapacityGroups 1 }
+
+cfloCapacityDfltGroup OBJECT-GROUP
+    OBJECTS {
+	    cfloCapacityBWDfltTunnelled,
+	    cfloCapacityBWDfltBypassed
+	}
+    STATUS      current
+    DESCRIPTION
+        "A collection of capacity planning and monitoring metrics for
+		 traffic handled by the appliance on 
+		 ports not designated for HTTP proxy use.
+		 Non-zero values generally indicate that traffic not normally
+		 processed by the appliance is being routed to it."
+    ::= { cfloCapacityGroups 2 }
+
+cfloCapacitySummaryGroup OBJECT-GROUP
+    OBJECTS {
+	    cfloCapacityBWTotalProxiedClient,
+	    cfloCapacityBWTotalProxiedServer,
+	    cfloCapacityBWSTotalProxied,
+
+	    cfloCapacityBWTotalTunnelled,
+	    cfloCapacityBWTotalBypassed,
+	    cfloCapacityBWTotalAllClient,
+	    cfloCapacityBWTotalAllServer,
+	    cfloCapacityBWSTotalOverall
+	}
+    STATUS      current
+    DESCRIPTION
+        "A collection of aggregate capacity planning and monitoring metrics for
+		 traffic handled by the appliance on all ports."
+    ::= { cfloCapacityGroups 3 }
+
+cfloCapacityCumulativeGroup OBJECT-GROUP
+    OBJECTS {
+	    cfloCapacityCumBWHttpClient,
+	    cfloCapacityCumBWHttpServer,
+	    cfloCapacityCumBWHttpTunnelled,
+	    cfloCapacityCumBWHttpBypassed,
+	    cfloCapacityCumBWDfltTunnelled,
+	    cfloCapacityCumBWDfltBypassed
+	}
+    STATUS      current
+    DESCRIPTION
+        "A collection of metrics for cumluative
+		 traffic handled by the appliance since initialization or reset."
+    ::= { cfloCapacityGroups 4 }
+
+cfloCapacitySystemGroup OBJECT-GROUP
+    OBJECTS {
+	    cfloCapacitySystemResourceLoad
+	}
+    STATUS      current
+    DESCRIPTION
+        "A collection of capacity planning and monitoring metrics for
+		 appliance system resources"
+    ::= { cfloCapacityGroups 5 }
+
+
+END

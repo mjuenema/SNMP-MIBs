@@ -1,0 +1,1902 @@
+--  ========================================================================
+-- 
+-- CA, INC.
+-- Proprietary and Confidential Information
+-- 
+-- This material contains, and is part of a computer software program
+-- which is, proprietary and confidential information owned by COMPUTER
+-- ASSOCIATES INTERNATIONAL, INC.  The program, including this material,
+-- may not be duplicated, disclosed or reproduced in whole or in part for
+-- any purpose without the express written authorization of COMPUTER
+-- ASSOCIATES. All authorized reproductions must be marked with this
+-- legend.
+-- Computer Associates International, Inc    
+-- 
+-- Copyright (c) 2009
+-- The Software that Manages eBusiness
+-- All rights reserved
+-- 
+-- 
+-- ------------------------------------------------------------------------
+-- Mib name: cahyperv-aim
+-- ------------------------------------------------------------------------
+-- This is the MIB for Microsoft Hyper-V
+-- ------------------------------------------------------------------------
+
+    CAHYPERV-AIM-MIB DEFINITIONS ::= BEGIN
+ 
+        IMPORTS
+            OBJECT-TYPE            
+                FROM RFC-1212            
+            TRAP-TYPE            
+                FROM RFC-1215            
+            enterprises            
+                FROM RFC1155-SMI            
+            DisplayString            
+                FROM RFC1213-MIB
+            SnmpAdminString
+                FROM SNMP-FRAMEWORK-MIB;
+    
+    
+-- 
+-- Node definitions
+-- 
+-- *****************************************************************************
+-- OIDs of hyperv agent start with 1.3.6.1.4.1.546.16.56
+-- *****************************************************************************
+-- 1.3.6.1.4.1.546
+        empire       OBJECT IDENTIFIER ::= { enterprises 546 }
+-- 1.3.6.1.4.1.546.1
+	unix         OBJECT IDENTIFIER ::= { empire 1 }
+-- 1.3.6.1.4.1.546.1.1
+	sysmgmt      OBJECT IDENTIFIER ::= { unix 1 }
+-- 1.3.6.1.4.1.546.1.1.9
+	traps        OBJECT IDENTIFIER ::= { empire 9 }
+--   1.3.6.1.4.1.546.16
+        applications OBJECT IDENTIFIER ::= { empire 16 }
+--   1.3.6.1.4.1.546.16.56
+        cahypervaim  OBJECT IDENTIFIER ::= { applications 56 }
+
+
+--   1.3.6.1.4.1.546.16.56.1
+        hypervAimGroup OBJECT IDENTIFIER ::= { cahypervaim 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.1
+        hypervAimInstanceCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of HyperV instances in hypervAimInstanceTable."
+            ::= { hypervAimGroup 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.2
+        hypervAimInstanceTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HypervAimInstanceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "A table containing the HyperV instances."
+            ::= { hypervAimGroup 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.2.1
+        hypervAimInstanceEntry OBJECT-TYPE
+            SYNTAX HypervAimInstanceEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The HyperV instances table entry."
+            INDEX { hypervAimInstanceIndex }
+            ::= { hypervAimInstanceTable 1 }
+
+        
+        HypervAimInstanceEntry ::=
+            SEQUENCE { 
+                hypervAimInstanceName
+                    SnmpAdminString,
+                hypervAimInstanceUserName
+                    SnmpAdminString,
+                hypervAimInstancePassword
+                    SnmpAdminString,
+                hypervAimInstanceRowStatus
+                    INTEGER,
+                hypervAimInstanceDataStatus
+                    INTEGER,
+                hypervAimInstanceIndex
+                    INTEGER
+             }
+
+--   1.3.6.1.4.1.546.16.56.1.2.1.1
+        hypervAimInstanceName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "Name of the HyperV Instance. Here it is the HyperV Server host name."
+            ::= { hypervAimInstanceEntry 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.2.1.4
+        hypervAimInstanceUserName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "User name for connecting to the HyperV Server."
+            ::= { hypervAimInstanceEntry 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.2.1.5
+        hypervAimInstancePassword OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "Password for the user name provided to connect to the  HyperV Server."
+            ::= { hypervAimInstanceEntry 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.2.1.7
+        hypervAimInstanceRowStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                active(1),
+                notInService(2),
+                notReady(3),
+                createAndGo(4),
+                createAndWait(5),
+                destroy(6)
+                }
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "The status of this monitor entry according to the Textual Conventions for SNMPv2 (see RFC 1443).
+                active(1) - the row is available for usage
+                notInService(2) - setting to this value disables usage of the row
+                notReady(3) - an error occured during usage of the row
+                createAndGo(4) - setting to this value creates the row with row status set to active(1)
+                createAndWait(5) - setting to this value creates the row with row status set to notInService(2)
+                destroy(6) - setting to this value deletes the row"
+            DEFVAL { 5 }
+            ::= { hypervAimInstanceEntry 7 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.2.1.8
+        hypervAimInstanceDataStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                ready(1),
+                notReady(2),
+                hostUnreachable(3),
+                hostIsSlave(4),
+                authenticationFailed(5),
+                unknownError(6)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The status of data of the  HyperV Instance (Server), i.e. status of Aim caches for the instance.
+                ready(1) - data are ready in Aim cache, caches were populated
+                notReady(2)  - data are Not ready, caches were not populated yet
+                hostUnreachable(3) - HyperV host unreachable, data are kept in Aim caches
+                hostIsSlave(4) -  HyperV host is a slave server, data are kept in Aim caches
+                authenticationFailed(5) - authentication failed for HyperV host, data are kept in Aim caches
+                unknownError(6) - unknow error, data are kept in Aim caches"
+            ::= { hypervAimInstanceEntry 8 }
+
+        
+--   1.3.6.1.4.1.546.16.56.1.2.1.9
+        hypervAimInstanceIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                " The unique index of the instance."
+            ::= { hypervAimInstanceEntry 9 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2
+        hypervAimStatGroup OBJECT IDENTIFIER ::= { cahypervaim 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1
+        hypervAimStatHostGroup OBJECT IDENTIFIER ::= { hypervAimStatGroup 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.1
+        hypervAIMStatHostCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of entries in hypervAimStatHostTable"
+            ::= { hypervAimStatHostGroup 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2
+        hypervAimStatHostTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HypervAimStatHostEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { hypervAimStatHostGroup 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1
+        hypervAimStatHostEntry OBJECT-TYPE
+            SYNTAX HypervAimStatHostEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { hypervAimStatHostIndex }
+            ::= { hypervAimStatHostTable 1 }
+
+        
+        HypervAimStatHostEntry ::=
+            SEQUENCE { 
+                hypervAimStatHostElementName
+                    SnmpAdminString,
+                hypervAimStatHostName
+                    SnmpAdminString,
+                hypervAimStatHostSystemName
+                    SnmpAdminString,
+                hypervAimStatHostCaption
+                    SnmpAdminString,
+                hypervAimStatHostDescription
+                    SnmpAdminString,
+                hypervAimStatHostClusterName
+                    SnmpAdminString,
+                hypervAimStatNetworkAddressIPv4
+                    DisplayString,
+                hypervAimStatMACAddress
+                    DisplayString,
+                hypervAimStatTotalHostCPUUsage
+                    INTEGER,
+                hypervAimStatTotalHostMEMUsage
+                    INTEGER,
+                hypervAimStatTotalHostMemory
+                    INTEGER,
+                hypervAimStatIsClusterNode
+                    INTEGER,
+                hypervAimStatDefaultVHDPath
+                    SnmpAdminString,
+                hypervAimStatDefaultExternalDataPath
+                    SnmpAdminString,
+                hyperVAimStatVMsOK
+                    INTEGER,
+                hypervAimStatVMsCritical
+                    INTEGER,
+                hypervAimStatNetworkAddressIPv6
+                    DisplayString,
+                hypervAimStatHostIndex
+                    INTEGER,
+                hypervAimStatHostCPUCount
+                    INTEGER
+             }
+
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.1
+        hypervAimStatHostElementName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The CIM element name of the Hyper-V host."
+            ::= { hypervAimStatHostEntry 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.2
+        hypervAimStatHostName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The CIM name of the HyperV Host."
+            ::= { hypervAimStatHostEntry 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.3
+        hypervAimStatHostSystemName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The DNS name of the Hyper-V host."
+            ::= { hypervAimStatHostEntry 3 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.4
+        hypervAimStatHostCaption OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The CIM caption of the HyperV host."
+            ::= { hypervAimStatHostEntry 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.5
+        hypervAimStatHostDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The CIM description of the HyperV host.
+                "
+            ::= { hypervAimStatHostEntry 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.6
+        hypervAimStatHostClusterName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the cluster, if the host is clustered."
+            ::= { hypervAimStatHostEntry 6 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.7
+        hypervAimStatNetworkAddressIPv4 OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The IPv4 network address of the HyperV host."
+            ::= { hypervAimStatHostEntry 7 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.8
+        hypervAimStatMACAddress OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The MAC address of the HyperV host."
+            ::= { hypervAimStatHostEntry 8 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.9
+        hypervAimStatTotalHostCPUUsage OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Total CPU used by Host in %."
+            ::= { hypervAimStatHostEntry 9 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.10
+        hypervAimStatTotalHostMEMUsage OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Host memory usage in %."
+            ::= { hypervAimStatHostEntry 10 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.11
+        hypervAimStatTotalHostMemory OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Total memory (in megabytes) of the HyperV host."
+            ::= { hypervAimStatHostEntry 11 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.12
+        hypervAimStatIsClusterNode OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Flag indicating that this host is part of an HyperV cluster node."
+            ::= { hypervAimStatHostEntry 12 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.13
+        hypervAimStatDefaultVHDPath OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The default virtual hard disk path of the HyperV host."
+            ::= { hypervAimStatHostEntry 13 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.14
+        hypervAimStatDefaultExternalDataPath OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The default external data path of the HyperV host."
+            ::= { hypervAimStatHostEntry 14 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.15
+        hyperVAimStatVMsOK OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of virtual machines reported as OK by the hypervisor."
+            ::= { hypervAimStatHostEntry 15 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.16
+        hypervAimStatVMsCritical OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of virtual machines reported as critical by the hypervisor."
+            ::= { hypervAimStatHostEntry 16 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.17
+        hypervAimStatNetworkAddressIPv6 OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The IPv6 network address of the HyperV host."
+            ::= { hypervAimStatHostEntry 17 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.1.2.1.18
+        hypervAimStatHostIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                " The unique index of the host."
+            ::= { hypervAimStatHostEntry 18 }
+
+        
+-- 1.3.6.1.4.1.546.16.56.2.1.2.1.19
+        hypervAimStatHostCPUCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of CPUs of the host."
+            ::= { hypervAimStatHostEntry 19 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2
+        hypervAimStatVMGroup OBJECT IDENTIFIER ::= { hypervAimStatGroup 2 }
+
+        
+--           *****************************************************************************
+-- hypervAimStatHyperVVMGroup
+-- *****************************************************************************
+-- 1.3.6.1.4.1.546.16.56.2.2.1
+        hypervAimStatVMcount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of entries in the hypervAimStatVMtable."
+            ::= { hypervAimStatVMGroup 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2
+        hypervAimStatVMTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HypervAimStatVMEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "A table containing information about all Monitored Nodes."
+            ::= { hypervAimStatVMGroup 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1
+        hypervAimStatVMEntry OBJECT-TYPE
+            SYNTAX HypervAimStatVMEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The table entry."
+            INDEX { hypervAimStatVMIndex }
+            ::= { hypervAimStatVMTable 1 }
+
+        
+        HypervAimStatVMEntry ::=
+            SEQUENCE { 
+                hypervAimStatVMElementName
+                    SnmpAdminString,
+                hypervAimStatVMName
+                    SnmpAdminString,
+                hypervAimStatVMDescription
+                    SnmpAdminString,
+                hypervAimStatVMHyperVHostName
+                    SnmpAdminString,
+                hypervAimStatVMEnabledStatus
+                    INTEGER,
+                hypervAimStatVMHealthStatus
+                    INTEGER,
+                hypervAimStatVMPrimaryOwnerName
+                    SnmpAdminString,
+                hypervAimStatVMOnTime
+                    SnmpAdminString,
+                hypervAimStatVMTimeOfLastStateChange
+                    SnmpAdminString,
+                hypervAimStatVMHeartBeatStatus
+                    INTEGER,
+                hypervAimStatVMExternalDataRoot
+                    SnmpAdminString,
+                hypervAimStatVMSnapshotDataRoot
+                    SnmpAdminString,
+                hypervAimStatVMAutomaticRecoveryAction
+                    INTEGER,
+                hypervAimStatVMAutomaticShutdownAction
+                    INTEGER,
+                hypervAimStatVMAutomaticStartupAction
+                    INTEGER,
+                hypervAimStatVMAutomaticStartupActionDelay
+                    SnmpAdminString,
+                hypervAimStatVMMemLimit
+                    INTEGER,
+                hypervAimStatVMMemReservation
+                    INTEGER,
+                hypervAimStatVMMemVirtual
+                    INTEGER,
+                hypervAimStatVMCPUCount
+                    INTEGER,
+                hypervAimStatVMCPUUsage
+                    INTEGER,
+                hypervAimStatVMMEMUsage
+                    INTEGER,
+                hypervAimStatVMIsClustered
+                    INTEGER,
+                hypervAimStatVMOSName
+                    SnmpAdminString,
+                hypervAimStatVMOSVersion
+                    SnmpAdminString,
+                hypervAimStatVMDNSName
+                    SnmpAdminString,
+                hypervAimStatVMCSDVersion
+                    SnmpAdminString,
+                hypervAimStatVMOSMajor
+                    SnmpAdminString,
+                hypervAimStatVMOSMinor
+                    SnmpAdminString,
+                hypervAimStatVMOSBuildNumber
+                    SnmpAdminString,
+                hypervAimStatVMOSOSPlatformId
+                    INTEGER,
+                hypervAimStatVMServicePackMajor
+                    SnmpAdminString,
+                hypervAimStatVMServicePackMinor
+                    SnmpAdminString,
+                hypervAimStatVMSuiteMask
+                    SnmpAdminString,
+                hypervAimStatVMProductType
+                    SnmpAdminString,
+                hypervAimStatVMOSEditionId
+                    SnmpAdminString,
+                hypervAimStatVMProcessorArchitecture
+                    SnmpAdminString,
+                hypervAimStatVMIntegrationServicesVersion
+                    SnmpAdminString,
+                hypervAimStatVMNetworkAddressIPv4
+                    DisplayString,
+                hypervAimStatVMNetworkAddressIPv6
+                    DisplayString,
+                hypervAimStatVMRDPAddressIPv4
+                    DisplayString,
+                hypervAimStatVMRDPAddressIPv6
+                    DisplayString,
+                hypervAimStatVMMACAddress
+                    DisplayString,
+                hypervAimStatVMPreviousEnabledStatus
+                    INTEGER,
+                hypervAimStatVMHyperVPreviousHostName
+                    SnmpAdminString,
+                hypervAimStatVMIndex
+                    INTEGER,
+                hypervAimStatVMHyperVHostIndex
+                    INTEGER,
+                hypervAimStatVMHyperVPreviousHostIndex
+                    INTEGER,
+                hypervAimStatVMOtherIdentifyingInfo
+                    SnmpAdminString
+
+             }
+
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.1
+        hypervAimStatVMElementName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "A user-friendly name for the object.It is set to the display name of the computer for a virtual system."
+            ::= { hypervAimStatVMEntry 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.2
+        hypervAimStatVMName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Label (UID) by which the virtual machine is known."
+            ::= { hypervAimStatVMEntry 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.3
+        hypervAimStatVMDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Label by which the vm is known."
+            ::= { hypervAimStatVMEntry 3 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.4
+        hypervAimStatVMHyperVHostName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the virtual machines physical host (hypervAimStatHostName)."
+            ::= { hypervAimStatVMEntry 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.5
+        hypervAimStatVMEnabledStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                unknown(1),
+                enabled(2),
+                disabled(3),
+                paused(32768),
+                suspended(32769),
+                starting(32770),
+                snapshotting(32771),
+                migrating(32772),
+                saving(32773),
+                stopping(32774),
+                deleted(32775),
+                pausing(32776),
+                resuming(32777)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates the enabled and disabled states of an element. 
+                It can also indicate the transitions between these requested states.
+                Possible values are:
+                        unknown(1)
+                        enabled(2)
+                        disabled(3)
+                        paused(32768)
+                        suspended(32769)
+                        starting(32770)
+                        snapshotting(32771)
+                        migrating(32772)
+                        saving(32773)
+                        stopping(32774)
+                        deleted(32775)
+                        pausing(32776)
+                        resuming(32777)
+                "
+            ::= { hypervAimStatVMEntry 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.6
+        hypervAimStatVMHealthStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                ok(5),
+                major-failure(20),
+                critical-failure(25)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates the current health of the element. 
+                This attribute expresses the health of this element but not necessarily that of its subcomponents.
+                Possible values:
+                ok (5)
+                major-failure (20)
+                critical-failure (25)"
+            ::= { hypervAimStatVMEntry 6 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.7
+        hypervAimStatVMPrimaryOwnerName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Name of the primary system owner."
+            ::= { hypervAimStatVMEntry 7 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.8
+        hypervAimStatVMOnTime OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "This property describes the total up time, in milliseconds, since the machine was last turned on, reset, or restored. 
+                This time excludes the time the virtual system was in the paused state.."
+            ::= { hypervAimStatVMEntry 8 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.9
+        hypervAimStatVMTimeOfLastStateChange OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The date or time when the enabled state of the element last changed in ISO8601 format."
+            ::= { hypervAimStatVMEntry 9 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.10
+        hypervAimStatVMHeartBeatStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                ok(2),
+                error(6),
+                no-contact(12),
+                lost-communication(13)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Operational Status."
+            ::= { hypervAimStatVMEntry 10 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.11
+        hypervAimStatVMExternalDataRoot OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The fully-qualified path to the root directory of an external data store."
+            ::= { hypervAimStatVMEntry 11 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.12
+        hypervAimStatVMSnapshotDataRoot OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The fully-qualified path to the root directory of the external data store used to store snapshots for this virtual system."
+            ::= { hypervAimStatVMEntry 12 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.13
+        hypervAimStatVMAutomaticRecoveryAction OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                none(1),
+                restart(2),
+                reverttosnapshot(3)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Determines the action to take if the virtual machine worker process terminates abnormally.
+                Possible Values:
+                none(1)
+                restart(2)
+                reverttosnapshot(3)"
+            ::= { hypervAimStatVMEntry 13 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.14
+        hypervAimStatVMAutomaticShutdownAction OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                turnoff(1),
+                savestate(2),
+                shutdown(3)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Determines the action to take when the host is shut down. 
+                Possible values:
+                turnoff(1)
+                savestate(2)
+                shutdown(3)
+                "
+            ::= { hypervAimStatVMEntry 14 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.15
+        hypervAimStatVMAutomaticStartupAction OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                none(1),
+                restartifpreviouslyrunning(2),
+                alwaysstartup(3)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Determines the action to take when the host is started.
+                Possible values:
+                none(1)
+                restartifpreviouslyrunning(2)
+                alwaysstartup(3)
+                "
+            ::= { hypervAimStatVMEntry 15 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.16
+        hypervAimStatVMAutomaticStartupActionDelay OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The time interval to wait before performing the startup action."
+            ::= { hypervAimStatVMEntry 16 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.17
+        hypervAimStatVMMemLimit OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The maximum amount of memory of this virtual machine."
+            ::= { hypervAimStatVMEntry 17 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.18
+        hypervAimStatVMMemReservation OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The amount of memory guaranteed to be available for this virtual machine."
+            ::= { hypervAimStatVMEntry 18 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.19
+        hypervAimStatVMMemVirtual OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Total amount of memory in the virtual system, as seen by the guest OS."
+            ::= { hypervAimStatVMEntry 19 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.20
+        hypervAimStatVMCPUCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Total number of processors for this virtual machine."
+            ::= { hypervAimStatVMEntry 20 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.21
+        hypervAimStatVMCPUUsage OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "VM CPU usage in %."
+            ::= { hypervAimStatVMEntry 21 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.22
+        hypervAimStatVMMEMUsage OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "VM memory usage in %."
+            ::= { hypervAimStatVMEntry 22 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.24
+        hypervAimStatVMIsClustered OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Flag indicating that the VM is clustered and therefore mirgratable."
+            ::= { hypervAimStatVMEntry 24 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.25
+        hypervAimStatVMOSName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS name of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 25 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.26
+        hypervAimStatVMOSVersion OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS version of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 26 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.27
+        hypervAimStatVMDNSName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "DNS name of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 27 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.28
+        hypervAimStatVMCSDVersion OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "CSD Version name of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 28 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.29
+        hypervAimStatVMOSMajor OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Major OS version of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 29 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.30
+        hypervAimStatVMOSMinor OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Minor OS version of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 30 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.31
+        hypervAimStatVMOSBuildNumber OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS build number of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 31 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.32
+        hypervAimStatVMOSOSPlatformId OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS platform ID of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 32 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.33
+        hypervAimStatVMServicePackMajor OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Major service pack version of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 33 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.34
+        hypervAimStatVMServicePackMinor OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Minor service pack version of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 34 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.35
+        hypervAimStatVMSuiteMask OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS Suite Mask of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 35 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.36
+        hypervAimStatVMProductType OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Product type of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 36 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.37
+        hypervAimStatVMOSEditionId OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS edition ID ofthe VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 37 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.38
+        hypervAimStatVMProcessorArchitecture OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Processor architecture of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 38 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.39
+        hypervAimStatVMIntegrationServicesVersion OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Version of the Hyper-V Integration Services (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 39 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.40
+        hypervAimStatVMNetworkAddressIPv4 OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "IPv4 network address of the VM (if HyperV Integration Services is installed). Multiple addresses are separated by |."
+            ::= { hypervAimStatVMEntry 40 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.41
+        hypervAimStatVMNetworkAddressIPv6 OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "IPv6 network address of the VM (if HyperV Integration Services is installed). Multiple addresses are separated by |."
+            ::= { hypervAimStatVMEntry 41 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.42
+        hypervAimStatVMRDPAddressIPv4 OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "RDP IPv4 address of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 42 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.43
+        hypervAimStatVMRDPAddressIPv6 OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "RDP IPv6 address of the VM (if HyperV Integration Services is installed)"
+            ::= { hypervAimStatVMEntry 43 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.44
+        hypervAimStatVMMACAddress OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "MAC address of the VM. Multiple addresses are separated by |."
+            ::= { hypervAimStatVMEntry 44 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.45
+        hypervAimStatVMPreviousEnabledStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                unknown(1),
+                enabled(2),
+                disabled(3),
+                paused(32768),
+                suspended(32769),
+                starting(32770),
+                snapshotting(32771),
+                migrating(32772),
+                saving(32773),
+                stopping(32774),
+                deleted(32775),
+                pausing(32776),
+                resuming(32777)
+                }
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates the previous enabled statee of an element.
+                Not-accessible object used for hypervAimStatVMEnabledTrap.
+                "
+            ::= { hypervAimStatVMEntry 45 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.46
+        hypervAimStatVMHyperVPreviousHostName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates the previous HyperV host name of an virtual machine.
+                Not-accessible object used for hypervAimStatVMMigrateTrap."
+            ::= { hypervAimStatVMEntry 46 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.47
+        hypervAimStatVMIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                " The unique index of the virtual machine."
+            ::= { hypervAimStatVMEntry 47 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.48
+        hypervAimStatVMHyperVHostIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the virtual machines physical host (hypervAimStatHostIndex)"
+            ::= { hypervAimStatVMEntry 48 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.49
+        hypervAimStatVMHyperVPreviousHostIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "Indicates the previous HyperV host index of an virtual machine.
+                Not-accessible object used for hypervAimStatVMMigrateTrap."
+            ::= { hypervAimStatVMEntry 49 }
+
+--   1.3.6.1.4.1.546.16.56.2.2.2.1.50
+        hypervAimStatVMOtherIdentifyingInfo OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Other Identifying Info, used internally to uniquely identify the virtual machine."
+            ::= { hypervAimStatVMEntry 50 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4
+        hypervAimStatClusterGroup OBJECT IDENTIFIER ::= { hypervAimStatGroup 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.1
+        hypervAimStatClusterCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            ::= { hypervAimStatClusterGroup 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.2
+        hypervAimStatClusterHostCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of HyperV cluster hosts."
+            ::= { hypervAimStatClusterGroup 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.3
+        hypervAimStatClusteredVMsCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            ::= { hypervAimStatClusterGroup 3 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.4
+        hypervAimStatClusterTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HypervAimStatClusterEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { hypervAimStatClusterGroup 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.4.1
+        hypervAimStatClusterEntry OBJECT-TYPE
+            SYNTAX HypervAimStatClusterEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { hypervAimStatClusterIndex }
+            ::= { hypervAimStatClusterTable 1 }
+
+        
+        HypervAimStatClusterEntry ::=
+            SEQUENCE { 
+                hypervAimStatClusterName
+                    SnmpAdminString,
+                hypervAimStatClusterIndex
+                    INTEGER
+             }
+
+--   1.3.6.1.4.1.546.16.56.2.4.4.1.1
+        hypervAimStatClusterName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The unique name of the cluster.
+                "
+            ::= { hypervAimStatClusterEntry 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.4.1.2
+        hypervAimStatClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The unique index of the cluster."
+            ::= { hypervAimStatClusterEntry 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.5
+        hypervAimStatClusterHostsTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HypervAimStatClusterHostsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { hypervAimStatClusterGroup 5 }
+
+        
+--     A table holding als hosts in a HyperV cluster.
+-- 1.3.6.1.4.1.546.16.56.2.4.5.1
+        hypervAimStatClusterHostsEntry OBJECT-TYPE
+            SYNTAX HypervAimStatClusterHostsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "A table holding als hosts in a HyperV cluster."
+            INDEX { hypervAimStatClusterHostIndex }
+            ::= { hypervAimStatClusterHostsTable 1 }
+
+        
+        HypervAimStatClusterHostsEntry ::=
+            SEQUENCE { 
+                hypervAimStatClusterHostName
+                    SnmpAdminString,
+                hypervAimStatClusterHostNodeID
+                    DisplayString,
+                hypervAimStatClusterHostStatus
+                    INTEGER,
+                hypervAimStatClusterHostClusterName
+                    SnmpAdminString,
+                hypervAimStatClusterHostIndex
+                    INTEGER,
+                hypervAimStatClusterHostClusterIndex
+                    INTEGER
+             }
+
+--   1.3.6.1.4.1.546.16.56.2.4.5.1.1
+        hypervAimStatClusterHostName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            ::= { hypervAimStatClusterHostsEntry 1 }
+
+        
+--     The host name of a HyperV cluster host.
+-- 1.3.6.1.4.1.546.16.56.2.4.5.1.2
+        hypervAimStatClusterHostNodeID OBJECT-TYPE
+            SYNTAX DisplayString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "ID of the cluster node."
+            ::= { hypervAimStatClusterHostsEntry 2 }
+
+        
+--     The IP of an HyperV cluster host.
+-- 1.3.6.1.4.1.546.16.56.2.4.5.1.3
+        hypervAimStatClusterHostStatus OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                unknown(1),
+                nodeUp(2),
+                nodeDown(3),
+                nodePaused(4),
+                nodeJoining(5)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The status of the HyperV cluster host: Unknown(1),   NodeUp(2),   NodeDown(3),    NodePaused(4) or  NodeJoining(5)"
+            ::= { hypervAimStatClusterHostsEntry 3 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.5.1.4
+        hypervAimStatClusterHostClusterName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the cluster (hypervAimStatClusterName) the clustered host belongs to."
+            ::= { hypervAimStatClusterHostsEntry 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.5.1.5
+        hypervAimStatClusterHostIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                " The unique index of this cluster host."
+            ::= { hypervAimStatClusterHostsEntry 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.5.1.6
+        hypervAimStatClusterHostClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the cluster (hypervAimStatClusterIndex) the clustered host belongs to."
+            ::= { hypervAimStatClusterHostsEntry 6 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6
+        hypervAimStatClusteredVMTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HypervAimStatClusteredVMEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { hypervAimStatClusterGroup 6 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6.1
+        hypervAimStatClusteredVMEntry OBJECT-TYPE
+            SYNTAX HypervAimStatClusteredVMEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+                "The virtual machines managed by a HyperV cluster."
+            INDEX { hypervAimStatClusteredVMIndex }
+            ::= { hypervAimStatClusteredVMTable 1 }
+
+        
+        HypervAimStatClusteredVMEntry ::=
+            SEQUENCE { 
+                hypervAimStatClusteredVMName
+                    SnmpAdminString,
+                hypervAimStatClusteredVMElementName
+                    SnmpAdminString,
+                hypervAimStatClusteredVMHost
+                    SnmpAdminString,
+                hypervAimStatClusteredVMClusterName
+                    SnmpAdminString,
+                hypervAimStatClusteredVMIndex
+                    INTEGER,
+                hypervAimStatClusteredVMHostIndex
+                    INTEGER,
+                hypervAimStatClusteredVMClusterIndex
+                    INTEGER
+             }
+
+--   1.3.6.1.4.1.546.16.56.2.4.6.1.1
+        hypervAimStatClusteredVMName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name (UUID) of the clustered virtual machine."
+            ::= { hypervAimStatClusteredVMEntry 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6.1.2
+        hypervAimStatClusteredVMElementName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The readable name of the clustered virtual machine.
+                "
+            ::= { hypervAimStatClusteredVMEntry 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6.1.3
+        hypervAimStatClusteredVMHost OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The Hyper-V host name of the clustered virtual machine."
+            ::= { hypervAimStatClusteredVMEntry 3 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6.1.4
+        hypervAimStatClusteredVMClusterName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the cluster (hypervAimStatClusterName) of the clustered virtual machine.
+                "
+            ::= { hypervAimStatClusteredVMEntry 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6.1.5
+        hypervAimStatClusteredVMIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                " The unique index of the clustered virtual machine."
+            ::= { hypervAimStatClusteredVMEntry 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6.1.6
+        hypervAimStatClusteredVMHostIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The host index of the clustered virtual machine."
+            ::= { hypervAimStatClusteredVMEntry 6 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.4.6.1.7
+        hypervAimStatClusteredVMClusterIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the cluster (hypervAimStatClusterName) of the clustered virtual machine.
+                "
+            ::= { hypervAimStatClusteredVMEntry 7 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5
+        hypervAimStatTemplateGroup OBJECT IDENTIFIER ::= { hypervAimStatGroup 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.1
+        hypervAIMStatTemplateCount OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of entries in hypervAimStatTemplateTable
+                "
+            ::= { hypervAimStatTemplateGroup 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2
+        hypervAimStatTemplateTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HypervAimStatTemplateEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            ::= { hypervAimStatTemplateGroup 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1
+        hypervAimStatTemplateEntry OBJECT-TYPE
+            SYNTAX HypervAimStatTemplateEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            INDEX { hypervAimStatTemplateIndex }
+            ::= { hypervAimStatTemplateTable 1 }
+
+        
+        HypervAimStatTemplateEntry ::=
+            SEQUENCE { 
+                hypervAimStatTemplateElementName
+                    SnmpAdminString,
+                hypervAimStatTemplateName
+                    SnmpAdminString,
+                hypervAimStatTemplateHyperVHostName
+                    SnmpAdminString,
+                hypervAimStatTemplateNumberOfProcessors
+                    INTEGER,
+                hypervAimStatTemplateNumberOfNICs
+                    INTEGER,
+                hypervAimStatTemplateVirtualQuantity
+                    INTEGER,
+                hypervAimStatTemplateCreationDate
+                    SnmpAdminString,
+                hypervAimStatTemplateDescription
+                    SnmpAdminString,
+                hypervAimStatTemplateFileSystemPath
+                    SnmpAdminString,
+                hypervAimStatTemplateDiskSpaceRequired
+                    INTEGER,
+                hypervAimStatTemplateOSName
+                    SnmpAdminString,
+                hypervAimStatTemplateOSVersion
+                    SnmpAdminString,
+                hypervAimStatTemplateIndex
+                    INTEGER,
+                hypervAimStatTemplateHyperVHostIndex
+                    INTEGER
+             }
+
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.1
+-- 1.3.6.1.4.1.546.16.56.2.5.2.1.1
+        hypervAimStatTemplateElementName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "A user-friendly name of the template.
+                "
+            ::= { hypervAimStatTemplateEntry 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.2
+        hypervAimStatTemplateName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The label (UID) of the template.
+                "
+            ::= { hypervAimStatTemplateEntry 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.3
+        hypervAimStatTemplateHyperVHostName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The name of the templates host (hypervAimStatHostName)."
+            ::= { hypervAimStatTemplateEntry 3 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.4
+        hypervAimStatTemplateNumberOfProcessors OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The number of processors for this template
+                "
+            ::= { hypervAimStatTemplateEntry 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.5
+        hypervAimStatTemplateNumberOfNICs OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Number of NICs for the template."
+            ::= { hypervAimStatTemplateEntry 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.6
+        hypervAimStatTemplateVirtualQuantity OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The memory for this template.
+                
+                "
+            ::= { hypervAimStatTemplateEntry 6 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.7
+        hypervAimStatTemplateCreationDate OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The creation date of the template in ISO8601 format."
+            ::= { hypervAimStatTemplateEntry 7 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.8
+        hypervAimStatTemplateDescription OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The description of the template.
+                
+                
+                "
+            ::= { hypervAimStatTemplateEntry 8 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.9
+        hypervAimStatTemplateFileSystemPath OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The path to the template file. "
+            ::= { hypervAimStatTemplateEntry 9 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.10
+        hypervAimStatTemplateDiskSpaceRequired OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The required disk space for the template."
+            ::= { hypervAimStatTemplateEntry 10 }
+
+        
+--  1.3.6.1.4.1.546.16.56.2.5.2.1.11
+        hypervAimStatTemplateOSName OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS name of the VM template."
+            ::= { hypervAimStatTemplateEntry 11 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.12
+        hypervAimStatTemplateOSVersion OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "OS version of the VM template."
+            ::= { hypervAimStatTemplateEntry 12 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.13
+        hypervAimStatTemplateIndex OBJECT-TYPE
+            SYNTAX INTEGER (1..2147483647)
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "A unique index of the template."
+            ::= { hypervAimStatTemplateEntry 13 }
+
+        
+--   1.3.6.1.4.1.546.16.56.2.5.2.1.14
+        hypervAimStatTemplateHyperVHostIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The index of the templates host (hypervAimStatHostIndex)."
+            ::= { hypervAimStatTemplateEntry 14 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3
+        hypervAimConfigGroup OBJECT IDENTIFIER ::= { cahypervaim 3 }
+
+        
+--  *****************************************************************************
+-- Configuration Groups
+-- *****************************************************************************
+-- 1.3.6.1.4.1.546.16.56.3.1
+        hypervAimCfgGeneralGroup OBJECT IDENTIFIER ::= { hypervAimConfigGroup 1 }
+
+        
+--  *****************************************************************************
+-- **                       CONFIGURATION GROUPS                              **
+-- *****************************************************************************
+-- *****************************************************************************
+-- hypervAimCfgHyperVGeneralGroup
+-- *****************************************************************************
+-- 1.3.6.1.4.1.546.16.56.3.1.1
+        hypervAimCfgname OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The agent's name."
+            ::= { hypervAimCfgGeneralGroup 1 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3.1.2
+        hypervAimCfgversion OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Version of the agent."
+            ::= { hypervAimCfgGeneralGroup 2 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3.1.3
+        hypervAimCfgstarttime OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Time the agent was started."
+            ::= { hypervAimCfgGeneralGroup 3 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3.1.4
+        hypervAimCfglastupdatetime OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "Time the MIB was last updated."
+            ::= { hypervAimCfgGeneralGroup 4 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3.1.5
+        hypervAimCfgagentpollinterval OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+                "Poll Interval for the agent."
+            DEFVAL { 120 }
+            ::= { hypervAimCfgGeneralGroup 5 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3.1.6
+        hypervAimCfgeventlastupdatetime OBJECT-TYPE
+            SYNTAX SnmpAdminString
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The Event Last Update Time."
+            ::= { hypervAimCfgGeneralGroup 6 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3.1.7
+        hypervAimCfgDataStatus OBJECT-TYPE
+            SYNTAX INTEGER
+            {
+                dataReady(1),
+                dataNotReady(2),
+                dataError(3)
+            }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+                "The status of Hyper-V data, i.e. status of Aim caches.
+                dataReady(1)     - data are ready in Aim caches, caches were populated
+                dataNotReady(2)  - data are Not ready yet, Aim is retrieving data from platform, caches were not populated yet
+                dataError(3)     - failed to retrieve data from platform, Aim caches were not populated"
+            DEFVAL { 2 }
+            ::= { hypervAimCfgGeneralGroup 7 }
+
+        
+--   1.3.6.1.4.1.546.16.56.3.1.7
+-- hypervAimCfgloglevel OBJECT-TYPE
+--     SYNTAX INTEGER
+--         {
+--         logEmerg(1),
+--         logAlert(2),
+--         logCrit(3),
+--         logErr(4),
+--         logWarning(5),
+--         logNotice(6),
+--         logInfo(7),
+--         logDebug(8)
+--         }
+--     ACCESS read-write
+--     STATUS mandatory
+--     DESCRIPTION
+--         "logEmerg   - system is unusable,
+--          logAlert   - action must be taken immediately
+--          logCrit    - critical conditions 
+--          logErr     - error conditions
+--          logWarning - warning conditions
+--          logNotice  - normal but signification condition 
+--          logInfo    - informational
+--          logDebug   - debug-level messages "
+--     ::= { hypervAimCfgGeneralGroup 7 }
+
+        
+--    
+-- 1.3.6.1.4.1.546.18.1
+        hypervAimStatVMAddEvent OBJECT IDENTIFIER ::= { traps 1 }
+
+        
+--   1.3.6.1.4.1.546.18.2
+        hypervAimStatVMRemoveEvent OBJECT IDENTIFIER ::= { traps 2 }
+
+        
+--   1.3.6.1.4.1.546.18.3
+        hypervAimStatVMEnabledEvent OBJECT IDENTIFIER ::= { traps 3 }
+
+        
+--   1.3.6.1.4.1.546.18.4
+        hypervAimStatVMMigrateEvent OBJECT IDENTIFIER ::= { traps 4 }
+
+        
+    
+-- 
+--  Trap definitions
+-- 
+-- HyperV system name
+-- VM index
+-- VM name
+-- VM GUID
+-- VM DNS name
+-- IPv4 address
+-- IPv6 address
+-- MAC address
+-- 
+        hypervAimStatVMAddTrap TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { hypervAimStatVMHyperVHostIndex, hypervAimStatVMHyperVHostName, hypervAimStatVMIndex, hypervAimStatVMElementName, hypervAimStatVMName, hypervAimStatVMDNSName, hypervAimStatVMNetworkAddressIPv6, 
+                hypervAimStatVMNetworkAddressIPv4, hypervAimStatVMMACAddress }
+            DESCRIPTION 
+                "Trap is sent when a new virtual machine is added. "
+            ::=  16501
+
+--   HyperV system name
+-- VM name
+-- VM GUID
+-- VM DNS name
+        hypervAimStatVMRemoveTrap TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { hypervAimStatVMHyperVHostIndex, hypervAimStatVMHyperVHostName, hypervAimStatVMIndex, hypervAimStatVMElementName, hypervAimStatVMName, hypervAimStatVMDNSName }
+            DESCRIPTION 
+                "Trap is sent when a new virtual machine is removed. "
+            ::=  16502
+
+-- System name
+-- VM index
+-- VM name
+-- VM GUID
+-- VM DNS name
+-- Previous EnabledState
+-- Current EnabledState
+        hypervAimStatVMEnabledTrap TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { hypervAimStatVMHyperVHostIndex, hypervAimStatVMHyperVHostName, hypervAimStatVMIndex, hypervAimStatVMElementName, hypervAimStatVMName, hypervAimStatVMDNSName, hypervAimStatVMPreviousEnabledStatus, 
+                hypervAimStatVMEnabledStatus }
+            DESCRIPTION 
+                "Trap is sent when the virtual machines enabled state (hypervAimStatVMEnabledStatus) has changed."
+            ::=  16504
+
+-- VM index
+-- VM name
+-- VM GUID
+-- VM DNS name
+-- Previous HyperV system name
+-- New HyperV system name
+        hypervAimStatVMMigrateTrap TRAP-TYPE 
+            ENTERPRISE sysmgmt
+            VARIABLES { hypervAimStatVMIndex, hypervAimStatVMElementName, hypervAimStatVMName, hypervAimStatVMDNSName, hypervAimStatVMHyperVPreviousHostIndex, hypervAimStatVMHyperVPreviousHostName, hypervAimStatVMHyperVHostIndex, hypervAimStatVMHyperVHostName
+                 }
+            DESCRIPTION 
+                "Trap is sent when a virtual machine is migrated to a new HyperV host."
+            ::=  16505
+
+    
+    END
+
+--

@@ -1,0 +1,299 @@
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+            -- TIDP MASTER (Maestro de Teldat IP Discovery Protocol)
+
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    --1.0   01/07/04    J. Molina       Archivo procedente de tidpMaster.mib
+
+
+
+
+    -- Historial de tidpMaster.mib:
+
+    -- 1.3 20/10/06  M.A. Pastor    Reset para equipos remotos (PIO)
+    -- 1.2 13/02/03  M.A. Pastor    Nuevo cdigo de error:
+    --                              4 (notification-received), necesario porque
+    --                              ahora inicialmente el campo de error de las
+    --                              entradas de la tabla de equipos gestionados
+    --                              se inicializa a 3 (connection-lost), pasa a
+    --                              4 al recibir un paquete NOTIFICATION y pasa
+    --                              a 0 (no-error) cuando el equipo entra en
+    --                              gestin.
+    -- 1.1 15/11/02  M.A. Pastor    Posibilidad de gestionar por nîmero de
+    --                              serie.
+    --                              Nueva variable para notificar errores.
+    -- 1.0 03/09/02  D.Rodriguez    Implementacin inicial
+    -- =======================================================================
+
+TELDAT-MON-FEATURES-TIDP-MASTER-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            IpAddress
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            DisplayString
+        FROM RFC1213-MIB
+            telProdNpMonFeatures
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+-- Grupo telProdNpMonFeatTidpMaster
+-- Incluye los parﬂmetros referentes al Maestro de TIDP (utilizado en la gestin
+-- de equipos basada en Teldat IP Discovery Protocol).
+
+    telProdNpMonFeatTidpMaster  OBJECT IDENTIFIER ::= { telProdNpMonFeatures 5 }
+
+
+-- Grupo donde se incluye informacin global acerca de esta facilidad.
+
+    tidpMasterGlobalGroup   OBJECT IDENTIFIER ::= { telProdNpMonFeatTidpMaster 1 }
+
+    tidpMasterGlobalStatus OBJECT-TYPE
+        SYNTAX INTEGER{
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Indicates whether the TIDP MASTER function is enabled or not.
+            Possible values are: (1) enabled or (2) disabled."
+        ::= { tidpMasterGlobalGroup 1 }
+
+    tidpMasterGlobalMaxStations OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum number of managed stations (routers)."
+        ::={ tidpMasterGlobalGroup 2 }
+
+    tidpMasterGlobalUsedEntries OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of used entries."
+        ::={ tidpMasterGlobalGroup 3 }
+
+    tidpMasterGlobalHostnameIsHere OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..79))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Hostname whose position index is required. This variable is used in
+            conjunction with tidpMasterGlobalEquipmentPosition."
+        ::={ tidpMasterGlobalGroup 4 }
+
+    tidpMasterGlobalEquipmentPosition OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Position index in the table of the equipment entry associated to
+            the hostname specified in tidpMasterGlobalHostnameIsHere (0 if not
+            present)."
+        ::={ tidpMasterGlobalGroup 5 }
+
+    tidpMasterGlobalSerialIsHere OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..10))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Serial number whose position index is required. This variable is
+            used in conjunction with tidpMasterGlobalEquipmentPosition."
+        ::={ tidpMasterGlobalGroup 6 }
+
+-- Tabla de equipos Gestionados por TIDP.
+
+    tidpMasterEquipmentTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TidpMasterEquipmentEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "This table includes the routers being managed or trying to manage.
+            The maximum number of items in the table is limited by
+            tidpMasterGlobalMaxStations."
+        ::={ telProdNpMonFeatTidpMaster 2 }
+
+    tidpMasterEquipmentEntry OBJECT-TYPE
+        SYNTAX TidpMasterEquipmentEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry contains information about the equipment being managed."
+        INDEX   { tidpMasterEquipmentIndex }
+        ::={ tidpMasterEquipmentTable 1 }
+
+    TidpMasterEquipmentEntry ::=
+        SEQUENCE{
+            tidpMasterEquipmentIndex
+                INTEGER,
+            tidpMasterEquipmentStatus
+                INTEGER,
+            tidpMasterEquipmentCommand
+                INTEGER,
+            tidpMasterEquipmentHostname
+                DisplayString,
+            tidpMasterEquipmentAddress
+                IpAddress,
+            tidpMasterEquipmentSerial
+                DisplayString,
+            tidpMasterEquipmentManagementType
+                INTEGER,
+            tidpMasterEquipmentManagerIdentifier
+                DisplayString,
+            tidpMasterEquipmentError
+                INTEGER
+                }
+
+    tidpMasterEquipmentIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: order number of the entry or equipment being managed
+            by the TIDP Master."
+        ::= { tidpMasterEquipmentEntry 1 }
+
+    tidpMasterEquipmentStatus OBJECT-TYPE
+        SYNTAX INTEGER{
+            initial(0),
+            waiting(1),
+            managing(2),
+            reset(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Entry status:
+            (0) initial: no operation is being performed.
+            (1) waiting: the management process has begun and is running and the
+            TIDP Master is waiting to get reachability to the remote equipment.
+            (2) managing: the remote equipment is ready to be managed; its IP
+            address is now readable in tidpEquipmentAddress.
+            (3) reset: a reset command has been sent to the remote equipment."
+        ::= { tidpMasterEquipmentEntry 2 }
+
+    tidpMasterEquipmentCommand OBJECT-TYPE
+        SYNTAX INTEGER{
+            manage(1),
+            delete(2),
+            ok(3),
+            undefined(4),
+            error(5),
+            reset(6)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Command to be performed:
+            (1) manage: begin management process (write-only).
+            (2) delete: end management process (write-only).
+            (3) ok: last command has been performed gracefully (read-only).
+            (4) undefined: last command not finished (read-only).
+            (5) error: last command has not been performed properly (read-only).
+            (6) reset: send a reset to the remote end (write-only)."
+        ::= { tidpMasterEquipmentEntry 3 }
+
+    tidpMasterEquipmentHostname OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..79))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Hostname of the equipment being managed. The management process
+            can be performed using hostname or serial number. If it is going to
+            be based on hostname, this variable must be set with the apropriate
+            value before launch the management process. Otherwise, this variable
+            takes a realiable value only when tidpMasterEquipmentStatus is
+            managing(2)."
+        ::= { tidpMasterEquipmentEntry 4 }
+
+    tidpMasterEquipmentAddress OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Router IP address. This variable is readable when
+            tidpMasterEquipmentStatus is managing(2). Otherwise its value is
+            0.0.0.0 (until the managed router is reachable)."
+        ::={ tidpMasterEquipmentEntry 5 }
+
+    tidpMasterEquipmentSerial OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..10))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Serial number of the equipment being managed. The management
+            process can be performed using hostname or serial number.
+            If it is going to be based on serial number, this variable must be
+            set with the apropriate value before launch the management process.
+            Otherwise, this variable takes a realiable value only when
+            tidpMasterEquipmentStatus is managing(2)."
+        ::= { tidpMasterEquipmentEntry 6 }
+
+    tidpMasterEquipmentManagementType OBJECT-TYPE
+        SYNTAX INTEGER{
+            manual(1),
+            automatic(2)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Management type:
+            (1) manual: manual operation.
+            (2) automatic: automatic operation."
+        ::= { tidpMasterEquipmentEntry 7 }
+
+    tidpMasterEquipmentManagerIdentifier OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..31))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Manager identifier. It is usually the IP address of the management
+            station that requested the router management."
+        ::= { tidpMasterEquipmentEntry 8 }
+
+    tidpMasterEquipmentError OBJECT-TYPE
+        SYNTAX INTEGER{
+            none(0),
+            unexpected-serial-number(1),
+            unexpected-hostname(2),
+            connection-lost(3),
+            notification-received(4)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "If the value of this variable is not 0 (none, not error) when the
+            variable tidpMasterEquipmentStatus takes the value 2 (managing)
+            something went wrong during management process. Before management
+            process begins, this value will be 3 (connection-lost) initially and
+            it will change to 4 (netification-received) when the TIDP master
+            receives a notification packet from the equipment which is trying
+            to be managed."
+        ::= { tidpMasterEquipmentEntry 9 }
+
+
+END

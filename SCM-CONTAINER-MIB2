@@ -1,0 +1,1087 @@
+SCM-CONTAINER-MIB2 DEFINITIONS ::= BEGIN
+
+IMPORTS
+    enterprises, MODULE-IDENTITY
+        FROM SNMPv2-SMI;
+
+scmcontainer MODULE-IDENTITY
+    LAST-UPDATED "0609201255Z"
+    ORGANIZATION "Sun Microsystems Inc."
+    CONTACT-INFO
+        "        Sun Microsystems Inc.
+       Customer Support
+            Postal: 901 San Antonio Road 
+       Palo Alto, CA-94303-4900
+    USA
+                         Tel: 650-960-1300
+                E-mail: service@sun.com"
+    DESCRIPTION
+        "The Solaris Container Manager module monitors containers on the local host"
+    ::= { modules 85 }
+modules	OBJECT IDENTIFIER ::= { agent 2 }
+
+agent	OBJECT IDENTIFIER ::= { sunsymon 2 }
+
+sunsymon	OBJECT IDENTIFIER ::= { prod 12 }
+
+prod	OBJECT IDENTIFIER ::= { sun 2 }
+
+sun	OBJECT IDENTIFIER ::= { enterprises 42 }
+
+
+admin	OBJECT IDENTIFIER ::= { scmcontainer 1 }
+
+RowStatus ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+               "RowStatus"
+    SYNTAX       INTEGER {
+                     -- the following two values are states:
+                     -- these values may be read or written
+                     active(1),
+                     notInService(2),
+
+                     -- the following value is a state:
+                     -- this value may be read, but not written
+                     notReady(3),
+
+                     -- the following three values are
+                     -- actions: these values may be written,
+                     --   but are never read
+                     createAndGo(4),
+                     createAndWait(5),
+                     destroy(6)
+                 }
+
+DisplayString ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "255a"
+    STATUS       current
+    DESCRIPTION
+            "Represents textual information taken from the NVT ASCII
+            character set, as defined in pages 4, 10-11 of RFC 854.
+
+            To summarize RFC 854, the NVT ASCII repertoire specifies:
+
+              - the use of character codes 0-127 (decimal)
+
+              - the graphics characters (32-126) are interpreted as
+                US ASCII
+
+              - NUL, LF, CR, BEL, BS, HT, VT and FF have the special
+                meanings specified in RFC 854
+
+              - the other 25 codes have no standard interpretation
+
+              - the sequence 'CR LF' means newline
+
+              - the sequence 'CR NUL' means carriage-return
+
+              - an 'LF' not preceded by a 'CR' means moving to the
+                same column on the next line.
+
+              - the sequence 'CR x' for any x other than LF or NUL is
+                illegal.  (Note that this also means that a string may
+                end with either 'CR LF' or 'CR NUL', but not with CR.)
+
+            Any object defined using this syntax may not exceed 255
+            characters in length."
+    SYNTAX       OCTET STRING (SIZE (0..255))
+
+trapAck OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Integer value"
+    ::= { admin 1 }
+
+projectTimestamp OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { admin 2 }
+
+poolconfTimestamp OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { admin 3 }
+
+version OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { admin 4 }
+
+system	OBJECT IDENTIFIER ::= { scmcontainer 2 }
+
+configuration	OBJECT IDENTIFIER ::= { system 1 }
+
+configurationHostName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 1 }
+
+operatingSystem OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 2 }
+
+platform OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 3 }
+
+memory OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "MB"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 4 }
+
+configurationCpus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 5 }
+
+cpuClockFrequency OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "MHz"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 6 }
+
+networkInterfaces OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 7 }
+
+locales OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 8 }
+
+termTypes OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 9 }
+
+timezones OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { configuration 10 }
+
+containers	OBJECT IDENTIFIER ::= { scmcontainer 3 }
+
+contTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ContEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { containers 1 }
+
+contEntry OBJECT-TYPE
+    SYNTAX      ContEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { contEntryZoneName,
+              projectID }
+    ::= { contTable 1 }
+
+ContEntry ::=
+    SEQUENCE {
+        contEntryrowstatus
+            RowStatus,
+        contEntryZoneName
+            DisplayString,
+        contID
+            DisplayString,
+        contName
+            DisplayString,
+        projectID
+            DisplayString,
+        projectName
+            DisplayString,
+        primaryUsers
+            DisplayString,
+        contEntryPoolName
+            DisplayString,
+        poolSize
+            Integer32,
+        contEntryCpuRes
+            DisplayString,
+        cpuUsage
+            DisplayString,
+        cpuPctUsed
+            DisplayString,
+        cpuROI
+            DisplayString,
+        cpuExacct
+            DisplayString,
+        memCap
+            DisplayString,
+        memVirtual
+            DisplayString,
+        memRSS
+            DisplayString,
+        memPctUsed
+            DisplayString,
+        memROI
+            DisplayString,
+        memExacct
+            DisplayString,
+        users
+            DisplayString,
+        groups
+            DisplayString,
+        comment
+            DisplayString,
+        matchexpr
+            DisplayString,
+        procsRunning
+            Integer32,
+        defaultContainer
+            Integer32,
+        maxSHMMemory
+            DisplayString
+    }
+
+contEntryrowstatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Table row status"
+    ::= { contEntry 1 }
+
+contEntryZoneName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 2 }
+
+contID OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 3 }
+
+contName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 4 }
+
+projectID OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 5 }
+
+projectName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 6 }
+
+primaryUsers OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 7 }
+
+contEntryPoolName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 8 }
+
+poolSize OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Integer value"
+    ::= { contEntry 9 }
+
+contEntryCpuRes OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 10 }
+
+cpuUsage OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "CPUs"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 11 }
+
+cpuPctUsed OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "%"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 12 }
+
+cpuROI OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "%"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 13 }
+
+cpuExacct OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 14 }
+
+memCap OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "MB"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 15 }
+
+memVirtual OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "MB"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 16 }
+
+memRSS OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "MB"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 17 }
+
+memPctUsed OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "%"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 18 }
+
+memROI OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "%"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 19 }
+
+memExacct OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "MB"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Floating point value"
+    ::= { contEntry 20 }
+
+users OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 21 }
+
+groups OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 22 }
+
+comment OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 23 }
+
+matchexpr OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 24 }
+
+procsRunning OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Integer value"
+    ::= { contEntry 25 }
+
+defaultContainer OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Integer value"
+    ::= { contEntry 26 }
+
+maxSHMMemory OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "MB"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { contEntry 27 }
+
+processorSets	OBJECT IDENTIFIER ::= { scmcontainer 4 }
+
+psrSetTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF PsrSetEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { processorSets 1 }
+
+psrSetEntry OBJECT-TYPE
+    SYNTAX      PsrSetEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { psrsetName }
+    ::= { psrSetTable 1 }
+
+PsrSetEntry ::=
+    SEQUENCE {
+        psrSetEntryrowstatus
+            RowStatus,
+        psrsetName
+            DisplayString,
+        psrsetID
+            DisplayString,
+        minCpuSize
+            DisplayString,
+        cpuSize
+            DisplayString,
+        maxCpuSize
+            DisplayString,
+        psrSetEntryObjectives
+            DisplayString
+    }
+
+psrSetEntryrowstatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Table row status"
+    ::= { psrSetEntry 1 }
+
+psrsetName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { psrSetEntry 2 }
+
+psrsetID OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { psrSetEntry 3 }
+
+minCpuSize OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { psrSetEntry 4 }
+
+cpuSize OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { psrSetEntry 5 }
+
+maxCpuSize OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { psrSetEntry 6 }
+
+poolEntryObjectives OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { psrSetEntry 7 }
+
+pools	OBJECT IDENTIFIER ::= { scmcontainer 5 }
+
+poolTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF PoolEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { pools 1 }
+
+poolEntry OBJECT-TYPE
+    SYNTAX      PoolEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { poolEntryPoolName }
+    ::= { poolTable 1 }
+
+PoolEntry ::=
+    SEQUENCE {
+        poolEntryrowstatus
+            RowStatus,
+        poolEntryPoolName
+            DisplayString,
+        poolEntryCpus
+            DisplayString,
+        psetName
+            DisplayString,
+        schedClass
+            DisplayString,
+        default
+            DisplayString,
+        mincpus
+            DisplayString,
+        maxcpus
+            DisplayString,
+        poolEntryObjectives
+            DisplayString,
+        maxCPUShares
+            DisplayString
+    }
+
+poolEntryrowstatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Table row status"
+    ::= { poolEntry 1 }
+
+poolEntryPoolName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 2 }
+
+poolEntryCpus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 3 }
+
+psetName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 4 }
+
+schedClass OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 5 }
+
+default OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 6 }
+
+mincpus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 7 }
+
+maxcpus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 8 }
+
+psrSetEntryObjectives OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 9 }
+
+maxCPUShares OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { poolEntry 10 }
+
+zones	OBJECT IDENTIFIER ::= { scmcontainer 6 }
+
+zoneTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ZoneEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { zones 1 }
+
+zoneEntry OBJECT-TYPE
+    SYNTAX      ZoneEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { zoneEntryName }
+    ::= { zoneTable 1 }
+
+ZoneEntry ::=
+    SEQUENCE {
+        zoneEntryrowstatus
+            RowStatus,
+        zoneEntryName
+            DisplayString,
+        zoneID
+            DisplayString,
+        zonePath
+            DisplayString,
+        zoneEntryPoolName
+            DisplayString,
+        zoneEntryCpuRes
+            DisplayString,
+        zoneIPAddr
+            DisplayString,
+        zonePhysicalAddr
+            DisplayString,
+        zoneHostName
+            DisplayString,
+        zoneState
+            DisplayString,
+        ipqosEnabled
+            DisplayString,
+        ipBandWidth
+            DisplayString,
+        opBandWidth
+            DisplayString,
+        ipbwUsed
+            DisplayString,
+        ipbwUsage
+            DisplayString,
+        opbwUsed
+            DisplayString,
+        opbwUsage
+            DisplayString,
+        maxZoneCPUShares
+            DisplayString,
+        zoneAutoBoot
+            DisplayString,
+        extraZoneAttr
+            DisplayString
+    }
+
+zoneEntryrowstatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Table row status"
+    ::= { zoneEntry 1 }
+
+zoneEntryName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 2 }
+
+zoneID OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 3 }
+
+zonePath OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 4 }
+
+zoneEntryPoolName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 5 }
+
+zoneEntryCpuRes OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 6 }
+
+zoneIPAddr OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 7 }
+
+zonePhysicalAddr OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 8 }
+
+zoneHostName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 9 }
+
+zoneState OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 10 }
+
+ipqosEnabled OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 11 }
+
+ipBandWidth OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 12 }
+
+opBandWidth OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 13 }
+
+ipbwUsed OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "bytes"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 14 }
+
+ipbwUsage OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "bytes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 15 }
+
+opbwUsed OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "bytes"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 16 }
+
+opbwUsage OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       "bytes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 17 }
+
+maxZoneCPUShares OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 18 }
+
+zoneAutoBoot OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 19 }
+
+extraZoneAttr OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { zoneEntry 20 }
+
+sysID	OBJECT IDENTIFIER ::= { scmcontainer 7 }
+
+sysidTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF SysidEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { sysID 1 }
+
+sysidEntry OBJECT-TYPE
+    SYNTAX      SysidEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { sysidEntryZoneName }
+    ::= { sysidTable 1 }
+
+SysidEntry ::=
+    SEQUENCE {
+        sysidEntryrowstatus
+            RowStatus,
+        sysidEntryZoneName
+            DisplayString,
+        sysidEntryHostName
+            DisplayString,
+        locale
+            DisplayString,
+        rootPasswd
+            DisplayString,
+        termType
+            DisplayString,
+        nameService
+            DisplayString,
+        timeZone
+            DisplayString,
+        domainName
+            DisplayString,
+        nameServer
+            DisplayString
+    }
+
+sysidEntryrowstatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Table row status"
+    ::= { sysidEntry 1 }
+
+sysidEntryZoneName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 2 }
+
+sysidEntryHostName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 3 }
+
+locale OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 4 }
+
+rootPasswd OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 5 }
+
+termType OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 6 }
+
+nameService OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 7 }
+
+timeZone OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 8 }
+
+domainName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 9 }
+
+nameServer OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { sysidEntry 10 }
+
+action	OBJECT IDENTIFIER ::= { scmcontainer 8 }
+
+moveProcToContainer OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { action 1 }
+END

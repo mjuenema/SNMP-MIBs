@@ -1,0 +1,1022 @@
+SNI-INVENTORY-MIB DEFINITIONS ::= BEGIN
+
+--
+-- (C) 1995 by Siemens Nixdorf Informationssysteme AG
+-- All rights reserved
+--
+-- MIB Revision: 2.55.02
+--
+
+IMPORTS
+    OBJECT-TYPE                                         FROM RFC-1212
+    mib-2, DisplayString                                FROM RFC1213-MIB
+    TimeTicks, Counter, Gauge, IpAddress, enterprises   FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+-- SNI Server Management MIB nodes
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+
+
+-- The MIB objects
+ 
+sniInvRevMajor  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Major revision number of the inventory mib"
+	::= { sniInventory 1 }
+ 
+ 
+sniInvRevMinor  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Minor revision number of the inventory mib"
+	::= { sniInventory 2 }
+ 
+ 
+sniInvCondition  OBJECT-TYPE
+	SYNTAX INTEGER {
+			ok(1),
+			degraded(2),
+			error(3)
+			}
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Overall condition of the host system in question. Degraded means
+		that at least one of the components degraded or failed, but the
+		system can operate. Error means, that the system has severe
+		problems"
+	::= { sniInventory 3 }
+ 
+ 
+sniInvHostOS  OBJECT-TYPE
+	SYNTAX  DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"A visible string, that represents the operating system running
+		on the host."
+	::= { sniInventory 4 }
+ 
+ 
+sniInvHostOSId  OBJECT-TYPE
+	SYNTAX INTEGER {
+		netware(1),
+		winnt(2),
+		sco-unix(3),
+		os-2(4),
+		win95(5),
+		sinix(6),
+		solaris(7),
+		linux(8),
+		unixware(9)
+		}
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Unique id for the host operating system. Indices will be added as
+		more operating will become available"
+	::= { sniInventory 5 }
+ 
+ 
+sniInvHostOSRevMajor  OBJECT-TYPE
+SYNTAX  INTEGER
+ACCESS  read-only
+STATUS  mandatory
+DESCRIPTION
+	"Major revision number of the operating system. -1 means unknown."
+	::= { sniInventory 6 }
+
+sniInvHostOSRevMinor  OBJECT-TYPE
+SYNTAX  INTEGER
+ACCESS  read-only
+STATUS  mandatory
+DESCRIPTION
+	"Minor revision number of the operating system. -1 means unknown."
+	::= { sniInventory 7 }
+
+sniInvHostName OBJECT-TYPE
+SYNTAX  DisplayString
+ACCESS  read-only
+STATUS  mandatory
+DESCRIPTION
+    "A symbolic name for the host."
+    ::= { sniInventory 8 } 
+ 
+
+----------------------------------------------------------------------------------------
+--
+-- The threshold table
+--
+ 
+sniThresholdVariableTable OBJECT-TYPE
+SYNTAX  SEQUENCE OF SniThresholdVariableEntry
+ACCESS  not-accessible
+STATUS  mandatory
+DESCRIPTION
+	"Table of threshold values."
+	::= { sniInventory 9 }
+ 
+ 
+sniThresholdVariableEntry OBJECT-TYPE
+SYNTAX   SniThresholdVariableEntry
+ACCESS  not-accessible
+STATUS   mandatory
+DESCRIPTION     "The table"
+INDEX   {sniThresholdVariable}
+	::= { sniThresholdVariableTable 1 } 
+
+SniThresholdVariableEntry ::= SEQUENCE {
+	sniThresholdVariable
+		OBJECT IDENTIFIER,
+	sniThresholdStatus
+		INTEGER,
+	sniThresholdPollInterval
+		INTEGER,
+	sniThresholdDeltaMin
+			INTEGER,
+	sniThresholdDeltaMax
+			INTEGER,
+	sniThresholdMin
+			INTEGER,
+	sniThresholdMax
+			INTEGER,
+	sniThresholdExceeded
+			INTEGER,
+	sniThresholdString
+			DisplayString
+}               
+	
+ 
+sniThresholdVariable  OBJECT-TYPE
+SYNTAX  OBJECT IDENTIFIER
+ACCESS  read-only
+STATUS  mandatory
+DESCRIPTION                                      
+	"The object identifier of the variable to observe. An error will
+	occour if the variable is not of integer type or does not exist."
+	::= { sniThresholdVariableEntry 1 }
+ 
+ 
+sniThresholdStatus  OBJECT-TYPE
+SYNTAX          INTEGER {
+				other (1),
+				invalid(2),
+				valid(3),
+				not-found(4),
+				inactive(5)
+			}
+ACCESS  read-write
+STATUS  mandatory
+DESCRIPTION
+	"Indicates if the given row is still valid. You can delete an
+	entry from the threshold table by writing 'invalid' to this
+	variable. If the variable that should be polled in not available
+	the set-operation will fail. The variables to be polled will be
+	stored in a configuration file on the server. If the variable is
+	not available when the agent is loaded, we will sent a trap every
+	?5? minutes. These traps are stopped as soon as the agent for this
+	variable is loaded, the threshold is deleted or the status is set
+	to inactive. 
+	????????????
+	The inactive status will also be stored in the configuration file.
+	It won't change until the next time the agent that implements the
+	variable is loaded.
+	????????????"
+	::= { sniThresholdVariableEntry 2 }
+ 
+ 
+sniThresholdPollInterval  OBJECT-TYPE
+SYNTAX  INTEGER
+ACCESS  read-write
+STATUS  mandatory
+DESCRIPTION
+	"The intervall between two polls"
+	::= { sniThresholdVariableEntry 3 }
+ 
+ 
+sniThresholdDeltaMin  OBJECT-TYPE
+SYNTAX  INTEGER
+ACCESS  read-write
+STATUS  mandatory
+DESCRIPTION
+	"The delta value, this variable may change during two poll
+	periods. If 0 delta polling is not used."
+	::= { sniThresholdVariableEntry 4 }
+ 
+sniThresholdDeltaMax  OBJECT-TYPE
+SYNTAX  INTEGER
+ACCESS  read-write
+STATUS  mandatory
+DESCRIPTION
+	"The delta value, this variable may change during two poll
+	periods. If 0 delta polling is not used."
+	::= { sniThresholdVariableEntry 5 }
+ 
+ 
+sniThresholdMin  OBJECT-TYPE
+SYNTAX  INTEGER
+ACCESS  read-write
+STATUS  mandatory
+DESCRIPTION
+	"The minimum value of the given variable. 0x7FFFFFFF indicates 
+	that this value should not be considered."
+	::= { sniThresholdVariableEntry 6 }
+ 
+ 
+sniThresholdMax  OBJECT-TYPE
+SYNTAX  INTEGER
+ACCESS  read-write
+STATUS  mandatory
+DESCRIPTION
+	"The maximum value, the given variable may not exceed. A value of
+	0x80000000 indicates, that this value should not be considered."
+	::= { sniThresholdVariableEntry 7 }
+ 
+ 
+sniThresholdExceeded  OBJECT-TYPE
+SYNTAX          INTEGER {
+				not-exceeded(1),
+				min-exceeded(2),
+				max-exceeded(3),
+				delta-exceeded(4)
+			}
+ACCESS  read-only
+STATUS  mandatory
+DESCRIPTION
+	"True, if and only if the threshold for this variable has exceeded
+	the allowable limit."
+	::= { sniThresholdVariableEntry 8 }
+
+sniThresholdString OBJECT-TYPE
+	 SYNTAX  DisplayString
+	 ACCESS  read-write
+	 STATUS  mandatory
+	 DESCRIPTION "???"
+	 ::= { sniThresholdVariableEntry 9 }
+ 
+ 
+----------------------------------------------------------------------------------------
+--
+-- The SNI SNMP agent table
+--
+ 
+sniInvAgentTable OBJECT-TYPE
+SYNTAX       SEQUENCE OF SniInvAgents
+ACCESS       not-accessible
+STATUS       mandatory
+DESCRIPTION  "Table of all SNI agents running on the host"
+    ::= { sniInventory 10 }
+ 
+ 
+sniInvAgents OBJECT-TYPE
+SYNTAX       SniInvAgents
+ACCESS       not-accessible
+STATUS       mandatory
+DESCRIPTION  ""
+INDEX        { sniInvAgentTableIndex }
+    ::= { sniInvAgentTable 1 }
+
+SniInvAgents ::= SEQUENCE {
+    sniInvAgentTableIndex
+	    OBJECT IDENTIFIER,
+    sniAgentRevMajor  
+	    INTEGER,
+    sniAgentRevMinor  
+	    INTEGER,
+    sniAgentName  
+	    DisplayString,
+    sniAgentPurpose  
+	    INTEGER,
+    sniAgentStatus  
+	    INTEGER
+}
+
+sniInvAgentTableIndex  OBJECT-TYPE
+	SYNTAX  OBJECT IDENTIFIER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Identifier of the MIB supported by the particular agent"
+	::= { sniInvAgents 1 }
+ 
+ 
+sniAgentRevMajor  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Major revision number of the agent"
+	::= { sniInvAgents 2 }
+ 
+ 
+sniAgentRevMinor  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Minor revision number of the agent"
+	::= { sniInvAgents 3 }
+ 
+ 
+sniAgentName  OBJECT-TYPE
+	SYNTAX  DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Visible string of the agent's name. Contains additional information
+		about the agent."
+	::= { sniInvAgents 4 }
+ 
+ 
+sniAgentPurpose  OBJECT-TYPE
+	SYNTAX  INTEGER {
+		other(1),
+		network(2),               -- Ethernet, Token ring...
+		mass-storage(3),          -- HD, SCSI, Raid...
+		hardware-specific(4),     -- Server Control, system board, system bus...
+		os-specific(5),           -- operating system info
+		application-specific(6),  -- database...
+		peripheral(7),            -- printers, UPS...
+		security(8),              -- security features
+		management(9)			  -- other management features
+		}
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Decribes the type of the agent."
+	::= { sniInvAgents 5 }
+ 
+ 
+sniAgentStatus  OBJECT-TYPE
+	SYNTAX      INTEGER {
+		ok(1),
+		degraded(2),
+		error(3),
+		failed(4)
+		}
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Describes the status of the component managed by the agent.
+		Degraded means that some problems have occured. Error, that the
+		component has reported an error, that prevents the component form
+		working. Failed means, that the component is no longer reacting to
+		the agents requests."
+	::= { sniInvAgents 6 }
+
+----------------------------------------------------------------------------------------
+
+sniCurrentOSLanguageID OBJECT-TYPE
+	 SYNTAX INTEGER
+	 ACCESS read-only
+	 STATUS mandatory
+	 DESCRIPTION
+		"A unique id for the current language supported by the OS"
+	 ::= { sniInventory 11 }
+
+sniCurrentTicks OBJECT-TYPE
+	 SYNTAX INTEGER
+	 ACCESS read-only
+	 STATUS mandatory
+	 DESCRIPTION
+		"Returns the current server up time in 1/10 seconds"
+	 ::= { sniInventory 12 } 
+
+sniCurrentDateAndTime OBJECT-TYPE
+	 SYNTAX OCTET STRING (SIZE (6))
+	 ACCESS read-only
+	 STATUS mandatory
+	 DESCRIPTION
+		"Returns the current date and time as octet string. The values are
+		encoded as follows:
+			 Byte                Contents
+			 0                   Year (0-99), 80 = 1980, 79=2079
+			 1                   Month (1-12)
+			 2                   Day (1-31)
+			 3                   Hour (0-23)
+			 4                   Minute(0-59)
+			 5                   Second(0-59)
+			 6                   Day (0-6) 0=sunday
+		"
+	 ::= { sniInventory 13 }
+
+sniServerUtilization OBJECT-TYPE
+	 SYNTAX Gauge
+	 ACCESS read-only
+	 STATUS mandatory
+	 DESCRIPTION
+		"Contains the percentage of time the cpu is processing"
+	 ::= { sniInventory 14 }
+
+sniMaximumNumberOfStations OBJECT-TYPE
+	 SYNTAX INTEGER
+	 ACCESS read-only
+	 STATUS mandatory
+	 DESCRIPTION
+		"The maximum number of connections allocated at one time. -1 means no upper 
+		limit"
+	 ::= { sniInventory 15 }
+
+sniMountedFileSystems OBJECT-TYPE
+	 SYNTAX Gauge
+	 ACCESS read-only
+	 STATUS mandatory
+	 DESCRIPTION
+		"The number of file systems currently mounted"
+	 ::= { sniInventory 16 }
+
+----------------------------------------------------------------------------------------
+--
+-- The process table
+--
+ 
+sniLoadedProcessTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SniLoadedProcessEntry
+	ACCESS  not-accessible
+	STATUS  mandatory
+	DESCRIPTION
+		"Table of all processes in the system"
+	::= { sniInventory 17 }
+ 
+ 
+sniLoadedProcessEntry OBJECT-TYPE
+	 SYNTAX       SniLoadedProcessEntry
+	 ACCESS		  not-accessible
+	 STATUS       mandatory
+	 DESCRIPTION "The table"
+	 INDEX       { sniProcessIndex }
+	::= { sniLoadedProcessTable 1 } 
+
+SniLoadedProcessEntry ::= SEQUENCE {
+	 sniProcessIndex
+		INTEGER,
+	 sniCodeLength
+		INTEGER,
+	 sniDataLength
+		INTEGER,
+	 sniProcessName
+		DisplayString,
+	 sniProcessDescription
+		DisplayString,
+	 sniVersionMajor
+		INTEGER,
+	 sniVersionMinor
+		INTEGER,
+	 sniRevision
+		INTEGER,
+	 sniCopyRight
+		DisplayString,
+	 sniProcessVersion
+		DisplayString
+}
+
+sniProcessIndex  OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Index into the process table"
+	 ::= { sniLoadedProcessEntry 1 }
+
+sniCodeLength OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Length of the code of the process"
+	 ::= { sniLoadedProcessEntry 2 }
+
+sniDataLength OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Length of the date of the process"
+	 ::= { sniLoadedProcessEntry 3 }
+
+sniProcessName OBJECT-TYPE
+	 SYNTAX        DisplayString
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Name of the process"
+	 ::= { sniLoadedProcessEntry 4 }
+
+sniProcessDescription OBJECT-TYPE
+     SYNTAX        DisplayString
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Description of the process"
+	 ::= { sniLoadedProcessEntry 5 }
+
+sniVersionMajor OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Major version of the program implementing the process"
+	 ::= { sniLoadedProcessEntry 6 }
+
+sniVersionMinor OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Minor version of the program implementing the process"
+	 ::= { sniLoadedProcessEntry 7 }
+
+sniRevision OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Revision of the program implementing the process"
+	 ::= { sniLoadedProcessEntry 8 }
+
+sniCopyRight OBJECT-TYPE
+	 SYNTAX        DisplayString
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Copyright string"
+	 ::= { sniLoadedProcessEntry 9 }
+
+sniProcessVersion OBJECT-TYPE
+	 SYNTAX        DisplayString
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "String representing the version number of the program executed in this 
+	                process (i.e. V1.02)"
+	 ::= { sniLoadedProcessEntry 10 }
+	 
+sniProcessCurrentCpuUsage OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Current CPU usage of the process in percent"
+	 ::= { sniLoadedProcessEntry 11 }
+
+sniProcessAverageCpuUsage OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Average CPU usage of the process in percent"
+	 ::= { sniLoadedProcessEntry 12 }
+
+sniProcessMemoryCurrentMemoryUsage OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Currently used process memory in KByte"
+	 ::= { sniLoadedProcessEntry 13 }
+	 
+sniProcessMemoryPeakMemoryUsage OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Maximum used process memory in KByte"
+	 ::= { sniLoadedProcessEntry 14 }
+	 
+----------------------------------------------------------------------------------------
+--
+-- The file system table
+--
+ 
+sniFileSystemTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SniFileSystemEntry
+	ACCESS  not-accessible
+	STATUS  mandatory
+	DESCRIPTION
+		"Table of all file systems"
+	::= { sniInventory 18 }
+ 
+sniFileSystemEntry OBJECT-TYPE
+	 SYNTAX       SniFileSystemEntry
+	 ACCESS   not-accessible
+	 STATUS       mandatory
+	 DESCRIPTION "The table"
+	 INDEX       { sniFileSystemIndex }
+	::= { sniFileSystemTable 1 } 
+
+SniFileSystemEntry ::= SEQUENCE {
+	 sniFileSystemIndex
+		 INTEGER,
+	 sniSectorsPerBlock
+		 INTEGER,
+	 sniStartingBlock
+		 INTEGER,
+	 sniTotalBlocks
+		 INTEGER,
+	 sniAvailableBlocks
+		 Gauge,
+	 sniIsMounted
+		 INTEGER,
+	 sniFSName
+		 DisplayString,
+	 sniFSSize
+		  INTEGER,
+     sniFSNameSpaces
+         INTEGER,
+	 sniFSAvailableSpace
+         Gauge,
+	 sniFSUsage
+		 Gauge,
+	 sniFSTypeString
+		 DisplayString
+}
+
+sniFileSystemIndex OBJECT-TYPE
+	SYNTAX        INTEGER
+	ACCESS        read-only
+    STATUS        mandatory
+    DESCRIPTION   ""
+    ::= { sniFileSystemEntry 1}
+
+sniSectorsPerBlock OBJECT-TYPE
+    SYNTAX        INTEGER
+    ACCESS        read-only
+    STATUS        mandatory
+    DESCRIPTION   ""
+    ::= { sniFileSystemEntry 2 }
+
+sniStartingBlock OBJECT-TYPE
+    SYNTAX        INTEGER
+    ACCESS        read-only
+    STATUS        mandatory
+    DESCRIPTION   ""
+    ::= { sniFileSystemEntry 3 }
+
+sniTotalBlocks OBJECT-TYPE
+    SYNTAX        INTEGER
+    ACCESS        read-only
+    STATUS        mandatory
+    DESCRIPTION   ""
+    ::= { sniFileSystemEntry 4 }
+
+sniAvailableBlocks OBJECT-TYPE
+    SYNTAX        Gauge
+    ACCESS        read-only
+    STATUS        mandatory
+    DESCRIPTION   ""
+    ::= { sniFileSystemEntry 5 }
+
+sniIsMounted OBJECT-TYPE
+    SYNTAX        INTEGER
+    ACCESS        read-only
+    STATUS        mandatory
+    DESCRIPTION   ""
+    ::= { sniFileSystemEntry 6 }
+
+sniFSName OBJECT-TYPE
+    SYNTAX        DisplayString
+    ACCESS        read-only
+    STATUS        mandatory
+	DESCRIPTION   ""
+    ::= { sniFileSystemEntry 7 }
+
+sniFSSize OBJECT-TYPE
+    SYNTAX        INTEGER
+    ACCESS        read-only
+    STATUS        mandatory
+	DESCRIPTION   ""
+    ::= { sniFileSystemEntry 8 }
+
+sniFSNameSpaces OBJECT-TYPE
+    SYNTAX        INTEGER
+    ACCESS        read-only
+    STATUS        mandatory
+    DESCRIPTION   "Bit vector for the supported name spaces.
+				   No bit is set for other file system types.
+                   Will be obsolete in near future.
+				   sniFSTypeString should be used instead of
+				   this bit vector.
+		BIT    MEANING
+		0      FAT
+		1      MACINTOSH
+		2      NFS
+		3      FTAM
+		4      HPFS
+		5      NTFS
+		6      CDFS
+		7      s5
+		8      vxfs
+		9      ufs
+		10     bfs
+		11     sfs
+		12     xenix
+        13     memfs
+		14     ext2fs
+		15     xiafs
+		16     FAT32"
+	 ::= { sniFileSystemEntry 9 }            
+   
+
+sniFSAvailableSpace OBJECT-TYPE
+    SYNTAX        Gauge
+    ACCESS        read-only
+    STATUS        mandatory
+	DESCRIPTION   "Available space in KByte"
+    ::= { sniFileSystemEntry 10 }
+
+
+sniFSUsage OBJECT-TYPE
+    SYNTAX        Gauge
+    ACCESS        read-only
+    STATUS        mandatory
+	DESCRIPTION   "Filesystem usage in percent"
+    ::= { sniFileSystemEntry 11 }
+
+sniFSTypeString OBJECT-TYPE
+    SYNTAX        DisplayString
+    ACCESS        read-only
+    STATUS        mandatory
+	DESCRIPTION   "Specify the file system type (e.g. FAT32, ext3fs, ReiserFS)
+				   as String"
+    ::= { sniFileSystemEntry 12 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: sniCPUTable
+--
+--      sniInventory MIB:        1.3.6.1.4.1.231.2.10.2.1
+--        sniCPUTable:           1.3.6.1.4.1.231.2.10.2.1.19
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniCPUTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SniCPUTableEntry
+	ACCESS  not-accessible
+	STATUS  mandatory
+	DESCRIPTION
+		"Table of all CPUs in the system"
+	::= { sniInventory 19 }
+
+sniCPUTableEntry OBJECT-TYPE
+	 SYNTAX       SniCPUTableEntry
+	 ACCESS       not-accessible
+	 STATUS       mandatory
+	 DESCRIPTION "The table"
+	 INDEX       { sniCPUIndex }
+	::= { sniCPUTable 1 } 
+
+
+SniCPUTableEntry ::= SEQUENCE {
+	 sniCPUIndex
+		 INTEGER,
+	 sniCPUStatus
+		 INTEGER,
+	 sniCPUUtilization
+		 Gauge,
+	 sniCPUKernelModeUsage
+		 Gauge,
+	 sniCPUUserModeUsage
+		 Gauge
+}
+
+sniCPUIndex OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+     STATUS        mandatory
+     DESCRIPTION
+	 " "
+    ::= { sniCPUTableEntry 1}
+
+sniCPUStatus OBJECT-TYPE
+	 SYNTAX        INTEGER {
+                                unknown(1),
+                                ok(2),
+                                failed(3)
+                           }
+	 ACCESS        read-only
+     STATUS        mandatory
+     DESCRIPTION
+	 " "
+    ::= { sniCPUTableEntry 2}
+
+sniCPUUtilization OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+     STATUS        mandatory
+     DESCRIPTION
+	 "Current total processor usage in per cent (kernel and user mode usage). If the usage is unknown the value is -1!"
+    ::= { sniCPUTableEntry 3}
+
+sniCPUKernelModeUsage OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+     STATUS        mandatory
+     DESCRIPTION
+	 "Current privileged processor usage in per cent. If the usage is unknown the value is -1!"
+    ::= { sniCPUTableEntry 4}
+    
+sniCPUUserModeUsage OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+     STATUS        mandatory
+     DESCRIPTION
+	 "Current user mode processor usage in per cent. If the usage is unknown the value is -1!"
+    ::= { sniCPUTableEntry 5}
+    
+
+
+
+sniInvAgentProductVersion  OBJECT-TYPE
+    SYNTAX         DisplayString
+    ACCESS         read-only
+    STATUS         mandatory
+    DESCRIPTION 
+        "String representing version of the SNI agent product (whole agent package), 
+         i.e. V1.33 R1.01 (Rx.x can be omitted)"
+	::= { sniInventory 20 }
+
+sniInvAgentVersion  OBJECT-TYPE
+	SYNTAX  DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION "String representing the version number of this (inventory) agent (i.e. V1.02)"
+	::= { sniInventory 21 }
+ 
+sniInvHostOSRevision  OBJECT-TYPE
+    SYNTAX         DisplayString
+    ACCESS         read-only
+    STATUS         mandatory
+    DESCRIPTION	   "String representing the revision number of the operating system (i.e. V3.51)"
+	::= { sniInventory 22 }
+ 
+
+-- clustering objects...
+
+sniInvServerInCluster  OBJECT-TYPE
+	SYNTAX         INTEGER 
+	{
+		unknown(1),
+		false(2),
+		true(3)
+	}
+    ACCESS         read-only
+    STATUS         mandatory
+    DESCRIPTION	   "Signals whether this server is member of a cluster"
+	::= { sniInventory 23 }
+ 
+sniInvClusterAddress  OBJECT-TYPE
+	SYNTAX         IpAddress
+    ACCESS         read-only
+    STATUS         mandatory
+    DESCRIPTION	   "IP address of the cluster administration service, only valid when
+	                value of object sniInvServerInCluster is true (invalid = 0.0.0.0)"
+	::= { sniInventory 24 }
+ 
+
+
+
+----------------------------------------------------------------------------------------
+--
+-- The network interface table
+--
+ 
+sniNetworkInterfaceTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF SniNetworkInterfaceEntry
+	ACCESS  not-accessible
+	STATUS  mandatory
+	DESCRIPTION
+		"Table of all network interfaces in the system"
+	::= { sniInventory 25 }
+ 
+ 
+sniNetworkInterfaceEntry OBJECT-TYPE
+	 SYNTAX       SniNetworkInterfaceEntry
+	 ACCESS		  not-accessible
+	 STATUS       mandatory
+	 DESCRIPTION "The table"
+	 INDEX       { sniInterfaceIndex }
+	::= { sniNetworkInterfaceTable 1 } 
+
+SniNetworkInterfaceEntry ::= SEQUENCE {
+	 sniInterfaceIndex
+		INTEGER,
+	 sniInterfaceDescription
+		DisplayString,
+	 sniInterfaceAdapter
+	    DisplayString,
+	 sniInterfaceConnectionName
+	    DisplayString,
+	 sniInterfaceUsage
+		Gauge,
+	sniInterfaceSpeed
+	    Gauge,
+	 sniInterfaceBytesIn
+	    Gauge,
+	 sniInterfaceBytesOut
+	    Gauge,
+	 sniInterfaceBytesInOut
+		Gauge
+}
+
+sniInterfaceIndex  OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "MIB II conform network interface index"
+	 ::= { sniNetworkInterfaceEntry 1 }
+
+sniInterfaceDescription OBJECT-TYPE
+     SYNTAX        DisplayString
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Description of the network interface"
+	 ::= { sniNetworkInterfaceEntry 2 }
+
+sniInterfaceAdapter OBJECT-TYPE
+	 SYNTAX        DisplayString
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Adapter location of the network interface"
+	 ::= { sniNetworkInterfaceEntry 3 }
+
+sniInterfaceConnectionName OBJECT-TYPE
+	 SYNTAX        DisplayString
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "OS specific symbolic name for the network connection"
+	 ::= { sniNetworkInterfaceEntry 4 }
+
+sniInterfaceUsage OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Network usage on network interface in per cent"
+	 ::= { sniNetworkInterfaceEntry 5 }
+
+sniInterfaceSpeed OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Current network interface speed (in KByte/sec)"
+	 ::= { sniNetworkInterfaceEntry 6 }
+	 
+sniInterfaceBytesIn OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Bytes sent on network interface (in KBytes/sec)"
+	 ::= { sniNetworkInterfaceEntry 7 }
+	 
+sniInterfaceBytesOut OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Bytes received on network interface (in KBytes/sec)"
+	 ::= { sniNetworkInterfaceEntry 8 }
+	 
+sniInterfaceBytesInOut OBJECT-TYPE
+	 SYNTAX        Gauge
+	 ACCESS        read-only
+	 STATUS        mandatory
+	 DESCRIPTION   "Total bytes sent and received on network interface (in KBytes/sec)"
+	 ::= { sniNetworkInterfaceEntry 9 }
+
+
+
+sniInvFullQualifiedName OBJECT-TYPE
+SYNTAX  DisplayString
+ACCESS  read-only
+STATUS  mandatory
+DESCRIPTION
+    "Full qualified DNS Computername ( Hostname.Domainname )."
+    ::= { sniInventory 26 } 
+
+
+END

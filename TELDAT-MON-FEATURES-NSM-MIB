@@ -1,0 +1,3566 @@
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+            -- Facilidad NSM
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.2  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.1  23/11/04    M.A. Pastor     Se aumenta el n”mero mßximo de sondas u
+    --                                  operaciones a 32
+    -- 1.0  01/07/04    J. Molina       Archivo procedente de TELDAT-NSM-MIB.mib
+--------------------------------------------------------------------------------
+
+TELDAT-MON-FEATURES-NSM-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    NOTIFICATION-TYPE,
+    Integer32,
+    Counter32,
+    Gauge32,
+    TimeTicks
+        FROM SNMPv2-SMI
+
+    MODULE-COMPLIANCE,
+    OBJECT-GROUP
+        FROM SNMPv2-CONF
+
+    DisplayString,
+    TruthValue,
+    RowStatus,
+    TimeInterval,
+    TimeStamp,
+    TEXTUAL-CONVENTION
+        FROM SNMPv2-TC
+
+    OwnerString
+        FROM IF-MIB
+
+    telProdNpMonFeatures
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+--
+-- teldatNsmMonMIB
+--
+
+teldatNsmMonMIB MODULE-IDENTITY
+    LAST-UPDATED    "0401301800Z"
+    ORGANIZATION    "Teldat, S.A."
+    CONTACT-INFO
+        "Teldat, S.A.
+        Customer Service
+
+        Postal: Parque Tecnolgico de Madrid
+                Tres Cantos 28760
+                Madrid, SPAIN
+
+        Tel.: +34 918 076 565
+
+        http://www.teldat.com"
+    DESCRIPTION
+        "This module defines a MIB for Round Trip Time (RTT) monitoring of a
+        list of targets, using a variety of protocols: MIB for management of
+        Teldat feature Network Service Monitor.
+
+        The table structure overview is as follows (t: indicates a table,
+        at: indicates an augmented table, and it: indicates table with the same
+        indices/control as parent table):
+
+        NSM MIB
+        |--- Application Group
+        |    |--- Application version string
+        |    |--- Max number of entries in teldatNsmCtrlAdminTable
+        |
+        |--- Overall Control Group
+        |    |t-- Master Definitions Table
+        |    |    |--- Global Configuration Definitions
+        |    |         |--- Config for a single RTT Life
+        |    |    |it- Echo Specific Configuration
+        |    |    |at- Schedule Configuration
+        |    |    |at- Monitoring Operational State
+        |    |    |at- Last RTT operation
+        |
+        |--- Statistics Collection Group
+        |    |t-- Statistics Capture Table
+        |         |--- Captured Statistics
+        |         |it- Statistics Collection Table
+        |    |it- Statistics Totals Table
+        |    |t-- HTTP Stats Table
+        |    |t-- Jitter Stats Table
+        |
+        |--- History Collection Group
+        |
+        |--- Latest Operation Group
+        |    |t-- Latest HTTP Oper Table
+        |    |t-- Latest Jitter Oper Table
+
+        DEFINITIONS:
+            conceptual RTT control row -
+                This is a row in the 'Overall Control Group'. This row is
+                indexed via the teldatNsmCtrlAdminIndex object. This row is
+                spread across multiple real tables in the
+                'Overall Control Group'.
+            probe -
+                This is the entity that executes via a conceptual RTT control
+                row and populates a conceptual statistics row.
+            Rtt operation -
+                This is a single operation performed by a probe. This operation
+                can be a single Rtt attempt/completion or a group of Rtt
+                attempts/completions that produce one operation table entry.
+
+        ARR Protocol Definition:
+
+        The format of the RTT Asymmetric Request/Responses (ARR) protocol is as
+        follows:
+
+        The ARR Header (total of 12 octets):
+
+        4 octet -> eyecatcher: 'WxYz'
+        1 octet -> version   : 0x01 - protocol version
+        1 octet -> command   : 0x01 - logoff request
+                               0x02 - echo request
+                               0x03 - echo response
+                               0x04 - software version request
+                               0x05 - software version response
+        2 octet -> sequence number (Network Byte Order)
+        4 octet -> response data size (Network Byte Order)
+
+        The ARR Data:
+
+        n octets -> request/response data: 'AB..ZAB..ZAB..'
+
+        For software version request/response the protocol version octet will
+        contain the version number of the responder. Thus the sequence number,
+        etc will not be included.
+
+        The response data should be appended to the origin request data. This
+        allows data verification to check the data that flows in both
+        directions. If the response data size is smaller than the request data
+        size the original request data will be truncated.
+
+        An example would be:
+            Request:        /       Response:
+            'WxYz'          /       'WxYz'
+            0x01            /       0x01
+            0x02            /       0x03
+            0x0001          /       0x0001
+            0x00000008      /       0x00000008
+            'ABCDEF'        /       'ABCDEFGH'
+
+        NOTE:   We requested 8 bytes in the response and the response had
+                8 bytes. The size of the request data has no correlation to the
+                size of the response data.
+
+        NOTE:   For native RTT request/response (i.e. ipIcmpecho) operations
+                both the 'Header' and 'Data' will be included. Only the
+                'sequence number' in the Header will be valid.
+
+        NOTE:   For non-connection oriented protocol the initial RTT
+                request/response operation will be preceded with an RTT
+                request/response operation to the target address to force path
+                exploration and to prove connectivity. Statistics capture
+                table will omit these responses to prevent skewed results."
+    REVISION    "0401301800Z"
+    DESCRIPTION "Initial implementation."
+
+    ::= { telProdNpMonFeatures 6 }
+
+--
+--  Location of node teldatNsmMonMIB in TELDAT-MIB
+--
+
+-- telproducts          OBJECT IDENTIFIER   ::= { teldat 4 }
+-- telProductsNucleox   OBJECT IDENTIFIER   ::= { telproducts 1 }
+-- telProductsNpMonit   OBJECT IDENTIFIER   ::= { telProductsNucleox 2 }
+-- telProdNpMonFeatures OBJECT IDENTIFIER   ::= { telProductsNpMonit 4 }
+
+--
+--  Textual Conventions
+--
+
+--
+--  NsmRttOperation textual convention
+--
+
+NsmRttOperation ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "The following are specific NSM (RTT) operations for a particular
+        probe type:
+        httpGet(1)      - HTTP get request
+        httpRaw(2)      - HTTP request with user defined payload
+        ftpGet(3)       - FTP get request
+        ftpPassive(4)   - FTP passive mode
+        ftpActive(5)    - FTP active mode."
+
+    SYNTAX  INTEGER
+    {
+        httpGet(1),
+        httpRaw(2),
+        ftpGet(3),
+        ftpPassive(4),
+        ftpActive(5)
+    }
+
+--
+--  Round Trip Time (RTT) operation completion sense code textual convention
+--
+
+NsmRttResponseSense ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "These are the defined values for a completion status of a
+        RTT operation.
+
+        ok(1)                       - a valid completion occurred and timed
+                                      successfully
+        disconnected(2)             - the operation did not occur because the
+                                      connection to the target was lost
+        overThreshold(3)            - a valid completion was received but the
+                                      completion time exceeded a threshold value
+        timeout(4)                  - an operation timed out; no completion time
+                                      recorded
+        busy(5)                     - the operation did not occur because a
+                                      previous operation is still outstanding
+        notConnected(6)             - the operation did not occur because no
+                                      connection (session) exists with the
+                                      target
+        dropped(7)                  - the operation did not occur due to lack of
+                                      internal resource
+        sequenceError(8)            - a completed operation did not contain the
+                                      correct sequence id; no completion time
+                                      recorded
+        verifyError(9)              - a completed operation was received, but
+                                      the data it contained did not match the
+                                      expected data; no completion time recorded
+        applicationSpecific(10)     - the application generating the operation
+                                      had a specific error
+        dnsServerTimeout(11)        - DNS Server Timeout
+        tcpConnectTimeout(12)       - TCP Connect Timeout
+        httpTransactionTimeout(13)  - HTTP Transaction Timeout
+        dnsQueryError(14)           - DNS Query error (because of unknown
+                                      address etc.,)
+        httpError(15)               - HTTP Response StatusCode is not OK (200)
+                                      then HTTP error is set.
+        error(16)                   - if there are socket failures or some other
+                                      errors not relevant to the actual probe,
+                                      they are recorded under this error."
+    SYNTAX  INTEGER
+    {
+        ok(1),
+        disconnected(2),
+        overThreshold(3),
+        timeout(4),
+        busy(5),
+        notConnected(6),
+        dropped(7),
+        sequenceError(8),
+        verifyError(9),
+        applicationSpecific(10),
+        dnsServerTimeout(11),
+        tcpConnectTimeout(12),
+        httpTransactionTimeout(13),
+        dnsQueryError(14),
+        httpError(15),
+        error(16)
+    }
+
+--
+--  Round Trip Time (RTT) operation type (NSM operation type) textual convention
+--
+
+NsmRttType ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Specifies the type of RTT operation to be performed.
+
+        The value 'echo' will cause the RTT application to perform a timed echo
+        request/response operation directed at the 'NsmRttTargetAddress'.
+
+        The value 'http' will cause the RTT application to perform a download
+        of the object specified in the URL.
+
+        The value 'jitter' will cause the RTT application to perform delay
+        variance analysis."
+    SYNTAX  INTEGER
+    {
+        echo(1),
+        http(7),
+        jitter(9)
+    }
+
+--
+--  NSM Round Trip Time (RTT) protocol textual convention
+--
+
+NsmRttProtocol ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Specifies the protocol to be used to perform the timed echo
+        request/response.  The following protocols are defined:
+
+        NOTE:   All protocols that end in 'Appl' will support the asymetric
+                request/response (ARR) protocol. See the DESCRIPTION of
+                teldatNsmMonMIB for a complete description of the asymetric
+                request/response protocol.
+
+        notApplicable   - no protocol is defined
+        ipIcmpEcho      - uses Echo Request/Reply as defined in RFC792 for
+                          Internet Protocol networks
+        httpAppl        - uses udp for name resolution, tcp connect and
+                          tcp data transfer mechanisms for HTTP data download
+                          from a particular HTTP Server
+        jitterAppl      - uses udp for packet transfers."
+    SYNTAX  INTEGER
+    {
+        notApplicable(1),
+        ipIcmpEcho(2),
+        httpAppl(25),
+        jitterAppl(27)
+    }
+
+--
+--  NSM Round Trip Time (RTT) target address textual convention
+--
+
+NsmRttTargetAddress ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "A string which specifies the address of the target for the
+        RTT (NSM) operation; a value of NsmRttTargetAddress which corresponds
+        to a 'broadcast' address is disallowed.
+
+        The interpretation of this string depends on the type of RTT operation
+        selected, as specified by NsmRttProtocol; consequently, this object
+        cannot be created until NsmRttProtocol has been created (or must be in
+        the same PDU).
+
+        For all protocols supported until this moment it is interpreted as
+        4 octets."
+    SYNTAX  OCTET STRING
+
+--
+--  Network Service Monitor (NSM) MIB Objects
+--
+
+teldatNsmObjects    OBJECT IDENTIFIER   ::= { teldatNsmMonMIB 1 }
+
+--
+--  Network Service Monitor (NSM) Object Groups
+--
+
+teldatNsmAppl       OBJECT IDENTIFIER   ::= { teldatNsmObjects 1 }
+teldatNsmCtrl       OBJECT IDENTIFIER   ::= { teldatNsmObjects 2 }
+teldatNsmStats      OBJECT IDENTIFIER   ::= { teldatNsmObjects 3 }
+teldatNsmHistory    OBJECT IDENTIFIER   ::= { teldatNsmObjects 4 }
+teldatNsmLatestOper OBJECT IDENTIFIER   ::= { teldatNsmObjects 5 }
+
+--
+--  Global NSM monitoring variables
+--
+
+teldatNsmApplVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Network Service Monitor (or RTT Teldat) application version string.
+
+        The format will be:
+
+        'Version.Release.Patch-Level: Textual-Description'
+
+        For example:  '1.0.0: Initial RTT Teldat Application'"
+    ::= { teldatNsmAppl 1 }
+
+teldatNsmApplNumCtrlAdminEntry OBJECT-TYPE
+    SYNTAX      Integer32(1..500)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object defines the maximum number of entries that can be added to
+        the teldatNsmCtrlAdminTable. It is a fixed value: 32."
+    ::= { teldatNsmAppl 4 }
+
+--
+--  NSM Configuration Definitions
+--
+
+teldatNsmCtrlAdminTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmCtrlAdminEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of NSM Round Trip Time (RTT) monitoring definitions.
+
+        The NSM administration control is in multiple tables.
+        This first table, is used to create a conceptual RTT control row.
+        The following tables contain objects which configure scheduling and
+        information gathering. All of these tables will create the same
+        conceptual RTT control row as this table using this table index as
+        their own index.
+
+        This table is limited in size by the agent implementation. The object
+        teldatNsmApplNumCtrlAdminEntry will reflect this tables maximum number
+        of entries."
+    ::= { teldatNsmCtrl 1 }
+
+teldatNsmCtrlAdminEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmCtrlAdminEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that define a conceptual RTT control row."
+    INDEX       { teldatNsmCtrlAdminIndex }
+    ::= { teldatNsmCtrlAdminTable 1 }
+
+TeldatNsmCtrlAdminEntry ::= SEQUENCE
+{
+    teldatNsmCtrlAdminIndex         Integer32,
+    teldatNsmCtrlAdminOwner         OwnerString,
+    teldatNsmCtrlAdminTag           DisplayString,
+    teldatNsmCtrlAdminRttType       NsmRttType,
+    teldatNsmCtrlAdminThreshold     Integer32,
+    teldatNsmCtrlAdminFrequency     Integer32,
+    teldatNsmCtrlAdminTimeout       Integer32,
+    teldatNsmCtrlAdminVerifyData    TruthValue,
+    teldatNsmCtrlAdminStatus        RowStatus,
+    teldatNsmCtrlAdminNvgen         TruthValue
+}
+
+teldatNsmCtrlAdminIndex OBJECT-TYPE
+    SYNTAX      Integer32(1..2147483647)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Uniquely identifies a row in the teldatNsmCtrlAdminTable.
+
+        This is a pseudo-random number selected by the management station when
+        creating a row via the teldatNsmCtrlAdminStatus object. If the
+        pseudo-random number is already in use a 'genericError' return code
+        will be returned when set operation is attempted."
+    ::= { teldatNsmCtrlAdminEntry 1 }
+
+teldatNsmCtrlAdminOwner OBJECT-TYPE
+    SYNTAX      OwnerString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Identifies the entity that created this table row."
+    DEFVAL      { "" }
+    ::= { teldatNsmCtrlAdminEntry 2 }
+
+teldatNsmCtrlAdminTag OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..16))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A string which is used by a managing application to identify the
+        RTT target. This string could be inserted into trap notifications, but
+        has no other significance to the agent."
+    DEFVAL      { "" }
+    ::= { teldatNsmCtrlAdminEntry 3 }
+
+teldatNsmCtrlAdminRttType OBJECT-TYPE
+    SYNTAX      NsmRttType
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The type of NSM operation to be performed. This value must be set in
+        the same PDU or before setting any type specific configuration."
+    DEFVAL      { echo }
+    ::= { teldatNsmCtrlAdminEntry 4 }
+
+teldatNsmCtrlAdminThreshold OBJECT-TYPE
+    SYNTAX      Integer32(0..2147483647)
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object defines an administrative threshold limit. If the RTT
+        operation time exceeds this limit, the variables
+        teldatNsmCtrlOperOverThresholdOccurred,
+        teldatNsmHTTPStatsOverThresholds and
+        teldatNsmJitterStatsOverThresholds are updated."
+    DEFVAL      { 5000 }
+    ::= { teldatNsmCtrlAdminEntry 5 }
+
+teldatNsmCtrlAdminFrequency OBJECT-TYPE
+    SYNTAX      Integer32(0..604800)
+    UNITS       "seconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Specifies the duration between initiating each RTT operation.
+
+        This object cannot be set to a value which would be a shorter duration
+        than teldatNsmCtrlAdminTimeout.
+
+        When the NsmRttType specifies an operation that is synchronous in
+        nature, it may happen that the next RTT operation is blocked by a RTT
+        operation which has not yet completed.  In this case, the value of a
+        counter (teldatNsmStatsCollectBusies) in teldatNsmStatsCaptureTable is
+        incremented in lieu of initiating a RTT operation, and the next attempt
+        will occur at the next teldatNsmCtrlAdminFrequency expiration."
+    DEFVAL      { 60 }
+    ::= { teldatNsmCtrlAdminEntry 6 }
+
+teldatNsmCtrlAdminTimeout OBJECT-TYPE
+    SYNTAX      Integer32(0..604800000)
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Specifies the duration to wait for a RTT operation completion.
+        The value of this object cannot be set to a value which would specify
+        a duration exceeding teldatNsmCtrlAdminFrequency.
+
+        For connection oriented protocols, this may cause the connection to be
+        closed by the probe. Once closed, it will be assumed that the
+        connection reestablishment will be performed. To prevent unwanted
+        closure of connections, be sure to set this value to a realistic
+        connection timeout."
+    DEFVAL      { 5000 }
+    ::= { teldatNsmCtrlAdminEntry 7 }
+
+teldatNsmCtrlAdminVerifyData OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "When set to true, the resulting data in each RTT operation is compared
+        with the expected data. This includes checking header information (if
+        possible) and exact packet size. Any mismatch will be recorded in the
+        teldatNsmStatsCollectVerifyErrors object.
+
+        NsmRttTypes supported by now do not support this option, so the agent
+        will transition this object to false. It is the management applications
+        responsibility to check for this transition."
+    DEFVAL     { false }
+    ::= { teldatNsmCtrlAdminEntry 8 }
+
+teldatNsmCtrlAdminStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status of the conceptual RTT control row.
+
+        In order for this object to become active, the following
+        row objects must be defined:
+        - teldatNsmCtrlAdminRttType
+            Additionally:
+            - for echo probes
+                teldatNsmEchoAdminProtocol and
+                teldatNsmEchoAdminTargetAddress;
+            - for jitter probes
+                teldatNsmEchoAdminTargetAddress and
+                teldatNsmEchoAdminTargetPort;
+            - for http probe
+                teldatNsmEchoAdminURL
+
+        All other objects can assume default values. The conceptual RTT control
+        row will be placed into a 'pending' state (via the
+        teldatNsmCtrlOperState object) if teldatNsmScheduleAdminRttStartTime
+        is not specified.
+
+        Most conceptual RTT control row objects cannot be modified once this
+        conceptual RTT control row has been created. The objects that can
+        change are the following:
+
+        - Objects in the teldatNsmScheduleAdminTable can be modified only when
+          the value of this object is not 'active'.
+        - The teldatNsmCtrlOperState can be modified to control the state of
+          the probe.
+
+        Once this object is in 'active' status, it cannot be set to
+        'notInService' while the teldatNsmCtrlOperState is in 'active' state.
+        Thus the teldatNsmCtrlOperState object must be transitioned first.
+
+        This object can be set to 'destroy' from any value at any time."
+    ::= { teldatNsmCtrlAdminEntry 9 }
+
+teldatNsmCtrlAdminNvgen OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "When set to true, this entry will be shown in 'list config' command
+        and can be saved into Non-volatile memory. This variable is
+        not supported at the moment and always takes the value 'false'."
+    DEFVAL      { false }
+    ::= { teldatNsmCtrlAdminEntry 10 }
+
+--
+--  Echo Administration Table
+--
+
+teldatNsmEchoAdminTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmEchoAdminEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table that contains NSM Round Trip Time (RTT) specific definitions.
+
+        This table is controlled via the teldatNsmCtrlAdminTable. Entries in
+        this table are created via the teldatNsmCtrlAdminStatus object."
+    ::= { teldatNsmCtrl 2 }
+
+teldatNsmEchoAdminEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmEchoAdminEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects that define specific configuration for NsmRttType
+        conceptual RTT control rows."
+    INDEX       { teldatNsmCtrlAdminIndex }
+    ::= { teldatNsmEchoAdminTable 1 }
+
+TeldatNsmEchoAdminEntry ::= SEQUENCE
+{
+    teldatNsmEchoAdminProtocol              NsmRttProtocol,
+    teldatNsmEchoAdminTargetAddress         NsmRttTargetAddress,
+    teldatNsmEchoAdminPktDataRequestSize    Integer32,
+    teldatNsmEchoAdminPktDataResponseSize   Integer32,
+    teldatNsmEchoAdminTargetPort            Integer32,
+    teldatNsmEchoAdminSourceAddress         NsmRttTargetAddress,
+    teldatNsmEchoAdminSourcePort            Integer32,
+    teldatNsmEchoAdminControlEnable         TruthValue,
+    teldatNsmEchoAdminTOS                   Integer32,
+    teldatNsmEchoAdminLSREnable             TruthValue,
+    teldatNsmEchoAdminTargetAddressString   DisplayString,
+    teldatNsmEchoAdminNameServer            NsmRttTargetAddress,
+    teldatNsmEchoAdminOperation             NsmRttOperation,
+    teldatNsmEchoAdminHTTPVersion           DisplayString,
+    teldatNsmEchoAdminURL                   DisplayString,
+    teldatNsmEchoAdminCache                 TruthValue,
+    teldatNsmEchoAdminInterval              Integer32,
+    teldatNsmEchoAdminNumPackets            Integer32,
+    teldatNsmEchoAdminProxy                 DisplayString,
+    teldatNsmEchoAdminString1               DisplayString,
+    teldatNsmEchoAdminString2               DisplayString,
+    teldatNsmEchoAdminString3               DisplayString,
+    teldatNsmEchoAdminString4               DisplayString,
+    teldatNsmEchoAdminString5               DisplayString,
+    teldatNsmEchoAdminMode                  NsmRttOperation
+}
+
+teldatNsmEchoAdminProtocol OBJECT-TYPE
+    SYNTAX      NsmRttProtocol
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Specifies the protocol to be used to perform the NSM RTT operation.
+        The following list defines what protocol should be used for each probe
+        type:
+
+        echo    - ipIcmpEcho
+        http    - httpAppl
+        jitter  - jitterAppl
+
+        When this protocol does not support the type, a 'genericError' error
+        will be returned."
+    DEFVAL      { notApplicable }
+    ::= { teldatNsmEchoAdminEntry 1 }
+
+teldatNsmEchoAdminTargetAddress OBJECT-TYPE
+    SYNTAX      NsmRttTargetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A string which specifies the address of the target."
+    DEFVAL      {"0.0.0.0"}
+    ::= { teldatNsmEchoAdminEntry 2 }
+
+teldatNsmEchoAdminPktDataRequestSize OBJECT-TYPE
+    SYNTAX      Integer32(0..16384)
+    UNITS       "octets"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object is used in echo (ipIcmpecho) and jitter probes, and
+        its value represents the native payload size.
+
+        REMEMBER:  The ARR Header overhead is not included in this value.
+
+        For echo probes the total packet size =
+        (IP header(20) + ICMP header(8) + 8 (internal timestamps) + request size).
+
+        For echo default request size is 28.
+        For jitter probe it is 32.
+
+        The minimum request size for echo is 28 bytes and for jitter it is 16.
+
+        For jitter probes the maximum request size is 1500."
+    DEFVAL      { 1 }
+    ::= { teldatNsmEchoAdminEntry 3 }
+
+teldatNsmEchoAdminPktDataResponseSize OBJECT-TYPE
+    SYNTAX      Integer32(0..16384)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object is not supported by protocols allowed at this moment."
+    DEFVAL      { 0 }
+    ::= { teldatNsmEchoAdminEntry 4 }
+
+teldatNsmEchoAdminTargetPort OBJECT-TYPE
+    SYNTAX      Integer32(0..65536)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object represents the target's port number. This object is
+        applicable to jitter probes."
+    DEFVAL      { 0 }
+    ::= { teldatNsmEchoAdminEntry 5 }
+
+teldatNsmEchoAdminSourceAddress OBJECT-TYPE
+    SYNTAX      NsmRttTargetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A string which specifies the IP address of the source. This object is
+        applicable to all supported probes."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 6 }
+
+teldatNsmEchoAdminSourcePort OBJECT-TYPE
+    SYNTAX      Integer32(0..65536)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object represents the source's port number. If this object is
+        not specified, the application will get a port allocated by the system.
+        This object is applicable to http probes."
+    DEFVAL      { 0 }
+    ::= { teldatNsmEchoAdminEntry 7 }
+
+teldatNsmEchoAdminControlEnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If this object is enabled, then NSM application will send control
+        messages to a responder, residing on the target router to respond to
+        the data request packets being sent by the source router.
+        This object is not applicable to echo and http probes.
+        This variable is not supported and it always takes the value 'true'."
+    DEFVAL      { true }
+    ::= { teldatNsmEchoAdminEntry 8 }
+
+teldatNsmEchoAdminTOS OBJECT-TYPE
+    SYNTAX      Integer32(0..255)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object represents the type of service octet in an IP header."
+    REFERENCE
+        "Refer to the following documents for TOS definition.
+        RFC791/1349  for IPv4, IPv6, draft-ietf-diffserv-header-02.txt."
+    DEFVAL      { 0 }
+    ::= { teldatNsmEchoAdminEntry 9 }
+
+teldatNsmEchoAdminLSREnable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "If this object is enabled then it means that the application
+        calculates response time for a specific path. This object is applicable
+        to echo probe only, but it is not supported and its value will be always
+        'false'."
+    DEFVAL      { false }
+    ::= { teldatNsmEchoAdminEntry 10 }
+
+teldatNsmEchoAdminTargetAddressString OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A string which specifies the address of the target. This string can be
+        in IP address format or a hostname.
+        This object is not applicable to supported probes."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 11 }
+
+teldatNsmEchoAdminNameServer OBJECT-TYPE
+    SYNTAX      NsmRttTargetAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+       "A string which specifies the IP address of the name-server.
+       This object is not applicable to supported probes."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 12 }
+
+teldatNsmEchoAdminOperation OBJECT-TYPE
+    SYNTAX      NsmRttOperation
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A code that represents the specific type of RTT operation.
+        This object is applicable to http probe only."
+    DEFVAL      { httpGet }
+  ::= { teldatNsmEchoAdminEntry 13 }
+
+teldatNsmEchoAdminHTTPVersion OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(3..10))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A string which specifies the version number of the HTTP Server.
+        The syntax for the version string is <major number>.<minor number>
+        An example would be 1.0, 1.1 etc.,.
+        This object is applicable to http probe only."
+    DEFVAL      { "1.0" }
+    ::= { teldatNsmEchoAdminEntry 14 }
+
+teldatNsmEchoAdminURL OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A string which represents the URL to which a HTTP probe should
+        communicate with.
+        This object is applicable to http probe only."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 15 }
+
+teldatNsmEchoAdminCache OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If this object is false then it means that HTTP request should
+        not download cached pages. This means that the request should
+        be forwarded to the origin server.
+        This object is applicable to http probe only, but it is not supported
+        by the application at the moment."
+    DEFVAL      { true }
+    ::= { teldatNsmEchoAdminEntry 16 }
+
+teldatNsmEchoAdminInterval OBJECT-TYPE
+    SYNTAX      Integer32(0..60000)
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This value represents the inter-packet delay between packets and is in
+        milliseconds.
+        This object is applicable to jitter probe only."
+    DEFVAL      { 20 }
+    ::= { teldatNsmEchoAdminEntry 17 }
+
+teldatNsmEchoAdminNumPackets OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This value represents the number of packets that need to be
+        transmitted. This value is currently used for Jitter probe.
+        This object is applicable to jitter probe only."
+    DEFVAL      { 10 }
+    ::= { teldatNsmEchoAdminEntry 18 }
+
+teldatNsmEchoAdminProxy OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This string represents the proxy server information.
+        This object is applicable to http probe only, but it is not supported
+        by the application at the moment."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 19 }
+
+teldatNsmEchoAdminString1 OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This string stores the content of HTTP raw request.
+        If the request cannot fit into String1 then it should be split and put
+        in Strings 1 through 5.
+        This object is applicable to http probe only, but it is not used by the
+        application at the moment."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 20 }
+
+teldatNsmEchoAdminString2 OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This string stores the content of HTTP raw request.
+        teldatNsmEchoAdminString1-5 are concatenated to form the HTTP raw
+        request used in the RTT operation.
+        This object is applicable to http probe only, but it is not used by the
+        application at the moment."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 21 }
+
+teldatNsmEchoAdminString3 OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This string stores the content of HTTP raw request.
+        teldatNsmEchoAdminString1-5 are concatenated to form the HTTP raw
+        request used in the RTT operation.
+        This object is applicable to http probe only, but it is not used by the
+        application at the moment."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 22 }
+
+teldatNsmEchoAdminString4 OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This string stores the content of HTTP raw request.
+        teldatNsmEchoAdminString1-5 are concatenated to form the HTTP raw
+        request used in the RTT operation.
+        This object is applicable to http probe only, but it is not used by the
+        application at the moment."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 23 }
+
+teldatNsmEchoAdminString5 OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This string stores the content of HTTP raw request.
+        teldatNsmEchoAdminString1-5 are concatenated to form the HTTP raw
+        request used in the RTT operation.
+        This object is applicable to http probe only, but it is not used by the
+        application at the moment."
+    DEFVAL      { "" }
+    ::= { teldatNsmEchoAdminEntry 24 }
+
+teldatNsmEchoAdminMode OBJECT-TYPE
+    SYNTAX      NsmRttOperation
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "A code that represents the specific type of RTT operation.
+        This object is not applicable to supported probes, and will always
+        take the value 'ftpPassive'."
+    DEFVAL      { ftpPassive }
+    ::= { teldatNsmEchoAdminEntry 25 }
+
+--
+--  Schedule Administration Table
+--
+
+teldatNsmScheduleAdminTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmScheduleAdminEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "A table of NSM Round Trip Time (RTT) monitoring scheduling specific
+       definitions.
+
+       This table is controlled via the teldatNsmCtrlAdminTable. Entries in
+       this table are created via the teldatNsmCtrlAdminStatus object."
+    ::= { teldatNsmCtrl 5 }
+
+teldatNsmScheduleAdminEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmScheduleAdminEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects that define specific configuration for the
+        scheduling of NSM RTT operations."
+    AUGMENTS    { teldatNsmCtrlAdminEntry }
+    ::= { teldatNsmScheduleAdminTable 1 }
+
+TeldatNsmScheduleAdminEntry ::= SEQUENCE
+{
+    teldatNsmScheduleAdminRttLife           Integer32,
+    teldatNsmScheduleAdminRttStartTime      TimeTicks,
+    teldatNsmScheduleAdminConceptRowAgeout  Integer32
+}
+
+teldatNsmScheduleAdminRttLife OBJECT-TYPE
+    SYNTAX      Integer32(0..2147483647)
+    UNITS       "seconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object value will be placed into the teldatNsmCtrlOperRttLife
+        object when the teldatNsmCtrlOperState object transitions to 'active'
+        or 'pending'.
+
+        The value 2147483647 has a special meaning. When this object is set to
+        2147483647, the teldatNsmCtrlOperRttLife object will not decrement.
+        And thus the life time will never end."
+    DEFVAL      { 3600 }
+    ::= { teldatNsmScheduleAdminEntry 1 }
+
+teldatNsmScheduleAdminRttStartTime OBJECT-TYPE
+    SYNTAX      TimeTicks
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This is the time when this conceptional row will activate.
+
+        This is the value of MIB-II's sysUpTime in the future. When sysUpTime
+        equals this value this object will cause the activation of a conceptual
+        RTT row.
+
+        There are two values with a special meaning:
+
+        - The first special value allows this conceptual RTT control row to
+          immediately transition the teldatNsmCtrlOperState object into 'active'
+          state when the teldatNsmCtrlAdminStatus object transitions to active.
+          This special value is defined to be a value of this object that, when
+          initially set, is 1.
+
+        - The second special value allows this conceptual RTT control row to
+          immediately transition the teldatNsmCtrlOperState object into
+          'pending' state when the teldatNsmCtrlAdminStatus object transitions
+          to active. Also, when the teldatNsmCtrlOperRttLife counts down to
+          zero (and not when set to zero), this special value causes this
+          conceptual RTT control row to retransition the teldatNsmCtrlOperState
+          object into 'pending' state. This special value is defined to be a
+          value of this object that, when initially set, is smaller than the
+          current sysUpTime. (With the exception of one, as defined in the
+          previous paragraph)."
+    DEFVAL      { 0 }
+    ::= { teldatNsmScheduleAdminEntry 2 }
+
+teldatNsmScheduleAdminConceptRowAgeout OBJECT-TYPE
+    SYNTAX      Integer32(0..2073600)
+    UNITS       "seconds"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The amount of time this conceptual Rtt control row will exist when not
+        in an 'active' teldatNsmCtrlOperState.
+        When this conceptual Rtt control row enters an 'active' state, this
+        timer will be reset and suspended. When this conceptual RTT control row
+        enters a state other than 'active', the timer will be restarted.
+
+        When this value is set to zero, this entry will never be aged out."
+    DEFVAL      { 3600 }
+    ::= { teldatNsmScheduleAdminEntry 3 }
+
+--
+--  Overall Operational values
+--
+
+teldatNsmCtrlOperTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmCtrlOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of which contains the Operational values for the probe, and
+        the conceptual RTT control row.
+
+        This table augments the teldatNsmCtrlAdminTable."
+    ::= { teldatNsmCtrl 9 }
+
+teldatNsmCtrlOperEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmCtrlOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects that describe the current state of probe, and the
+        conceptual RTT control row."
+    AUGMENTS    { teldatNsmCtrlAdminEntry }
+    ::= { teldatNsmCtrlOperTable 1 }
+
+TeldatNsmCtrlOperEntry ::= SEQUENCE
+{
+    teldatNsmCtrlOperModificationTime           TimeStamp,
+    teldatNsmCtrlOperDiagText                   DisplayString,
+    teldatNsmCtrlOperResetTime                  TimeStamp,
+    teldatNsmCtrlOperOctetsInUse                Gauge32,
+    teldatNsmCtrlOperConnectionLostOccurred     TruthValue,
+    teldatNsmCtrlOperTimeoutOccurred            TruthValue,
+    teldatNsmCtrlOperOverThresholdOccurred      TruthValue,
+    teldatNsmCtrlOperNumRtts                    Integer32,
+    teldatNsmCtrlOperRttLife                    Integer32,
+    teldatNsmCtrlOperState                      INTEGER
+}
+
+teldatNsmCtrlOperModificationTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object is updated whenever an object in the conceptual RTT control
+        row is changed or updated."
+    ::= { teldatNsmCtrlOperEntry 1 }
+
+teldatNsmCtrlOperDiagText OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..51))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A string which can be used as an aid in tracing problems. The content
+        of this field will depend on the type of target
+        (teldatNsmEchoAdminProtocol).
+
+        For all protocols supported by now, this value will be null.
+
+        It is primarily intended that this object contains information which
+        has significance to a human operator."
+    DEFVAL      { "" }
+    ::= { teldatNsmCtrlOperEntry 2 }
+
+teldatNsmCtrlOperResetTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object is set when the teldatNsmCtrlOperState is set to reset."
+    ::= { teldatNsmCtrlOperEntry 3 }
+
+teldatNsmCtrlOperOctetsInUse OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object is the number of octets currently in use by this composite
+        conceptual RTT row. A composite conceptual row include the control and
+        statistics conceptual rows combined. (All octets that are addressed via
+        the teldatNsmCtrlAdminIndex in this MIB.)"
+    ::= { teldatNsmCtrlOperEntry 4 }
+
+teldatNsmCtrlOperConnectionLostOccurred OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object will only change its value when the NsmRttType is 'echo'.
+
+        This object is set to true when the RTT connection fails to be
+        established or is lost, and set to false when a connection is
+        reestablished."
+    DEFVAL      { false }
+    ::= { teldatNsmCtrlOperEntry 5 }
+
+teldatNsmCtrlOperTimeoutOccurred OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object will change its value for all NsmRttTypes.
+
+        This object is set to true when an operation times out, and set to false
+        when an operation completes under teldatNsmCtrlAdminTimeout."
+    DEFVAL      { false }
+    ::= { teldatNsmCtrlOperEntry 6 }
+
+teldatNsmCtrlOperOverThresholdOccurred OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object will change its value for all NsmRttTypes.
+
+        This object is changed by operation completion times over threshold."
+    DEFVAL      { false }
+    ::= { teldatNsmCtrlOperEntry 7 }
+
+teldatNsmCtrlOperNumRtts OBJECT-TYPE
+    SYNTAX      Integer32(0..2147483647)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This is the total number of probe operations that have been attempted.
+
+        This value is incremented for each start of an RTT operation.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object.
+
+        This value is not effected by the rollover of a statistics
+        hourly group."
+    ::= { teldatNsmCtrlOperEntry 8 }
+
+teldatNsmCtrlOperRttLife OBJECT-TYPE
+    SYNTAX      Integer32(0..2147483647)
+    UNITS       "seconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object is decremented every second, until it reaches zero. When
+        the value of this object is zero RTT operations for this row are
+        suspended. This object will either reach zero by a countdown or it will
+        transition to zero via setting the teldatNsmCtrlOperState.
+
+        When this object reaches zero the agent needs to transition the
+        teldatNsmCtrlOperState to 'inactive'.
+
+        REMEMBER: The value 2147483647 has a special meaning. When this object
+        has the value 2147483647, this object will not decrement. And thus the
+        life time will never."
+    ::= { teldatNsmCtrlOperEntry 9 }
+
+teldatNsmCtrlOperState OBJECT-TYPE
+    SYNTAX      INTEGER
+    {
+        reset(1),
+        orderlyStop(2),
+        immediateStop(3),
+        pending(4),
+        inactive(5),
+        active(6),
+        restart(7)
+    }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The RttMonOperStatus object is used to manage the 'state' of the probe
+        that is implementing this conceptual RTT control row.
+
+        This status object has six defined values:
+
+        reset(1)            - Reset this entry; transition to 'pending'.
+        orderlyStop(2)      - Shutdown this entry at the end of the next RTT
+                              operation attempt; transition to 'inactive'.
+        immediateStop(3)    - Shutdown this entry immediately (if possible);
+                              transition to 'inactive'.
+        pending(4)          - This value is not settable and this conceptual
+                              RTT control row is waiting for further control
+                              via the teldatNsmScheduleAdminTable. This object
+                              can transition to this value via two mechanisms:
+                              first by reseting this object, and second by
+                              creating a conceptual RTT control row with the
+                              teldatNsmScheduleAdminRttStartTime object with
+                              its special value.
+        inactive(5)         - This value is not settable and this conceptual
+                              RTT control row is waiting for further control via
+                              the teldatNsmScheduleAdminTable. This object can
+                              transition to this value via two mechanisms:
+                              first by setting this object to 'orderlyStop' or
+                              'immediateStop', second by the
+                              teldatNsmCtrlOperRttLife object reaching zero.
+        active(6)           - This value is not settable and this conceptual
+                              RTT control row is currently active.
+        restart(7)          - This value is only settable when the state is
+                              active. It clears the data of this entry and
+                              remain on active state.
+
+        The probes action when this object is set to 'reset':
+        - All rows in teldatNsmStatsCaptureTable that relate to this conceptual
+          RTT control row (only 1 in current implementation) are destroyed.
+        - A single new teldatNsmStatsCaptureTable row is created.
+        - teldatNsmCtrlOperRttLife is set to teldatNsmScheduleAdminRttLife.
+        - teldatNsmCtrlOperNumRtts is set to zero.
+        - teldatNsmCtrlOperTimeoutOccurred,
+          teldatNsmCtrlOperOverThresholdOccurred, and
+          teldatNsmCtrlOperConnectionLostOccurred are set to false.
+        - The next RTT operation is controlled by the objects in the
+          teldatNsmScheduleAdminTable.
+        - All open connections must be maintained.
+
+        This can be used to synchronize various RTT definitions, so that the
+        RTT requests occur simultaneously, or as simultaneously as possible.
+
+        The probes action when this object transitions to 'inactive' (via
+        setting this object to 'orderlyStop' or 'immediateStop' or by
+        teldatNsmCtrlOperRttLife reaching zero):
+        - All statistics and collection information table entries will be
+          closed and kept.
+        - teldatNsmCtrlOperTimeoutOccurred,
+          teldatNsmCtrlOperOverThresholdOccurred, and
+          teldatNsmCtrlOperConnectionLostOccurred are set to false.
+        - The next RTT request is controlled by the objects in the
+          teldatNsmScheduleAdminTable.
+        - All open connections are to be closed and cleanup.
+
+                                teldatNsmCtrlOperState
+                                        STATE
+                         +-------------------------------------------+
+                         |      A       |       B      |      C      |
+            ACTION       |  'pending'   |  'inactive'  |   'active'  |
+        +----------------+--------------+--------------+-------------+
+        | OperState set  |    noError   |inconsistent- |   noError   |
+        |  to 'reset'    |              | Value        |             |
+        |                |    -> A      |              |   -> A      |
+        +----------------+--------------+--------------+-------------+
+        | OperState set  |    noError   |    noError   |   noError   |
+        |to 'orderlyStop'|    -> B      |    -> B      |   -> B      |
+        |     or to      |              |              |             |
+        |'immediateStop' |              |              |             |
+        +----------------+--------------+--------------+-------------+
+        | AdminStatus    |    -> C      |    -> C      |   see (1)   |
+        | transitions to |              |              |             |
+        | 'active' &     |              |              |             |
+        | RttStartTime is|              |              |             |
+        | special value  |              |              |             |
+        | of one.        |              |              |             |
+        +----------------+--------------+--------------+-------------+
+        | AdminStatus    |    -> A      |    -> A      |   see (1)   |
+        | transitions to |              |              |             |
+        | 'active' &     |              |              |             |
+        | RttStartTime is|              |              |             |
+        | special value  |              |              |             |
+        | of less than   |              |              |             |
+        | current time,  |              |              |             |
+        | excluding one. |              |              |             |
+        +----------------+--------------+--------------+-------------+
+        | AdminStatus    |    -> A      |    -> B      |   see (2)   |
+        | transitions to |              |              |             |
+        | 'notInService' |              |              |             |
+        +----------------+--------------+--------------+-------------+
+        | AdminStatus    |    -> B      |    -> B      |   -> B      |
+        | transitions to |              |              |             |
+        | 'delete'       |              |              |             |
+        +----------------+--------------+--------------+-------------+
+        | AdminStatus is |    -> C      |    -> C      |   -> C      |
+        | 'active' & the |              |              |   see (3)   |
+        | RttStartTime   |              |              |             |
+        | arrives        |              |              |             |
+        +----------------+--------------+--------------+-------------+
+        |   RowAgeout    |    -> B      |    -> B      |   -> B      |
+        |    expires     |              |              |             |
+        +----------------+--------------+--------------+-------------+
+        |  OperRttLife   |    N/A       |    N/A       |   -> B      |
+        | counts down to |              |              |             |
+        | zero           |              |              |             |
+        +----------------+--------------+--------------+-------------+
+
+        (1) - teldatNsmCtrlOperState must have transitioned to 'inactive' or
+              'pending' before the teldatNsmCtrlAdminStatus can transition to
+              'active'. See (2).
+        (2) - teldatNsmCtrlAdminStatus cannot transition to 'notInService'
+              unless teldatNsmCtrlOperState has been previously forced to
+              'inactive' or 'pending'.
+        (3) - When this happens the teldatNsmCtrlOperRttLife will not be
+              updated with the teldatNsmScheduleAdminRttLife.
+
+        NOTE: In order for all objects in a PDU to be set at the same time,
+        this object can not be part of a multi-bound PDU."
+    ::= { teldatNsmCtrlOperEntry 10 }
+
+--
+--  Latest RTT operation values
+--
+
+teldatNsmLatestRttOperTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmLatestRttOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of which contains the status of latest RTT (NSM) operation.
+
+        This table augments the RTT definition table, teldatNsmCtrlAdminTable."
+    ::= { teldatNsmCtrl 10 }
+
+teldatNsmLatestRttOperEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmLatestRttOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects that record the latest RTT (NSM) operation."
+    AUGMENTS    { teldatNsmCtrlAdminEntry }
+    ::= { teldatNsmLatestRttOperTable 1 }
+
+TeldatNsmLatestRttOperEntry ::= SEQUENCE
+{
+    teldatNsmLatestRttOperCompletionTime        Gauge32,
+    teldatNsmLatestRttOperSense                 NsmRttResponseSense,
+    teldatNsmLatestRttOperApplSpecificSense     Integer32,
+    teldatNsmLatestRttOperSenseDescription      DisplayString,
+    teldatNsmLatestRttOperTime                  TimeStamp,
+    teldatNsmLatestRttOperAddress               NsmRttTargetAddress
+}
+
+teldatNsmLatestRttOperCompletionTime OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The completion time of the latest RTT (NSM) operation successfully
+        completed."
+    ::= { teldatNsmLatestRttOperEntry 1 }
+
+teldatNsmLatestRttOperSense OBJECT-TYPE
+    SYNTAX      NsmRttResponseSense
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A sense code for the completion status of the latest RTT (NSM)
+        operation."
+    ::= { teldatNsmLatestRttOperEntry 2 }
+
+teldatNsmLatestRttOperApplSpecificSense OBJECT-TYPE
+    SYNTAX      Integer32(1001..2147483647)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "An application specific sense code for the completion status of the
+        latest RTT operation. This object will only be valid when the
+        teldatNsmLatestRttOperSense object is set to 'applicationSpecific'.
+        Otherwise, this object's value is not valid."
+    ::= { teldatNsmLatestRttOperEntry 3 }
+
+teldatNsmLatestRttOperSenseDescription OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A sense description for the completion status of the latest RTT (NSM)
+        operation when the teldatNsmLatestRttOperSense object is set to
+        'applicationSpecific'."
+    ::= { teldatNsmLatestRttOperEntry 4 }
+
+teldatNsmLatestRttOperTime OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of the agent system time at the time of the latest RTT (NSM)
+        operation."
+    ::= { teldatNsmLatestRttOperEntry 5 }
+
+teldatNsmLatestRttOperAddress OBJECT-TYPE
+    SYNTAX      NsmRttTargetAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This is a string which specifies the address of the target for this
+        RTT (NSM) operation. This address will be just the
+        teldatNsmEchoAdminTargetAddress address.
+
+        See teldatNsmEchoAdminTargetAddress for a complete description."
+    ::= { teldatNsmLatestRttOperEntry 6 }
+
+--
+--  LatestHTTPOper Table
+--
+
+teldatNsmLatestHTTPOperTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmLatestHTTPOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table which contains the status of latest HTTP RTT operation."
+    ::= { teldatNsmLatestOper 1 }
+
+teldatNsmLatestHTTPOperEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmLatestHTTPOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects that record the latest HTTP RTT operation. This
+        entry is created automatically after the teldatNsmCtrlAdminEntry
+        is created. Also the entry is automatically deleted when
+        teldatNsmCtrlAdminEntry is deleted."
+    INDEX       { teldatNsmCtrlAdminIndex }
+    ::= { teldatNsmLatestHTTPOperTable 1 }
+
+TeldatNsmLatestHTTPOperEntry ::= SEQUENCE
+{
+    teldatNsmLatestHTTPOperRTT                  Gauge32,
+    teldatNsmLatestHTTPOperDNSRTT               Gauge32,
+    teldatNsmLatestHTTPOperTCPConnectRTT        Gauge32,
+    teldatNsmLatestHTTPOperTransactionRTT       Gauge32,
+    teldatNsmLatestHTTPOperMessageBodyOctets    Gauge32,
+    teldatNsmLatestHTTPOperSense                NsmRttResponseSense,
+    teldatNsmLatestHTTPErrorSenseDescription    DisplayString
+}
+
+teldatNsmLatestHTTPOperRTT OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Round Trip Time taken to perform HTTP operation. This value is the
+        sum of DNSRTT, TCPConnectRTT and TransactionRTT."
+    ::= { teldatNsmLatestHTTPOperEntry 1 }
+
+teldatNsmLatestHTTPOperDNSRTT OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Round Trip Time taken to perform DNS query within the HTTP operation.
+        If an IP Address is specified in the URL, then DNSRTT is 0."
+    ::= { teldatNsmLatestHTTPOperEntry 2 }
+
+teldatNsmLatestHTTPOperTCPConnectRTT OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Round Trip Time taken to connect to the HTTP server."
+    ::= { teldatNsmLatestHTTPOperEntry 3 }
+
+teldatNsmLatestHTTPOperTransactionRTT OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Round Trip Time taken to download the object specified by the URL."
+    ::= { teldatNsmLatestHTTPOperEntry 4 }
+
+teldatNsmLatestHTTPOperMessageBodyOctets OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The size of the message body received as a response to the HTTP
+        request."
+    ::= { teldatNsmLatestHTTPOperEntry 5 }
+
+teldatNsmLatestHTTPOperSense OBJECT-TYPE
+    SYNTAX      NsmRttResponseSense
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "An application specific sense code for the completion status of the
+       latest RTT (NSM HTTP) operation."
+    ::= { teldatNsmLatestHTTPOperEntry 6 }
+
+teldatNsmLatestHTTPErrorSenseDescription OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "An sense description for the completion status of the latest RTT
+        (NSM HTTP) operation."
+    ::= { teldatNsmLatestHTTPOperEntry 7 }
+
+--
+--  LatestJitterOper Table
+--
+
+teldatNsmLatestJitterOperTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmLatestJitterOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table which contains the status of latest Jitter operation."
+    ::= { teldatNsmLatestOper 2 }
+
+teldatNsmLatestJitterOperEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmLatestJitterOperEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects that record the latest Jitter operation."
+    INDEX       { teldatNsmCtrlAdminIndex }
+    ::= { teldatNsmLatestJitterOperTable 1 }
+
+TeldatNsmLatestJitterOperEntry ::= SEQUENCE
+{
+    teldatNsmLatestJitterOperNumOfRTT               Gauge32,
+    teldatNsmLatestJitterOperRTTSum                 Gauge32,
+    teldatNsmLatestJitterOperRTTSum2                Gauge32,
+    teldatNsmLatestJitterOperRTTMin                 Gauge32,
+    teldatNsmLatestJitterOperRTTMax                 Gauge32,
+    teldatNsmLatestJitterOperMinOfPositivesSD       Gauge32,
+    teldatNsmLatestJitterOperMaxOfPositivesSD       Gauge32,
+    teldatNsmLatestJitterOperNumOfPositivesSD       Gauge32,
+    teldatNsmLatestJitterOperSumOfPositivesSD       Gauge32,
+    teldatNsmLatestJitterOperSum2PositivesSD        Gauge32,
+    teldatNsmLatestJitterOperMinOfNegativesSD       Gauge32,
+    teldatNsmLatestJitterOperMaxOfNegativesSD       Gauge32,
+    teldatNsmLatestJitterOperNumOfNegativesSD       Gauge32,
+    teldatNsmLatestJitterOperSumOfNegativesSD       Gauge32,
+    teldatNsmLatestJitterOperSum2NegativesSD        Gauge32,
+    teldatNsmLatestJitterOperMinOfPositivesDS       Gauge32,
+    teldatNsmLatestJitterOperMaxOfPositivesDS       Gauge32,
+    teldatNsmLatestJitterOperNumOfPositivesDS       Gauge32,
+    teldatNsmLatestJitterOperSumOfPositivesDS       Gauge32,
+    teldatNsmLatestJitterOperSum2PositivesDS        Gauge32,
+    teldatNsmLatestJitterOperMinOfNegativesDS       Gauge32,
+    teldatNsmLatestJitterOperMaxOfNegativesDS       Gauge32,
+    teldatNsmLatestJitterOperNumOfNegativesDS       Gauge32,
+    teldatNsmLatestJitterOperSumOfNegativesDS       Gauge32,
+    teldatNsmLatestJitterOperSum2NegativesDS        Gauge32,
+    teldatNsmLatestJitterOperPacketLossSD           Gauge32,
+    teldatNsmLatestJitterOperPacketLossDS           Gauge32,
+    teldatNsmLatestJitterOperPacketOutOfSequence    Gauge32,
+    teldatNsmLatestJitterOperPacketMIA              Gauge32,
+    teldatNsmLatestJitterOperPacketLateArrival      Gauge32,
+    teldatNsmLatestJitterOperSense                  NsmRttResponseSense,
+    teldatNsmLatestJitterErrorSenseDescription      DisplayString,
+    teldatNsmLatestJitterOperOWSumSD                Gauge32,
+    teldatNsmLatestJitterOperOWSum2SD               Gauge32,
+    teldatNsmLatestJitterOperOWMinSD                Gauge32,
+    teldatNsmLatestJitterOperOWMaxSD                Gauge32,
+    teldatNsmLatestJitterOperOWSumDS                Gauge32,
+    teldatNsmLatestJitterOperOWSum2DS               Gauge32,
+    teldatNsmLatestJitterOperOWMinDS                Gauge32,
+    teldatNsmLatestJitterOperOWMaxDS                Gauge32,
+    teldatNsmLatestJitterOperNumOfOW                Gauge32
+}
+
+teldatNsmLatestJitterOperNumOfRTT OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of RTT's that were successfully measured."
+    ::= { teldatNsmLatestJitterOperEntry 1 }
+
+teldatNsmLatestJitterOperRTTSum OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of Jitter RTT's that are successfully measured."
+    ::= { teldatNsmLatestJitterOperEntry 2 }
+
+teldatNsmLatestJitterOperRTTSum2 OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's that are successfully measured."
+    ::= { teldatNsmLatestJitterOperEntry 3 }
+
+teldatNsmLatestJitterOperRTTMin OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of RTT's that were successfully measured."
+    ::= { teldatNsmLatestJitterOperEntry 4 }
+
+teldatNsmLatestJitterOperRTTMax OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of RTT's that were successfully measured."
+    ::= { teldatNsmLatestJitterOperEntry 5 }
+
+teldatNsmLatestJitterOperMinOfPositivesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all positive jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 6 }
+
+teldatNsmLatestJitterOperMaxOfPositivesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all positive jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 7 }
+
+teldatNsmLatestJitterOperNumOfPositivesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all positive jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 8 }
+
+teldatNsmLatestJitterOperSumOfPositivesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT's of all positive jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 9 }
+
+teldatNsmLatestJitterOperSum2PositivesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of square of RTT's of all positive jitter values from packets
+        sent from source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 10 }
+
+teldatNsmLatestJitterOperMinOfNegativesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of absolute values of all negative jitter values from
+        packets sent from source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 11 }
+
+teldatNsmLatestJitterOperMaxOfNegativesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of absolute values of all negative jitter values from
+        packets sent from source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 12 }
+
+teldatNsmLatestJitterOperNumOfNegativesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all negative jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 13 }
+
+teldatNsmLatestJitterOperSumOfNegativesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of all negative jitter values from packets sent from source
+        to destination."
+    ::= { teldatNsmLatestJitterOperEntry 14 }
+
+teldatNsmLatestJitterOperSum2NegativesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of square of RTT's of all negative jitter values from packets
+        sent from source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 15 }
+
+teldatNsmLatestJitterOperMinOfPositivesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 16 }
+
+teldatNsmLatestJitterOperMaxOfPositivesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 17 }
+
+teldatNsmLatestJitterOperNumOfPositivesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 18 }
+
+teldatNsmLatestJitterOperSumOfPositivesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT's of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 19 }
+
+teldatNsmLatestJitterOperSum2PositivesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's of all positive jitter values from packets
+        sent from destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 20 }
+
+teldatNsmLatestJitterOperMinOfNegativesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 21 }
+
+teldatNsmLatestJitterOperMaxOfNegativesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 22 }
+
+teldatNsmLatestJitterOperNumOfNegativesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 23 }
+
+teldatNsmLatestJitterOperSumOfNegativesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT's of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 24 }
+
+teldatNsmLatestJitterOperSum2NegativesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's of all negative jitter values from packets
+        sent from destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 25 }
+
+teldatNsmLatestJitterOperPacketLossSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets lost when sent from source to destination."
+    ::= { teldatNsmLatestJitterOperEntry 26 }
+
+teldatNsmLatestJitterOperPacketLossDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets lost when sent from destination to source."
+    ::= { teldatNsmLatestJitterOperEntry 27 }
+
+teldatNsmLatestJitterOperPacketOutOfSequence OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets arrived out of sequence."
+    ::= { teldatNsmLatestJitterOperEntry 28 }
+
+teldatNsmLatestJitterOperPacketMIA OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets that are lost for which we cannot determine
+        the direction."
+    ::= { teldatNsmLatestJitterOperEntry 29 }
+
+teldatNsmLatestJitterOperPacketLateArrival OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets that arrived after the timeout."
+    ::= { teldatNsmLatestJitterOperEntry 30 }
+
+teldatNsmLatestJitterOperSense OBJECT-TYPE
+    SYNTAX      NsmRttResponseSense
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "An application specific sense code for the completion status of the
+        latest Jitter RTT operation."
+    ::= { teldatNsmLatestJitterOperEntry 31 }
+
+teldatNsmLatestJitterErrorSenseDescription OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "An sense description for the completion status of the latest Jitter
+        RTT operation. It is a zero-length string in current implementation."
+  ::= { teldatNsmLatestJitterOperEntry 32 }
+
+teldatNsmLatestJitterOperOWSumSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of one way latency from source to destination. This variable is
+        not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 33 }
+
+teldatNsmLatestJitterOperOWSum2SD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of one way latency from source to destination.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 34 }
+
+teldatNsmLatestJitterOperOWMinSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all one way latency from source to destination.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 35 }
+
+teldatNsmLatestJitterOperOWMaxSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all one way latency from source to destination.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 36 }
+
+teldatNsmLatestJitterOperOWSumDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of one way latency from destination to source. This variable is
+        not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 37 }
+
+teldatNsmLatestJitterOperOWSum2DS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of one way latency from destination to source.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 38 }
+
+teldatNsmLatestJitterOperOWMinDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all one way latency from destination to source.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 39 }
+
+teldatNsmLatestJitterOperOWMaxDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all one way latency from destination to source.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 40 }
+
+teldatNsmLatestJitterOperNumOfOW OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of successful one way latency measurements. This variable is
+        not supported in current implementation."
+    ::= { teldatNsmLatestJitterOperEntry 41 }
+
+--
+--  Statistics Capture Table
+--
+
+teldatNsmStatsCaptureTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmStatsCaptureEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The statistics capture database.
+
+        The statistics capture table contains summarized information of the
+        results for a conceptual RTT control row.  A rolling accumulated
+        history of this information is maintained in a series of hourly
+        'group(s)'. Each 'group' contains a series of 'path(s)', each 'path'
+        contains a series of 'hop(s)', each 'hop' contains a series of
+        'statistics distribution bucket(s)'.
+
+        In current implementation, the rolling accumulated information history
+        is maintained only in one hourly 'group'; each 'group' will contained
+        only one 'path', each path one 'hop', and each 'hop' one 'statistics
+        distribution bucket'.
+
+        Each conceptual statistics row has a current hourly group, into which
+        RTT results are accumulated. At the end of each hour a new hourly group
+        is created which then becomes current. The counters and accumulators in
+        the new group are initialized to zero. The previous group(s) is kept in
+        the table until the table contains the maximum number of groups
+        established for the conceptual statistics row: in current implementation
+        only an hourly 'group' is maintained; at this point, the oldest group
+        is discarded and is replaced by the newly created one (as only one group
+        is kept, previously groups are deleted). The hourly group is uniquely
+        identified by the teldatNsmStatsCaptureStartTimeIndex object.
+
+        If the activity for a conceptual RTT control row ceases because the
+        teldatNsmCtrlOperState object transitions to 'inactive', the
+        corresponding current hourly group in this table must be 'frozen', and
+        a new hourly group created when activity is resumed: in this particular
+        case, current hourly group will be deleted and a new one created when
+        activity is resumed.
+
+        If the activity for a conceptual RTT control row ceases because the
+        teldatNsmCtrlOperState object transitions to 'pending' this whole table
+        will be cleared and reset to its initial state.
+
+        Using this teldatNsmStatsCaptureTable, a managing application can
+        retrieve summarized data from accurately measured periods, which is
+        synchronized across multiple conceptual RTT control rows. With the
+        new hourly group creation being performed on a 60 minute period, the
+        managing station has plenty of time to collect the data, and need not
+        be concerned with the vagaries of network delays and lost PDU's when
+        trying to get matching data. Also, the managing station can spread
+        the data gathering over a longer period, which removes the need for
+        a flood of get requests in a short period which otherwise would occur."
+    ::= { teldatNsmStats 1 }
+
+teldatNsmStatsCaptureEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmStatsCaptureEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects which accumulate the results of a series of RTT
+        operations over a 60 minute time period.
+
+        The statistics capture table is a rollover table. When
+        teldatNsmStatsCaptureStartTimeIndex groups exceeds the maximum
+        established value (1), the oldest corresponding hourly group will be
+        deleted and will be replaced with the new
+        teldatNsmStatsCaptureStartTimeIndex hourly group.
+
+        All other indices will fill to there maximum size. The statistics
+        capture table has five indices. Each described as follows:
+
+        - The first index correlates its entries to a conceptual RTT control
+          row via the teldatNsmCtrlAdminIndex object.
+        - The second index is a rollover group and it uniquely identifies a
+          60 minute group. (The teldatNsmStatsCaptureStartTimeIndex object
+          is used to make this value unique). Remmber: only one hourly 'group'
+          is kept in the table.
+        - The third index uniquely identifies the paths in a statistics period.
+          (The period is 60 minutes). A path will be created for each unique
+          path through the network.
+          Note: A path that does not contain the target is considered a
+          different path than one which uses the exact same path, but does
+          contain the target.
+          For all supported values of NsmRttType this index will be one (only
+          one path is considered).
+        - The fourth index uniquely identifies the hops in each path, as grouped
+          by the third index. This index does imply the order of the hops along
+          the path to a target.
+          For all supported values of NsmRttType this index will be one.
+        - The fifth index uniquely creates a statistical distribution bucket.
+          In current implementation only one statistical distribution is kept."
+    INDEX       { teldatNsmCtrlAdminIndex,
+                  teldatNsmStatsCaptureStartTimeIndex,
+                  teldatNsmStatsCapturePathIndex,
+                  teldatNsmStatsCaptureHopIndex,
+                  teldatNsmStatsCaptureDistIndex }
+    ::= { teldatNsmStatsCaptureTable 1 }
+
+TeldatNsmStatsCaptureEntry ::= SEQUENCE
+{
+    teldatNsmStatsCaptureStartTimeIndex             TimeStamp,
+    teldatNsmStatsCapturePathIndex                  Integer32,
+    teldatNsmStatsCaptureHopIndex                   Integer32,
+    teldatNsmStatsCaptureDistIndex                  Integer32,
+    teldatNsmStatsCaptureCompletions                Counter32,
+    teldatNsmStatsCaptureOverThresholds             Integer32,
+    teldatNsmStatsCaptureSumCompletionTime          Counter32,
+    teldatNsmStatsCaptureSumCompletionTime2Low      Gauge32,
+    teldatNsmStatsCaptureSumCompletionTime2High     Gauge32,
+    teldatNsmStatsCaptureCompletionTimeMax          Gauge32,
+    teldatNsmStatsCaptureCompletionTimeMin          Gauge32
+}
+
+teldatNsmStatsCaptureStartTimeIndex OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The time when this row was created.
+        This object is the second index of the teldatNsmStatsCaptureTable Table.
+
+        When the number of teldatNsmStatsCaptureStartTimeIndex groups exceeds
+        the maximum established value (1), the oldest
+        teldatNsmStatsCaptureStartTimeIndex group (that will be the previous
+        one, the current hourly group) will be removed and replaced with the
+        new entry."
+    ::= { teldatNsmStatsCaptureEntry 1 }
+
+teldatNsmStatsCapturePathIndex OBJECT-TYPE
+    SYNTAX      Integer32(1..128)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "For all supported values of NsmRttType, this object will be one: only
+        one path will be contained in each hourly 'group'.
+
+        For a particular value of teldatNsmStatsCaptureStartTimeIndex, the agent
+        assigns the first instance of a path a value of 1, then second instance
+        a value of 2, and so on. The sequence keeps incrementing until the
+        number of paths equals maximum allowed value (1 in current
+        implementation); then no new paths are kept for the current
+        teldatNsmStatsCaptureStartTimeIndex group. So, for each hourly 'group',
+        only one path is kept, identified by value 1.
+
+        NOTE: A source to target teldatNsmStatsCapturePathIndex path will be
+        created for each teldatNsmStatsCaptureStartTimeIndex to hold all errors
+        that occur when a specific path or connection has not be setup.
+
+        This value directly represents the path to a target."
+    ::= { teldatNsmStatsCaptureEntry 2 }
+
+teldatNsmStatsCaptureHopIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..30)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "For all supported values of NsmRttType, this object will be one: only
+        one hop will be contained in each path (i.e., one hop in each
+        hourly 'group').
+
+        For a particular value of teldatNsmStatsCapturePathIndex, the agent
+        assigns the first instance of a hop a value of 1, then second instance
+        a value of 2, and so on. The sequence keeps incrementing until the
+        number of hops equals maximum allowed value (1 in current
+        implementation); then no new hops are kept for the current
+        teldatNsmStatsCapturePathIndex. So, for each hourly 'group',
+        only one path and one hop are kept, both identified by value 1
+        (each one).
+
+        This value directly represents a hop along the path to a target and
+        shows the order along the path to a target."
+    ::= { teldatNsmStatsCaptureEntry 3 }
+
+teldatNsmStatsCaptureDistIndex OBJECT-TYPE
+    SYNTAX      Integer32(1..20)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This object uniquely defines a statistical distribution bucket for a
+        given value of teldatNsmStatsCaptureHopIndex. In current implementation
+        only one statistical distribution is kept for each hop (i.e., one
+        statistical distribution, one hop, and one path for each
+        hourly 'group').
+
+        For a particular value of teldatNsmStatsCaptureHopIndex, the agent
+        assigns the first instance of a distribution a value of 1, then second
+        instance a value of 2, and so on. The sequence keeps incrementing until
+        the number of statistics distribution intervals equals maximum allowed
+        value (1 in current implementation); then all values that fall above
+        the last interval will be placed into the last interval: this means all
+        values will be accumulated in the only existing distribution interval.
+
+        Each of these statistical distribution buckets contain the results
+        of each completion. Remember: only one statistical distrbution is kept."
+    ::= { teldatNsmStatsCaptureEntry 4 }
+
+teldatNsmStatsCaptureCompletions OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of RTT (NSM) operations that have completed without an error
+        and without timing out.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCaptureEntry 5 }
+
+teldatNsmStatsCaptureOverThresholds OBJECT-TYPE
+    SYNTAX      Integer32(0..2147483647)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of RTT (NSM) operations successfully completed, but in
+        excess of teldatNsmCtrlAdminThreshold. This number is a subset of the
+        accumulation of all teldatNsmStatsCaptureCompletions. The operation time
+        of these completed operations will be accumulated.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCaptureEntry 6 }
+
+teldatNsmStatsCaptureSumCompletionTime OBJECT-TYPE
+    SYNTAX      Counter32
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The accumulated completion time of RTT (NSM) operations which complete
+        successfully."
+    ::= { teldatNsmStatsCaptureEntry 7 }
+
+teldatNsmStatsCaptureSumCompletionTime2Low OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The low order 32 bits of the accumulated squares of completion times
+        (in milliseconds) of RTT (NSM) operations which complete successfully.
+
+        Low/High order is defined where the binary number will look as follows:
+        -------------------------------------------------
+        | High order 32 bits    | Low order 32 bits     |
+        -------------------------------------------------
+        For example the number 4294967296 would have all Low order bits as '0'
+        and the rightmost High order bit will be 1 (zeros,1)."
+    ::= { teldatNsmStatsCaptureEntry 8 }
+
+teldatNsmStatsCaptureSumCompletionTime2High OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The high order 32 bits of the accumulated squares of completion times
+        (in milliseconds) of RTT (NSM) operations which complete successfully.
+
+        See the teldatNsmStatsCaptureSumCompletionTime2Low object for a
+        definition of Low/High Order."
+    ::= { teldatNsmStatsCaptureEntry 9 }
+
+teldatNsmStatsCaptureCompletionTimeMax OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum completion time of any RTT (NSM) operation which completes
+        successfully."
+    ::= { teldatNsmStatsCaptureEntry 10 }
+
+teldatNsmStatsCaptureCompletionTimeMin OBJECT-TYPE
+    SYNTAX      Gauge32
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum completion time of any RTT (NSM) operation which completes
+        successfully."
+    ::= { teldatNsmStatsCaptureEntry 11 }
+
+--
+--  Statistics Collection Table
+--
+
+teldatNsmStatsCollectTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmStatsCollectEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The statistics collection database.
+
+        This table has the exact same behavior as the
+        teldatNsmStatsCaptureTable, except it does not keep statistical
+        distribution information.
+
+        For a complete table description see the teldatNsmStatsCaptureTable
+        object."
+    ::= { teldatNsmStats 2 }
+
+teldatNsmStatsCollectEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmStatsCollectEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects which accumulate the results of a series of RTT (NSM)
+        operations over a 60 minute time period.
+
+        This entry has the exact same behavior as the
+        teldatNsmStatsCaptureEntry, except it does not keep statistical
+        distribution information.
+
+        For a complete entry description see the teldatNsmStatsCaptureEntry
+        object."
+    INDEX       { teldatNsmCtrlAdminIndex,
+                  teldatNsmStatsCaptureStartTimeIndex,
+                  teldatNsmStatsCapturePathIndex,
+                  teldatNsmStatsCaptureHopIndex }
+    ::= { teldatNsmStatsCollectTable 1 }
+
+TeldatNsmStatsCollectEntry ::= SEQUENCE
+{
+    teldatNsmStatsCollectNumDisconnects     Counter32,
+    teldatNsmStatsCollectTimeouts           Counter32,
+    teldatNsmStatsCollectBusies             Counter32,
+    teldatNsmStatsCollectNoConnections      Counter32,
+    teldatNsmStatsCollectDrops              Counter32,
+    teldatNsmStatsCollectSequenceErrors     Counter32,
+    teldatNsmStatsCollectVerifyErrors       Counter32,
+    teldatNsmStatsCollectAddress            NsmRttTargetAddress
+}
+
+teldatNsmStatsCollectNumDisconnects OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "When the NsmRttType is 'echo', this object represents the number of
+        times that the target became disconnected. For all other values of
+        NsmRttType, this object will remain zero.
+
+        For connectionless protocols this has no meaning, and will consequently
+        remain 0.
+
+        Since this error does not indicate any information about the failure of
+        an RTT (NSM) operation, no response time information for this instance
+        will be recorded in the appropriate objects.
+
+        If this error occurs, it will be accumulated in the source to target
+        path (the only which always exists).
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCollectEntry 1 }
+
+teldatNsmStatsCollectTimeouts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of occasions when a RTT (NSM) operation was not completed
+        before a timeout occurred, i.e. teldatNsmCtrlAdminTimeout was exceeded.
+
+        Since the RTT operation was never completed, the completion time of
+        these operations are not accumulated, nor do they increment
+        teldatNsmStatsCaptureCompletions.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCollectEntry 2 }
+
+teldatNsmStatsCollectBusies OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of occasions when a RTT (NSM) operation could not be
+        initiated because a previous RTT (NSM) operation has not been completed.
+
+        When the initiation of a new operation cannot be started, this object
+        will be incremented and the operation will be omitted. (The next
+        operation will start at the next Frequency). Since a RTT (NSM)
+        operation was never initiated, the completion time of these operations
+        is not accumulated, nor do they increment
+        teldatNsmStatsCaptureCompletions.
+
+        This error will be accumulated in the source to target path, the only
+        will always exists.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCollectEntry 3 }
+
+teldatNsmStatsCollectNoConnections OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "When the NsmRttType is 'echo' this is the number of occasions when a
+        RTT (NSM) operation could not be initiated because the connection to
+        the target has not been established. For all other NsmRttTypes this
+        object will remain zero.
+
+        This cannot occur for connectionless protocols, but may occur for
+        connection oriented protocols (such as SNA).
+
+        Since a RTT (NSM) operation was never initiated, the completion time of
+        these operations are not accumulated, nor do they increment
+        teldatNsmStatsCaptureCompletions.
+
+        If this error occurs, it will be accumulated in the source to target
+        path, the only which always exists.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCollectEntry 4 }
+
+teldatNsmStatsCollectDrops OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of occasions when a RTT (NSM) operation could not be
+        initiated because some necessary internal resource (for example memory)
+        was not available, or the operation completion could not be recognized.
+
+        Since a RTT (NSM) operation was never initiated or was not recognized,
+        the completion time of these operations are not accumulated, nor do
+        they increment teldatNsmStatsCaptureCompletions.
+
+        This error will be accumulated in the source to target path, the only
+        which always exists.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCollectEntry 5 }
+
+teldatNsmStatsCollectSequenceErrors OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "When the NsmRttType is 'echo' this is the number of RTT (NSM)
+        operation completions received with an unexpected sequence identifier.
+        For all other values of NsmRttType this object will remain zero.
+
+        When this has occurred some of the possible reasons may be:
+        - a duplicate packet was received
+        - a response was received after it had timed-out
+        - a corrupted packet was received and was not detected
+
+        The completion time of these operations are not accumulated, nor do
+        they increment teldatNsmStatsCaptureCompletions.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsCollectEntry 6 }
+
+teldatNsmStatsCollectVerifyErrors OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of RTT (NSM) operation completions received with data that
+        does not compare with the expected data. The completion time of these
+        operations are not accumulated, nor do they increment
+        teldatNsmStatsCaptureCompletions.
+
+        This object has the special behavior as defined by the
+        ROLLOVER NOTE in the DESCRIPTION of the teldatNsmMonMIB object.
+
+        Verify operations are not supported in this implementation, so this
+        variable always remains zero."
+    ::= { teldatNsmStatsCollectEntry 7 }
+
+teldatNsmStatsCollectAddress OBJECT-TYPE
+    SYNTAX      NsmRttTargetAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object is a string which specifies the address of the target for
+        the RTT (NSM) operation. This address will be just the
+        teldatNsmEchoAdminTargetAddress address.
+
+        The interpretation of this string depends on the type of RTT operation
+        selected, as specified by the teldatNsmEchoAdminProtocol object."
+    ::= { teldatNsmStatsCollectEntry 8 }
+
+--
+--  Statistics Totals Table
+--
+
+teldatNsmStatsTotalsTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmStatsTotalsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The statistics totals database.
+
+        This table has the exact same behavior as the
+        teldatNsmStatsCaptureTable, except it only keeps 60 minute group values.
+
+        For a complete table description see the teldatNsmStatsCaptureTable
+        object."
+    ::= { teldatNsmStats 3 }
+
+teldatNsmStatsTotalsEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmStatsTotalsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects which accumulate the results of a series of RTT (NSM)
+        operations over a 60 minute time period.
+
+        This entry has the exact same behavior as the
+        teldatNsmStatsCaptureEntry, except it only keeps 60 minute group values.
+
+        For a complete entry description see the teldatNsmStatsCaptureEntry
+        object."
+    INDEX       { teldatNsmCtrlAdminIndex,
+                  teldatNsmStatsCaptureStartTimeIndex }
+    ::= { teldatNsmStatsTotalsTable 1 }
+
+TeldatNsmStatsTotalsEntry ::= SEQUENCE
+{
+    teldatNsmStatsTotalsElapsedTime     TimeInterval,
+    teldatNsmStatsTotalsInitiations     Integer32
+}
+
+teldatNsmStatsTotalsElapsedTime OBJECT-TYPE
+    SYNTAX      TimeInterval
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The length of time since this conceptual statistics row was created."
+    ::= { teldatNsmStatsTotalsEntry 1 }
+
+teldatNsmStatsTotalsInitiations OBJECT-TYPE
+    SYNTAX      Integer32(0..2147483647)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of RTT (NSM) operations that have been initiated.
+
+        This number includes all RTT (NSM) operations which succeed or fail for
+        whatever reason.
+
+        This object has the special behavior as defined by the ROLLOVER NOTE in
+        the DESCRIPTION of the teldatNsmMonMIB object."
+    ::= { teldatNsmStatsTotalsEntry 2 }
+
+--
+--  HTTP Statistics Table
+--
+
+teldatNsmHTTPStatsTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmHTTPStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The HTTP statistics collection database.
+
+        The HTTP statistics table contains summarized information of the
+        results for a conceptual RTT control row. A rolling accumulated history
+        of this information could be maintained in a series of hourly
+        'group(s)', but in current implementation only one hourly 'group'
+        is kept.
+
+        The operation of this table is same as that of
+        teldatNsmStatsCaptureTable, except information is only distributed in
+        one hourly group, and there is no division according to 'path', 'hop' or
+        statistical distribution buckets."
+    ::= { teldatNsmStats 4 }
+
+teldatNsmHTTPStatsEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmHTTPStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects which accumulate the results of a series of RTT
+        (HTTP) operations over a 60 minute time period.
+
+        This entry is created only if the teldatNsmCtrlAdminRttType is http.
+        The operation of this table is same as that of
+        teldatNsmStatsCaptureTable, except information is only distributed in
+        one hourly group, and there is no division according to 'path', 'hop' or
+        statistical distribution buckets."
+    INDEX       { teldatNsmCtrlAdminIndex,
+                  teldatNsmHTTPStatsStartTimeIndex }
+    ::= { teldatNsmHTTPStatsTable 1 }
+
+TeldatNsmHTTPStatsEntry ::= SEQUENCE
+{
+    teldatNsmHTTPStatsStartTimeIndex        TimeStamp,
+    teldatNsmHTTPStatsCompletions           Counter32,
+    teldatNsmHTTPStatsOverThresholds        Counter32,
+    teldatNsmHTTPStatsRTTSum                Gauge32,
+    teldatNsmHTTPStatsRTTSum2Low            Gauge32,
+    teldatNsmHTTPStatsRTTSum2High           Gauge32,
+    teldatNsmHTTPStatsRTTMin                Gauge32,
+    teldatNsmHTTPStatsRTTMax                Gauge32,
+    teldatNsmHTTPStatsDNSRTTSum             Counter32,
+    teldatNsmHTTPStatsTCPConnectRTTSum      Counter32,
+    teldatNsmHTTPStatsTransactionRTTSum     Counter32,
+    teldatNsmHTTPStatsMessageBodyOctetsSum  Integer32,
+    teldatNsmHTTPStatsDNSServerTimeout      Counter32,
+    teldatNsmHTTPStatsTCPConnectTimeout     Counter32,
+    teldatNsmHTTPStatsTransactionTimeout    Counter32,
+    teldatNsmHTTPStatsDNSQueryError         Counter32,
+    teldatNsmHTTPStatsHTTPError             Counter32,
+    teldatNsmHTTPStatsError                 Counter32,
+    teldatNsmHTTPStatsBusies                Gauge32
+}
+
+teldatNsmHTTPStatsStartTimeIndex OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This is the time when this row was created. This index uniquely
+        identifies a HTTP stats row in the teldatNsmHTTPStatsTable."
+    ::= { teldatNsmHTTPStatsEntry 1 }
+
+teldatNsmHTTPStatsCompletions OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of HTTP operations that have completed successfully."
+    ::= { teldatNsmHTTPStatsEntry 2 }
+
+teldatNsmHTTPStatsOverThresholds OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of HTTP operations that violate threshold."
+    ::= { teldatNsmHTTPStatsEntry 3 }
+
+teldatNsmHTTPStatsRTTSum OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of HTTP operations that are successfully measured."
+    ::= { teldatNsmHTTPStatsEntry 4 }
+
+teldatNsmHTTPStatsRTTSum2Low OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of the RTT's that are successfully measured
+        (low order 32 bits)."
+    ::= { teldatNsmHTTPStatsEntry 5 }
+
+teldatNsmHTTPStatsRTTSum2High OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of the RTT's that are successfully measured
+        (high order 32 bits)."
+    ::= { teldatNsmHTTPStatsEntry 6 }
+
+teldatNsmHTTPStatsRTTMin OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum RTT taken to perform HTTP operation."
+    ::= { teldatNsmHTTPStatsEntry 7 }
+
+teldatNsmHTTPStatsRTTMax OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum RTT taken to perform HTTP operation."
+    ::= { teldatNsmHTTPStatsEntry 8 }
+
+teldatNsmHTTPStatsDNSRTTSum OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT taken to perform DNS query within the HTTP operation."
+    ::= { teldatNsmHTTPStatsEntry 9 }
+
+teldatNsmHTTPStatsTCPConnectRTTSum OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT taken to connect to the HTTP server."
+    ::= { teldatNsmHTTPStatsEntry 10 }
+
+teldatNsmHTTPStatsTransactionRTTSum OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT taken to download the object specified by URL."
+    ::= { teldatNsmHTTPStatsEntry 11 }
+
+teldatNsmHTTPStatsMessageBodyOctetsSum OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of the size of the message body received as a response to
+        the HTTP request."
+    ::= { teldatNsmHTTPStatsEntry 12 }
+
+teldatNsmHTTPStatsDNSServerTimeout OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of requests that could not connect to the DNS Server."
+    ::= { teldatNsmHTTPStatsEntry 13 }
+
+teldatNsmHTTPStatsTCPConnectTimeout OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of requests that could not connect to the HTTP Server."
+    ::= { teldatNsmHTTPStatsEntry 14 }
+
+teldatNsmHTTPStatsTransactionTimeout OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of requests that timed out during HTTP transaction."
+    ::= { teldatNsmHTTPStatsEntry 15 }
+
+teldatNsmHTTPStatsDNSQueryError OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of requests that had DNS Query errors."
+    ::= { teldatNsmHTTPStatsEntry 16 }
+
+teldatNsmHTTPStatsHTTPError OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of requests that had HTTP errors while downloading the base
+        page."
+    ::= { teldatNsmHTTPStatsEntry 17 }
+
+teldatNsmHTTPStatsError OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of occasions when a HTTP operation could not be initiated
+        because an internal error."
+    ::= { teldatNsmHTTPStatsEntry 18 }
+
+teldatNsmHTTPStatsBusies OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of occasions when an HTTP operation could not be initiated
+        because a previous HTTP operation has not been completed."
+    ::= { teldatNsmHTTPStatsEntry 19 }
+
+--
+--  Jitter Statistics Table
+--
+
+teldatNsmJitterStatsTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNsmJitterStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Jitter statistics collection database.
+
+        The Jitter statistics table contains summarized information of the
+        results for a conceptual RTT control row. A rolling accumulated history
+        of this information could be maintained in a series of hourly
+        'group(s)', but in current implementation only one hourly 'group'
+        is kept.
+
+        The operation of this table is same as that of
+        teldatNsmStatsCaptureTable, except information is only distributed in
+        one hourly group, and there is no division according to 'path', 'hop' or
+        statistical distribution buckets."
+    ::= { teldatNsmStats 5 }
+
+teldatNsmJitterStatsEntry OBJECT-TYPE
+    SYNTAX      TeldatNsmJitterStatsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of objects which accumulate the results of a series of RTT
+        (Jitter) operations over a 60 minute time period.
+
+        This entry is created only if the teldatNsmCtrlAdminRttType is jitter.
+        The operation of this table is same as that of
+        teldatNsmStatsCaptureTable, except information is only distributed in
+        one hourly group, and there is no division according to 'path', 'hop' or
+        statistical distribution buckets."
+    INDEX       { teldatNsmCtrlAdminIndex,
+                  teldatNsmJitterStatsStartTimeIndex }
+    ::= { teldatNsmJitterStatsTable 1 }
+
+TeldatNsmJitterStatsEntry ::= SEQUENCE
+{
+    teldatNsmJitterStatsStartTimeIndex          TimeStamp,
+    teldatNsmJitterStatsCompletions             Counter32,
+    teldatNsmJitterStatsOverThresholds          Counter32,
+    teldatNsmJitterStatsNumOfRTT                Counter32,
+    teldatNsmJitterStatsRTTSum                  Counter32,
+    teldatNsmJitterStatsRTTSum2Low              Counter32,
+    teldatNsmJitterStatsRTTSum2High             Counter32,
+    teldatNsmJitterStatsRTTMin                  Gauge32,
+    teldatNsmJitterStatsRTTMax                  Gauge32,
+    teldatNsmJitterStatsMinOfPositivesSD        Gauge32,
+    teldatNsmJitterStatsMaxOfPositivesSD        Gauge32,
+    teldatNsmJitterStatsNumOfPositivesSD        Counter32,
+    teldatNsmJitterStatsSumOfPositivesSD        Counter32,
+    teldatNsmJitterStatsSum2PositivesSDLow      Counter32,
+    teldatNsmJitterStatsSum2PositivesSDHigh     Counter32,
+    teldatNsmJitterStatsMinOfNegativesSD        Gauge32,
+    teldatNsmJitterStatsMaxOfNegativesSD        Gauge32,
+    teldatNsmJitterStatsNumOfNegativesSD        Counter32,
+    teldatNsmJitterStatsSumOfNegativesSD        Counter32,
+    teldatNsmJitterStatsSum2NegativesSDLow      Counter32,
+    teldatNsmJitterStatsSum2NegativesSDHigh     Counter32,
+    teldatNsmJitterStatsMinOfPositivesDS        Gauge32,
+    teldatNsmJitterStatsMaxOfPositivesDS        Gauge32,
+    teldatNsmJitterStatsNumOfPositivesDS        Counter32,
+    teldatNsmJitterStatsSumOfPositivesDS        Counter32,
+    teldatNsmJitterStatsSum2PositivesDSLow      Counter32,
+    teldatNsmJitterStatsSum2PositivesDSHigh     Counter32,
+    teldatNsmJitterStatsMinOfNegativesDS        Gauge32,
+    teldatNsmJitterStatsMaxOfNegativesDS        Gauge32,
+    teldatNsmJitterStatsNumOfNegativesDS        Counter32,
+    teldatNsmJitterStatsSumOfNegativesDS        Counter32,
+    teldatNsmJitterStatsSum2NegativesDSLow      Counter32,
+    teldatNsmJitterStatsSum2NegativesDSHigh     Counter32,
+    teldatNsmJitterStatsPacketLossSD            Counter32,
+    teldatNsmJitterStatsPacketLossDS            Counter32,
+    teldatNsmJitterStatsPacketOutOfSequence     Counter32,
+    teldatNsmJitterStatsPacketMIA               Counter32,
+    teldatNsmJitterStatsPacketLateArrival       Counter32,
+    teldatNsmJitterStatsError                   Counter32,
+    teldatNsmJitterStatsBusies                  Counter32,
+    teldatNsmJitterStatsOWSumSD                 Counter32,
+    teldatNsmJitterStatsOWSum2SDLow             Counter32,
+    teldatNsmJitterStatsOWSum2SDHigh            Counter32,
+    teldatNsmJitterStatsOWMinSD                 Counter32,
+    teldatNsmJitterStatsOWMaxSD                 Counter32,
+    teldatNsmJitterStatsOWSumDS                 Counter32,
+    teldatNsmJitterStatsOWSum2DSLow             Counter32,
+    teldatNsmJitterStatsOWSum2DSHigh            Counter32,
+    teldatNsmJitterStatsOWMinDS                 Counter32,
+    teldatNsmJitterStatsOWMaxDS                 Counter32,
+    teldatNsmJitterStatsNumOfOW                 Counter32
+}
+
+teldatNsmJitterStatsStartTimeIndex OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The time when this row was created."
+    ::= { teldatNsmJitterStatsEntry 1 }
+
+teldatNsmJitterStatsCompletions OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of jitter operation that have completed successfully."
+    ::= { teldatNsmJitterStatsEntry 2 }
+
+teldatNsmJitterStatsOverThresholds OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of jitter operations that violate threshold."
+    ::= { teldatNsmJitterStatsEntry 3 }
+
+teldatNsmJitterStatsNumOfRTT OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of RTT's that are successfully measured."
+    ::= { teldatNsmJitterStatsEntry 4 }
+
+teldatNsmJitterStatsRTTSum OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT's that are successfully measured."
+    ::= { teldatNsmJitterStatsEntry 5 }
+
+teldatNsmJitterStatsRTTSum2Low OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's that are successfully measured
+        (low order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 6 }
+
+teldatNsmJitterStatsRTTSum2High OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's that are successfully measured
+        (high order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 7 }
+
+teldatNsmJitterStatsRTTMin OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of RTT's that were successfully measured."
+    ::= { teldatNsmJitterStatsEntry 8 }
+
+teldatNsmJitterStatsRTTMax OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The maximum of RTT's that were successfully measured."
+    ::= { teldatNsmJitterStatsEntry 9 }
+
+teldatNsmJitterStatsMinOfPositivesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of absolute values of all positive jitter values from
+        packets sent from source to destination."
+    ::= { teldatNsmJitterStatsEntry 10 }
+
+teldatNsmJitterStatsMaxOfPositivesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of absolute values of all positive jitter values from
+        packets sent from source to destination."
+    ::= { teldatNsmJitterStatsEntry 11 }
+
+teldatNsmJitterStatsNumOfPositivesSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all positive jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmJitterStatsEntry 12 }
+
+teldatNsmJitterStatsSumOfPositivesSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of all positive jitter values from packets sent from source to
+        destination."
+    ::= { teldatNsmJitterStatsEntry 13 }
+
+teldatNsmJitterStatsSum2PositivesSDLow OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of square of RTT's of all positive jitter values from packets
+        sent from source to destination (low order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 14 }
+
+teldatNsmJitterStatsSum2PositivesSDHigh OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of square of RTT's of all positive jitter values from packets
+        sent from source to destination (high order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 15 }
+
+teldatNsmJitterStatsMinOfNegativesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all negative jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmJitterStatsEntry 16 }
+
+teldatNsmJitterStatsMaxOfNegativesSD OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all negative jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmJitterStatsEntry 17 }
+
+teldatNsmJitterStatsNumOfNegativesSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all negative jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmJitterStatsEntry 18 }
+
+teldatNsmJitterStatsSumOfNegativesSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT's of all negative jitter values from packets sent from
+        source to destination."
+    ::= { teldatNsmJitterStatsEntry 19 }
+
+teldatNsmJitterStatsSum2NegativesSDLow OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of square of RTT's of all negative jitter values from packets
+        sent from source to destination (low order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 20 }
+
+teldatNsmJitterStatsSum2NegativesSDHigh OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of square of RTT's of all negative jitter values from packets
+        sent from source to destination (high order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 21 }
+
+teldatNsmJitterStatsMinOfPositivesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 22 }
+
+teldatNsmJitterStatsMaxOfPositivesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 23 }
+
+teldatNsmJitterStatsNumOfPositivesDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 24 }
+
+teldatNsmJitterStatsSumOfPositivesDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT's of all positive jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 25 }
+
+teldatNsmJitterStatsSum2PositivesDSLow OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's of all positive jitter values from packets
+        sent from destination to source (low order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 26 }
+
+teldatNsmJitterStatsSum2PositivesDSHigh OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's of all positive jitter values from packets
+        sent from destination to source (high order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 27 }
+
+teldatNsmJitterStatsMinOfNegativesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 28 }
+
+teldatNsmJitterStatsMaxOfNegativesDS OBJECT-TYPE
+    SYNTAX      Gauge32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 29 }
+
+teldatNsmJitterStatsNumOfNegativesDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of number of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 30 }
+
+teldatNsmJitterStatsSumOfNegativesDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of RTT's of all negative jitter values from packets sent from
+        destination to source."
+    ::= { teldatNsmJitterStatsEntry 31 }
+
+teldatNsmJitterStatsSum2NegativesDSLow OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's of all negative jitter values from packets
+        sent from destination to source (low order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 32 }
+
+teldatNsmJitterStatsSum2NegativesDSHigh OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of RTT's of all negative jitter values from packets
+        sent from destination to source (high order 32 bits)."
+    ::= { teldatNsmJitterStatsEntry 33 }
+
+teldatNsmJitterStatsPacketLossSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets lost when sent from source to destination."
+    ::= { teldatNsmJitterStatsEntry 34 }
+
+teldatNsmJitterStatsPacketLossDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets lost when sent from destination to source."
+    ::= { teldatNsmJitterStatsEntry 35 }
+
+teldatNsmJitterStatsPacketOutOfSequence OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets arrived out of sequence."
+    ::= { teldatNsmJitterStatsEntry 36 }
+
+teldatNsmJitterStatsPacketMIA OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets that are lost for which we cannot determine the
+        direction."
+    ::= { teldatNsmJitterStatsEntry 37 }
+
+teldatNsmJitterStatsPacketLateArrival OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of packets that arrived after the timeout."
+    ::= { teldatNsmJitterStatsEntry 38 }
+
+teldatNsmJitterStatsError OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of occasions when a jitter operation could not be
+        initiated because an internal error."
+    ::= { teldatNsmJitterStatsEntry 39 }
+
+teldatNsmJitterStatsBusies OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of occasions when a jitter operation could not be initiated
+        because a previous jitter operation has not been completed."
+    ::= { teldatNsmJitterStatsEntry 40 }
+
+teldatNsmJitterStatsOWSumSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of one way times from source to destination. This variable is
+        not supported in current implementation."
+    ::= { teldatNsmJitterStatsEntry 41 }
+
+teldatNsmJitterStatsOWSum2SDLow OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The sum of squares of one way times from source to destination
+       (low order 32 bits). This variable is not supported in current
+       implementation."
+    ::= { teldatNsmJitterStatsEntry 42 }
+
+teldatNsmJitterStatsOWSum2SDHigh OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of one way times from source to destination
+        (high order 32 bits). This variable is not supported in current
+        implementation."
+    ::= { teldatNsmJitterStatsEntry 43 }
+
+teldatNsmJitterStatsOWMinSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The minimum of all one way times from source to destination. This
+       variable is not supported in current implementation."
+    ::= { teldatNsmJitterStatsEntry 44 }
+
+teldatNsmJitterStatsOWMaxSD OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all one way times from source to destination. This
+        variable is not supported in current implementation."
+    ::= { teldatNsmJitterStatsEntry 45 }
+
+teldatNsmJitterStatsOWSumDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of one way times from destination to source. This variable is
+        not supported in current implementation."
+    ::= { teldatNsmJitterStatsEntry 46 }
+
+teldatNsmJitterStatsOWSum2DSLow OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of one way times from destination to source
+        (low order 32 bits). This variable is not supported in current
+        implementation."
+    ::= { teldatNsmJitterStatsEntry 47 }
+
+teldatNsmJitterStatsOWSum2DSHigh OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The sum of squares of one way times from destination to source
+        (high order 32 bits). This variable is not supported in current
+        implementation."
+    ::= { teldatNsmJitterStatsEntry 48 }
+
+teldatNsmJitterStatsOWMinDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum of all one way times from destination to source.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmJitterStatsEntry 49 }
+
+teldatNsmJitterStatsOWMaxDS OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum of all one way times from destination to source.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmJitterStatsEntry 50 }
+
+teldatNsmJitterStatsNumOfOW OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of one way times that are successfully measured.
+        This variable is not supported in current implementation."
+    ::= { teldatNsmJitterStatsEntry 51 }
+
+--
+--  NOTIFICATION DEFINITIONS
+--
+--  This section defines the traps that can be generated by the agent.
+--
+--
+
+teldatNsmNotificationsPrefix    OBJECT IDENTIFIER ::= { teldatNsmMonMIB 2 }
+teldatNsmNotifications          OBJECT IDENTIFIER ::= { teldatNsmNotificationsPrefix 0 }
+
+--
+--  Conformance Information
+--
+
+teldatNsmMibConformance OBJECT IDENTIFIER ::= { teldatNsmMonMIB 3 }
+teldatNsmMibCompliances OBJECT IDENTIFIER ::= { teldatNsmMibConformance 1 }
+teldatNsmMibGroups      OBJECT IDENTIFIER ::= { teldatNsmMibConformance 2 }
+
+--
+--  Compliance Statements
+--
+
+teldatNsmMibComplianceRev1 MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for new MIB extensions without the obsolete
+        items."
+    MODULE
+        MANDATORY-GROUPS
+        {
+            teldatNsmApplGroup,
+            teldatNsmCtrlGroup,
+            teldatNsmStatsGroup,
+            teldatNsmLatestOperGroup
+        }
+    ::= { teldatNsmMibCompliances 1 }
+
+teldatNsmApplGroup OBJECT-GROUP
+    OBJECTS
+    {
+        teldatNsmApplVersion,
+        teldatNsmApplNumCtrlAdminEntry
+    }
+    STATUS  current
+    DESCRIPTION
+        "A collection of objects providing the NSM (RTT) Monitoring Application
+        defaults and global information.
+
+        This group of information is provided to the agent when the application
+        starts."
+    ::= { teldatNsmMibGroups 1 }
+
+teldatNsmCtrlGroup OBJECT-GROUP
+    OBJECTS
+    {
+        teldatNsmCtrlAdminOwner,
+        teldatNsmCtrlAdminTag,
+        teldatNsmCtrlAdminRttType,
+        teldatNsmCtrlAdminThreshold,
+        teldatNsmCtrlAdminFrequency,
+        teldatNsmCtrlAdminTimeout,
+        teldatNsmCtrlAdminVerifyData,
+        teldatNsmCtrlAdminStatus,
+        teldatNsmCtrlAdminNvgen,
+        teldatNsmEchoAdminProtocol,
+        teldatNsmEchoAdminTargetAddress,
+        teldatNsmEchoAdminPktDataRequestSize,
+        teldatNsmEchoAdminPktDataResponseSize,
+        teldatNsmEchoAdminTargetPort,
+        teldatNsmEchoAdminSourceAddress,
+        teldatNsmEchoAdminSourcePort,
+        teldatNsmEchoAdminControlEnable,
+        teldatNsmEchoAdminTOS,
+        teldatNsmEchoAdminLSREnable,
+        teldatNsmEchoAdminTargetAddressString,
+        teldatNsmEchoAdminNameServer,
+        teldatNsmEchoAdminOperation,
+        teldatNsmEchoAdminHTTPVersion,
+        teldatNsmEchoAdminURL,
+        teldatNsmEchoAdminCache,
+        teldatNsmEchoAdminInterval,
+        teldatNsmEchoAdminNumPackets,
+        teldatNsmEchoAdminProxy,
+        teldatNsmEchoAdminString1,
+        teldatNsmEchoAdminString2,
+        teldatNsmEchoAdminString3,
+        teldatNsmEchoAdminString4,
+        teldatNsmEchoAdminString5,
+        teldatNsmEchoAdminMode,
+        teldatNsmScheduleAdminRttLife,
+        teldatNsmScheduleAdminRttStartTime,
+        teldatNsmScheduleAdminConceptRowAgeout,
+        teldatNsmCtrlOperModificationTime,
+        teldatNsmCtrlOperDiagText,
+        teldatNsmCtrlOperResetTime,
+        teldatNsmCtrlOperOctetsInUse,
+        teldatNsmCtrlOperConnectionLostOccurred,
+        teldatNsmCtrlOperTimeoutOccurred,
+        teldatNsmCtrlOperOverThresholdOccurred,
+        teldatNsmCtrlOperNumRtts,
+        teldatNsmCtrlOperRttLife,
+        teldatNsmCtrlOperState,
+        teldatNsmLatestRttOperCompletionTime,
+        teldatNsmLatestRttOperSense,
+        teldatNsmLatestRttOperApplSpecificSense,
+        teldatNsmLatestRttOperSenseDescription,
+        teldatNsmLatestRttOperTime,
+        teldatNsmLatestRttOperAddress
+    }
+    STATUS current
+    DESCRIPTION
+        "A collection of objects providing the Administration, Operational,
+        Last Statistical values for the NSM (RTT) Monitoring Application, a
+        collection of objects that were added to enhance the functionality
+        of the RTT application and a collection of objects that were added to
+        enhance the functionality of the RTT application to configure HTTP, DNS
+        and Jitter probes."
+    ::= { teldatNsmMibGroups 2 }
+
+teldatNsmStatsGroup OBJECT-GROUP
+    OBJECTS
+    {
+        teldatNsmStatsCaptureCompletions,
+        teldatNsmStatsCaptureOverThresholds,
+        teldatNsmStatsCaptureSumCompletionTime,
+        teldatNsmStatsCaptureSumCompletionTime2Low,
+        teldatNsmStatsCaptureSumCompletionTime2High,
+        teldatNsmStatsCaptureCompletionTimeMax,
+        teldatNsmStatsCaptureCompletionTimeMin,
+        teldatNsmStatsCollectNumDisconnects,
+        teldatNsmStatsCollectTimeouts,
+        teldatNsmStatsCollectBusies,
+        teldatNsmStatsCollectNoConnections,
+        teldatNsmStatsCollectDrops,
+        teldatNsmStatsCollectSequenceErrors,
+        teldatNsmStatsCollectVerifyErrors,
+        teldatNsmStatsCollectAddress,
+        teldatNsmStatsTotalsElapsedTime,
+        teldatNsmStatsTotalsInitiations,
+        teldatNsmHTTPStatsCompletions,
+        teldatNsmHTTPStatsOverThresholds,
+        teldatNsmHTTPStatsRTTSum,
+        teldatNsmHTTPStatsRTTSum2Low,
+        teldatNsmHTTPStatsRTTSum2High,
+        teldatNsmHTTPStatsRTTMin,
+        teldatNsmHTTPStatsRTTMax,
+        teldatNsmHTTPStatsDNSRTTSum,
+        teldatNsmHTTPStatsTCPConnectRTTSum,
+        teldatNsmHTTPStatsTransactionRTTSum,
+        teldatNsmHTTPStatsMessageBodyOctetsSum,
+        teldatNsmHTTPStatsDNSServerTimeout,
+        teldatNsmHTTPStatsTCPConnectTimeout,
+        teldatNsmHTTPStatsTransactionTimeout,
+        teldatNsmHTTPStatsDNSQueryError,
+        teldatNsmHTTPStatsHTTPError,
+        teldatNsmHTTPStatsError,
+        teldatNsmHTTPStatsBusies,
+        teldatNsmJitterStatsCompletions,
+        teldatNsmJitterStatsOverThresholds,
+        teldatNsmJitterStatsNumOfRTT,
+        teldatNsmJitterStatsRTTSum,
+        teldatNsmJitterStatsRTTSum2Low,
+        teldatNsmJitterStatsRTTSum2High,
+        teldatNsmJitterStatsRTTMin,
+        teldatNsmJitterStatsRTTMax,
+        teldatNsmJitterStatsMinOfPositivesSD,
+        teldatNsmJitterStatsMaxOfPositivesSD,
+        teldatNsmJitterStatsNumOfPositivesSD,
+        teldatNsmJitterStatsSumOfPositivesSD,
+        teldatNsmJitterStatsSum2PositivesSDLow,
+        teldatNsmJitterStatsSum2PositivesSDHigh,
+        teldatNsmJitterStatsMinOfNegativesSD,
+        teldatNsmJitterStatsMaxOfNegativesSD,
+        teldatNsmJitterStatsNumOfNegativesSD,
+        teldatNsmJitterStatsSumOfNegativesSD,
+        teldatNsmJitterStatsSum2NegativesSDLow,
+        teldatNsmJitterStatsSum2NegativesSDHigh,
+        teldatNsmJitterStatsMinOfPositivesDS,
+        teldatNsmJitterStatsMaxOfPositivesDS,
+        teldatNsmJitterStatsNumOfPositivesDS,
+        teldatNsmJitterStatsSumOfPositivesDS,
+        teldatNsmJitterStatsSum2PositivesDSLow,
+        teldatNsmJitterStatsSum2PositivesDSHigh,
+        teldatNsmJitterStatsMinOfNegativesDS,
+        teldatNsmJitterStatsMaxOfNegativesDS,
+        teldatNsmJitterStatsNumOfNegativesDS,
+        teldatNsmJitterStatsSumOfNegativesDS,
+        teldatNsmJitterStatsSum2NegativesDSLow,
+        teldatNsmJitterStatsSum2NegativesDSHigh,
+        teldatNsmJitterStatsPacketLossSD,
+        teldatNsmJitterStatsPacketLossDS,
+        teldatNsmJitterStatsPacketOutOfSequence,
+        teldatNsmJitterStatsPacketMIA,
+        teldatNsmJitterStatsPacketLateArrival,
+        teldatNsmJitterStatsError,
+        teldatNsmJitterStatsBusies,
+        teldatNsmJitterStatsOWSumSD,
+        teldatNsmJitterStatsOWSum2SDLow,
+        teldatNsmJitterStatsOWSum2SDHigh,
+        teldatNsmJitterStatsOWMinSD,
+        teldatNsmJitterStatsOWMaxSD,
+        teldatNsmJitterStatsOWSumDS,
+        teldatNsmJitterStatsOWSum2DSLow,
+        teldatNsmJitterStatsOWSum2DSHigh,
+        teldatNsmJitterStatsOWMinDS,
+        teldatNsmJitterStatsOWMaxDS,
+        teldatNsmJitterStatsNumOfOW
+    }
+    STATUS current
+    DESCRIPTION
+        "A collection of objects providing accumulated statistical history."
+    ::= { teldatNsmMibGroups 3 }
+
+teldatNsmLatestOperGroup OBJECT-GROUP
+    OBJECTS
+    {
+        teldatNsmLatestHTTPOperRTT,
+        teldatNsmLatestHTTPOperDNSRTT,
+        teldatNsmLatestHTTPOperTCPConnectRTT,
+        teldatNsmLatestHTTPOperTransactionRTT,
+        teldatNsmLatestHTTPOperMessageBodyOctets,
+        teldatNsmLatestHTTPOperSense,
+        teldatNsmLatestHTTPErrorSenseDescription,
+        teldatNsmLatestJitterOperNumOfRTT,
+        teldatNsmLatestJitterOperRTTSum,
+        teldatNsmLatestJitterOperRTTSum2,
+        teldatNsmLatestJitterOperRTTMin,
+        teldatNsmLatestJitterOperRTTMax,
+        teldatNsmLatestJitterOperMinOfPositivesSD,
+        teldatNsmLatestJitterOperMaxOfPositivesSD,
+        teldatNsmLatestJitterOperNumOfPositivesSD,
+        teldatNsmLatestJitterOperSumOfPositivesSD,
+        teldatNsmLatestJitterOperSum2PositivesSD,
+        teldatNsmLatestJitterOperMinOfNegativesSD,
+        teldatNsmLatestJitterOperMaxOfNegativesSD,
+        teldatNsmLatestJitterOperNumOfNegativesSD,
+        teldatNsmLatestJitterOperSumOfNegativesSD,
+        teldatNsmLatestJitterOperSum2NegativesSD,
+        teldatNsmLatestJitterOperMinOfPositivesDS,
+        teldatNsmLatestJitterOperMaxOfPositivesDS,
+        teldatNsmLatestJitterOperNumOfPositivesDS,
+        teldatNsmLatestJitterOperSumOfPositivesDS,
+        teldatNsmLatestJitterOperSum2PositivesDS,
+        teldatNsmLatestJitterOperMinOfNegativesDS,
+        teldatNsmLatestJitterOperMaxOfNegativesDS,
+        teldatNsmLatestJitterOperNumOfNegativesDS,
+        teldatNsmLatestJitterOperSumOfNegativesDS,
+        teldatNsmLatestJitterOperSum2NegativesDS,
+        teldatNsmLatestJitterOperPacketLossSD,
+        teldatNsmLatestJitterOperPacketLossDS,
+        teldatNsmLatestJitterOperPacketOutOfSequence,
+        teldatNsmLatestJitterOperPacketMIA,
+        teldatNsmLatestJitterOperPacketLateArrival,
+        teldatNsmLatestJitterOperSense,
+        teldatNsmLatestJitterErrorSenseDescription,
+        teldatNsmLatestJitterOperOWSumSD,
+        teldatNsmLatestJitterOperOWSum2SD,
+        teldatNsmLatestJitterOperOWMinSD,
+        teldatNsmLatestJitterOperOWMaxSD,
+        teldatNsmLatestJitterOperOWSumDS,
+        teldatNsmLatestJitterOperOWSum2DS,
+        teldatNsmLatestJitterOperOWMinDS,
+        teldatNsmLatestJitterOperOWMaxDS,
+        teldatNsmLatestJitterOperNumOfOW
+    }
+    STATUS  current
+    DESCRIPTION
+        "A collection of objects that were added to store the latest operational
+        results for HTTP and Jitter probes."
+    ::= { teldatNsmMibGroups 4 }
+
+END

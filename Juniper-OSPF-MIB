@@ -20,7 +20,7 @@ IMPORTS
         FROM SNMPv2-TC
     MODULE-COMPLIANCE, OBJECT-GROUP
         FROM SNMPv2-CONF
-    InterfaceIndexOrZero
+    InterfaceIndex
         FROM IF-MIB
     ospfAreaEntry, ospfIfEntry, ospfIfIpAddress, ospfAddressLessIf,
     ospfVirtIfEntry, ospfNbrEntry
@@ -388,7 +388,7 @@ juniOspfDomainId OBJECT-TYPE
     ::= { juniOspfGeneralGroup 37 }
 
 juniOspfMplsTeRtrIdIfIndex OBJECT-TYPE
-    SYNTAX       InterfaceIndexOrZero
+    SYNTAX       InterfaceIndex
     MAX-ACCESS   read-write
     STATUS       current
     DESCRIPTION
@@ -774,7 +774,7 @@ juniOspfMd5IntfKeyId OBJECT-TYPE
 juniOspfMd5IntfKeyActive OBJECT-TYPE
     SYNTAX      TruthValue
     MAX-ACCESS  read-create
-    STATUS      deprecated
+    STATUS      current
     DESCRIPTION
         "Set this object to true(1) in order to have this key active."
     ::= { juniOspfMd5IntfEntry 2 }
@@ -862,7 +862,7 @@ juniOspfMd5VirtIntfKeyId OBJECT-TYPE
 juniOspfMd5VirtIntfKeyActive OBJECT-TYPE
     SYNTAX      TruthValue
     MAX-ACCESS  read-create
-    STATUS      deprecated
+    STATUS      current
     DESCRIPTION
         "Set this object to true(1) in order to have this key active."
     ::= { juniOspfMd5VirtIntfEntry 4 }
@@ -955,73 +955,6 @@ juniOspfNetRangeRowStatus OBJECT-TYPE
         "This variable displays the status of the entry."
     ::= { juniOspfNetworkRangeEntry 4 }
 
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- OSPF BFD Attributes
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-juniOspfIfBFDTable OBJECT-TYPE
-    SYNTAX      SEQUENCE OF JuniOspfIfBFDEntry 
-    MAX-ACCESS  not-accessible
-    STATUS      current
-    DESCRIPTION
-        "The Juniper OSPF interface table describes the BFD-specific
-        characteristics of interfaces."
-    ::= { juniOspfObjects 8 }
-
-juniOspfIfBFDEntry OBJECT-TYPE
-    SYNTAX      JuniOspfIfBFDEntry 
-    MAX-ACCESS  not-accessible
-    STATUS      current
-    DESCRIPTION
-        "The Juniper OSPF interface table describes the BFD-specific
-        characteristics of one interface."
-    AUGMENTS  { ospfIfEntry}
-    ::= { juniOspfIfBFDTable 1 }
-
-JuniOspfIfBFDEntry ::= SEQUENCE {
-    juniOspfIfBfdEnable	TruthValue,
-    juniOspfIfBfdMinRxInterval	Integer32,
-    juniOspfIfBfdMinTxInterval	Integer32,
-    juniOspfIfBfdMultiplier	Integer32
-}
-
-juniOspfIfBfdEnable OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "This variable indicates whether BFD session on the interface is active or not"
-    DEFVAL    { false }
-    ::= { juniOspfIfBFDEntry 1 }
-    
-juniOspfIfBfdMinRxInterval   OBJECT-TYPE
-    SYNTAX      Integer32 (100..65535)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "This variable specifies upper-limit on rate local-system requires remote-system to
-         transmit bfd control-packets [milliseconds]"
-    DEFVAL    { 300 }
-    ::= { juniOspfIfBFDEntry 2 }
-
-juniOspfIfBfdMinTxInterval OBJECT-TYPE
-    SYNTAX      Integer32 (100..65535)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "This variable specifies lower-limit on rate local-system requires remote-system to 
-         transmit bfd control-packets [milliseconds]"
-    DEFVAL    { 300 }                 
-    ::= { juniOspfIfBFDEntry 3 }
-
-juniOspfIfBfdMultiplier OBJECT-TYPE
-    SYNTAX      Integer32 (1..255)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "This variable specifies detection-multiplier "
-    DEFVAL    { 3 }                         
-    ::= { juniOspfIfBFDEntry 4 }
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Notifications
@@ -1063,24 +996,6 @@ juniOspfCompliance  MODULE-COMPLIANCE
     ::= { juniOspfCompliances 1 }                                  -- JUNOSe 2.0
 
 juniOspfCompliance2  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper OSPF
-        MIB. This statement became obsolete when juniOspfIfBFDTable was implemented."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniOspfBasicGroup2,
-            juniOspfAreaGroup,
-            juniOspfIfGroup,
-            juniOspfVirtIfGroup,
-            juniOspfNbrGroup,
-            juniOspfSummImportGroup,
-            juniOspfMd5IntfGroup,
-            juniOspfMd5VirtIntfGroup,
-            juniOspfNetRangeGroup }
-    ::= { juniOspfCompliances 2 }                                  -- JUNOSe 4.0
-
-juniOspfCompliance3  MODULE-COMPLIANCE
     STATUS      current
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper OSPF
@@ -1095,9 +1010,8 @@ juniOspfCompliance3  MODULE-COMPLIANCE
             juniOspfSummImportGroup,
             juniOspfMd5IntfGroup,
             juniOspfMd5VirtIntfGroup,
-            juniOspfNetRangeGroup,
-            juniOspfIfBFDGroup }
-    ::= { juniOspfCompliances 3 }                                  -- JUNOSe x.y    
+            juniOspfNetRangeGroup }
+    ::= { juniOspfCompliances 2 }                                  -- JUNOSe 4.0
 
 --
 -- units of conformance
@@ -1288,16 +1202,5 @@ juniOspfBasicGroup2  OBJECT-GROUP
         "A collection of objects for managing general OSPF capabilities in a
         Juniper product."
     ::= { juniOspfGroups 10 }
-    
-juniOspfIfBFDGroup  OBJECT-GROUP
-    OBJECTS {
-        juniOspfIfBfdEnable,
-    	juniOspfIfBfdMinRxInterval,
-    	juniOspfIfBfdMinTxInterval,
-    	juniOspfIfBfdMultiplier }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects for OSPFv2 BFD client configuration."
-    ::= { juniOspfGroups 11 }
-END
 
+END

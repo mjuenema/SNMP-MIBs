@@ -1,0 +1,261 @@
+FSCAN-MIB2 DEFINITIONS ::= BEGIN
+
+IMPORTS
+    enterprises, MODULE-IDENTITY
+        FROM SNMPv2-SMI;
+
+fscan MODULE-IDENTITY
+    LAST-UPDATED "0609201255Z"
+    ORGANIZATION "Sun Microsystems Inc."
+    CONTACT-INFO
+        "        Sun Microsystems Inc.
+       Customer Support
+            Postal: 901 San Antonio Road 
+       Palo Alto, CA-94303-4900
+    USA
+                         Tel: 650-960-1300
+                E-mail: service@sun.com"
+    DESCRIPTION
+        "base.modules.fscan:desc"
+    ::= { modules 24 }
+modules	OBJECT IDENTIFIER ::= { agent 2 }
+
+agent	OBJECT IDENTIFIER ::= { sunsymon 2 }
+
+sunsymon	OBJECT IDENTIFIER ::= { prod 12 }
+
+prod	OBJECT IDENTIFIER ::= { sun 2 }
+
+sun	OBJECT IDENTIFIER ::= { enterprises 42 }
+
+
+fscanstats	OBJECT IDENTIFIER ::= { fscan 1 }
+
+fileid	OBJECT IDENTIFIER ::= { fscanstats 1 }
+
+RowStatus ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+               "RowStatus"
+    SYNTAX       INTEGER {
+                     -- the following two values are states:
+                     -- these values may be read or written
+                     active(1),
+                     notInService(2),
+
+                     -- the following value is a state:
+                     -- this value may be read, but not written
+                     notReady(3),
+
+                     -- the following three values are
+                     -- actions: these values may be written,
+                     --   but are never read
+                     createAndGo(4),
+                     createAndWait(5),
+                     destroy(6)
+                 }
+
+DisplayString ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "255a"
+    STATUS       current
+    DESCRIPTION
+            "Represents textual information taken from the NVT ASCII
+            character set, as defined in pages 4, 10-11 of RFC 854.
+
+            To summarize RFC 854, the NVT ASCII repertoire specifies:
+
+              - the use of character codes 0-127 (decimal)
+
+              - the graphics characters (32-126) are interpreted as
+                US ASCII
+
+              - NUL, LF, CR, BEL, BS, HT, VT and FF have the special
+                meanings specified in RFC 854
+
+              - the other 25 codes have no standard interpretation
+
+              - the sequence 'CR LF' means newline
+
+              - the sequence 'CR NUL' means carriage-return
+
+              - an 'LF' not preceded by a 'CR' means moving to the
+                same column on the next line.
+
+              - the sequence 'CR x' for any x other than LF or NUL is
+                illegal.  (Note that this also means that a string may
+                end with either 'CR LF' or 'CR NUL', but not with CR.)
+
+            Any object defined using this syntax may not exceed 255
+            characters in length."
+    SYNTAX       OCTET STRING (SIZE (0..255))
+
+filename OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The name of the file"
+    ::= { fileid 1 }
+
+scanmode OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The scan mode"
+    ::= { fileid 2 }
+
+stime OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The time the agent started scanning the file"
+    ::= { fileid 3 }
+
+filestats	OBJECT IDENTIFIER ::= { fscanstats 2 }
+
+mtime OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The time the file was last modified"
+    ::= { filestats 1 }
+
+size OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       " bytes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The size of the file"
+    ::= { filestats 2 }
+
+length OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       " lines"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The number of lines in the file"
+    ::= { filestats 3 }
+
+lengthrate OBJECT-TYPE
+    SYNTAX      DisplayString
+    UNITS       " lines/sec"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The number of lines written per second"
+    ::= { filestats 4 }
+
+scanTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ScanEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { fscanstats 3 }
+
+scanEntry OBJECT-TYPE
+    SYNTAX      ScanEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { name }
+    ::= { scanTable 1 }
+
+ScanEntry ::=
+    SEQUENCE {
+        rowstatus
+            RowStatus,
+        name
+            DisplayString,
+        desc
+            DisplayString,
+        pattern
+            DisplayString,
+        state
+            DisplayString,
+        matches
+            Integer32,
+        total
+            Integer32,
+        submatch
+            DisplayString
+    }
+
+rowstatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "The row status"
+    ::= { scanEntry 1 }
+
+name OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The pattern name"
+    ::= { scanEntry 2 }
+
+desc OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "The pattern description"
+    ::= { scanEntry 3 }
+
+pattern OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "The regular expression pattern"
+    ::= { scanEntry 4 }
+
+state OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The state of the pattern"
+    ::= { scanEntry 5 }
+
+matches OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The number of matches"
+    ::= { scanEntry 6 }
+
+total OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The total number of matches in current file"
+    ::= { scanEntry 7 }
+
+submatch OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The sub-match strings in current file"
+    ::= { scanEntry 8 }
+
+resetter OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { fscan 2 }
+END

@@ -6,7 +6,7 @@
 --   Extensions for BGP Protocol Management
 --
 -- Copyright (c) 2000, 2002 Unisphere Networks, Inc.
--- Copyright (c) 2002, 2003, 2004, 2005 Juniper Networks, Inc.
+-- Copyright (c) 2002, 2003, 2004 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -26,7 +26,7 @@ IMPORTS
         FROM Juniper-TC;
 
 juniBgpMIB  MODULE-IDENTITY
-    LAST-UPDATED "200605151924Z"  -- 15-May-06 03:24 PM EDT
+    LAST-UPDATED "200407061846Z"  -- 06-Jul-04 02:46 PM EDT
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -38,25 +38,6 @@ juniBgpMIB  MODULE-IDENTITY
     DESCRIPTION
         "The BGP Protocol MIB for the Juniper Networks enterprise."
     -- Revision History
-    REVISION    "200605151924Z"  -- 15-May-06 03:24 PM EDT  - JUNOSe 8.0
-    DESCRIPTION
-        "Added support for BGP over TCPv6."
-    REVISION    "200512292137Z"  -- 29-Dec-05 04:37 PM EST  - JUNOSe 6.0
-    DESCRIPTION
-        "Changed DEFVAL for for juniBgpDefaultIPv4Unicast, 
-         juniBgpAutomaticRouteTargetFilter, juniBgpGlobalRibOutEnabled
-         juniBgpEnabled and changed range for 
-         juniBgpGlobalConfigKeepAliveInterval."
-    REVISION    "200510051846Z"  -- 05-Oct-05 02:46 PM EDT  - JUNOSe 7.2
-    DESCRIPTION
-        "Added support for BFD."
-    REVISION    "200510031846Z"  -- 03-Oct-05 02:46 PM EDT  - JUNOSe 7.1
-    DESCRIPTION
-        "Obsoleted Storage group.
-         Added the next-hop-unchanged attribute to the peer address-family 
-         and peer-group address-family.
-         Obsoleted the address-family IP and IP-service profile attributes.
-         Removed the Carrier's Carriers flag in the VRF."
     REVISION    "200407061846Z"  -- 06-Jul-04 02:46 PM EDT  - JUNOSe 6.0
     DESCRIPTION
         "Added MIB support for graceful restart."
@@ -264,7 +245,7 @@ juniBgpEnabled OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "Set this object to true(1) in order to have BGP router enabled."
-    DEFVAL    { true }
+    DEFVAL    { false }
     ::= { juniBgpGeneralGroup 2 }
 
 juniBgpIdentifier OBJECT-TYPE
@@ -401,7 +382,7 @@ juniBgpGlobalRetryInterval OBJECT-TYPE
     ::= { juniBgpGeneralGroup 15 }
 
 juniBgpGlobalConfigKeepAliveInterval OBJECT-TYPE
-    SYNTAX      Integer32 (0..65535)
+    SYNTAX      Integer32 (0..21845)
     UNITS       "seconds"
     MAX-ACCESS  read-write
     STATUS      current
@@ -451,7 +432,7 @@ juniBgpGlobalRibOutEnabled OBJECT-TYPE
     DESCRIPTION
         "Set this object to true(1) in order to enable RIB-out by default for
         all peers, or to false(2) to disable RIB-out by default for all peers."
-    DEFVAL    { false }
+    DEFVAL    { true }
     ::= { juniBgpGeneralGroup 20 }
 
 juniBgpOverloadShutdown OBJECT-TYPE
@@ -538,7 +519,7 @@ juniBgpAutomaticRouteTargetFilter OBJECT-TYPE
     DESCRIPTION
         "Set this object to true(1) for BGP to enable automatic route-target
         filtering."
-    DEFVAL    { true }
+    DEFVAL    { false }
     ::= { juniBgpGeneralGroup 28 }
 
 juniBgpDefaultIPv4Unicast OBJECT-TYPE
@@ -548,7 +529,7 @@ juniBgpDefaultIPv4Unicast OBJECT-TYPE
     DESCRIPTION
         "Set this object to true(1) for BGP to automatically activate peers in
         the IPv4 unicast address family."
-    DEFVAL    { true }
+    DEFVAL    { false }
     ::= { juniBgpGeneralGroup 29 }
 
 juniBgpRedistributeInternal OBJECT-TYPE
@@ -1037,14 +1018,7 @@ JuniBgpPeerEntry ::= SEQUENCE {
     juniBgpPeerSentGracefulRestartRestartTime                   Integer32,
     juniBgpPeerReceivedGracefulRestartRestartTime               Integer32,
     juniBgpPeerTimeUntilGracefulRestartRestartTimerExpires      Integer32,
-    juniBgpPeerTimeUntilGracefulRestartStalePathsTimerExpires   Integer32,
-    juniBgpPeerBfdEnabled                                       TruthValue,
-    juniBgpPeerBfdMinTransmitInterval                           Integer32,
-    juniBgpPeerBfdMinReceiveInterval                            Integer32,
-    juniBgpPeerBfdMultiplier                                    Integer32,
-    juniBgpPeerBfdSessionUp                                     TruthValue,
-    juniBgpPeerBfdDetectionTime                                 Integer32,
-    juniBgpPeerIbgpSinglehop                                    TruthValue }
+    juniBgpPeerTimeUntilGracefulRestartStalePathsTimerExpires   Integer32 }
 
 juniBgpPeerVrfName OBJECT-TYPE
     SYNTAX      JuniVrfName
@@ -1724,12 +1698,7 @@ juniBgpPeerUnconfiguredAttributes OBJECT-TYPE
         juniBgpPeerPassive(23),
         juniBgpPeerShouldAdvertiseCapabilityGracefulRestart(24),
         juniBgpPeerGracefulRestartRestartTime(25),
-        juniBgpPeerGracefulRestartStalePathsTime(26),
-        juniBgpPeerBfdEnabled(27),
-        juniBgpPeerBfdMinTransmitInterval(28),
-        juniBgpPeerBfdMinReceiveInterval(29),
-        juniBgpPeerBfdMultiplier(30),
-        juniBgpPeerIbgpSinglehop(31) }
+        juniBgpPeerGracefulRestartStalePathsTime(26) }
     MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
@@ -1958,74 +1927,6 @@ juniBgpPeerTimeUntilGracefulRestartStalePathsTimerExpires OBJECT-TYPE
         routes from a peer after that peer restarts."
     ::= { juniBgpPeerEntry 78 }
 
-juniBgpPeerBfdEnabled OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Value true(1) the BFD is enabled for this peer."
-    DEFVAL    { false }
-    ::= { juniBgpPeerEntry 79 }
-
-juniBgpPeerBfdMinTransmitInterval OBJECT-TYPE
-    SYNTAX      Integer32 (100..65535)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "The minimum interval (in milliseconds) between BFD packets sent
-        to the remote BFD speaker. In other words, it specifies the maximum
-        rate at which we are willing to send BFD packets."
-    DEFVAL    { 300 }
-    ::= { juniBgpPeerEntry 80 }
-
-juniBgpPeerBfdMinReceiveInterval OBJECT-TYPE
-    SYNTAX      Integer32 (100..65535)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "The minimum interval (in milliseconds) between BFD packets received
-        from the remote BFD speaker. In other words, it specifies the maximum
-        rate at which we are willing to receive BFD packets."
-    DEFVAL    { 300 }
-    ::= { juniBgpPeerEntry 81 }
-
-juniBgpPeerBfdMultiplier OBJECT-TYPE
-    SYNTAX      Integer32 (1..255)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "How many BFD packets can be missed before the BFD session is declared
-        down."
-    DEFVAL    { 3 }
-    ::= { juniBgpPeerEntry 82 }
-
-juniBgpPeerBfdSessionUp OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-only
-    STATUS      current
-    DESCRIPTION
-        "Is the BFD session up."
-    ::= { juniBgpPeerEntry 83 }
-
-juniBgpPeerBfdDetectionTime OBJECT-TYPE
-    SYNTAX      Integer32
-    MAX-ACCESS  read-only
-    STATUS      current
-    DESCRIPTION
-        "The BFD detection time (in milliseconds) negotiated with the remote BFD 
-        speaker. In other words, how quickly can a broken connection be detected."
-    ::= { juniBgpPeerEntry 84 }
-
-juniBgpPeerIbgpSinglehop OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "The IBGP single-hop is enabled."
-    DEFVAL    { false }
-    ::= { juniBgpPeerEntry 85 }
-
-
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- BGP Peer Proposed AFI/SAFI peer attributes
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2102,6 +2003,7 @@ juniBgpPeerProposedAfiSafiPeerRowStatus OBJECT-TYPE
     DESCRIPTION
         "Should always be active according to the Row Status convention."
     ::= { juniBgpPeerProposedAfiSafiPeerEntry 5 }
+
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- BGP Local Proposed AFI/SAFI peer attributes
@@ -2376,7 +2278,6 @@ JuniBgpPeerAddressFamilyEntry ::= SEQUENCE {
     juniBgpPeerAddressFamilyPeerGroup               DisplayString,
     juniBgpPeerAddressFamilyDefaultOriginate        TruthValue,
     juniBgpPeerAddressFamilyNextHopSelf             TruthValue,
-    juniBgpPeerAddressFamilyNextHopUnchanged        TruthValue,
     juniBgpPeerAddressFamilySendCommunity           TruthValue,
     juniBgpPeerAddressFamilyDistributeListIn        DisplayString,
     juniBgpPeerAddressFamilyDistributeListOut       DisplayString,
@@ -2880,8 +2781,7 @@ juniBgpPeerAddressFamilyUnconfiguredAttributes OBJECT-TYPE
         juniBgpPeerAddressFamilyReceivedOrfEntriesLimit(30),
         juniBgpPeerAddressFamilyMaximumPrefixStrict(31),
         juniBgpPeerAddressFamilySendLabel(32),
-        juniBgpPeerAddressFamilyDefaultOriginateRouteMap(33),
-        juniBgpPeerAddressFamilyNextHopUnchanged(34) }
+        juniBgpPeerAddressFamilyDefaultOriginateRouteMap(33) }
     MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
@@ -3013,17 +2913,6 @@ juniBgpPeerAddressFamilyWaitingForEndOfRibBeforePathSelection OBJECT-TYPE
         path selection for this address-family."
     ::= { juniBgpPeerAddressFamilyEntry 54 }
 
-juniBgpPeerAddressFamilyNextHopUnchanged OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Set this object to true(1) in order to always advertise the 
-        the next-hop unchanged to this peer for this address-family."
-    DEFVAL    { false }
-    ::= { juniBgpPeerAddressFamilyEntry 55 }
-
-
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- BGP Peer Group attributes
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3090,12 +2979,7 @@ JuniBgpPeerGroupEntry ::= SEQUENCE {
     juniBgpPeerGroupRejectedDynamicPeerCount        Unsigned32,
     juniBgpPeerGroupShouldAdvertiseCapabilityGracefulRestart         TruthValue,
     juniBgpPeerGroupGracefulRestartRestartTime                       Integer32,
-    juniBgpPeerGroupGracefulRestartStalePathsTime                    Integer32,
-    juniBgpPeerGroupBfdEnabled                                       TruthValue,
-    juniBgpPeerGroupBfdMinTransmitInterval                           Integer32,
-    juniBgpPeerGroupBfdMinReceiveInterval                            Integer32,
-    juniBgpPeerGroupBfdMultiplier                                    Integer32,
-    juniBgpPeerGroupIbgpSinglehop                                    TruthValue }
+    juniBgpPeerGroupGracefulRestartStalePathsTime                    Integer32 }
 
 juniBgpPeerGroupVrfName OBJECT-TYPE
     SYNTAX      JuniVrfName
@@ -3453,12 +3337,7 @@ juniBgpPeerGroupUnconfiguredAttributes OBJECT-TYPE
         juniBgpPeerGroupAllowMaxPeers(26),
         juniBgpPeerGroupShouldAdvertiseCapabilityGracefulRestart(27),
         juniBgpPeerGroupGracefulRestartRestartTime(28),
-        juniBgpPeerGroupGracefulRestartStalePathsTime(29),
-        juniBgpPeerGroupBfdEnabled(30),
-        juniBgpPeerGroupBfdMinTransmitInterval(31),
-        juniBgpPeerGroupBfdMinReceiveInterval(32),
-        juniBgpPeerGroupBfdMultiplier(33),
-        juniBgpPeerGroupIbgpSinglehop(34) }
+        juniBgpPeerGroupGracefulRestartStalePathsTime(29) }
     MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
@@ -3636,55 +3515,6 @@ juniBgpPeerGroupGracefulRestartStalePathsTime OBJECT-TYPE
     DEFVAL    { 360 }
     ::= { juniBgpPeerGroupEntry 40 }
 
-juniBgpPeerGroupBfdEnabled OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Value true(1) the BFD is enabled for this peer-group."
-    DEFVAL    { false }
-    ::= { juniBgpPeerGroupEntry 41 }
-
-juniBgpPeerGroupBfdMinTransmitInterval OBJECT-TYPE
-    SYNTAX      Integer32 (100..65535)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "The minimum interval (in milliseconds) between BFD packets sent
-        to the remote BFD speaker. In other words, it specifies the maximum
-        rate at which we are willing to send BFD packets."
-    DEFVAL    { 300 }
-    ::= { juniBgpPeerGroupEntry 42 }
-
-juniBgpPeerGroupBfdMinReceiveInterval OBJECT-TYPE
-    SYNTAX      Integer32 (100..65535)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "The minimum interval (in milliseconds) between BFD packets received
-        from the remote BFD speaker. In other words, it specifies the maximum
-        rate at which we are willing to receive BFD packets."
-    DEFVAL    { 300 }
-    ::= { juniBgpPeerGroupEntry 43 }
-
-juniBgpPeerGroupBfdMultiplier OBJECT-TYPE
-    SYNTAX      Integer32 (1..255)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "How many BFD packets can be missed before the BFD session is declared
-        down."
-    DEFVAL    { 3 }
-    ::= { juniBgpPeerGroupEntry 44 }
-
-juniBgpPeerGroupIbgpSinglehop OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "The IBGP single-hop is enabled."
-    DEFVAL    { false }
-    ::= { juniBgpPeerGroupEntry 45 }
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- BGP Peer Group Address Family attributes
@@ -3720,7 +3550,6 @@ JuniBgpPeerGroupAddressFamilyEntry ::= SEQUENCE {
     juniBgpPeerGroupGroupAddressFamilyGroupName         DisplayString,
     juniBgpPeerGroupAddressFamilyDefaultOriginate       TruthValue,
     juniBgpPeerGroupAddressFamilyNextHopSelf            TruthValue,
-    juniBgpPeerGroupAddressFamilyNextHopUnchanged       TruthValue,
     juniBgpPeerGroupAddressFamilySendCommunity          TruthValue,
     juniBgpPeerGroupAddressFamilyDistributeListIn       DisplayString,
     juniBgpPeerGroupAddressFamilyDistributeListOut      DisplayString,
@@ -4120,8 +3949,7 @@ juniBgpPeerGroupAddressFamilyUnconfiguredAttributes OBJECT-TYPE
         juniBgpPeerGroupAddressFamilyAdvertiseCapPrefixListOrfCiscoSend(26),
         juniBgpPeerGroupAddressFamilyMaximumPrefixStrict(27),
         juniBgpPeerGroupAddressFamilySendLabel(28),
-        juniBgpPeerGroupAddressFamilyDefaultOriginateRouteMap(29),
-        juniBgpPeerGroupAddressFamilyNextHopUnchanged (30) }
+        juniBgpPeerGroupAddressFamilyDefaultOriginateRouteMap(29) }
     MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
@@ -4168,15 +3996,6 @@ juniBgpPeerGroupAddressFamilyDefaultOriginateRouteMap OBJECT-TYPE
     DEFVAL    { "" }
     ::= { juniBgpPeerGroupAddressFamilyEntry 37 }
 
-juniBgpPeerGroupAddressFamilyNextHopUnchanged OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Set this object to true(1) in order to always advertise the next-hop
-        unchanged to this peer-group in this address-family."
-    DEFVAL    { false }
-    ::= { juniBgpPeerGroupAddressFamilyEntry 38 }
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- BGP Network attributes
@@ -4760,10 +4579,10 @@ juniBgpVrfMaximumPathsEIbgp OBJECT-TYPE
 juniBgpVrfCarriersCarrierModeEnabled OBJECT-TYPE
     SYNTAX      TruthValue
     MAX-ACCESS  read-only
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete the BGP carrier's carrier flag since there is no need for it
-        when in carrier's carrier mode."
+        "A value of true(1) indicates that this BGP VRF is operating in
+        carrier's carrier mode."
     ::= { juniBgpVrfEntry 16 }
 
 
@@ -4977,7 +4796,11 @@ juniBgpAddressFamilyUnconfiguredAttributes OBJECT-TYPE
         juniBgpAddressFamilyInternalDistance(9),
         juniBgpAddressFamilyLocalDistance(10),
         juniBgpAddressFamilyDefaultOriginateRouteMap(11),
-        juniBgpAddressFamilyCheckVpnNextHops(12) }
+        juniBgpAddressFamilyIpIntfProfileNameForMplsHeads(12),
+        juniBgpAddressFamilyIpIntfProfileNameForMplsTails(13),
+        juniBgpAddressFamilyIpIntfServiceProfileNameForMplsHeads(14),
+        juniBgpAddressFamilyIpIntfServiceProfileNameForMplsTails(15),
+        juniBgpAddressFamilyCheckVpnNextHops(16) }
     MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
@@ -5044,44 +4867,48 @@ juniBgpAddressFamilyDefaultOriginateRouteMap OBJECT-TYPE
 juniBgpAddressFamilyIpIntfProfileNameForMplsHeads OBJECT-TYPE
     SYNTAX      DisplayString (SIZE(0..80))
     MAX-ACCESS  read-create
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete the name of the IP interface profile used by BGP to create IP dynamic
-        interfaces on top of MPLS stacked tunnel heads. When support for BGP-created 
-        IP dynamic interfaces was removed, BGP profile names were obsoleted too."
+        "The name of the IP interface profile used by BGP to create IP dynamic
+        interfaces on top of MPLS stacked tunnel heads.  A zero length profile
+        name means that BGP doesn't use an IP profile to create IP dynamic
+        interfaces on top of MPLS stacked tunnel heads."
     DEFVAL    { "" }
     ::= { juniBgpAddressFamilyEntry 20 }
 
 juniBgpAddressFamilyIpIntfProfileNameForMplsTails OBJECT-TYPE
     SYNTAX      DisplayString (SIZE(0..80))
     MAX-ACCESS  read-create
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete the name of the IP interface profile used by BGP to create IP dynamic
-        interfaces on top of MPLS stacked tunnel tails. When support for BGP-created 
-        IP dynamic interfaces was removed, BGP profile names were obsoleted too."
+        "The name of the IP interface profile used by BGP to create IP dynamic
+        interfaces on top of MPLS stacked tunnel tails.  A zero length profile
+        name means that BGP doesn't use an IP profile to create IP dynamic
+        interfaces on top of MPLS stacked tunnel tails."
     DEFVAL    { "" }
     ::= { juniBgpAddressFamilyEntry 21 }
 
 juniBgpAddressFamilyIpIntfServiceProfileNameForMplsHeads OBJECT-TYPE
     SYNTAX      DisplayString (SIZE(0..80))
     MAX-ACCESS  read-create
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete the name of the IP interface service-profile used by BGP to create IP
-        dynamic interfaces on top of MPLS stacked tunnel heads. When support for BGP-created 
-        dynamic interfaces was removed, BGP profile names were obsoleted too."
+        "The name of the IP interface service-profile used by BGP to create IP
+        dynamic interfaces on top of MPLS stacked tunnel heads.  A zero length
+        service-profile name means that BGP doesn't use an IP service-profile to
+        create IP dynamic interfaces on top of MPLS stacked tunnel heads."
     DEFVAL    { "" }
     ::= { juniBgpAddressFamilyEntry 22 }
 
 juniBgpAddressFamilyIpIntfServiceProfileNameForMplsTails OBJECT-TYPE
     SYNTAX      DisplayString (SIZE(0..80))
     MAX-ACCESS  read-create
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
         "The name of the IP interface service-profile used by BGP to create IP
-        dynamic interfaces on top of MPLS stacked tunnel tails. When support for BGP-created 
-        dynamic interfaces was removed, BGP profile names were obsoleted too."
+        dynamic interfaces on top of MPLS stacked tunnel tails.  A zero length
+        service-profile name means that BGP doesn't use an IP service-profile to
+        create IP dynamic interfaces on top of MPLS stacked tunnel tails."
     DEFVAL    { "" }
     ::= { juniBgpAddressFamilyEntry 23 }
 
@@ -5151,9 +4978,9 @@ juniBgpStorageGroup                 OBJECT IDENTIFIER ::= { juniBgpObjects 20 }
 juniBgpStorageInitialHeapSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the BGP heap in octets.  The BGP heap is used for a
+        "The initial size of the BGP heap in octets.  The BGP heap is used for a
         small number of variable sized data structures."
     DEFVAL    { 16384 }
     ::= { juniBgpStorageGroup 1 }
@@ -5161,18 +4988,18 @@ juniBgpStorageInitialHeapSize OBJECT-TYPE
 juniBgpStorageMaxHeapSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the BGP heap in octets."
+        "The maximum size of the BGP heap in octets."
     DEFVAL    { 536870912 }
     ::= { juniBgpStorageGroup 2 }
 
 juniBgpStorageInitialVrfPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the VRF pool in entries.  One entry is allocated
+        "The initial size of the VRF pool in entries.  One entry is allocated
         from the VRF pool for each VRF used by BGP."
     DEFVAL    { 1 }
     ::= { juniBgpStorageGroup 4 }
@@ -5180,18 +5007,18 @@ juniBgpStorageInitialVrfPoolSize OBJECT-TYPE
 juniBgpStorageMaxVrfPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the VRF pool in entries."
+        "The maximum size of the VRF pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 5 }
 
 juniBgpStorageInitialAddressFamilyPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the address-family pool in entries.  One entry is
+        "The initial size of the address-family pool in entries.  One entry is
         allocated from the address-family pool for each address-family used by
         BGP."
     DEFVAL    { 1 }
@@ -5200,18 +5027,18 @@ juniBgpStorageInitialAddressFamilyPoolSize OBJECT-TYPE
 juniBgpStorageMaxAddressFamilyPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the address-family pool in entries."
+        "The initial size of the address-family pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 7 }
 
 juniBgpStorageInitialPeerPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the peer pool in entries.  One entry is allocated
+        "The initial size of the peer pool in entries.  One entry is allocated
         from the peer pool for each peer configured in BGP."
     DEFVAL    { 1 }
     ::= { juniBgpStorageGroup 8 }
@@ -5219,18 +5046,18 @@ juniBgpStorageInitialPeerPoolSize OBJECT-TYPE
 juniBgpStorageMaxPeerPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the peer pool in entries."
+        "The maximum size of the peer pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 9 }
 
 juniBgpStorageInitialPeerAfPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the peer-address-family pool in entries.  One entry
+        "The initial size of the peer-address-family pool in entries.  One entry
         is allocated from the peer-address-family pool for each address family
         activated for any peer in BGP (including the IPv4 unicast address
         families which are usually activated by default for each peer)."
@@ -5240,18 +5067,18 @@ juniBgpStorageInitialPeerAfPoolSize OBJECT-TYPE
 juniBgpStorageMaxPeerAfPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the peer-address-family pool in entries."
+        "The maximum size of the peer-address-family pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 11 }
 
 juniBgpStorageInitialPeerGroupPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the peer-group pool in entries.  One entry is
+        "The initial size of the peer-group pool in entries.  One entry is
         allocated from the peer-group pool for each peer-group configured in
         BGP."
     DEFVAL    { 1 }
@@ -5260,18 +5087,18 @@ juniBgpStorageInitialPeerGroupPoolSize OBJECT-TYPE
 juniBgpStorageMaxPeerGroupPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the peer-group pool in entries."
+        "The maximum size of the peer-group pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 13 }
 
 juniBgpStorageInitialPeerGroupAfPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the peer-group-address-family pool in entries.  One
+        "The initial size of the peer-group-address-family pool in entries.  One
         entry is allocated from the peer-group-address-family pool for each
         address family activated for any peer-group in BGP (including the IPv4
         unicast address families which are usually activated by default for each
@@ -5282,18 +5109,18 @@ juniBgpStorageInitialPeerGroupAfPoolSize OBJECT-TYPE
 juniBgpStorageMaxPeerGroupAfPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the peer-group-address-family pool in entries."
+        "The maximum size of the peer-group-address-family pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 15 }
 
 juniBgpStorageInitialNetworkPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the network pool in entries.  One entry is
+        "The initial size of the network pool in entries.  One entry is
         allocated from the network pool for each network configured in BGP."
     DEFVAL    { 1 }
     ::= { juniBgpStorageGroup 16 }
@@ -5301,18 +5128,18 @@ juniBgpStorageInitialNetworkPoolSize OBJECT-TYPE
 juniBgpStorageMaxNetworkPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the network pool in entries."
+        "The maximum size of the network pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 17 }
 
 juniBgpStorageInitialAggregatePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the aggregate pool in entries.  One entry is
+        "The initial size of the aggregate pool in entries.  One entry is
         allocated from the aggregate pool for each aggregate configured in BGP."
     DEFVAL    { 1 }
     ::= { juniBgpStorageGroup 18 }
@@ -5320,18 +5147,18 @@ juniBgpStorageInitialAggregatePoolSize OBJECT-TYPE
 juniBgpStorageMaxAggregatePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the aggregate pool in entries."
+        "The maximum size of the aggregate pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 19 }
 
 juniBgpStorageInitialDestinationPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the destination pool in entries.  One entry is
+        "The initial size of the destination pool in entries.  One entry is
         allocated from the destination pool for each unique prefix in the BGP
         RIB."
     DEFVAL    { 1 }
@@ -5340,18 +5167,18 @@ juniBgpStorageInitialDestinationPoolSize OBJECT-TYPE
 juniBgpStorageMaxDestinationPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the destination pool in entries."
+        "The maximum size of the destination pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 21 }
 
 juniBgpStorageInitialRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the route pool in entries.  One entry is allocated
+        "The initial size of the route pool in entries.  One entry is allocated
         from the route pool for each received non-VPN route in the BGP RIB."
     DEFVAL    { 1 }
     ::= { juniBgpStorageGroup 22 }
@@ -5359,18 +5186,18 @@ juniBgpStorageInitialRoutePoolSize OBJECT-TYPE
 juniBgpStorageMaxRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the route pool in entries."
+        "The maximum size of the route pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 23 }
 
 juniBgpStorageInitialAttributesPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the attributes pool in entries.  One entry is
+        "The initial size of the attributes pool in entries.  One entry is
         allocated from the attributes pool for each unique combination of path
         attributes of routes in the BGP RIB."
     DEFVAL    { 1 }
@@ -5379,18 +5206,18 @@ juniBgpStorageInitialAttributesPoolSize OBJECT-TYPE
 juniBgpStorageMaxAttributesPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the attributes pool in entries."
+        "The maximum size of the attributes pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 25 }
 
 juniBgpStorageInitialRouteFlapHistoryPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the route-flap-history pool in entries.  One entry
+        "The initial size of the route-flap-history pool in entries.  One entry
         is allocated from the route-flap-history pool for each route in the BGP
         RIB which has route-flap dampening history associated with it."
     DEFVAL    { 1 }
@@ -5399,18 +5226,18 @@ juniBgpStorageInitialRouteFlapHistoryPoolSize OBJECT-TYPE
 juniBgpStorageMaxRouteFlapHistoryPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the route-flap-history pool in entries."
+        "The maximum size of the route-flap-history pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 27 }
 
 juniBgpStorageInitialNetworkRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the network-route pool in entries.  One entry is
+        "The initial size of the network-route pool in entries.  One entry is
         allocated from the network-route pool for each network route in the BGP
         RIB."
     DEFVAL    { 1 }
@@ -5419,18 +5246,18 @@ juniBgpStorageInitialNetworkRoutePoolSize OBJECT-TYPE
 juniBgpStorageMaxNetworkRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the network-route pool in entries."
+        "The maximum size of the network-route pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 29 }
 
 juniBgpStorageInitialRedistributedRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the redistributed-route pool in entries.  One entry
+        "The initial size of the redistributed-route pool in entries.  One entry
         is allocated from the redistributed-route pool for each redistributed
         route in the BGP RIB."
     DEFVAL    { 1 }
@@ -5439,18 +5266,18 @@ juniBgpStorageInitialRedistributedRoutePoolSize OBJECT-TYPE
 juniBgpStorageMaxRedistributedRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the redistributed-route pool in entries."
+        "The maximum size of the redistributed-route pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 31 }
 
 juniBgpStorageInitialAggregateRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the aggregate-route pool in entries.  One entry is
+        "The initial size of the aggregate-route pool in entries.  One entry is
         allocated from the aggregate-route pool for each aggregate route in the
         BGP RIB."
     DEFVAL    { 1 }
@@ -5459,18 +5286,18 @@ juniBgpStorageInitialAggregateRoutePoolSize OBJECT-TYPE
 juniBgpStorageMaxAggregateRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the aggregate-route pool in entries."
+        "The maximum size of the aggregate-route pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 33 }
 
 juniBgpStorageInitialAutoSummaryRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the auto-summary-route pool in entries.  One entry
+        "The initial size of the auto-summary-route pool in entries.  One entry
         is allocated from the auto-summary-route pool for each auto-summary
         route in the BGP RIB."
     DEFVAL    { 1 }
@@ -5479,9 +5306,9 @@ juniBgpStorageInitialAutoSummaryRoutePoolSize OBJECT-TYPE
 juniBgpStorageMaxAutoSummaryRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the auto-summary-route pool in entries."
+        "The maximum size of the auto-summary-route pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 35 }
 
@@ -5490,7 +5317,7 @@ juniBgpStorageInitialHistoryRoutePoolSize OBJECT-TYPE
     MAX-ACCESS  read-write
     STATUS      obsolete
     DESCRIPTION
-        "Obsolete object is obsolete.  Setting it has not effect and reading this
+        "This object is obsolete.  Setting it has not effect and reading this
         object returns an undefined value."
     DEFVAL    { 1 }
     ::= { juniBgpStorageGroup 36 }
@@ -5500,7 +5327,7 @@ juniBgpStorageMaxHistoryRoutePoolSize OBJECT-TYPE
     MAX-ACCESS  read-write
     STATUS      obsolete
     DESCRIPTION
-        "Obsolete object is obsolete.  Setting it has not effect and reading this
+        "This object is obsolete.  Setting it has not effect and reading this
         object returns an undefined value."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 37 }
@@ -5508,9 +5335,9 @@ juniBgpStorageMaxHistoryRoutePoolSize OBJECT-TYPE
 juniBgpStorageInitialSendQueueEntryPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the send-queue-entry pool in entries.  One entry is
+        "The initial size of the send-queue-entry pool in entries.  One entry is
         allocated from the send-queue-entry pool for update messages which is
         queued for transmission to a peer."
     DEFVAL    { 1 }
@@ -5519,18 +5346,18 @@ juniBgpStorageInitialSendQueueEntryPoolSize OBJECT-TYPE
 juniBgpStorageMaxSendQueueEntryPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the send-queue-entry pool in entries."
+        "The maximum size of the send-queue-entry pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 39 }
 
 juniBgpStorageInitialVpnRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the vpn-route pool in entries.  One entry is
+        "The initial size of the vpn-route pool in entries.  One entry is
         allocated from the vpn-route pool for each received VPN route in the BGP
         RIB."
     DEFVAL    { 1 }
@@ -5539,18 +5366,18 @@ juniBgpStorageInitialVpnRoutePoolSize OBJECT-TYPE
 juniBgpStorageMaxVpnRoutePoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the vpn-route pool in entries."
+        "The maximum size of the vpn-route pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 41 }
 
 juniBgpStorageInitialRouteTargetPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete initial size of the route-target pool in entries.  One entry is
+        "The initial size of the route-target pool in entries.  One entry is
         allocated from the route-target pool for each route-target imported in
         any VRF used by BGP."
     DEFVAL    { 1 }
@@ -5559,9 +5386,9 @@ juniBgpStorageInitialRouteTargetPoolSize OBJECT-TYPE
 juniBgpStorageMaxRouteTargetPoolSize OBJECT-TYPE
     SYNTAX      JuniBgpStorageInteger
     MAX-ACCESS  read-write
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete maximum size of the route-target pool in entries."
+        "The maximum size of the route-target pool in entries."
     DEFVAL    { 500000000 }
     ::= { juniBgpStorageGroup 43 }
 
@@ -7239,11 +7066,10 @@ juniBgpCompliance11  MODULE-COMPLIANCE
     ::= { juniBgpCompliances 11 }                                  -- JUNOSe 5.3
 
 juniBgpCompliance12  MODULE-COMPLIANCE
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete compliance statement for entities which implement the Juniper
-        BGP MIB.  This statement became obsolete when BGP storage support
-        was removed and when MIB support for next-hop-unchanged was added."
+        "The compliance statement for entities which implement the Juniper BGP
+        MIB."
     MODULE   -- this module
         MANDATORY-GROUPS {
             juniBgpGeneralConfGroup6,
@@ -7262,77 +7088,6 @@ juniBgpCompliance12  MODULE-COMPLIANCE
             juniBgpStorageConfGroup3,
             juniBgpPeerDynamicCapabilityConfGroup }
     ::= { juniBgpCompliances 12 }                                  -- JUNOSe 6.0
-
-juniBgpCompliance13  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-       "Obsolete compliance statement for entities which implement the Juniper
-        BGP MIB.  This statement became obsolete when support for BGP BFD
-        was added."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniBgpGeneralConfGroup6,
-            juniBgpStatisticsConfGroup,
-            juniBgpFourOctetConfederationPeerConfGroup,
-            juniBgpPeerConfGroup7,
-            juniBgpAfiSafiPeerConfGroup,
-            juniBgpPeerAddressFamilyConfGroup7,
-            juniBgpPeerGroupAddressFamilyConfGroup6,
-            juniBgpPeerGroupConfGroup7,
-            juniBgpNewRouteConfGroup4,
-            juniBgpNetworkConfGroup2,
-            juniBgpAggregateConfGroup2,
-            juniBgpVrfConfGroup7,
-            juniBgpAddressFamilyConfGroup7,
-            juniBgpPeerDynamicCapabilityConfGroup }
-    ::= { juniBgpCompliances 13 }                                  -- JUNOSe 7.1
-
-juniBgpCompliance14  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-        "Obsolete compliance statement for entities which implement the Juniper
-        BGP MIB.  This statement became obsolete when support for ibgp-singlehop
-        was added."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniBgpGeneralConfGroup6,
-            juniBgpStatisticsConfGroup,
-            juniBgpFourOctetConfederationPeerConfGroup,
-            juniBgpPeerConfGroup8,
-            juniBgpAfiSafiPeerConfGroup,
-            juniBgpPeerAddressFamilyConfGroup7,
-            juniBgpPeerGroupAddressFamilyConfGroup6,
-            juniBgpPeerGroupConfGroup8,
-            juniBgpNewRouteConfGroup4,
-            juniBgpNetworkConfGroup2,
-            juniBgpAggregateConfGroup2,
-            juniBgpVrfConfGroup7,
-            juniBgpAddressFamilyConfGroup7,
-            juniBgpPeerDynamicCapabilityConfGroup }
-    ::= { juniBgpCompliances 14 }                                  -- JUNOSe 7.2
-
-juniBgpCompliance15  MODULE-COMPLIANCE
-    STATUS      current
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper BGP
-        MIB."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniBgpGeneralConfGroup6,
-            juniBgpStatisticsConfGroup,
-            juniBgpFourOctetConfederationPeerConfGroup,
-            juniBgpPeerConfGroup9,
-            juniBgpAfiSafiPeerConfGroup,
-            juniBgpPeerAddressFamilyConfGroup7,
-            juniBgpPeerGroupAddressFamilyConfGroup6,
-            juniBgpPeerGroupConfGroup9,
-            juniBgpNewRouteConfGroup4,
-            juniBgpNetworkConfGroup2,
-            juniBgpAggregateConfGroup2,
-            juniBgpVrfConfGroup7,
-            juniBgpAddressFamilyConfGroup7,
-            juniBgpPeerDynamicCapabilityConfGroup }
-    ::= { juniBgpCompliances 15 }                                  -- JUNOSe 8.0
 
 
 --
@@ -8767,13 +8522,11 @@ juniBgpStorageConfGroup3 OBJECT-GROUP
         juniBgpStorageMaxVpnRoutePoolSize,
         juniBgpStorageInitialRouteTargetPoolSize,
         juniBgpStorageMaxRouteTargetPoolSize }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete collection of objects providing management of BGP
-        characteristics in a Juniper product that will not take affect until
-        reboot.  This group became obsolete when storage support objects were
-        obsoleted."
-    ::= { juniBgpConfGroups 44 }                                   -- JUNOSe 7.1
+        "A collection of objects providing management of BGP characteristics in
+        a Juniper product that will not take affect until reboot."
+    ::= { juniBgpConfGroups 44 }                                   -- JUNOSe 5.1
 
 juniBgpNewRouteConfGroup3 OBJECT-GROUP
     OBJECTS {
@@ -8930,12 +8683,10 @@ juniBgpVrfConfGroup6 OBJECT-GROUP
         juniBgpVrfUnconfiguredAttributes,
         juniBgpVrfMaximumPathsEIbgp,
         juniBgpVrfCarriersCarrierModeEnabled }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete collection of objects providing management of BGP-specific VPN
-        routing forwarding (VRF) characteristics in a Juniper product. This
-        group was obsoleted when the BGP-specific carrier's carrier flag was 
-        removed."
+        "A collection of objects providing management of BGP-specific VPN
+        routing forwarding (VRF) characteristics in a Juniper product."
     ::= { juniBgpConfGroups 48 }                                   -- JUNOSe 5.2
 
 juniBgpAddressFamilyConfGroup4 OBJECT-GROUP
@@ -9014,65 +8765,6 @@ juniBgpPeerAddressFamilyConfGroup5 OBJECT-GROUP
         for graceful restart was added."
     ::= { juniBgpConfGroups 50 }                                   -- JUNOSe 5.3
 
-juniBgpPeerAddressFamilyConfGroup6 OBJECT-GROUP
-    OBJECTS {
-        juniBgpPeerAddressFamilyPeerGroup,
-        juniBgpPeerAddressFamilyDefaultOriginate,
-        juniBgpPeerAddressFamilyNextHopSelf,
-        juniBgpPeerAddressFamilySendCommunity,
-        juniBgpPeerAddressFamilyDistributeListIn,
-        juniBgpPeerAddressFamilyDistributeListOut,
-        juniBgpPeerAddressFamilyPrefixListIn,
-        juniBgpPeerAddressFamilyPrefixListOut,
-        juniBgpPeerAddressFamilyPrefixTreeIn,
-        juniBgpPeerAddressFamilyPrefixTreeOut,
-        juniBgpPeerAddressFamilyFilterListIn,
-        juniBgpPeerAddressFamilyFilterListOut,
-        juniBgpPeerAddressFamilyFilterListWeight,
-        juniBgpPeerAddressFamilyFilterListWeightValue,
-        juniBgpPeerAddressFamilyRouteMapIn,
-        juniBgpPeerAddressFamilyRouteMapOut,
-        juniBgpPeerAddressFamilyRouteReflectorClient,
-        juniBgpPeerAddressFamilyRouteLimitWarn,
-        juniBgpPeerAddressFamilyRouteLimitReset,
-        juniBgpPeerAddressFamilyRouteLimitWarnOnly,
-        juniBgpPeerAddressFamilyRemovePrivateAs,
-        juniBgpPeerAddressFamilyUnsuppressMap,
-        juniBgpPeerAddressFamilyInboundSoftReconfig,
-        juniBgpPeerAddressFamilyResetConnectionType,
-        juniBgpPeerAddressFamilyRowStatus,
-        juniBgpPeerAddressFamilyAsOverride,
-        juniBgpPeerAddressFamilyAllowAsIn,
-        juniBgpPeerAddressFamilySendExtendedCommunity,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListOrfSend,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListOrfReceive,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListCiscoOrfSend,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListCiscoOrfReceive,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListOrfSend,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListOrfReceive,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListCiscoOrfSend,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListCiscoOrfReceive,
-        juniBgpPeerAddressFamilyReceivedOrfEntriesLimit,
-        juniBgpPeerAddressFamilyReceivedPrefixListOrfName,
-        juniBgpPeerAddressFamilyMaximumPrefixStrict,
-        juniBgpPeerAddressFamilyUnconfiguredAttributes,
-        juniBgpPeerAddressFamilySendLabel,
-        juniBgpPeerAddressFamilyDefaultOriginateRouteMap,
-        juniBgpPeerAddressFamilySentCapabilityGracefulRestart,
-        juniBgpPeerAddressFamilyReceivedCapabilityGracefulRestart,
-        juniBgpPeerAddressFamilySentForwardingStatePreserved,
-        juniBgpPeerAddressFamilyReceivedForwardingStatePreserved,
-        juniBgpPeerAddressFamilySentEndOfRibMarker,
-        juniBgpPeerAddressFamilyReceivedEndOfRibMarker,
-        juniBgpPeerAddressFamilyWaitingForEndOfRibBeforeFlushStaleRoutes,
-        juniBgpPeerAddressFamilyWaitingForEndOfRibBeforePathSelection }                   
-    STATUS      obsolete
-    DESCRIPTION
-        "Obsolete collection of objects providing management of BGP peer address
-        families in a Juniper product. This group was obsoleted when MIB support
-        for next-hop-unchanged was added."
-    ::= { juniBgpConfGroups 58 }                                   -- JUNOSe 6.0
-
 juniBgpPeerGroupAddressFamilyConfGroup5 OBJECT-GROUP
     OBJECTS {
         juniBgpPeerGroupAddressFamilyDefaultOriginate,
@@ -9110,9 +8802,8 @@ juniBgpPeerGroupAddressFamilyConfGroup5 OBJECT-GROUP
         juniBgpPeerGroupAddressFamilyDefaultOriginateRouteMap }
     STATUS      current
     DESCRIPTION
-        "Obsolete collection of objects providing management of BGP peer group address
-        families in a Juniper product. This group was obsoleted when MIB support
-        for next-hop-unchanged was added."
+        "A collection of objects providing management of BGP peer group address
+        families in a Juniper product."
     ::= { juniBgpConfGroups 51 }                                   -- JUNOSe 5.3
 
 juniBgpAddressFamilyConfGroup5 OBJECT-GROUP
@@ -9391,12 +9082,69 @@ juniBgpPeerConfGroup7 OBJECT-GROUP
         juniBgpPeerReceivedGracefulRestartRestartTime,
         juniBgpPeerTimeUntilGracefulRestartRestartTimerExpires,
         juniBgpPeerTimeUntilGracefulRestartStalePathsTimerExpires }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete collection of objects providing management of BGP peers in 
-        a Juniper product. This group was obsoleted when support for BFD was
-        added."
+        "A collection of objects providing management of BGP peers in a Juniper
+        product."
     ::= { juniBgpConfGroups 57 }                                   -- JUNOSe 6.0
+
+juniBgpPeerAddressFamilyConfGroup6 OBJECT-GROUP
+    OBJECTS {
+        juniBgpPeerAddressFamilyPeerGroup,
+        juniBgpPeerAddressFamilyDefaultOriginate,
+        juniBgpPeerAddressFamilyNextHopSelf,
+        juniBgpPeerAddressFamilySendCommunity,
+        juniBgpPeerAddressFamilyDistributeListIn,
+        juniBgpPeerAddressFamilyDistributeListOut,
+        juniBgpPeerAddressFamilyPrefixListIn,
+        juniBgpPeerAddressFamilyPrefixListOut,
+        juniBgpPeerAddressFamilyPrefixTreeIn,
+        juniBgpPeerAddressFamilyPrefixTreeOut,
+        juniBgpPeerAddressFamilyFilterListIn,
+        juniBgpPeerAddressFamilyFilterListOut,
+        juniBgpPeerAddressFamilyFilterListWeight,
+        juniBgpPeerAddressFamilyFilterListWeightValue,
+        juniBgpPeerAddressFamilyRouteMapIn,
+        juniBgpPeerAddressFamilyRouteMapOut,
+        juniBgpPeerAddressFamilyRouteReflectorClient,
+        juniBgpPeerAddressFamilyRouteLimitWarn,
+        juniBgpPeerAddressFamilyRouteLimitReset,
+        juniBgpPeerAddressFamilyRouteLimitWarnOnly,
+        juniBgpPeerAddressFamilyRemovePrivateAs,
+        juniBgpPeerAddressFamilyUnsuppressMap,
+        juniBgpPeerAddressFamilyInboundSoftReconfig,
+        juniBgpPeerAddressFamilyResetConnectionType,
+        juniBgpPeerAddressFamilyRowStatus,
+        juniBgpPeerAddressFamilyAsOverride,
+        juniBgpPeerAddressFamilyAllowAsIn,
+        juniBgpPeerAddressFamilySendExtendedCommunity,
+        juniBgpPeerAddressFamilyAdvertiseCapPrefixListOrfSend,
+        juniBgpPeerAddressFamilyAdvertiseCapPrefixListOrfReceive,
+        juniBgpPeerAddressFamilyAdvertiseCapPrefixListCiscoOrfSend,
+        juniBgpPeerAddressFamilyAdvertiseCapPrefixListCiscoOrfReceive,
+        juniBgpPeerAddressFamilyReceivedCapPrefixListOrfSend,
+        juniBgpPeerAddressFamilyReceivedCapPrefixListOrfReceive,
+        juniBgpPeerAddressFamilyReceivedCapPrefixListCiscoOrfSend,
+        juniBgpPeerAddressFamilyReceivedCapPrefixListCiscoOrfReceive,
+        juniBgpPeerAddressFamilyReceivedOrfEntriesLimit,
+        juniBgpPeerAddressFamilyReceivedPrefixListOrfName,
+        juniBgpPeerAddressFamilyMaximumPrefixStrict,
+        juniBgpPeerAddressFamilyUnconfiguredAttributes,
+        juniBgpPeerAddressFamilySendLabel,
+        juniBgpPeerAddressFamilyDefaultOriginateRouteMap,
+        juniBgpPeerAddressFamilySentCapabilityGracefulRestart,
+        juniBgpPeerAddressFamilyReceivedCapabilityGracefulRestart,
+        juniBgpPeerAddressFamilySentForwardingStatePreserved,
+        juniBgpPeerAddressFamilyReceivedForwardingStatePreserved,
+        juniBgpPeerAddressFamilySentEndOfRibMarker,
+        juniBgpPeerAddressFamilyReceivedEndOfRibMarker,
+        juniBgpPeerAddressFamilyWaitingForEndOfRibBeforeFlushStaleRoutes,
+        juniBgpPeerAddressFamilyWaitingForEndOfRibBeforePathSelection }                   
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing management of BGP peer address
+        families in a Juniper product."
+    ::= { juniBgpConfGroups 58 }                                   -- JUNOSe 6.0
 
 juniBgpPeerGroupConfGroup7 OBJECT-GROUP
     OBJECTS {
@@ -9436,11 +9184,10 @@ juniBgpPeerGroupConfGroup7 OBJECT-GROUP
         juniBgpPeerGroupShouldAdvertiseCapabilityGracefulRestart,
         juniBgpPeerGroupGracefulRestartRestartTime,
         juniBgpPeerGroupGracefulRestartStalePathsTime }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete collection of objects providing management of BGP peer groups 
-        in a Juniper product. This group was obsoleted when support for BFD was
-        added."
+        "A collection of objects providing management of BGP peer groups in a
+        Juniper product."
     ::= { juniBgpConfGroups 59 }                                   -- JUNOSe 6.0
 
 juniBgpNewRouteConfGroup4 OBJECT-GROUP
@@ -9520,434 +9267,10 @@ juniBgpAddressFamilyConfGroup6 OBJECT-GROUP
         juniBgpAddressFamilyPathSelectionIsDeferred,
         juniBgpAddressFamilyPreventBgpRoutesFromBeingPushedToLineCards,
         juniBgpAddressFamilyTimeUntilPathSelectionDeferTimerExpires }
-    STATUS      obsolete
-    DESCRIPTION
-        "Obsolete collection of objects providing management of BGP address families in
-        a Juniper product.  This group was obsoleted
-        when BGP-created IP dynamic interface profile support has been removed."
-    ::= { juniBgpConfGroups 61 }                                   -- JUNOSe 6.0
-
-juniBgpVrfConfGroup7 OBJECT-GROUP
-    OBJECTS {
-        juniBgpVrfSynchronization,
-        juniBgpVrfAutoSummary,
-        juniBgpVrfResetConnectionType,
-        juniBgpVrfRowStatus,
-        juniBgpVrfOperationalState,
-        juniBgpVrfAddUnicastRoutesToMulticastView,
-        juniBgpVrfMaximumPathsEbgp,
-        juniBgpVrfMaximumPathsIbgp,
-        juniBgpVrfUnconfiguredAttributes,
-        juniBgpVrfMaximumPathsEIbgp }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of BGP-specific VPN
-        routing forwarding (VRF) characteristics in a Juniper product."
-    ::= { juniBgpConfGroups 62 }                                   -- JUNOSe 7.1
-
-juniBgpPeerAddressFamilyConfGroup7 OBJECT-GROUP
-    OBJECTS {
-        juniBgpPeerAddressFamilyPeerGroup,
-        juniBgpPeerAddressFamilyDefaultOriginate,
-        juniBgpPeerAddressFamilyNextHopSelf,
-        juniBgpPeerAddressFamilyNextHopUnchanged,
-        juniBgpPeerAddressFamilySendCommunity,
-        juniBgpPeerAddressFamilyDistributeListIn,
-        juniBgpPeerAddressFamilyDistributeListOut,
-        juniBgpPeerAddressFamilyPrefixListIn,
-        juniBgpPeerAddressFamilyPrefixListOut,
-        juniBgpPeerAddressFamilyPrefixTreeIn,
-        juniBgpPeerAddressFamilyPrefixTreeOut,
-        juniBgpPeerAddressFamilyFilterListIn,
-        juniBgpPeerAddressFamilyFilterListOut,
-        juniBgpPeerAddressFamilyFilterListWeight,
-        juniBgpPeerAddressFamilyFilterListWeightValue,
-        juniBgpPeerAddressFamilyRouteMapIn,
-        juniBgpPeerAddressFamilyRouteMapOut,
-        juniBgpPeerAddressFamilyRouteReflectorClient,
-        juniBgpPeerAddressFamilyRouteLimitWarn,
-        juniBgpPeerAddressFamilyRouteLimitReset,
-        juniBgpPeerAddressFamilyRouteLimitWarnOnly,
-        juniBgpPeerAddressFamilyRemovePrivateAs,
-        juniBgpPeerAddressFamilyUnsuppressMap,
-        juniBgpPeerAddressFamilyInboundSoftReconfig,
-        juniBgpPeerAddressFamilyResetConnectionType,
-        juniBgpPeerAddressFamilyRowStatus,
-        juniBgpPeerAddressFamilyAsOverride,
-        juniBgpPeerAddressFamilyAllowAsIn,
-        juniBgpPeerAddressFamilySendExtendedCommunity,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListOrfSend,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListOrfReceive,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListCiscoOrfSend,
-        juniBgpPeerAddressFamilyAdvertiseCapPrefixListCiscoOrfReceive,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListOrfSend,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListOrfReceive,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListCiscoOrfSend,
-        juniBgpPeerAddressFamilyReceivedCapPrefixListCiscoOrfReceive,
-        juniBgpPeerAddressFamilyReceivedOrfEntriesLimit,
-        juniBgpPeerAddressFamilyReceivedPrefixListOrfName,
-        juniBgpPeerAddressFamilyMaximumPrefixStrict,
-        juniBgpPeerAddressFamilyUnconfiguredAttributes,
-        juniBgpPeerAddressFamilySendLabel,
-        juniBgpPeerAddressFamilyDefaultOriginateRouteMap,
-        juniBgpPeerAddressFamilySentCapabilityGracefulRestart,
-        juniBgpPeerAddressFamilyReceivedCapabilityGracefulRestart,
-        juniBgpPeerAddressFamilySentForwardingStatePreserved,
-        juniBgpPeerAddressFamilyReceivedForwardingStatePreserved,
-        juniBgpPeerAddressFamilySentEndOfRibMarker,
-        juniBgpPeerAddressFamilyReceivedEndOfRibMarker,
-        juniBgpPeerAddressFamilyWaitingForEndOfRibBeforeFlushStaleRoutes,
-        juniBgpPeerAddressFamilyWaitingForEndOfRibBeforePathSelection }                   
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of BGP peer address
-        families in a Juniper product."
-    ::= { juniBgpConfGroups 63 }                                   -- JUNOSe 7.1
-
-juniBgpPeerGroupAddressFamilyConfGroup6 OBJECT-GROUP
-    OBJECTS {
-        juniBgpPeerGroupAddressFamilyDefaultOriginate,
-        juniBgpPeerGroupAddressFamilyNextHopSelf,
-        juniBgpPeerGroupAddressFamilyNextHopUnchanged,
-        juniBgpPeerGroupAddressFamilySendCommunity,
-        juniBgpPeerGroupAddressFamilyDistributeListIn,
-        juniBgpPeerGroupAddressFamilyDistributeListOut,
-        juniBgpPeerGroupAddressFamilyPrefixListIn,
-        juniBgpPeerGroupAddressFamilyPrefixListOut,
-        juniBgpPeerGroupAddressFamilyPrefixTreeIn,
-        juniBgpPeerGroupAddressFamilyPrefixTreeOut,
-        juniBgpPeerGroupAddressFamilyFilterListIn,
-        juniBgpPeerGroupAddressFamilyFilterListOut,
-        juniBgpPeerGroupAddressFamilyFilterListWeight,
-        juniBgpPeerGroupAddressFamilyFilterListWeightValue,
-        juniBgpPeerGroupAddressFamilyRouteMapIn,
-        juniBgpPeerGroupAddressFamilyRouteMapOut,
-        juniBgpPeerGroupAddressFamilyRouteReflectorClient,
-        juniBgpPeerGroupAddressFamilyRouteLimitWarn,
-        juniBgpPeerGroupAddressFamilyRouteLimitReset,
-        juniBgpPeerGroupAddressFamilyRouteLimitWarnOnly,
-        juniBgpPeerGroupAddressFamilyRemovePrivateAs,
-        juniBgpPeerGroupAddressFamilyUnsuppressMap,
-        juniBgpPeerGroupAddressFamilyInboundSoftReconfig,
-        juniBgpPeerGroupAddressFamilyResetConnectionType,
-        juniBgpPeerGroupAddressFamilyRowStatus,
-        juniBgpPeerGroupAddressFamilyAsOverride,
-        juniBgpPeerGroupAddressFamilyAllowAsIn,
-        juniBgpPeerGroupAddressFamilySendExtendedCommunity,
-        juniBgpPeerGroupAddressFamilyAdvertiseCapPrefixListOrfSend,
-        juniBgpPeerGroupAddressFamilyAdvertiseCapPrefixListCiscoOrfSend,
-        juniBgpPeerGroupAddressFamilyMaximumPrefixStrict,
-        juniBgpPeerGroupAddressFamilyUnconfiguredAttributes,
-        juniBgpPeerGroupAddressFamilySendLabel,
-        juniBgpPeerGroupAddressFamilyDefaultOriginateRouteMap }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of BGP peer group address
-        families in a Juniper product."
-    ::= { juniBgpConfGroups 64 }                                   -- JUNOSe 7.1
-
-juniBgpAddressFamilyConfGroup7 OBJECT-GROUP
-    OBJECTS {
-        juniBgpAddressFamilyDefaultOriginate,
-        juniBgpAddressFamilyRouteFlapDampening,
-        juniBgpAddressFamilyDampeningSuppressThreshold,
-        juniBgpAddressFamilyDampeningReuseThreshold,
-        juniBgpAddressFamilyDampeningMaxHoldDownTime,
-        juniBgpAddressFamilyDampeningHalfLifeReachable,
-        juniBgpAddressFamilyDampeningHalfLifeUnreachable,
-        juniBgpAddressFamilyDampeningRouteMapName,
-        juniBgpAddressFamilyResetConnectionType,
-        juniBgpAddressFamilyRowStatus,
-        juniBgpAddressFamilyOperationalState,
-        juniBgpAddressFamilyUnconfiguredAttributes,
-        juniBgpAddressFamilyExternalDistance,
-        juniBgpAddressFamilyInternalDistance,
-        juniBgpAddressFamilyLocalDistance,
-        juniBgpAddressFamilyDefaultOriginateRouteMap,
-        juniBgpAddressFamilyCheckVpnNextHops,
-        juniBgpAddressFamilyPathSelectionIsDeferred,
-        juniBgpAddressFamilyPreventBgpRoutesFromBeingPushedToLineCards,
-        juniBgpAddressFamilyTimeUntilPathSelectionDeferTimerExpires }
     STATUS      current
     DESCRIPTION
         "A collection of objects providing management of BGP address families in
         a Juniper product."
-    ::= { juniBgpConfGroups 65 }                                   -- JUNOSe 7.1
-
-juniBgpPeerConfGroup8 OBJECT-GROUP
-    OBJECTS {
-        juniBgpPeerAdminStatus,
-        juniBgpPeerState,
-        juniBgpPeerNegotiatedVersion,
-        juniBgpPeerLocalAddress,
-        juniBgpPeerLocalAddressMask,
-        juniBgpPeerLocalPort,
-        juniBgpPeerRemotePort,
-        juniBgpPeerInUpdates,
-        juniBgpPeerOutUpdates,
-        juniBgpPeerInTotalMessages,
-        juniBgpPeerOutTotalMessages,
-        juniBgpPeerLastErrorCode,
-        juniBgpPeerLastResetReason,
-        juniBgpPeerFsmEstablishedTransitions,
-        juniBgpPeerFsmEstablishedTime,
-        juniBgpPeerRetryInterval,
-        juniBgpPeerHoldTime,
-        juniBgpPeerKeepAliveInterval,
-        juniBgpPeerConfigHoldTime,
-        juniBgpPeerConfigKeepAliveInterval,
-        juniBgpPeerAsOriginationInterval,
-        juniBgpPeerAdvertisementInterval,
-        juniBgpPeerInUpdateElapsedTime,
-        juniBgpPeerDescription,
-        juniBgpPeerRemoteIdentifier,
-        juniBgpPeerWeight,
-        juniBgpPeerEbgpMultihop,
-        juniBgpPeerEbgpMultihopTtl,
-        juniBgpPeerUpdateSource,
-        juniBgpPeerMd5Password,
-        juniBgpPeerMaxUpdateSize,
-        juniBgpPeerType,
-        juniBgpPeerReceivedCapabilitiesOption,
-        juniBgpPeerReceivedCapabilityMultiProtocol,
-        juniBgpPeerReceivedCapabilityRouteRefresh,
-        juniBgpPeerReceivedCapabilityRouteRefreshCisco,
-        juniBgpPeerResetConnectionType,
-        juniBgpPeerRowStatus,
-        juniBgpPeerFourOctetRemoteAsNumber,
-        juniBgpPeerFourOctetLocalAsNumber,
-        juniBgpPeerReceivedCapabilityFourOctetAsNumbers,
-        juniBgpPeerReceivedCapabilityDynamicCapabilityNeg,
-        juniBgpPeerShouldAdvertiseCapabilitiesOption,
-        juniBgpPeerShouldAdvertiseCapabilityRouteRefresh,
-        juniBgpPeerShouldAdvertiseCapabilityRouteRefreshCisco,
-        juniBgpPeerShouldAdvertiseCapabilityFourOctetAsNumbers,
-        juniBgpPeerShouldAdvertiseCapabilityDynamicCapabilityNeg,
-        juniBgpPeerSentCapabilitiesOption,
-        juniBgpPeerSentCapabilityMultiProtocol,
-        juniBgpPeerSentCapabilityRouteRefresh,
-        juniBgpPeerSentCapabilityRouteRefreshCisco,
-        juniBgpPeerSentCapabilityFourOctetAsNumbers,
-        juniBgpPeerSentCapabilityDynamicCapabilityNeg,
-        juniBgpPeerReceivedUnsupportedOptionalParameterNotification,
-        juniBgpPeerReceivedUnsupportedCapabilityNotification,
-        juniBgpPeerUnconfiguredAttributes,
-        juniBgpPeerSiteOfOrigin,
-        juniBgpPeerLenient,
-        juniBgpPeerReceivedCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerShouldAdvertiseCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerSentCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerPassive,
-        juniBgpPeerDynamic,
-        juniBgpPeerShouldAdvertiseCapabilityGracefulRestart, 
-        juniBgpPeerSentCapabilityGracefulRestart,
-        juniBgpPeerReceivedCapabilityGracefulRestart,
-        juniBgpPeerGracefulRestartRestartTime,
-        juniBgpPeerGracefulRestartStalePathsTime,
-        juniBgpPeerSentGracefulRestartRestartState,
-        juniBgpPeerReceivedGracefulRestartRestartState,
-        juniBgpPeerSentGracefulRestartRestartTime,
-        juniBgpPeerReceivedGracefulRestartRestartTime,
-        juniBgpPeerTimeUntilGracefulRestartRestartTimerExpires,
-        juniBgpPeerTimeUntilGracefulRestartStalePathsTimerExpires,
-        juniBgpPeerBfdEnabled,
-        juniBgpPeerBfdMinTransmitInterval,
-        juniBgpPeerBfdMinReceiveInterval,
-        juniBgpPeerBfdMultiplier,
-        juniBgpPeerBfdSessionUp,
-        juniBgpPeerBfdDetectionTime }
-    STATUS      obsolete
-    DESCRIPTION
-        "Obsolete collection of objects providing management of BGP peers in a
-        Juniper product.  This group was obsoleted when support for
-        ibgp-singlehop was added."
-    ::= { juniBgpConfGroups 66 }                                   -- JUNOSe 7.2
-
-juniBgpPeerGroupConfGroup8 OBJECT-GROUP
-    OBJECTS {
-        juniBgpPeerGroupAdminStatus,
-        juniBgpPeerGroupRetryInterval,
-        juniBgpPeerGroupConfigHoldTime,
-        juniBgpPeerGroupConfigKeepAliveInterval,
-        juniBgpPeerGroupAsOriginationInterval,
-        juniBgpPeerGroupAdvertisementInterval,
-        juniBgpPeerGroupDescription,
-        juniBgpPeerGroupWeight,
-        juniBgpPeerGroupEbgpMultihop,
-        juniBgpPeerGroupEbgpMultihopTtl,
-        juniBgpPeerGroupUpdateSource,
-        juniBgpPeerGroupMd5Password,
-        juniBgpPeerGroupMaxUpdateSize,
-        juniBgpPeerGroupResetConnectionType,
-        juniBgpPeerGroupRowStatus,
-        juniBgpPeerGroupFourOctetRemoteAsNumber,
-        juniBgpPeerGroupFourOctetLocalAsNumber,
-        juniBgpPeerGroupShouldAdvertiseCapabilitiesOption,
-        juniBgpPeerGroupShouldAdvertiseCapabilityRouteRefresh,
-        juniBgpPeerGroupShouldAdvertiseCapabilityRouteRefreshCisco,
-        juniBgpPeerGroupShouldAdvertiseCapabilityFourOctetAsNumbers,
-        juniBgpPeerGroupShouldAdvertiseCapabilityDynamicCapabilityNeg,
-        juniBgpPeerGroupUnconfiguredAttributes,
-        juniBgpPeerGroupSiteOfOrigin,
-        juniBgpPeerGroupLenient,
-        juniBgpPeerGroupShouldAdvertiseCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerGroupPassive,
-        juniBgpPeerGroupConfiguredPeerType,
-        juniBgpPeerGroupAllowAccessListName,
-        juniBgpPeerGroupAllowMaxPeers,
-        juniBgpPeerGroupCurrentDynamicPeerCount,
-        juniBgpPeerGroupHighWaterMarkDynamicPeerCount,
-        juniBgpPeerGroupRejectedDynamicPeerCount,
-        juniBgpPeerGroupShouldAdvertiseCapabilityGracefulRestart,
-        juniBgpPeerGroupGracefulRestartRestartTime,
-        juniBgpPeerGroupGracefulRestartStalePathsTime,
-        juniBgpPeerGroupBfdEnabled,
-        juniBgpPeerGroupBfdMinTransmitInterval,
-        juniBgpPeerGroupBfdMinReceiveInterval,
-        juniBgpPeerGroupBfdMultiplier }
-    STATUS      current
-    DESCRIPTION
-       "Obsolete collection of objects providing management of BGP peers in a
-        Juniper product.  This group was obsoleted when support for
-        ibgp-singlehop was added."
-    ::= { juniBgpConfGroups 67 }                                   -- JUNOSe 7.2
-
-juniBgpPeerConfGroup9 OBJECT-GROUP
-    OBJECTS {
-        juniBgpPeerAdminStatus,
-        juniBgpPeerState,
-        juniBgpPeerNegotiatedVersion,
-        juniBgpPeerLocalAddress,
-        juniBgpPeerLocalAddressMask,
-        juniBgpPeerLocalPort,
-        juniBgpPeerRemotePort,
-        juniBgpPeerInUpdates,
-        juniBgpPeerOutUpdates,
-        juniBgpPeerInTotalMessages,
-        juniBgpPeerOutTotalMessages,
-        juniBgpPeerLastErrorCode,
-        juniBgpPeerLastResetReason,
-        juniBgpPeerFsmEstablishedTransitions,
-        juniBgpPeerFsmEstablishedTime,
-        juniBgpPeerRetryInterval,
-        juniBgpPeerHoldTime,
-        juniBgpPeerKeepAliveInterval,
-        juniBgpPeerConfigHoldTime,
-        juniBgpPeerConfigKeepAliveInterval,
-        juniBgpPeerAsOriginationInterval,
-        juniBgpPeerAdvertisementInterval,
-        juniBgpPeerInUpdateElapsedTime,
-        juniBgpPeerDescription,
-        juniBgpPeerRemoteIdentifier,
-        juniBgpPeerWeight,
-        juniBgpPeerEbgpMultihop,
-        juniBgpPeerEbgpMultihopTtl,
-        juniBgpPeerUpdateSource,
-        juniBgpPeerMd5Password,
-        juniBgpPeerMaxUpdateSize,
-        juniBgpPeerType,
-        juniBgpPeerReceivedCapabilitiesOption,
-        juniBgpPeerReceivedCapabilityMultiProtocol,
-        juniBgpPeerReceivedCapabilityRouteRefresh,
-        juniBgpPeerReceivedCapabilityRouteRefreshCisco,
-        juniBgpPeerResetConnectionType,
-        juniBgpPeerRowStatus,
-        juniBgpPeerFourOctetRemoteAsNumber,
-        juniBgpPeerFourOctetLocalAsNumber,
-        juniBgpPeerReceivedCapabilityFourOctetAsNumbers,
-        juniBgpPeerReceivedCapabilityDynamicCapabilityNeg,
-        juniBgpPeerShouldAdvertiseCapabilitiesOption,
-        juniBgpPeerShouldAdvertiseCapabilityRouteRefresh,
-        juniBgpPeerShouldAdvertiseCapabilityRouteRefreshCisco,
-        juniBgpPeerShouldAdvertiseCapabilityFourOctetAsNumbers,
-        juniBgpPeerShouldAdvertiseCapabilityDynamicCapabilityNeg,
-        juniBgpPeerSentCapabilitiesOption,
-        juniBgpPeerSentCapabilityMultiProtocol,
-        juniBgpPeerSentCapabilityRouteRefresh,
-        juniBgpPeerSentCapabilityRouteRefreshCisco,
-        juniBgpPeerSentCapabilityFourOctetAsNumbers,
-        juniBgpPeerSentCapabilityDynamicCapabilityNeg,
-        juniBgpPeerReceivedUnsupportedOptionalParameterNotification,
-        juniBgpPeerReceivedUnsupportedCapabilityNotification,
-        juniBgpPeerUnconfiguredAttributes,
-        juniBgpPeerSiteOfOrigin,
-        juniBgpPeerLenient,
-        juniBgpPeerReceivedCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerShouldAdvertiseCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerSentCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerPassive,
-        juniBgpPeerDynamic,
-        juniBgpPeerShouldAdvertiseCapabilityGracefulRestart, 
-        juniBgpPeerSentCapabilityGracefulRestart,
-        juniBgpPeerReceivedCapabilityGracefulRestart,
-        juniBgpPeerGracefulRestartRestartTime,
-        juniBgpPeerGracefulRestartStalePathsTime,
-        juniBgpPeerSentGracefulRestartRestartState,
-        juniBgpPeerReceivedGracefulRestartRestartState,
-        juniBgpPeerSentGracefulRestartRestartTime,
-        juniBgpPeerReceivedGracefulRestartRestartTime,
-        juniBgpPeerTimeUntilGracefulRestartRestartTimerExpires,
-        juniBgpPeerTimeUntilGracefulRestartStalePathsTimerExpires,
-        juniBgpPeerBfdEnabled,
-        juniBgpPeerBfdMinTransmitInterval,
-        juniBgpPeerBfdMinReceiveInterval,
-        juniBgpPeerBfdMultiplier,
-        juniBgpPeerBfdSessionUp,
-        juniBgpPeerBfdDetectionTime,
-        juniBgpPeerIbgpSinglehop }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of BGP peers in a Juniper
-        product."
-    ::= { juniBgpConfGroups 68 }                                   -- JUNOSe 8.0
-
-juniBgpPeerGroupConfGroup9 OBJECT-GROUP
-    OBJECTS {
-        juniBgpPeerGroupAdminStatus,
-        juniBgpPeerGroupRetryInterval,
-        juniBgpPeerGroupConfigHoldTime,
-        juniBgpPeerGroupConfigKeepAliveInterval,
-        juniBgpPeerGroupAsOriginationInterval,
-        juniBgpPeerGroupAdvertisementInterval,
-        juniBgpPeerGroupDescription,
-        juniBgpPeerGroupWeight,
-        juniBgpPeerGroupEbgpMultihop,
-        juniBgpPeerGroupEbgpMultihopTtl,
-        juniBgpPeerGroupUpdateSource,
-        juniBgpPeerGroupMd5Password,
-        juniBgpPeerGroupMaxUpdateSize,
-        juniBgpPeerGroupResetConnectionType,
-        juniBgpPeerGroupRowStatus,
-        juniBgpPeerGroupFourOctetRemoteAsNumber,
-        juniBgpPeerGroupFourOctetLocalAsNumber,
-        juniBgpPeerGroupShouldAdvertiseCapabilitiesOption,
-        juniBgpPeerGroupShouldAdvertiseCapabilityRouteRefresh,
-        juniBgpPeerGroupShouldAdvertiseCapabilityRouteRefreshCisco,
-        juniBgpPeerGroupShouldAdvertiseCapabilityFourOctetAsNumbers,
-        juniBgpPeerGroupShouldAdvertiseCapabilityDynamicCapabilityNeg,
-        juniBgpPeerGroupUnconfiguredAttributes,
-        juniBgpPeerGroupSiteOfOrigin,
-        juniBgpPeerGroupLenient,
-        juniBgpPeerGroupShouldAdvertiseCapabilityOldDynamicCapabilityNeg,
-        juniBgpPeerGroupPassive,
-        juniBgpPeerGroupConfiguredPeerType,
-        juniBgpPeerGroupAllowAccessListName,
-        juniBgpPeerGroupAllowMaxPeers,
-        juniBgpPeerGroupCurrentDynamicPeerCount,
-        juniBgpPeerGroupHighWaterMarkDynamicPeerCount,
-        juniBgpPeerGroupRejectedDynamicPeerCount,
-        juniBgpPeerGroupShouldAdvertiseCapabilityGracefulRestart,
-        juniBgpPeerGroupGracefulRestartRestartTime,
-        juniBgpPeerGroupGracefulRestartStalePathsTime,
-        juniBgpPeerGroupBfdEnabled,
-        juniBgpPeerGroupBfdMinTransmitInterval,
-        juniBgpPeerGroupBfdMinReceiveInterval,
-        juniBgpPeerGroupBfdMultiplier,
-        juniBgpPeerGroupIbgpSinglehop }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of BGP peer groups in a
-        Juniper product."
-    ::= { juniBgpConfGroups 69 }                                   -- JUNOSe 8.0
+    ::= { juniBgpConfGroups 61 }                                   -- JUNOSe 6.0
 
 END

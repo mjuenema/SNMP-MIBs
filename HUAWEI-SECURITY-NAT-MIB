@@ -1,0 +1,1612 @@
+--  ======================================================================
+-- Copyright (C) 2009 by  HUAWEI TECHNOLOGIES. All rights reserved
+-- 
+-- Description: HUAWEI-SECURITY-NAT-MIB
+-- Reference:
+-- Version:     V1.00
+-- History:
+-- 
+--  V1.00 2009-03-13 shaoyu move the NAT-MIB from HUAWEI-NAT-MIB 
+-- =======================================================================
+
+HUAWEI-SECURITY-NAT-MIB DEFINITIONS ::= BEGIN
+
+	IMPORTS
+		enterprises
+			FROM RFC1155-SMI
+		OBJECT-GROUP			
+			FROM SNMPv2-CONF			
+		IpAddress, Integer32, Counter32, Counter64, OBJECT-TYPE, MODULE-IDENTITY			
+			FROM SNMPv2-SMI			
+		RowStatus, TruthValue, TEXTUAL-CONVENTION			
+			FROM SNMPv2-TC;
+
+	hwNatMibObjects MODULE-IDENTITY
+		LAST-UPDATED "200303180900Z"		-- March 18, 2003 at 09:00 GMT
+		ORGANIZATION 
+			"Huawei Technologies Co., Ltd.
+			"
+		CONTACT-INFO 
+			"
+			R&D Beijing, Huawei Technologies Co.,Ltd.
+			Huawei Bld.,NO.3 Xinxi Rd.,
+			Shang-Di Information Industry Base,
+			Hai-Dian District Beijing P.R. China
+			Zip:100085
+			Http://www.huawei.com
+			E-mail:support@huawei.com
+			"
+		DESCRIPTION 
+			"
+			V1.00
+			The NAT mib is for Eudemon and USG product series..
+			"
+		::= { hwSecurity 18 }
+	
+
+    -- 
+    -- Textual conventions
+    -- 
+	SessionType ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION 
+			"The type of session."
+		SYNTAX INTEGER
+			{				
+			dnsSession(1),
+			finrstSession(2),
+			fragSession(3),
+			ftpSession(4),
+			ftpDataSession(5),
+			h225Session(6),
+			h245Session(7),
+			h323rtcpSession(8),
+			h323rtpSession(9),
+			h323t120Session(10),
+			httpSession(11),
+			hwccSession(12),
+			icmpSession(13),
+			ilsSession(14),
+			netbiosdataSession(15),
+			netbiosnameSession(16), 
+			netbiosSession(17), 
+			rasSession(18),
+			rtcpSession(19),
+			rtpSession(20),
+			rtspSession(21), 
+			smtpSession(22),
+			synSession(23),
+			tcpSession(24),
+			telnetSession(25),
+			pptpSession(26),
+			udpSession(27),
+			qqSession(28),
+			msnSession(29),
+			userdefineSession(30),				
+			sipSession(31),
+			siprtpSession(32),
+			siptrcpSession(33),
+			greSesion(34)
+			}
+		
+	AlgType ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION 
+			"Description."
+		SYNTAX INTEGER
+			{
+			h323Alg(1),				
+			dnsAlg(2), 
+			netbiosAlg(3),
+			ilsAlg(4),
+			ftpAlg(5),
+			icmpAlg(6),
+			pptpAlg(7),
+			hwccAlg(8),
+			qqAlg(9),
+			msnAlg(10),
+			userdefineAlg(11)				
+			}
+		
+	NatType ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION 
+			"Description."
+		SYNTAX INTEGER
+			{
+			nat(1),
+			pat(2),
+			easyIP(3)
+			}
+		
+
+--
+-- Node definitions
+--
+	huawei OBJECT IDENTIFIER ::= { enterprises 2011 }
+        
+    -- 1.3.6.1.4.1.2011.6
+    huaweiUtility OBJECT IDENTIFIER ::= { huawei 6 }
+        
+    -- 1.3.6.1.4.1.2011.6.122
+    hwSecurity OBJECT IDENTIFIER ::= { huaweiUtility 122 }  
+    	
+	-- 1.3.6.1.4.1.2011.6.122.18
+	hwNatMibObjects OBJECT IDENTIFIER ::= { hwSecurity 18 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1
+	hwNatMibCfgObjects OBJECT IDENTIFIER ::= { hwNatMibObjects 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1
+	hwNatAddressGroupInfoTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatAddressGroupInfoEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT address pool information table
+			"
+		::= { hwNatMibCfgObjects 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1
+	hwNatAddressGroupInfoEntry OBJECT-TYPE
+		SYNTAX HwNatAddressGroupInfoEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT address pool information table entry.
+			"
+		INDEX { hwNatAddrGrpIndex }
+		::= { hwNatAddressGroupInfoTable 1 }
+	
+	HwNatAddressGroupInfoEntry ::=
+		SEQUENCE { 
+			hwNatAddrGrpIndex
+				Integer32,
+			hwNatAddrGrpBeginningIpAddr
+				IpAddress,
+			hwNatAddrGrpEndingIpAddr
+				IpAddress,
+			hwNatAddrGrpRefCount
+				Integer32,
+			hwNatAddrGrpRowstatus
+				RowStatus,
+			hwNatAddrGrpVrrpID
+				Integer32,
+			hwNatAddrGrpVrfName
+				OCTET STRING,
+			hwNatAddrGrpName
+				OCTET STRING			
+		}
+
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.1
+	hwNatAddrGrpIndex OBJECT-TYPE
+		SYNTAX Integer32 (0..1023)
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The index of address pool
+			
+			This item is index.
+			"
+		::= { hwNatAddressGroupInfoEntry 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.2
+	hwNatAddrGrpBeginningIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The beginning IP address of address pool
+			"
+		::= { hwNatAddressGroupInfoEntry 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.3
+	hwNatAddrGrpEndingIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The ending IP address of address pool
+			"
+		::= { hwNatAddressGroupInfoEntry 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.4
+	hwNatAddrGrpRefCount OBJECT-TYPE
+		SYNTAX Integer32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			This address pool reference count.
+			"
+		::= { hwNatAddressGroupInfoEntry 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.5
+	hwNatAddrGrpRowstatus OBJECT-TYPE
+		SYNTAX RowStatus
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			Row status
+			Only support CreateAndGo and Destroy.
+			"
+		::= { hwNatAddressGroupInfoEntry 5 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.6
+	hwNatAddrGrpVrrpID OBJECT-TYPE
+		SYNTAX Integer32 (0..255)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			VRRP ID of address pool
+			"
+		DEFVAL { 0 }
+		::= { hwNatAddressGroupInfoEntry 6 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.7
+	hwNatAddrGrpVrfName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (1..32))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The VPN Name of address pool
+			"
+		DEFVAL { "--" }
+		::= { hwNatAddressGroupInfoEntry 7 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.1.1.1.8
+	hwNatAddrGrpName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (1..16))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The Name of address pool
+			"
+		::= { hwNatAddressGroupInfoEntry 8 }
+			
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2
+	hwNatInternalServerTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatInternalServerEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The NAT internal server information table.
+			"
+		::= { hwNatMibCfgObjects 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1
+	hwNatInternalServerEntry OBJECT-TYPE
+		SYNTAX HwNatInternalServerEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The NAT internal server information table entry.
+			"
+		INDEX { hwNatServerIndex }
+		::= { hwNatInternalServerTable 1 }
+	
+	HwNatInternalServerEntry ::=
+		SEQUENCE { 
+			hwNatServerIndex
+				Integer32,
+			hwNatServerProtocol
+				Integer32,
+			hwNatServerInsideBeginIpAddr
+				IpAddress,
+			hwNatServerInsideEndIpAddr
+				IpAddress,
+			hwNatServerInsidePort
+				Integer32,
+			hwNatServerOutsideIpAddr
+				IpAddress,
+			hwNatServerOutsideBeginPort
+				Integer32,
+			hwNatServerOutsideEndPort
+				Integer32,
+			hwNatServerRowStatus
+				RowStatus,
+			hwNatServerVrrpID
+				Integer32,
+			hwNatServerVrfName
+				OCTET STRING,
+		    hwNatServerNoReverseFlag 
+		        Integer32,    
+		    hwNatServerZoneName
+		        OCTET STRING
+		 }
+
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.1
+	hwNatServerIndex OBJECT-TYPE
+		SYNTAX Integer32 (1..12289)
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The index of NAT server array.
+			
+			This item is index.
+			"
+		::= { hwNatInternalServerEntry 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.2
+	hwNatServerProtocol OBJECT-TYPE
+		SYNTAX Integer32 (0..255)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The protocol number.
+			"
+		::= { hwNatInternalServerEntry 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.3
+	hwNatServerInsideBeginIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The beginning local IP address of NAT servers.
+			"
+		::= { hwNatInternalServerEntry 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.4
+	hwNatServerInsideEndIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The ending local IP address of NAT servers.
+			"
+		::= { hwNatInternalServerEntry 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.5
+	hwNatServerInsidePort OBJECT-TYPE
+		SYNTAX Integer32 (0..65535)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The local port number of NAT servers.
+			"
+		::= { hwNatInternalServerEntry 5 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.6
+	hwNatServerOutsideIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The global IP address of NAT server.
+			"
+		::= { hwNatInternalServerEntry 6 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.7
+	hwNatServerOutsideBeginPort OBJECT-TYPE
+		SYNTAX Integer32 (0..65535)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The global beginning port of NAT server.
+			"
+		::= { hwNatInternalServerEntry 7 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.8
+	hwNatServerOutsideEndPort OBJECT-TYPE
+		SYNTAX Integer32 (0..65535)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The global ending port of NAT server.
+			"
+		::= { hwNatInternalServerEntry 8 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.9
+	hwNatServerRowStatus OBJECT-TYPE
+		SYNTAX RowStatus
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			Row status
+			Only support CreateAndGo and Destroy.
+			"
+		::= { hwNatInternalServerEntry 9 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.10
+	hwNatServerVrrpID OBJECT-TYPE
+		SYNTAX Integer32 (0..255)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			VRRP ID of Inner Server
+			"
+		DEFVAL { 0 }
+		::= { hwNatInternalServerEntry 10 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.11
+	hwNatServerVrfName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (0..32))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The VPN Name of Inner Server
+			"
+		DEFVAL { "--" }
+		::= { hwNatInternalServerEntry 11 }   
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.12
+	hwNatServerNoReverseFlag OBJECT-TYPE
+		SYNTAX Integer32 (0..1)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			whether has reverse servermap
+			"
+		DEFVAL { "--" }
+		::= { hwNatInternalServerEntry 12 }   		
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.1.2.1.13
+		hwNatServerZoneName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (0..32))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"
+			The zone name of global IP address
+			"
+		DEFVAL { "--" }
+		::= { hwNatInternalServerEntry 13 }		
+			
+	-- 1.3.6.1.4.1.2011.6.122.18.1.3
+	hwNatTimeoutTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatTimeoutEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The NAT session aging time table.
+			"
+		::= { hwNatMibCfgObjects 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.3.1
+	hwNatTimeoutEntry OBJECT-TYPE
+		SYNTAX HwNatTimeoutEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The NAT session aging time table entry.
+			"
+		INDEX { hwNatTimeoutSessionType }
+		::= { hwNatTimeoutTable 1 }
+	
+	HwNatTimeoutEntry ::=
+		SEQUENCE { 
+			hwNatTimeoutSessionType
+				SessionType,
+			hwNatTimeoutValue
+				Integer32
+		 }
+
+	-- 1.3.6.1.4.1.2011.6.122.18.1.3.1.1
+	hwNatTimeoutSessionType OBJECT-TYPE
+		SYNTAX SessionType
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The protocal type.
+			"
+		::= { hwNatTimeoutEntry 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.3.1.2
+	hwNatTimeoutValue OBJECT-TYPE
+		SYNTAX Integer32 (1..65535)
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"
+			Aging time, tcp:240, udp:40, icmp:20
+			"
+		::= { hwNatTimeoutEntry 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.4
+	hwNatAlgEnableTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatAlgEnableEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT ALG enable table
+			"
+		::= { hwNatMibCfgObjects 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.4.1
+	hwNatAlgEnableEntry OBJECT-TYPE
+		SYNTAX HwNatAlgEnableEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			nat alg table entry.
+			"
+		INDEX { hwNatAlgEnableProtocol }
+		::= { hwNatAlgEnableTable 1 }
+	
+	HwNatAlgEnableEntry ::=
+		SEQUENCE { 
+			hwNatAlgEnableProtocol
+				AlgType,
+			hwNatAlgEnableFlag
+				TruthValue
+		 }
+
+	-- 1.3.6.1.4.1.2011.6.122.18.1.4.1.1
+	hwNatAlgEnableProtocol OBJECT-TYPE
+		SYNTAX AlgType
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The alg protocol type.
+			"
+		::= { hwNatAlgEnableEntry 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.1.4.1.2
+	hwNatAlgEnableFlag OBJECT-TYPE
+		SYNTAX TruthValue
+		MAX-ACCESS read-write
+		STATUS current
+		DESCRIPTION
+			"
+			enable or disable.
+			true is enable, false is disable.
+			"
+		::= { hwNatAlgEnableEntry 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2
+	hwNatMonitorObjects OBJECT IDENTIFIER ::= { hwNatMibObjects 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.1
+	hwNatMonitorGlobalHash OBJECT IDENTIFIER ::= { hwNatMonitorObjects 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.1.1
+	hwNatHashStatPatCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The hash count NAT with pat.
+			"
+		::= { hwNatMonitorGlobalHash 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.1.2
+	hwNatHashStatNoPatCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The hash count NAT with no-pat.
+			"
+		::= { hwNatMonitorGlobalHash 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.1.3
+	hwNatHashStatServerHashCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The hash count of NAT internal server.
+			"
+		::= { hwNatMonitorGlobalHash 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.1.4
+	hwNatHashStatFragHashCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The hash count of fragment packets.
+			"
+		::= { hwNatMonitorGlobalHash 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.2
+	hwNatMonitorGlobalPkts OBJECT IDENTIFIER ::= { hwNatMonitorObjects 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.2.1
+	hwNatStatPktsCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The packet count of success address translation.
+			"
+		::= { hwNatMonitorGlobalPkts 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.2.2
+	hwNatStatFailedPktsCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The packet count of failed address translation.
+			"
+		::= { hwNatMonitorGlobalPkts 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.2.3
+	hwNatStatTCPPktsCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The TCP packet count of success address translation.
+			"
+		::= { hwNatMonitorGlobalPkts 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.2.4
+	hwNatStatUDPPktsCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The UDP packet count of success address translation.
+			"
+		::= { hwNatMonitorGlobalPkts 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.2.5
+	hwNatStatICMPPktsCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The ICMP packet count of success address translation.
+			"
+		::= { hwNatMonitorGlobalPkts 5 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.2.3
+	hwNatMonitorSecurityStat OBJECT IDENTIFIER ::= { hwNatMonitorObjects 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.3.1
+	hwNatStatAddrGrpCount OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The Total Number of AddrGrp 
+			"
+		::= { hwNatMonitorSecurityStat 1 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.2.3.2
+	hwNatStatAddrGrpUsed OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The Toatal Number of AddrGrp Used
+			"
+		::= { hwNatMonitorSecurityStat 2 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.2.3.3
+	hwNatStatConcurrentPatSession OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The Total Number of concurrent PAT-sessions
+			"
+		::= { hwNatMonitorSecurityStat 3 }	
+		
+        -- 1.3.6.1.4.1.2011.6.122.18.2.3.4
+	hwNatStatPatSessionRate OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The Number of PAT-sessions per second
+			"
+		::= { hwNatMonitorSecurityStat 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.2.3.5
+	hwNatStatUsingRate OBJECT-TYPE
+		SYNTAX Counter32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The usage of PAT-sessions
+			"
+		::= { hwNatMonitorSecurityStat 5 }		
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.3
+	hwNatTraps OBJECT IDENTIFIER ::= { hwNatMibObjects 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.3.1
+	hwNatObjests OBJECT IDENTIFIER ::= { hwNatTraps 1 }	
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.3.1.1
+ 	hwNatTrapThreshold  OBJECT-TYPE
+	        SYNTAX Gauge32 
+	        MAX-ACCESS accessible-for-notify
+	        STATUS current
+	        DESCRIPTION
+	            	"The threshold of NAT."
+	        ::= { hwNatObjests 1 }
+	                	
+	-- 1.3.6.1.4.1.2011.6.122.18.3.2
+	hwNatPoolTraps OBJECT IDENTIFIER ::= { hwNatTraps 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.3.2.1
+ 	hwSecTrapNatOverThreshold  NOTIFICATION-TYPE
+ 		OBJECTS { hwNatTrapThreshold }
+		STATUS     current
+		DESCRIPTION
+			"Over the threshold of NAT."
+		::= { hwNatPoolTraps 1}
+		       
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.3.2.2	        	
+	hwSecTrapNatBelowThreshold  NOTIFICATION-TYPE
+ 		OBJECTS { hwNatTrapThreshold }
+		STATUS     current
+		DESCRIPTION
+			"Below the threshold of NAT."
+		::= { hwNatPoolTraps 2}
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.4
+	hwNatConformance OBJECT IDENTIFIER ::= { hwNatMibObjects 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.4.1
+	hwNatMibGroups OBJECT IDENTIFIER ::= { hwNatConformance 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.4.1.1
+	hwNatCfgGroup OBJECT-GROUP
+		OBJECTS { 
+		    hwNatAddrGrpBeginningIpAddr, 
+		    hwNatAddrGrpEndingIpAddr, 
+		    hwNatAddrGrpRowstatus, 
+		    hwNatAddrGrpVrrpID,
+		    hwNatAddrGrpVrfName,
+		    hwNatServerProtocol, 
+		    hwNatServerInsideBeginIpAddr, 
+		    hwNatServerInsideEndIpAddr, 
+		    hwNatServerInsidePort, 
+		    hwNatServerRowStatus, 
+		    hwNatTimeoutValue, 
+		    hwNatAlgEnableFlag, 
+		    hwNatAddrGrpRefCount, 
+		    hwNatServerOutsideIpAddr, 
+		    hwNatServerOutsideBeginPort, 
+		    hwNatServerOutsideEndPort,
+		    hwNatServerVrrpID,
+		    hwNatServerVrfName,
+		    hwNatServerNoReverseFlag,
+		    hwNatServerZoneName
+		    }
+		STATUS current
+		DESCRIPTION 
+			"Description."
+		::= { hwNatMibGroups 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.4.1.2
+	hwNatMonitorGroup OBJECT-GROUP
+		OBJECTS { 
+		    hwNatHashStatPatCount, 
+		    hwNatHashStatNoPatCount, 
+		    hwNatHashStatServerHashCount, 
+		    hwNatHashStatFragHashCount, 
+		    hwNatStatPktsCount, 
+		    hwNatStatFailedPktsCount, 
+		    hwNatStatTCPPktsCount, 
+		    hwNatStatUDPPktsCount, 
+		    hwNatStatICMPPktsCount,
+		    hwNatStatAddrGrpCount,
+		    hwNatStatAddrGrpUsed,
+		    hwNatStatConcurrentPatSession,
+		    hwNatStatPatSessionRate
+		    }
+		STATUS current
+		DESCRIPTION 
+			"Description."
+		::= { hwNatMibGroups 2 }		
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5
+	hwNatStatObjects OBJECT IDENTIFIER ::= { hwNatMibObjects 5 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.1
+	hwNatStatAddressGroupTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatStatAddressGroupEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT address group statistics information table
+			"
+		::= { hwNatStatObjects 1 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.1.1
+	hwNatStatAddressGroupEntry OBJECT-TYPE
+		SYNTAX HwNatStatAddressGroupEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT address group statistics information entry
+			"
+		INDEX { hwNatStatAddrGrpIndex}
+		::= { hwNatStatAddressGroupTable 1 }
+	
+	HwNatStatAddressGroupEntry ::=
+		SEQUENCE {
+			hwNatStatAddrGrpIndex
+				Gauge32,
+			hwNatStatAddrGrpNumber
+				Gauge32,
+			hwNatStatAddrGrpGlobalIPAddr
+				IpAddress,
+			hwNatStatAddrGrpInsideIPCount
+				Gauge32,
+			hwNatStatAddrGrpSessionCount
+				Gauge32			
+		}
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.1.1.1
+	hwNatStatAddrGrpIndex OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The index of the address group
+			"
+		::= { hwNatStatAddressGroupEntry 1 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.1.1.2
+	hwNatStatAddrGrpNumber OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of the address group
+			"
+		::= { hwNatStatAddressGroupEntry 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.1.1.3
+	hwNatStatAddrGrpGlobalIPAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The global IP address of the address group
+			"
+		::= { hwNatStatAddressGroupEntry 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.1.1.4
+	hwNatStatAddrGrpInsideIPCount OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			Number of inside IP addresses corresponding to the global IP address
+			"
+		::= { hwNatStatAddressGroupEntry 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.1.1.5
+	hwNatStatAddrGrpSessionCount OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			Number of sessions corresponding to the global IP address
+			"
+		::= { hwNatStatAddressGroupEntry 5 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2
+	hwNatStatAddressGroupSetTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatStatAddressGroupSetEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT address group set statistics information table
+			"
+		::= { hwNatStatObjects 2 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1
+	hwNatStatAddressGroupSetEntry OBJECT-TYPE
+		SYNTAX HwNatStatAddressGroupSetEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT address group set statistics information entry
+			"
+		INDEX { hwNatStatAddrGrpSetIndex, hwNatStatAddrGrpPoolIndex}
+		::= { hwNatStatAddressGroupSetTable 1 }
+	
+	HwNatStatAddressGroupSetEntry ::=
+		SEQUENCE {
+			hwNatStatAddrGrpSetIndex
+				Gauge32,
+			hwNatStatAddrGrpPoolIndex
+				Gauge32,	
+			hwNatStatAddrGrpSetName
+				OCTET STRING,
+			hwNatStatAddrGrpSetNumber
+				Gauge32,
+			hwNatStatAddrGrpSetGlobalIPAddr
+				IpAddress,
+			hwNatStatAddrGrpSetInsideIPCount
+				Gauge32,
+			hwNatStatAddrGrpSetSessionCount
+				Gauge32
+		 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1.1
+	hwNatStatAddrGrpSetIndex OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The index of address group set
+			"
+		::= { hwNatStatAddressGroupSetEntry 1 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1.2
+	hwNatStatAddrGrpPoolIndex OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The index of address group
+			"
+		::= { hwNatStatAddressGroupSetEntry 2 }	
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1.3
+	hwNatStatAddrGrpSetName OBJECT-TYPE
+		SYNTAX OCTET STRING
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The name of address group set
+			"
+		::= { hwNatStatAddressGroupSetEntry 3 } 
+			
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1.4
+	hwNatStatAddrGrpSetNumber OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of the address group in address group set
+			"
+		::= { hwNatStatAddressGroupSetEntry 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1.5
+	hwNatStatAddrGrpSetGlobalIPAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The global IP address of address group in address group set
+			"
+		::= { hwNatStatAddressGroupSetEntry 5 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1.6
+	hwNatStatAddrGrpSetInsideIPCount OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The inside IP address count of address group in address group set
+			"
+		::= { hwNatStatAddressGroupSetEntry 6 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.2.1.7
+	hwNatStatAddrGrpSetSessionCount OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The session count of address group in address group set
+			"
+		::= { hwNatStatAddressGroupSetEntry 7 }
+			
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3
+	hwNatNoPatAddressGroupStatTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatNoPatAddressGroupStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT NO-PAT address group statistics information table
+			"
+		::= { hwNatStatObjects 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3.1
+	hwNatNoPatAddressGroupStatEntry OBJECT-TYPE
+		SYNTAX HwNatNoPatAddressGroupStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT NO-PAT address group statistics information entry
+			"
+		INDEX { hwNatNoPatAddrGrpIndex }
+		::= { hwNatNoPatAddressGroupStatTable 1 }
+	
+	HwNatNoPatAddressGroupStatEntry ::=
+		SEQUENCE {
+			hwNatNoPatAddrGrpIndex
+				Gauge32,
+			hwNatNoPatAddrGrpNumber
+				Gauge32,
+			hwNatNoPatAddrGrpStatTotal
+				Gauge32,
+			hwNatNoPatAddrGrpStatUsed
+				Gauge32,
+			hwNatNoPatAddrGrpStatNotUsed
+				Gauge32,
+			hwNatNoPatAddrGrpStatNoPatSession
+				Gauge32,
+			hwNatNoPatAddrGrpStatNoPatAddrUsage
+				Gauge32
+		 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3.1.1
+	hwNatNoPatAddrGrpIndex OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The index of NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupStatEntry 1 } 
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3.1.2
+	hwNatNoPatAddrGrpNumber OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupStatEntry 2 } 
+			
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3.1.3
+	hwNatNoPatAddrGrpStatTotal OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The total number of IP addresses in the NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupStatEntry 3 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.4.3.1.4
+	hwNatNoPatAddrGrpStatUsed OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of used IP addresses in the NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupStatEntry 4 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3.1.5
+	hwNatNoPatAddrGrpStatNotUsed OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of unused IP addresses in the NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupStatEntry 5 }	
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3.1.6
+	hwNatNoPatAddrGrpStatNoPatSession OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			Number of sessions corresponding to the global IP address in NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupStatEntry 6 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.3.1.7
+	hwNatNoPatAddrGrpStatNoPatAddrUsage OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The usage of IP addresses in the No-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupStatEntry 7 }	
+				
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4
+	hwNatNoPatAddressGroupSetStatTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwNatNoPatAddressGroupSetStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT NO-PAT address group set statistics information table
+			"
+		::= { hwNatStatObjects 4 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1
+	hwNatNoPatAddressGroupSetStatEntry OBJECT-TYPE
+		SYNTAX HwNatNoPatAddressGroupSetStatEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			NAT NO-PAT address group set statistics information entry.
+			"
+		INDEX { hwNatNoPatAddrGrpSetIndex}
+		::= { hwNatNoPatAddressGroupSetStatTable 1 }
+	
+	HwNatNoPatAddressGroupSetStatEntry ::=
+		SEQUENCE {
+			hwNatNoPatAddrGrpSetIndex
+				Gauge32,
+			hwNatNoPatAddrGrpSetName
+				OCTET STRING,
+			hwNatNoPatAddrGrpSetNumber
+				Gauge32,
+			hwNatNoPatAddrGrpSetStatTotal
+				Gauge32,
+			hwNatNoPatAddrGrpSetStatUsed
+				Gauge32,
+			hwNatNoPatAddrGrpSetStatNotUsed
+				Gauge32,
+			hwNatNoPatAddrGrpSetStatNoPatSession
+				Gauge32,
+			hwNatNoPatAddrGrpSetStatNoPatAddrUsage
+				Gauge32
+		 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.1
+	hwNatNoPatAddrGrpSetIndex OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"
+			The index of NO-PAT address group set
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 1 } 
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.2
+	hwNatNoPatAddrGrpSetName OBJECT-TYPE
+		SYNTAX OCTET STRING
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The name of NO-PAT address group set
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 2 } 
+			
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.3
+	hwNatNoPatAddrGrpSetNumber OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of the NO-PAT address group in address group set.			
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 3 }
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.4
+	hwNatNoPatAddrGrpSetStatTotal OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The total number of IP addresses in the NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 4 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.5
+	hwNatNoPatAddrGrpSetStatUsed OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of used IP addresses in the NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 5 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.6
+	hwNatNoPatAddrGrpSetStatNotUsed OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The number of unused IP addresses in the NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 6 }	
+	
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.7
+	hwNatNoPatAddrGrpSetStatNoPatSession OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			Number of sessions corresponding to the global IP address in NO-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 7 }
+		
+	-- 1.3.6.1.4.1.2011.6.122.18.5.4.1.8
+	hwNatNoPatAddrGrpSetStatNoPatAddrUsage OBJECT-TYPE
+		SYNTAX Gauge32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"
+			The usage of IP addresses in the No-PAT address group
+			"
+		::= { hwNatNoPatAddressGroupSetStatEntry 8 }	
+		
+	      
+	-- 1.3.6.1.4.1.2011.6.122.18.6
+	hwSecStaticMappingObjects OBJECT IDENTIFIER ::= { hwNatMibObjects 6 }
+      
+	-- 1.3.6.1.4.1.2011.6.122.18.6.1
+        hwSMCopyTable OBJECT-TYPE
+			SYNTAX SEQUENCE OF HwSMCopyEntry
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"Description."
+			::= { hwSecStaticMappingObjects 1 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.1.1			
+		hwSMCopyEntry OBJECT-TYPE
+			SYNTAX HwSMCopyEntry
+			MAX-ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"Description."
+			INDEX { hwSMCopyIndex }
+			::= { hwSMCopyTable 1 }   
+				
+		HwSMCopyEntry ::=	
+			SEQUENCE { 
+	    			hwSMCopyIndex
+	        			Integer32,
+	    			hwSMCopyProtocol
+	        			OCTET STRING,  
+	        		hwSMCopySrcFileType
+	        			Integer32,
+		            hwSMCopyDstFileType
+	        			Integer32, 
+	        	    hwSMCopyFtpServer 
+	        			IpAddress,
+	        		hwSMCopySrcFileName
+	        			OCTET STRING,
+	        		hwSMCopyDstFileName
+	        			OCTET STRING,
+	        		hwSMCopyUserName
+	        			OCTET STRING,
+	        		hwSMCopyUserPwd
+	        			OCTET STRING,
+	        		hwSMCopyRowStatus
+	        			RowStatus			     
+	 			}
+	
+         -- 1.3.6.1.4.1.2011.6.122.18.6.1.1.1
+		hwSMCopyIndex OBJECT-TYPE
+			SYNTAX Integer32 (1)
+			MAX-ACCESS read-only
+			STATUS current
+			DESCRIPTION
+			"Description."
+			::= { hwSMCopyEntry 1 }
+
+        -- 1.3.6.1.4.1.2011.6.122.18.6.1.1.2
+		hwSMCopyProtocol OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (0..5))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMCopyEntry 2 } 
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.1.1.3
+		hwSMCopySrcFileType OBJECT-TYPE
+		SYNTAX Integer32 (1..10)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		DEFVAL { 1 }
+		::= { hwSMCopyEntry 3 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.1.1.4
+		hwSMCopyDstFileType OBJECT-TYPE
+		SYNTAX Integer32 (1..10)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		DEFVAL { 4 }
+		::= { hwSMCopyEntry 4 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.1.1.5
+		hwSMCopyFtpServer OBJECT-TYPE
+		SYNTAX IpAddress
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMCopyEntry 5 }
+
+        -- 1.3.6.1.4.1.2011.6.122.18.6.1.1.6
+		hwSMCopySrcFileName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (1..80))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMCopyEntry 6 }
+
+        -- 1.3.6.1.4.1.2011.6.122.18.6.1.1.7
+		hwSMCopyDstFileName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (1..80))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMCopyEntry 7 }
+        
+        -- 1.3.6.1.4.1.2011.6.122.18.6.1.1.8
+		hwSMCopyUserName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (1..20))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMCopyEntry 8 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.1.1.9
+		hwSMCopyUserPwd OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (1..20))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMCopyEntry 9 } 
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.1.1.10
+		hwSMCopyRowStatus OBJECT-TYPE
+		SYNTAX RowStatus
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMCopyEntry 10 }
+				
+		-- 1.3.6.1.4.1.2011.6.122.18.6.2
+		hwSMReadTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF HwSMReadEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSecStaticMappingObjects 2 }
+        
+        -- 1.3.6.1.4.1.2011.6.122.18.6.2.1
+		hwSMReadEntry OBJECT-TYPE
+		SYNTAX HwSMReadEntry
+		MAX-ACCESS not-accessible
+		STATUS current
+		DESCRIPTION
+			"Description."
+		INDEX { hwSMReadIndex }
+		::= { hwSMReadTable 1 }
+        
+        HwSMReadEntry ::=	
+			SEQUENCE { 
+	    			hwSMReadIndex
+	        			Integer32,
+	    			hwSMReadFileType
+	        			Integer32,  
+	        		hwSMReadFileName
+	        			OCTET STRING,
+	        		hwSMReadRowStatus
+	        			RowStatus			     
+	 			} 
+	 			
+	 	-- 1.3.6.1.4.1.2011.6.122.18.6.2.1.1
+		hwSMReadIndex OBJECT-TYPE
+		SYNTAX Integer32 (1)
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMReadEntry 1 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.2.1.2
+		hwSMReadFileType OBJECT-TYPE
+		SYNTAX Integer32 (1..10)
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMReadEntry 2 }	
+
+	    -- 1.3.6.1.4.1.2011.6.122.18.6.2.1.3
+		hwSMReadFileName OBJECT-TYPE
+		SYNTAX OCTET STRING (SIZE (1..80))
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMReadEntry 3 } 
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.2.1.4
+		hwSMReadRowStatus OBJECT-TYPE
+		SYNTAX RowStatus
+		MAX-ACCESS read-create
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwSMReadEntry 4 }
+				
+		-- 1.3.6.1.4.1.2011.6.122.18.6.3
+		hwCopyConfigScalar OBJECT IDENTIFIER ::= { hwSecStaticMappingObjects 3 } 
+		                 
+		-- 1.3.6.1.4.1.2011.6.122.18.6.3.1
+		hwSMCopyState OBJECT-TYPE
+		SYNTAX Integer32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwCopyConfigScalar 1 }
+                 
+		-- 1.3.6.1.4.1.2011.6.122.18.6.3.2
+		hwSMCopyTimeStarted OBJECT-TYPE
+		SYNTAX TimeTicks
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwCopyConfigScalar 2 }
+
+        -- 1.3.6.1.4.1.2011.6.122.18.6.3.3
+		hwSMCopyTimeCompleted OBJECT-TYPE
+		SYNTAX TimeTicks
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwCopyConfigScalar 3 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.3.4
+		hwSMCopyFailCause OBJECT-TYPE
+		SYNTAX OCTET STRING
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwCopyConfigScalar 4 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.4
+		hwReadConfigScalar OBJECT IDENTIFIER ::= { hwSecStaticMappingObjects 4 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.4.1
+		hwSMReadState OBJECT-TYPE
+		SYNTAX Integer32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwReadConfigScalar 1 }
+        
+        -- 1.3.6.1.4.1.2011.6.122.18.6.4.2
+		hwSMReadResultFileName OBJECT-TYPE
+		SYNTAX OCTET STRING
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwReadConfigScalar 2 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.4.3
+		hwSMReadResultCode OBJECT-TYPE
+		SYNTAX Integer32
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwReadConfigScalar 3 }
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.4.4
+		hwSMReadResultDescription OBJECT-TYPE
+		SYNTAX OCTET STRING
+		MAX-ACCESS read-only
+		STATUS current
+		DESCRIPTION
+			"Description."
+		::= { hwReadConfigScalar 4 }  
+		
+		-- 1.3.6.1.4.1.2011.6.122.18.6.5
+        hwSecStaticMappingTraps OBJECT IDENTIFIER ::= { hwSecStaticMappingObjects 5 }                 
+                         
+        -- 1.3.6.1.4.1.2011.6.122.18.6.5.1
+		hwCGNStaticMappingCopyConfigEvent NOTIFICATION-TYPE
+		OBJECTS { hwSMCopyFtpServer, hwSMCopySrcFileName, hwSMCopyState, hwSMCopyTimeStarted, hwSMCopyTimeCompleted, 
+		hwSMCopyFailCause }
+		STATUS current
+		DESCRIPTION 
+			"Description."
+		::= { hwSecStaticMappingTraps 1 }
+ 
+        -- 1.3.6.1.4.1.2011.6.122.18.6.5.2
+		hwCGNStaticMappingReadConfigEvent NOTIFICATION-TYPE
+		OBJECTS { hwSMReadResultFileName, hwSMReadResultCode, hwSMReadResultDescription }
+		STATUS current
+		DESCRIPTION 
+			"Description."
+		::= { hwSecStaticMappingTraps 2 }
+
+			
+
+END

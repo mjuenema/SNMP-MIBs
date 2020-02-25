@@ -4,7 +4,7 @@
 --           Management Information Base for SNMP Network Management
 --
 --
---      Copyright 1992,2003 Hewlett-Packard Development Company, L.P.
+--      Copyright 1992,2005 Hewlett-Packard Development Company, L.P.
 --      Hewlett-Packard Company shall not be liable for technical or
 --      editorial errors or omissions contained herein. The information in
 --      this document is provided "as is" without warranty of any kind and
@@ -80,7 +80,8 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 --       cpqFcaMibRev Group            (1.3.6.1.4.1.232.16.1)
 --
 --      An SNMP agent conforming to this document will return a
---      cpqFcaMibRevMajor of one (1) and a cpqFcaMibRevMinor of nineteen (19).
+--      cpqFcaMibRevMajor of one (1) and a cpqFcaMibRevMinor of
+--      twenty eight (28).
 --
 --      Implementation of the cpqFcaMibRev group is mandatory for all agents
 --      supporting the Fibre Channel Array MIB.
@@ -359,7 +360,9 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             hsg80(5),
             hsv110(6),
             msa500G2(7),
-            msa20(8)
+            msa20(8),
+            msa1510i(9),
+            msa2000s(10)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -393,7 +396,13 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
               HP StorageWorks Modular Smart Array 500 G2 Controller.
 
             msa20 (8)
-              HP StorageWorks Modular Smart Array 20 Controller."
+              HP StorageWorks Modular Smart Array 20 Controller.
+
+            msa1510i (9)
+              HP StorageWorks Modular Smart Array 1510i Controller.
+
+            msa200s(10)
+              HP StorageWorks MSA2000s Controller."
         ::= { cpqFcaCntlrEntry 3 }
 
      cpqFcaCntlrFWRev OBJECT-TYPE
@@ -414,7 +423,8 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             ok(2),
             failed(3),
             offline(4),
-            redundantPathOffline(5)
+            redundantPathOffline(5),
+            notConnected(6)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -436,7 +446,11 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             redundantPathOffline (5)
               At least one path to this controller is available and at least
-              one path to this controller is unavailable."
+              one path to this controller is unavailable.
+
+            notConnected (6)
+              No paths are available to this controller.  However, in an
+              active/active configuration, this is a valid configuration."
         ::= { cpqFcaCntlrEntry 5 }
 
      cpqFcaCntlrCondition OBJECT-TYPE
@@ -532,7 +546,8 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             other(1),
             notRedundant(2),
             fwActiveStandby(3),
-            fwPrimarySecondary(4)
+            fwPrimarySecondary(4),
+            fwActiveActive(5)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -556,6 +571,11 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             fwPrimarySecondary (4)
               The array controller is using a primary/secondary algorithm
+              implemented in the controller firmware and the operating system
+              driver.
+
+            fwActiveActive (5)
+              The array controller is using an active/active algorithm
               implemented in the controller firmware and the operating system
               driver."
         ::= { cpqFcaCntlrEntry 11 }
@@ -678,9 +698,9 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             are valid:
 
             other (1)
-              Indicates that the instrument agent does not recognize the
-              rebuild priority the controller.  You may need to upgrade the
-              instrument agent.
+              Indicates that the agent does not recognize the rebuild
+              priority of the controller.  You may need to upgrade the
+              agent.
 
             low (2)
               The rebuild priority is low.
@@ -709,9 +729,8 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             are valid:
 
             other (1)
-              Indicates that the instrument agent does not recognize the
-              expand priority the controller.  You may need to upgrade the
-              instrument agent.
+              Indicates that the agent does not recognize the expand
+              priority of the controller.  You may need to upgrade the agent.
 
             low (2)
               The expand priority is low.
@@ -755,19 +774,20 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
      CpqFcaAccelEntry ::= SEQUENCE
      {
-        cpqFcaAccelBoxIndex       INTEGER,
-        cpqFcaAccelBoxIoSlot      INTEGER,
-        cpqFcaAccelStatus         INTEGER,
-        cpqFcaAccelBadData        INTEGER,
-        cpqFcaAccelErrCode        INTEGER,
-        cpqFcaAccelBatteryStatus  INTEGER,
-        cpqFcaAccelReadErrs       Counter,
-        cpqFcaAccelWriteErrs      Counter,
-        cpqFcaAccelCondition      INTEGER,
-        cpqFcaAccelWriteCache     INTEGER,
-        cpqFcaAccelReadCache      INTEGER,
-        cpqFcaAccelSerialNumber   DisplayString,
-        cpqFcaAccelTotalMemory    INTEGER
+        cpqFcaAccelBoxIndex         INTEGER,
+        cpqFcaAccelBoxIoSlot        INTEGER,
+        cpqFcaAccelStatus           INTEGER,
+        cpqFcaAccelBadData          INTEGER,
+        cpqFcaAccelErrCode          INTEGER,
+        cpqFcaAccelBatteryStatus    INTEGER,
+        cpqFcaAccelReadErrs         Counter,
+        cpqFcaAccelWriteErrs        Counter,
+        cpqFcaAccelCondition        INTEGER,
+        cpqFcaAccelWriteCache       INTEGER,
+        cpqFcaAccelReadCache        INTEGER,
+        cpqFcaAccelSerialNumber      DisplayString,
+        cpqFcaAccelTotalMemory      INTEGER,
+        cpqFcaAccelFailedBatteries  OCTET STRING
      }
 
      cpqFcaAccelBoxIndex OBJECT-TYPE
@@ -1168,6 +1188,20 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             memory."
         ::= { cpqFcaAccelEntry 13 }
 
+     cpqFcaAccelFailedBatteries OBJECT-TYPE
+        SYNTAX  OCTET STRING (SIZE (0..16))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Array Accelerator Failed Batteries.
+
+            This lists the location of accelerator failed batteries.
+            Each octet present contains the position number of a failed
+            battery.  An octet string of length zero indicates that there
+            are no failed batteries or that the controller does not have
+            the ability to identify individual failed batteries."
+        ::= { cpqFcaAccelEntry 14 }
+
 
 
 -- ****************************************************************************
@@ -1230,7 +1264,9 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         cpqFcaLogDrvSpareReplaceMap          OCTET STRING,
         cpqFcaLogDrvRebuildingPhyDrv         INTEGER,
         cpqFcaLogDrvSnapshotResourceDrvIndex INTEGER,
-        cpqFcaLogDrvSnapshotSourceDrvIndex   INTEGER
+        cpqFcaLogDrvSnapshotSourceDrvIndex   INTEGER,
+        cpqFcaLogDrvPreferredPath            INTEGER,
+        cpqFcaLogDrvCurrentPath              INTEGER
      }
 
      cpqFcaLogDrvBoxIndex OBJECT-TYPE
@@ -1245,7 +1281,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         ::= { cpqFcaLogDrvEntry 1 }
 
      cpqFcaLogDrvIndex OBJECT-TYPE
-        SYNTAX  INTEGER (0..255)
+        SYNTAX  INTEGER (0..65535)
         ACCESS  read-only
         STATUS  mandatory
         DESCRIPTION
@@ -1664,6 +1700,32 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             not a Snapshot Resource Volume, the value is set to -1."
         ::= { cpqFcaLogDrvEntry 18 }
 
+     cpqFcaLogDrvPreferredPath OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "External Array Logical Drive Preferred Path.
+
+            This identifies the preferred controller path to this logical
+            drive in a redundant active/active configuration.  The value is
+            the controller index.  If the controller is not configured as
+            active/active, the value is set to -1."
+        ::= { cpqFcaLogDrvEntry 19 }
+
+     cpqFcaLogDrvCurrentPath OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "External Array Logical Drive Current Path.
+
+            This identifies the current controller path to this logical drive
+            in a redundant active/active configuration.  The value is the
+            controller index.  If the controller is not configured as
+            active/active, the value is set to -1."
+        ::= { cpqFcaLogDrvEntry 20 }
+
 
 -- ****************************************************************************
 --    External Array Spare Drive Table
@@ -1717,7 +1779,8 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         cpqFcaSpareCondition              INTEGER,
         cpqFcaSpareBusNumber              INTEGER,
         cpqFcaSpareBay                    INTEGER,
-        cpqFcaSpareReplacedDrvBusNumber   INTEGER
+        cpqFcaSpareReplacedDrvBusNumber   INTEGER,
+        cpqFcaSpareLocationString         DisplayString
      }
 
      cpqFcaSpareBoxIndex OBJECT-TYPE
@@ -1866,6 +1929,18 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
              value is set to -1."
         ::= { cpqFcaSpareEntry 9 }
 
+     cpqFcaSpareLocationString OBJECT-TYPE
+        SYNTAX  DisplayString (SIZE (0..255))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+           "Spare Drive Location String.
+
+            This string describes the location of the drive in relation to
+            the storage box.  If the location string cannot be determined,
+            the agent will return a NULL string."
+        ::= { cpqFcaSpareEntry 10 }
+
 
 
 -- ****************************************************************************
@@ -1962,7 +2037,13 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         cpqFcaPhyDrvSmartStatus           INTEGER,
         cpqFcaPhyDrvRotationalSpeed       INTEGER,
         cpqFcaPhyDrvType                  INTEGER,
-        cpqFcaPhyDrvSataVersion           INTEGER
+        cpqFcaPhyDrvSataVersion           INTEGER,
+        cpqFcaPhyDrvBoxConnector          DisplayString,
+        cpqFcaPhyDrvBoxOnConnector        INTEGER,
+        cpqFcaPhyDrvLocationString        DisplayString,
+        cpqFcaPhyDrvNegotiatedLinkRate    INTEGER,
+        cpqFcaPhyDrvPhyCount              INTEGER,
+        cpqFcaPhyDrvUnsupportedDrive      INTEGER
      }
 
      cpqFcaPhyDrvBoxIndex OBJECT-TYPE
@@ -2033,7 +2114,8 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             ok(3),
             threshExceeded(4),
             predictiveFailure(5),
-            failed(6)
+            failed(6),
+            unsupportedDrive(7)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -2066,7 +2148,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             failed (6)
               Indicates that the drive is no longer operating and
-              should be replaced."
+              should be replaced.
+
+            unsupportedDrive(7)
+              Indicates that an unsupported drive has been detected and
+              should be replaced.  See cpqFcaPhyDrvUnsupportedDrive for
+              more details."
         ::= { cpqFcaPhyDrvEntry 6 }
 
      cpqFcaPhyDrvUsedReallocs OBJECT-TYPE
@@ -3073,6 +3160,117 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
               The drive is SATA version two."
         ::= { cpqFcaPhyDrvEntry 52 }
 
+     cpqFcaPhyDrvBoxConnector OBJECT-TYPE
+        SYNTAX  DisplayString (SIZE (0..4))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+           "Physical Drive Box Connector.
+
+            This is the box connector to which the drive is ultimately
+            attached.  If the box connector cannot be determined, the agent
+            will return a NULL string."
+        ::= { cpqFcaPhyDrvEntry 53 }
+
+     cpqFcaPhyDrvBoxOnConnector OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+           "Physical Drive Box on Connector.
+
+            The box on connector indicates to which box instance this
+            physical drive belongs.  The instances start at one and increment for
+            each box attached to a connector.  If the value cannot be
+            determined or does not apply, -1 is returned."
+        ::= { cpqFcaPhyDrvEntry 54 }
+
+     cpqFcaPhyDrvLocationString OBJECT-TYPE
+        SYNTAX  DisplayString (SIZE (0..255))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+           "Physical Drive Location String.
+
+            This string describes the location of the drive in relation to
+            the storage box.  If the location string cannot be determined,
+            the agent will return a NULL string."
+        ::= { cpqFcaPhyDrvEntry 55 }
+
+     cpqFcaPhyDrvNegotiatedLinkRate OBJECT-TYPE
+        SYNTAX  INTEGER
+        {
+            other(1),
+            rate-1-5(2),
+            rate-3-0(3)
+        }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Physical Drive Negotiated Link Rate.
+
+            The following values are defined:
+
+            other(1)
+              The agent is unable to determine the negotiated link rate
+              this drive.
+
+            rate-1-5(2)
+              The negotiated link rate for this drive is 1.5 Gigabits per
+              second.
+
+            rate-3-0(3)
+              The negotiated link rate for this drive is 3.0 Gigabits per
+              second."
+        ::= { cpqFcaPhyDrvEntry 56 }
+
+     cpqFcaPhyDrvPhyCount OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Physical Drive PHY Count.
+
+            This value indicates how many PHYs exist on a SAS or SATA disk
+            drive.  If the value cannot be determined or does not apply,
+             -1 is returned."
+        ::= { cpqFcaPhyDrvEntry 57 }
+
+     cpqFcaPhyDrvUnsupportedDrive OBJECT-TYPE
+        SYNTAX  INTEGER
+        {
+            other(1),
+            supported(2),
+            unsupported-SinglePorted(3),
+            unsupported-SATA(4),
+            unsupported-TooSmall(5)
+        }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Physical Drive Unsupported Drive.
+
+            The following values are defined:
+
+            other(1)
+              The agent is unable to determine the value for this drive.
+
+            supported(2)
+              The drive is supported.
+
+            unsupported-SinglePorted(3)
+              The drive is unsupported.  A single ported drive has been
+              detected in a dual port only configuration.
+
+            unsupported-SATA(4)
+              The drive is unsupported.  A SATA drive has been detected in
+              a SAS only configuration.
+
+            unsupported-TooSmall(5)
+              The drive is unsupported.  A drive that is too small has been
+              detected."
+        ::= { cpqFcaPhyDrvEntry 58 }
+
 
 -- ****************************************************************************
 --    Drive Array Physical Drive Threshold Table
@@ -3450,7 +3648,9 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         cpqFcaHostCntlrTapeCntlrList      OCTET STRING,
         cpqFcaHostCntlrSerialNumber       DisplayString,
         cpqFcaHostCntlrHwLocation         DisplayString,
-        cpqFcaHostCntlrWorldWidePortName  DisplayString
+        cpqFcaHostCntlrWorldWidePortName  DisplayString,
+        cpqFcaHostCntlrFirmwareVersion    DisplayString,
+        cpqFcaHostCntlrOptionRomVersion   DisplayString
      }
 
      cpqFcaHostCntlrIndex OBJECT-TYPE
@@ -3497,7 +3697,20 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             a6826a(14),
             fcmcG3(15),
             fcmcG4(16),
-            ab46xa(17)
+            ab46xa(17),
+            fc-generic(18),
+            fca-1143(19),
+            fca-1243(20),
+            fca-2143(21),
+            fca-2243(22),
+            fca-1050(23),
+            fca-lpe1105(24),
+            fca-qmh2462(25),
+            fca-1142sr(26),
+            fca-1242sr(27),
+            fca-2142sr(28),
+            fca-2242sr(29),
+            fcmc20pe(30)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -3557,7 +3770,46 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
               Fibre Channel Mezzaine Card G4, BL2x p Series
 
             ab46xa(17)
-              PCI-X 2GB AB466A/AB467A Fibre Channel HBA"
+              PCI-X 2GB AB466A/AB467A Fibre Channel HBA
+
+            fc-generic(18)
+              Fibre Channel HBA
+
+            fca-1143(19)
+              HP FC1143 4Gb PCI-X 2.0 HBA
+
+            fca-1243(20)
+              HP FC1243 4Gb PCI-X 2.0 DC HBA
+
+            fca-2143(21)
+              HP FC2143 4Gb PCI-X 2.0 HBA
+
+            fca-2243(22)
+              HP FC2243 4Gb PCI-X 2.0 DC HBA
+
+            fca-1050(23)
+              HP StorageWorks 1050 HBA
+
+            fca-lpe1105(24)
+              Emulex LPe1105-HP 4Gb FC HBA for HP c-Class Blade System
+
+            fca-qmh2462(25)
+              Qlogic QMH2462 4Gb FC HBA for HP c-Class Blade System
+
+            fca-1142sr(26)
+              HP FC1142SR 4Gb PCI-e HBA
+
+            fca-1242sr(27)
+              HP FC1242SR 4Gb PCI-e DC HBA
+
+            fca-2142sr(28)
+              HP FC2142SR 4Gb PCI-e HBA
+
+            fca-2242sr(29)
+              HP FC2242SR 4Gb PCI-e DC HBA
+
+            fcmc20pe(30)
+              Emulex based BL20p Fibre Channel Mezz HBA"
         ::= { cpqFcaHostCntlrEntry 3 }
 
      cpqFcaHostCntlrStatus OBJECT-TYPE
@@ -3568,7 +3820,8 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             failed(3),
             shutdown(4),
             loopDegraded(5),
-            loopFailed(6)
+            loopFailed(6),
+            notConnected(7)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -3595,7 +3848,11 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
               Indicates that the fibre channel connection is degraded.
 
             LoopFailed (6)
-              Indicates that the fibre channel connection is failed."
+              Indicates that the fibre channel connection is failed.
+
+            NotConnected (7)
+              Indicates that the fibre channel port is not connected or the
+              device to which it is connected is powered down."
         ::= { cpqFcaHostCntlrEntry 4 }
 
      cpqFcaHostCntlrCondition OBJECT-TYPE
@@ -3704,6 +3961,30 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             the agent will return a NULL string."
         ::= { cpqFcaHostCntlrEntry 12 }
 
+     cpqFcaHostCntlrFirmwareVersion OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Fibre Channel Host Controller Firmware Version.
+
+            This shows the host controller firmware version number.
+            If the firmware version number is not supported, the agent
+            will return a NULL string."
+        ::= { cpqFcaHostCntlrEntry 13 }
+
+     cpqFcaHostCntlrOptionRomVersion OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Fibre Channel Host Controller Option ROM Version.
+
+            This shows the host controller option ROM version number.
+            If the option ROM version number is not supported, the agent
+            will return a NULL string."
+        ::= { cpqFcaHostCntlrEntry 14 }
+
 
 -- ****************************************************************************
 --    External Array Snapshot Resource Volume Table
@@ -3773,7 +4054,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         ::= { cpqExtArrRsrcVolEntry 1 }
 
      cpqExtArrRsrcVolIndex OBJECT-TYPE
-        SYNTAX  INTEGER (0..255)
+        SYNTAX  INTEGER (0..65535)
         ACCESS  read-only
         STATUS  mandatory
         DESCRIPTION
@@ -4018,7 +4299,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         ::= { cpqExtArrSnapshotEntry 1 }
 
      cpqExtArrSnapshotRsrcVolIndex OBJECT-TYPE
-        SYNTAX  INTEGER (0..255)
+        SYNTAX  INTEGER (0..65535)
         ACCESS  read-only
         STATUS  mandatory
         DESCRIPTION
@@ -5667,7 +5948,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the logical drive status is failed, examine
             the array for failed drives that need replacement."
 
-        --#TYPE "Logical Drive Status Change"
+        --#TYPE "External Array Logical Drive Status Change (16001)"
         --#SUMMARY "Status is now %d."
         --#ARGUMENTS {5}
         --#SEVERITY CRITICAL
@@ -5692,11 +5973,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the spare drive status is failed, replace the
             drive."
 
-        --#TYPE "Spare Drive Status Change"
+        --#TYPE "External Array Spare Drive Status Change (16002)"
         --#SUMMARY "Spare Status is now %d on bus %d."
         --#ARGUMENTS {6,4}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16002
 
@@ -5717,7 +5999,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the physical drive status is threshExceeded(4),
             predictiveFailure(5) or failed(6), replace the drive."
 
-        --#TYPE "Physical Drive Status Change"
+        --#TYPE "External Array Physical Drive Status Change (16003)"
         --#SUMMARY "Status is now %d for a physical drive on bus %d."
         --#ARGUMENTS {6,4}
         --#SEVERITY CRITICAL
@@ -5739,7 +6021,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             User Action: None."
 
-        --#TYPE "Accelerator Board Status Change"
+        --#TYPE "External Array Accelerator Board Status Change (16004)"
         --#SUMMARY "Status is now %d."
         --#ARGUMENTS {5}
         --#SEVERITY CRITICAL
@@ -5761,7 +6043,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             User Action: Verify that no data has been lost."
 
-        --#TYPE "Accelerator Board Bad Data"
+        --#TYPE "External Array Accelerator Board Bad Data (16005)"
         --#SUMMARY "Accelerator lost battery power.  Data Loss possible."
         --#ARGUMENTS {}
         --#SEVERITY CRITICAL
@@ -5781,7 +6063,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             User Action: Replace the Accelerator Cache Board."
 
-        --#TYPE "Accelerator Board Battery Failed"
+        --#TYPE "External Array Accelerator Board Battery Failed (16006)"
         --#SUMMARY "Battery status is failed."
         --#ARGUMENTS {}
         --#SEVERITY CRITICAL
@@ -5795,7 +6077,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
                      cpqSsChassisTime, cpqFcaCntlrBoxIoSlot,
                      cpqFcaCntlrStatus }
         DESCRIPTION
-            "External Array Array Controller Status Change.
+            "External Array Controller Status Change.
 
             This trap signifies that the agent has detected a change in the
             status of a External Array Controller.  The variable
@@ -5805,7 +6087,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             storage box has been lost.  Check the storage box and all fibre
             channel connections for problems."
 
-        --#TYPE "Array Controller Status Change"
+        --#TYPE "External Array Controller Status Change (16007)"
         --#SUMMARY "Status is now %d."
         --#ARGUMENTS {5}
         --#SEVERITY CRITICAL
@@ -5830,11 +6112,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             the tape library and tapes has been lost.  Check the tape library
             and all Fibre connections for problems."
 
-        --#TYPE "Tape Controller Status Change"
+        --#TYPE "Fibre Channel Tape Controller Status Change (16008)"
         --#SUMMARY "Status is now %d for tape controller %s."
         --#ARGUMENTS {3,2}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16008
 
@@ -5856,7 +6139,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             library front panel and all fibre channel connections."
 
 
-        --#TYPE "Tape Library Status Change"
+        --#TYPE "Fibre Channel Tape Library Status Change (16009)"
         --#SUMMARY "Status is now %d for the tape library."
         --#ARGUMENTS {6}
         --#SEVERITY CRITICAL
@@ -5882,7 +6165,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             library door."
 
 
-        --#TYPE "Tape Library Door Status Change"
+        --#TYPE "Fibre Channel Tape Library Door Status Change (16010)"
         --#SUMMARY "The door is %d for tape library."
         --#ARGUMENTS {6}
         --#SEVERITY CRITICAL
@@ -5908,7 +6191,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             and all fibre channel connections."
 
 
-        --#TYPE "Tape Drive Status Change"
+        --#TYPE "Fibre Channel Tape Drive Status Change (16011)"
         --#SUMMARY "Status is now %d for a tape drive."
         --#ARGUMENTS {6}
         --#SEVERITY CRITICAL
@@ -5928,7 +6211,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             cleaning tape inserted and run.  This will cause the tape drive
             heads to be cleaned."
 
-              --#TYPE "Tape Drive Cleaning Required"
+              --#TYPE "Fibre Channel Tape Drive Cleaning Required (16012)"
               --#SUMMARY "Cleaning is needed for tape drive."
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
@@ -5948,7 +6231,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             cleaning tape that has been fully used and therefore needs to be
             replaced with a new cleaning tape."
 
-              --#TYPE "Tape Drive Cleaning Tape Needs Replacing"
+              --#TYPE "Fibre Channel Tape Drive Cleaning Tape Needs Replacing (16013)"
               --#SUMMARY "Cleaning tape needs replacing"
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
@@ -5961,7 +6244,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
         VARIABLES  { sysName, cpqHoTrapFlags, cpqSsChassisName,
                      cpqSsChassisTime, cpqFcaCntlrBoxIoSlot }
         DESCRIPTION
-            "Fibre Array Controller Active.
+            "External Array Redundant Controller Active.
 
             This trap signifies that the Storage Agent has detected that
             a backup array controller in a duplexed pair has switched over
@@ -5972,7 +6255,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             If this was the result of a user initiated switch over,
             no action is required."
 
-        --#TYPE "Redundant Controller Active"
+        --#TYPE "External Array Redundant Controller Active (16014)"
         --#SUMMARY "Controller in i/o slot %d is now active on chassis %s."
         --#ARGUMENTS {4,2}
         --#SEVERITY INFORMATIONAL
@@ -5994,7 +6277,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the controller status is failed, replace the
             controller."
 
-        --#TYPE "Fibre Channel Host Controller Status Change"
+        --#TYPE "Fibre Channel Host Controller Status Change (16015)"
         --#SUMMARY "Host controller in slot %d has a new status of %d."
         --#ARGUMENTS {2,3}
         --#SEVERITY CRITICAL
@@ -6017,13 +6300,15 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             indicates the current physical drive status.
 
             User Action: If the physical drive status is threshExceeded(4),
-            predictiveFailure(5) or failed(6), replace the drive."
+            predictiveFailure(5), failed(6) or unsupportedDrive(7), replace
+            the drive."
 
-        --#TYPE "Physical Drive Status Change"
+        --#TYPE "External Array Physical Drive Status Change (16016)"
         --#SUMMARY "Status is now %d for a physical drive on bus %d, bay %d."
         --#ARGUMENTS {6,4,5}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16016
 
@@ -6044,11 +6329,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the accelerator board status is permDisabled(5),
             you may need to replace the accelerator board."
 
-        --#TYPE "Accelerator Board Status Change"
+        --#TYPE "External Array Accelerator Board Status Change (16017)"
         --#SUMMARY "Status is now %d."
         --#ARGUMENTS {5}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16017
 
@@ -6068,7 +6354,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             User Action: Verify that no data has been lost."
 
-        --#TYPE "Accelerator Board Bad Data"
+        --#TYPE "External Array Accelerator Board Bad Data (16018)"
         --#SUMMARY "Accelerator lost battery power.  Data Loss possible."
         --#ARGUMENTS {}
         --#SEVERITY CRITICAL
@@ -6090,7 +6376,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
 
             User Action: Replace the Accelerator Cache Board."
 
-        --#TYPE "Accelerator Board Battery Failed"
+        --#TYPE "External Array Accelerator Board Battery Failed (16019)"
         --#SUMMARY "Battery status is failed."
         --#ARGUMENTS {}
         --#SEVERITY CRITICAL
@@ -6115,11 +6401,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             the storage box has been lost.  Check the storage box and all
             fibre channel connections for problems."
 
-        --#TYPE "Array Controller Status Change"
+        --#TYPE "External Array Controller Status Change (16020)"
         --#SUMMARY "Status is now %d."
         --#ARGUMENTS {5}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16020
 
@@ -6138,7 +6425,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the controller status is failed, replace the
             controller."
 
-        --#TYPE "Fibre Channel Host Controller Status Change"
+        --#TYPE "Fibre Channel Host Controller Status Change (16021)"
         --#SUMMARY "Host controller in slot %d has a new status of %d."
         --#ARGUMENTS {2,3}
         --#SEVERITY CRITICAL
@@ -6163,11 +6450,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the logical drive status is failed, examine
             the array for failed drives that need replacement."
 
-        --#TYPE "Logical Drive Status Change"
+        --#TYPE "External Array Logical Drive Status Change (16022)"
         --#SUMMARY "Status is now %d."
         --#ARGUMENTS {6}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16022
 
@@ -6189,11 +6477,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             and all connections."
 
 
-        --#TYPE "Tape Drive Status Change"
+        --#TYPE "External Tape Drive Status Change (16023)"
         --#SUMMARY "Status is now %d for a tape drive."
         --#ARGUMENTS {10}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16023
 
@@ -6205,13 +6494,13 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
                      cpqFcTapeDriveFWRev, cpqFcTapeDriveSerialNumber,
                      cpqFcTapeDriveLocation}
         DESCRIPTION
-           "External Tape Drive Cleaning Required trap.
+           "External Tape Drive Cleaning Required.
 
             The agent has detected a tape drive that needs to have a
             cleaning tape inserted and run.  This will cause the tape drive
             heads to be cleaned."
 
-              --#TYPE "Tape Drive Cleaning Required"
+              --#TYPE "External Tape Drive Cleaning Required (16024)"
               --#SUMMARY "Cleaning is needed for tape drive."
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
@@ -6233,7 +6522,7 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             cleaning tape that has been fully used and therefore needs to be
             replaced with a new cleaning tape."
 
-              --#TYPE "Tape Drive Cleaning Tape Needs Replacing"
+              --#TYPE "External Tape Drive Cleaning Tape Needs Replacing (16025)"
               --#SUMMARY "Cleaning tape needs replacing"
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
@@ -6260,11 +6549,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             the tape library front panel and all connections."
 
 
-        --#TYPE "Tape Library Status Change"
+        --#TYPE "External Tape Library Status Change (16026)"
         --#SUMMARY "Status is now %d for the tape library."
         --#ARGUMENTS {10}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16026
 
@@ -6287,11 +6577,12 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             tape library door."
 
 
-        --#TYPE "Tape Library Door Status Change"
+        --#TYPE "External Tape Library Door Status Change (16027)"
         --#SUMMARY "The door is %d for tape library."
         --#ARGUMENTS {10}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16027
 
@@ -6312,36 +6603,14 @@ CPQFCA-MIB DEFINITIONS ::= BEGIN
             User Action: If the controller status is failed, replace the
             controller."
 
-        --#TYPE "Fibre Channel Host Controller Status Change"
+        --#TYPE "Fibre Channel Host Controller Status Change (16028)"
         --#SUMMARY "Host controller has a new status of %d."
         --#ARGUMENTS {4}
         --#SEVERITY CRITICAL
         --#TIMEINDEX 99
+        --#VARBINDSEVERITY 2
 
         ::= 16028
 
 END
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

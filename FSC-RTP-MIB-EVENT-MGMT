@@ -1,0 +1,1260 @@
+--
+-- $Copyright: 
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2005 
+-- FSC confidential 
+-- All rights reserved 
+-- $
+--
+
+-- **************************************************************************
+
+FSC-RTP-MIB-EVENT-MGMT DEFINITIONS ::= BEGIN  
+
+-- **************************************************************************
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, OBJECT-IDENTITY, NOTIFICATION-TYPE,
+    Integer32, Unsigned32		
+       FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, RowStatus			
+       FROM SNMPv2-TC
+    rtpFaultMgmt, TimeStampSeconds
+       FROM FSC-RTP-MIB;  
+    
+-- **************************************************************************
+
+--
+-- Resilient Telco Platform-related MOs
+--
+
+    rtpEventMgmtModule MODULE-IDENTITY
+	LAST-UPDATED "200806111500Z"
+	ORGANIZATION "Fujitsu Siemens Computers GmbH - EP SW RT 1"
+	CONTACT-INFO
+		"Resilient Telco Platform Team
+		 Georg Blank
+		 Postal: Fujitsu Siemens Computers GmbH
+		 EP SW RT 1
+		 Otto-Hahn-Ring 6
+		 D-81739 Munich
+		 Tel: +49 89 636 44504
+		 Fax: +49 89 636 48976
+		 E-mail: Georg.Blank@fujitsu-siemens.com"
+
+	DESCRIPTION
+	    "The MIB module describes the Managed Objects of
+	     the Event Management of the Resilient Telco Platform (RTP)
+
+	    $Header: c:\cvsroot/mib_base/siemens/HiPath8000_Mibs_2008/RtpAdmEventMgmt.mib,v 1.2 2009/03/23 19:07:28 qiaxi01 Exp $ "
+	    
+	REVISION "200806111500Z"
+        DESCRIPTION
+            "Updated the MIB to be fully compatible with SNMPv2"
+
+	
+	REVISION "200504211800Z"
+	DESCRIPTION
+	    "Changed module name to FSC-RTP-MIB-EVENT-MGMT to resolve naming
+	     conflict with RFC 2959.
+	     Module header information updated."   
+	     
+	REVISION "200503161400Z"
+	DESCRIPTION
+	    "Add rtpEvtFilterTrapDestPort to rtpEvtFilterTable."  
+
+  
+	REVISION "200107311800Z"
+	DESCRIPTION
+	    "Add rtpEvtFilteredEventTable and rtpEvtFilterTable.
+	     Add rtpEvtFilterLastTransId object to each trap."
+
+	REVISION "200106051800Z"
+	DESCRIPTION
+	    "Descriptions for rtpEvtReportingObject and rtpEvtFaultyObject
+	     updated."
+    
+        REVISION "200101301800Z"
+	DESCRIPTION
+	    "Add rtpEvtFilterLastCurrId to rtpEvtFilterTable."  
+
+    
+        REVISION "200101301500Z"
+	DESCRIPTION
+	    "Code separated into eventMgmt and alarmMgmt.
+	     rtpEvtAlarmObjectTable is marked as deprecated and replaced by 
+	     rtpArmAlarmObjectTable."
+
+        REVISION "200007191800Z"
+	DESCRIPTION
+	    "Code clearance:
+	     - fixed sequence definition of rtpEvtReportingObject
+	       and rtpEvtFaultyObject
+	     - replaced DisplayString by OCTET STRING (due to SIZE
+	       specification)"  
+	       
+	REVISION "200007111800Z"
+	DESCRIPTION
+	    "- rtpEvtAlarmType now fully supported (RTP V1.0C only)
+	     - rtpEvtShortText added to rtpEvtTable and rtpEvtTraps
+	     - rtpEvtSequenceNumberIndex: description text updated"
+    
+        REVISION "200005111400Z"
+	DESCRIPTION
+	    "rtpEvtCriticalsTable now supported (RTP V1.0C only)"
+
+        REVISION "200004111400Z"
+	DESCRIPTION
+	    "rtpEvtAlarmObjectTable now supported"   
+    
+        REVISION "200001041800Z"
+	DESCRIPTION
+	    "Descriptions updated for E01/2000 delivery:
+	     - introduced the AlarmType textual convention
+	     - added note indicating that rtpEvtAlarmType is always set to 0
+	       in E01/2000 delivery.
+
+	     rtpEvtEscalationFilterTable:
+	     rtpEvtEscalationFilterIndex removed; now using
+	     rtpEvtEscalationFilterSet and rtpEvtEscalationFilterNum as indices.
+
+	     rtpEvtDescriptorTable:
+	     rtpEvtDescriptorIndex removed; now using rtpEvtDescriptorSet and
+	     rtpEvtDescriptorNum as indices.
+
+	     rtpEvtAlarmObjectTable:
+	     rtpEvtAlarmObjectIndex removed; now using rtpEvtAlarmObjectType as
+	     index.
+
+	     rtpEvtTraps:
+	     rtpEvtAlarmType is now part of the traps."      
+
+        REVISION "9912091800Z"
+	DESCRIPTION
+	    "Description updated for E04/2000 delivery:
+	     - rtpEvtEndkey marked as obsolete
+
+	     Modifications for E04/2000 delivery:
+	     - add rtpEvtDescriptorAlarmType to RtpEvtDescriptorTableEntry
+	     - removed rtpArmPending from rtpEvtAlarmObject"         
+
+        REVISION "9912091700Z"
+	DESCRIPTION
+	    "Descriptions updated for E01/2000 delivery:
+	     - rtpEvtAlarmType added to rtpEvtTable
+	     - modified description of rtpEvtSequenceNumberIndex and
+	       rtpEvtCurrId (both in rtpEvtTable)."
+
+	REVISION "9911091600Z"
+	DESCRIPTION
+	    "Descriptions updated for E01/2000 delivery:
+	     - clearified the semantics of rtpEvtSequenceNumberIndex and
+	       rtpEvtCurrId (both in rtpEvtTable)
+	     - added note indicating that rtpEvtCriticalsTable and
+	       rtpEvtAlarmObjectTable are NOT yet part of E01/2000 delivery."
+
+	
+        REVISION "9910091500Z"    
+	DESCRIPTION
+	    "The initial draft version of this MIB module."
+ 
+ 	::= { rtpFaultMgmt 1 }
+
+--
+-- Textual conventions used in the RTP Event Mgmt MIB:
+--
+
+    AlarmType ::= TEXTUAL-CONVENTION
+	STATUS  current
+	DESCRIPTION
+	    "The type of an Alarm Object.
+
+	     The value 0 indicates, a special Alarm Object is not selected:
+		 alarm-object-indetermined(0)
+
+	     The values 1 ... 7 are reserved for the pre-defined Alarm
+	     Objects of the RTP:
+		 alarm-object-communication(1)
+		 alarm-object-service(2)
+		 alarm-object-processing(3)
+		 alarm-object-equipment(4)
+		 alarm-object-environment(5)
+		 alarm-object-database(6)
+		 alarm-object-mib(7)
+
+	     Values in the range 32 ... 2147483647 are application-specific."
+	SYNTAX  Integer32 {
+		indetermined(0),
+		communication(1), 
+		service(2), 
+		processing(3), 
+		equipment(4), 
+		environment(5), 
+		database(6), 
+		mib(7)
+	}
+
+
+--
+-- Fault Management: Event Management
+--
+
+    rtpEventMgmt OBJECT-IDENTITY
+	STATUS current
+	DESCRIPTION
+	    "The Event Management Functionality."
+	::= { rtpEventMgmtModule 1 }
+
+    --
+    -- The Event Table
+    --
+
+    rtpEvtTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF RtpEvtTableEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+	    "A list of eventTable entries. A manager station can use this table
+	     to retrieve historical events (e.g. after startup or in case that
+	     event traps were lost)."
+	::= { rtpEventMgmt 1 }
+
+	rtpEvtTableEntry OBJECT-TYPE
+	    SYNTAX  RtpEvtTableEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An eventTable entry indexed by sequenceNumberIndex."
+	    INDEX { rtpEvtSequenceNumberIndex }
+	    ::= { rtpEvtTable 1 }
+
+	RtpEvtTableEntry ::=
+	    SEQUENCE {
+		rtpEvtSequenceNumberIndex	Unsigned32,
+		rtpEvtCurrId			Unsigned32,
+		rtpEvtSet			Integer32,
+		rtpEvtNum			Integer32,
+		rtpEvtSeverity			INTEGER,
+		rtpEvtEventTime			TimeStampSeconds,
+		rtpEvtReportingObject		OCTET STRING,
+		rtpEvtFaultyObject 		OCTET STRING,
+		rtpEvtEndkey			INTEGER,
+		rtpEvtFormatText		OCTET STRING,
+		rtpEvtParameters		OCTET STRING,
+		rtpEvtAlarmType			AlarmType,
+		rtpEvtShortText			OCTET STRING
+	    }
+	
+	rtpEvtSequenceNumberIndex OBJECT-TYPE
+	    SYNTAX  Unsigned32
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The cluster-wide unique event sequence number. Will be
+		 incremented by one for each new event.
+
+		 Additional information related to notifications (traps) which
+		 include this object (e.g. those defined in 'rtpEvtTraps'):
+
+		 A manager station can detect the loss of events when
+		 subsequently received event traps do not have subsequent
+		 indices (i.e. index2 - index1 > 1).
+
+		 The RTP Event Manager can be configured in a way that it uses
+		 the RTP-internal high-priority-queue mechanism to forward
+		 events with a severity level of 'critical' when the regular
+		 message queue of the receiving process is full. Those events
+		 will then break the above mentioned rule of continous indices.
+		 (The Event Manager's behaviour is controlled by the following
+		 configuration parameter:
+		     Rtp/Evt/RtpEvtGetContigSequenceNumbers
+		 This parameter is visible to RTP system integrators, only.)
+		"
+	    ::= { rtpEvtTableEntry 1 }
+
+	rtpEvtCurrId OBJECT-TYPE
+	    SYNTAX  Unsigned32
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The current log record Id of the event in the database.
+		 (Currently, this object's value is always identical to
+		 rtpEvtSequenceNumberIndex.)"
+	    ::= { rtpEvtTableEntry 2 }
+
+	rtpEvtSet OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS set number of the event"
+	    ::= { rtpEvtTableEntry 3 }
+
+	rtpEvtNum OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS id number of the event"
+	    ::= { rtpEvtTableEntry 4 }
+
+	rtpEvtSeverity OBJECT-TYPE
+	    SYNTAX  INTEGER { 
+		critical(1), 
+		major(2), 
+		minor(3), 
+		warning(4), 
+		information(5), 
+		clear(6), 
+		unknown(7) }
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"the event's severity level"
+	    ::= { rtpEvtTableEntry 5 }
+
+	rtpEvtEventTime OBJECT-TYPE
+	    SYNTAX  TimeStampSeconds
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The time when the event occurred, in seconds since 1.Jan.1970
+		 00:00:00h UTC."
+	    ::= { rtpEvtTableEntry 6 }
+
+	rtpEvtReportingObject OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..63))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The reporting object is the process calling RtpEvtSendEventExt and
+		 is a field in the event logged in the event log table. In the
+		 extended notation mode, the new notation in the format
+		 MOC[:node[.object]] applies to the reportingObject
+		 (see rtpEvtFaultyObject).
+		 In non extended notation mode, the reporting object only contains
+		 the name of the reporting process. For the RtpEvtSendEvent call,
+		 faultyObject is always identical to the reportingObject."
+	    ::= { rtpEvtTableEntry 7 }
+
+	rtpEvtFaultyObject OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..63))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Specifies the faulty managed object. If the RTP configuration
+		 parameter Rtp/Evt/RtpEvtNewManagedObjectNotation is set to RtpTrue,
+		 an extended faulty object notation in the format MOC[:node[.object]]
+		 is supported (called extended notation mode), where MOC means the
+		 managed object class (i.e. one of the subsystems CS, OS, DB, RTP,
+		 OMNI, APPL), in which the event occurred, and node.object the managed
+		 object instance. node is the hostname of the faulty node (uname -n),
+		 and object the faulty instance itself (e.g. the faulty process)."
+	    ::= { rtpEvtTableEntry 8 }
+
+	rtpEvtEndkey OBJECT-TYPE
+	    SYNTAX  INTEGER {
+		noRecoveryDefined(0),
+		recoveryManagerInformed(1) }
+	    MAX-ACCESS  read-only
+	    STATUS  obsolete
+	    DESCRIPTION
+		"End Key no longer supported and always set to noRecoveryDefined.
+
+                 End Key as integer. This field indicates whether an automatic 
+		 recovery action has been initiated at the RTP or not. If this 
+		 action succeeds an appropriate clear message will be sent by 
+		 the RTP. Otherwise no clear message will be sent."
+	    ::= { rtpEvtTableEntry 9 }
+
+	rtpEvtFormatText OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..512))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Format string of the default short text with place holders like
+		 printf format for variable parameters.
+
+		 Please note: as this is the default text, it is NOT localized.
+		 The localized versions of short, long and repair texts are
+		 accessible by NLS catalogues in source format that can be
+		 downloaded from the RTP."
+	    ::= { rtpEvtTableEntry 10 }
+	
+	rtpEvtParameters OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..4096))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Variable parts of event, encoded as follows:
+	         rtpEvtParameters := /* empty */
+		          | rtpEvtParameters parameter
+		 parameter := type '=' value <null-byte>
+		      type := 'c'  /* character */
+			    | 's'  /* string */
+			    | 'd'  /* integer/long integer */
+			    | 'u'  /* unsigned integer/unsigned long integer */
+		            | 'g'  /* float/double */
+		     value := /* empty */
+		 	    | value <non-null-character>"
+	    ::= { rtpEvtTableEntry 11 }
+
+	rtpEvtAlarmType OBJECT-TYPE
+	    SYNTAX  AlarmType
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The type of the Alarm Object which this event belongs to."
+	    ::= { rtpEvtTableEntry 12 }
+
+	rtpEvtShortText OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..512))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Localized short text including all variable parameters.
+
+		 The locale that is used depends on the settings in the
+		 runtime environment of the RTP."
+	    ::= { rtpEvtTableEntry 13 }
+	
+
+
+    --
+
+    rtpEvtLastEventSequenceNumber OBJECT-TYPE   
+        SYNTAX  Unsigned32
+        MAX-ACCESS  read-only
+        STATUS  current
+        DESCRIPTION 
+	    "Sequence number corresponding to the youngest sent 
+	     rtpEvtSequenceNumberIndex"
+        ::= { rtpEventMgmt 2 }
+
+
+    --
+    -- Notification types :
+    --
+
+	rtpEvtTraps OBJECT-IDENTITY
+	    STATUS current
+	    DESCRIPTION 
+		"The rtpEvtTraps are sent as generic and/or specific
+		 traps to different management stations.
+
+		 Specific traps can be received only by management
+		 stations which have defined their own event filter
+		 (see 'rtpEvtFilterTable').
+
+		 In general generic traps are sent to all stations
+		 configured in the '/etc/snmp/agt/snmpd.cnf' file.
+		 This behaviour can be controlled by the following
+		 configuration parameter:
+		     Rtp/Adm/eventMgmt/impl/snmp/sendGenericTrap
+		     (default value: RtpTrue)
+		 Set this parameter to 'RtpFalse' to prohibit that
+		 generic 'rtpEvtTraps' are sent to configured stations
+		 as described above.
+		 (This parameter is visible to RTP customers)"
+	    ::= { rtpEventMgmt 3 }
+
+	rtpEvtTrapCritical NOTIFICATION-TYPE
+	    OBJECTS { rtpEvtSequenceNumberIndex,
+	    	      rtpEvtCurrId,
+		      rtpEvtSet,
+		      rtpEvtNum,
+		      rtpEvtSeverity,
+		      rtpEvtEventTime,
+		      rtpEvtReportingObject,
+		      rtpEvtFaultyObject,
+		      rtpEvtEndkey,
+		      rtpEvtFormatText,
+		      rtpEvtParameters,
+		      rtpEvtAlarmType,
+		      rtpEvtShortText,
+		      rtpEvtFilterLastTransId
+	    }
+	    STATUS current
+	    DESCRIPTION 
+                    "Trap issued by the RTP with a perceived severity 
+                     value of 'critical'.
+		     The objects contained in the variable binding list
+		     are scalar objects.
+		     Note: if the management station has defined an event
+		     filter 'rtpEvtFilterLastTransId' contains the current
+		     (last) transmission id. Otherwise this value is set to 0."
+	    ::= { rtpEvtTraps 1 }
+	
+	rtpEvtTrapMajor NOTIFICATION-TYPE
+	    OBJECTS { rtpEvtSequenceNumberIndex,
+	    	      rtpEvtCurrId,
+		      rtpEvtSet,
+		      rtpEvtNum,
+		      rtpEvtSeverity,
+		      rtpEvtEventTime,
+		      rtpEvtReportingObject,
+		      rtpEvtFaultyObject,
+		      rtpEvtEndkey,
+		      rtpEvtFormatText,
+		      rtpEvtParameters,
+		      rtpEvtAlarmType,
+		      rtpEvtShortText,
+		      rtpEvtFilterLastTransId
+	    }
+	    STATUS current
+	    DESCRIPTION 
+                    "Trap issued by the RTP with a perceived severity 
+                     value of 'major'.
+		     The objects contained in the variable binding list
+		     are scalar objects.
+		     Note: if the management station has defined an event
+		     filter 'rtpEvtFilterLastTransId' contains the current
+		     (last) transmission id. Otherwise this value is set to 0."
+	    ::= { rtpEvtTraps 2 }
+	
+	rtpEvtTrapMinor NOTIFICATION-TYPE
+	    OBJECTS { rtpEvtSequenceNumberIndex,
+		      rtpEvtCurrId,
+		      rtpEvtSet,
+		      rtpEvtNum,
+		      rtpEvtSeverity,
+		      rtpEvtEventTime,
+		      rtpEvtReportingObject,
+		      rtpEvtFaultyObject,
+		      rtpEvtEndkey,
+		      rtpEvtFormatText,
+		      rtpEvtParameters,
+		      rtpEvtAlarmType,
+		      rtpEvtShortText,
+		      rtpEvtFilterLastTransId
+	    }
+	    STATUS current
+	    DESCRIPTION 
+                    "Trap issued by the RTP with a perceived severity 
+                     value of 'minor'.
+		     The objects contained in the variable binding list
+		     are scalar objects.
+		     Note: if the management station has defined an event
+		     filter 'rtpEvtFilterLastTransId' contains the current
+		     (last) transmission id. Otherwise this value is set to 0."
+	    ::= { rtpEvtTraps 3 }
+	
+	rtpEvtTrapWarning NOTIFICATION-TYPE
+	    OBJECTS { rtpEvtSequenceNumberIndex,
+	    	      rtpEvtCurrId,
+		      rtpEvtSet,
+		      rtpEvtNum,
+		      rtpEvtSeverity,
+		      rtpEvtEventTime,
+		      rtpEvtReportingObject,
+		      rtpEvtFaultyObject,
+		      rtpEvtEndkey,
+		      rtpEvtFormatText,
+		      rtpEvtParameters,
+		      rtpEvtAlarmType,
+		      rtpEvtShortText,
+		      rtpEvtFilterLastTransId
+	    }
+	    STATUS current
+	    DESCRIPTION 
+                    "Trap issued by the RTP with a perceived severity 
+                     value of 'warning'.
+		     The objects contained in the variable binding list
+		     are scalar objects.
+		     Note: if the management station has defined an event
+		     filter 'rtpEvtFilterLastTransId' contains the current
+		     (last) transmission id. Otherwise this value is set to 0."
+	    ::= { rtpEvtTraps 4 }
+	
+	rtpEvtTrapInformation NOTIFICATION-TYPE
+	    OBJECTS { rtpEvtSequenceNumberIndex,
+	    	      rtpEvtCurrId,
+		      rtpEvtSet,
+		      rtpEvtNum,
+		      rtpEvtSeverity,
+		      rtpEvtEventTime,
+		      rtpEvtReportingObject,
+		      rtpEvtFaultyObject,
+		      rtpEvtEndkey,
+		      rtpEvtFormatText,
+		      rtpEvtParameters,
+		      rtpEvtAlarmType,
+		      rtpEvtShortText,
+		      rtpEvtFilterLastTransId
+	    }
+	    STATUS current
+	    DESCRIPTION 
+                    "Trap issued by the RTP with a perceived severity 
+                     value of 'normal'.
+		     The objects contained in the variable binding list
+		     are scalar objects.
+		     Note: if the management station has defined an event
+		     filter 'rtpEvtFilterLastTransId' contains the current
+		     (last) transmission id. Otherwise this value is set to 0."
+	    ::= { rtpEvtTraps 5 }
+	
+	rtpEvtTrapClear NOTIFICATION-TYPE
+	    OBJECTS { rtpEvtSequenceNumberIndex,
+	    	      rtpEvtCurrId,
+		      rtpEvtSet,
+		      rtpEvtNum,
+		      rtpEvtSeverity,
+		      rtpEvtEventTime,
+		      rtpEvtReportingObject,
+		      rtpEvtFaultyObject,
+		      rtpEvtEndkey,
+		      rtpEvtFormatText,
+		      rtpEvtParameters,
+		      rtpEvtAlarmType,
+		      rtpEvtShortText,
+		      rtpEvtFilterLastTransId
+	    }
+	    STATUS current
+	    DESCRIPTION 
+                    "Trap issued by the RTP with a perceived severity 
+                     value of 'cleared'.
+		     The objects contained in the variable binding list
+		     are scalar objects.
+		     Note: if the management station has defined an event
+		     filter 'rtpEvtFilterLastTransId' contains the current
+		     (last) transmission id. Otherwise this value is set to 0."
+	    ::= { rtpEvtTraps 6 }
+
+	rtpEvtTrapUnknown NOTIFICATION-TYPE
+	    OBJECTS { rtpEvtSequenceNumberIndex,
+	    	      rtpEvtCurrId,
+		      rtpEvtSet,
+		      rtpEvtNum,
+		      rtpEvtSeverity,
+		      rtpEvtEventTime,
+		      rtpEvtReportingObject,
+		      rtpEvtFaultyObject,
+		      rtpEvtEndkey,
+		      rtpEvtFormatText,
+		      rtpEvtParameters,
+		      rtpEvtAlarmType,
+		      rtpEvtShortText,
+		      rtpEvtFilterLastTransId
+	    }
+	    STATUS current
+	    DESCRIPTION 
+                    "Trap issued by the RTP with a perceived severity 
+                     value of 'unknown'. Should never happen!
+		     The objects contained in the variable binding list
+		     are scalar objects.
+		     Note: if the management station has defined an event
+		     filter 'rtpEvtFilterLastTransId' contains the current
+		     (last) transmission id. Otherwise this value is set to 0."
+	    ::= { rtpEvtTraps 7 }
+
+
+    --
+    -- Event Escalation Filter
+    --
+
+    rtpEvtEscalationFilterTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF RtpEvtEscalationFilterTableEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"A list of Event Escalation Filters"
+        ::= { rtpEventMgmt 4 }
+
+	rtpEvtEscalationFilterTableEntry OBJECT-TYPE
+	    SYNTAX  RtpEvtEscalationFilterTableEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An Event Escalation Filter entry."
+	    INDEX  { rtpEvtEscalationFilterSet,
+		     rtpEvtEscalationFilterNum }
+	    ::= { rtpEvtEscalationFilterTable 1 }
+
+	RtpEvtEscalationFilterTableEntry ::=
+	    SEQUENCE {
+		rtpEvtEscalationFilterSet	Integer32,
+		rtpEvtEscalationFilterNum	Integer32,
+		rtpEvtEscalationFilterThreshold Integer32,
+		rtpEvtEscalationFilterInterval	Integer32
+	    }
+
+	rtpEvtEscalationFilterSet OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS set number of the event filtered by the filter"
+	    ::= { rtpEvtEscalationFilterTableEntry 1 }
+
+	rtpEvtEscalationFilterNum OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS id number of the event filtered by the filter"
+	    ::= { rtpEvtEscalationFilterTableEntry 2 }
+
+	rtpEvtEscalationFilterThreshold OBJECT-TYPE
+	    SYNTAX  Integer32
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"threshold for severity incrementation"
+	    ::= { rtpEvtEscalationFilterTableEntry 3 }
+
+	rtpEvtEscalationFilterInterval OBJECT-TYPE
+	    SYNTAX  Integer32
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"time interval within threshold must be reached to increment
+		 the severity level."
+	    ::= { rtpEvtEscalationFilterTableEntry 4 }
+
+
+    --
+    -- Event Descriptors
+    --
+
+    rtpEvtDescriptorTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF RtpEvtDescriptorTableEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"A list of Event Descriptors"
+        ::= { rtpEventMgmt 5 }
+
+	rtpEvtDescriptorTableEntry OBJECT-TYPE
+	    SYNTAX  RtpEvtDescriptorTableEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An Event Descriptor entry."
+	    INDEX  { rtpEvtDescriptorSet,
+		     rtpEvtDescriptorNum }
+	    ::= { rtpEvtDescriptorTable 1 }
+
+	RtpEvtDescriptorTableEntry ::=
+	    SEQUENCE {
+		rtpEvtDescriptorSet		Integer32,
+		rtpEvtDescriptorNum		Integer32,
+		rtpEvtDescriptorSeverity	INTEGER,
+		rtpEvtDescriptorAlarmType	AlarmType
+	    }
+
+	rtpEvtDescriptorSet OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS set number of the event referenced in descriptor"
+	    ::= { rtpEvtDescriptorTableEntry 1 }
+
+	rtpEvtDescriptorNum OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS id number of the event referenced in descriptor"
+	    ::= { rtpEvtDescriptorTableEntry 2 }
+
+	rtpEvtDescriptorSeverity OBJECT-TYPE
+	    SYNTAX  INTEGER { 
+		critical(1), 
+		major(2), 
+		minor(3), 
+		warning(4), 
+		information(5), 
+		clear(6), 
+		unknown(7) }
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"the event's severity level"
+	    ::= { rtpEvtDescriptorTableEntry 3 }
+
+	rtpEvtDescriptorAlarmType OBJECT-TYPE
+	    SYNTAX  AlarmType
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The assigned alarm type of the event."
+	    ::= { rtpEvtDescriptorTableEntry 4 }
+
+
+    --
+    -- Critical Events
+    --
+
+    rtpEvtCriticalsTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF RtpEvtCriticalsTableEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"A list of Critical Events."
+        ::= { rtpEventMgmt 6 }
+
+	rtpEvtCriticalsTableEntry OBJECT-TYPE
+	    SYNTAX  RtpEvtCriticalsTableEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An Critical Event entry."
+	    INDEX  { rtpEvtCriticalsIndex }
+	    ::= { rtpEvtCriticalsTable 1 }
+
+	RtpEvtCriticalsTableEntry ::=
+	    SEQUENCE {
+		rtpEvtCriticalsIndex		Integer32,
+		rtpEvtCriticalsSet		Integer32,
+		rtpEvtCriticalsNum		Integer32
+	    }
+
+	rtpEvtCriticalsIndex OBJECT-TYPE
+	    SYNTAX Integer32 (0..2147483647)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"the auxiliary variable used to identify instances of the 
+		 columnar objects in the table"
+	    ::= { rtpEvtCriticalsTableEntry 1 }
+
+	rtpEvtCriticalsSet OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS set number of the event referenced in descriptor"
+	    ::= { rtpEvtCriticalsTableEntry 2 }
+
+	rtpEvtCriticalsNum OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS id number of the event referenced in descriptor"
+	    ::= { rtpEvtCriticalsTableEntry 3 }
+
+
+    --
+    -- Alarm Objects
+    --
+
+    rtpEvtAlarmObjectTable OBJECT-TYPE
+  	SYNTAX  SEQUENCE OF RtpEvtAlarmObjectTableEntry
+  	MAX-ACCESS  not-accessible
+  	STATUS  deprecated
+  	DESCRIPTION
+  		"A list of Alarm Objects. This table will no longer be
+		 supported and is replaced by rtpArmAlarmObjectTable."
+         ::= { rtpEventMgmt 7 }
+  
+  	rtpEvtAlarmObjectTableEntry OBJECT-TYPE
+  	    SYNTAX  RtpEvtAlarmObjectTableEntry
+  	    MAX-ACCESS  not-accessible
+  	    STATUS  deprecated
+  	    DESCRIPTION
+  		"An Alarm Object entry."
+  	    INDEX  { rtpEvtAlarmObjectType }
+  	    ::= { rtpEvtAlarmObjectTable 1 }
+  
+  	RtpEvtAlarmObjectTableEntry ::=
+  	    SEQUENCE {
+  		rtpEvtAlarmObjectType	AlarmType,
+  		rtpEvtAlarmObject	INTEGER
+  	    }
+  
+  	rtpEvtAlarmObjectType OBJECT-TYPE
+  	    SYNTAX  AlarmType
+  	    MAX-ACCESS  read-only
+  	    STATUS  deprecated
+  	    DESCRIPTION
+  		"The type of the Alarm Object."
+  	    ::= { rtpEvtAlarmObjectTableEntry 1 }
+  
+  	rtpEvtAlarmObject OBJECT-TYPE
+  	    SYNTAX  INTEGER { rtpArmOk(0), rtpArmNOk(1) }
+  	    MAX-ACCESS  read-only
+  	    STATUS  deprecated
+  	    DESCRIPTION
+  		"the current state of the Alarm Object"
+  	    ::= { rtpEvtAlarmObjectTableEntry 2 }
+
+    --
+    -- The Filtered Event Table
+    --
+
+    rtpEvtFilteredEventTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF RtpEvtFilteredEventEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+	    "A list of filtered event table entries.
+	     A manager station which has defined a event filter
+	     (see 'rtpEvtFilterTable') can use this table to
+	     retrieve historical (filtered) events. (e.g. after
+	     startup or in case that event traps were lost)."
+	::= { rtpEventMgmt 8 }
+
+	rtpEvtFilteredEventEntry OBJECT-TYPE
+	    SYNTAX  RtpEvtFilteredEventEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An entry is indexed by the IpAddress of a management station
+		 and the current Id of the event."
+	    INDEX { rtpEvtFetIpAddress,
+	            rtpEvtFetCurrId }
+	    ::= { rtpEvtFilteredEventTable 1 }
+
+	RtpEvtFilteredEventEntry ::=
+	    SEQUENCE {
+		rtpEvtFetIpAddress		OCTET STRING,
+		rtpEvtFetCurrId			Unsigned32,
+		rtpEvtFetSet			Integer32,
+		rtpEvtFetNum			Integer32,
+		rtpEvtFetSeverity		INTEGER,
+		rtpEvtFetEventTime		TimeStampSeconds,
+		rtpEvtFetReportingObject	OCTET STRING,
+		rtpEvtFetFaultyObject 		OCTET STRING,
+		rtpEvtFetEndkey			INTEGER,
+		rtpEvtFetFormatText		OCTET STRING,
+		rtpEvtFetParameters		OCTET STRING,
+		rtpEvtFetAlarmType		AlarmType,
+		rtpEvtFetShortText		OCTET STRING
+	    }
+
+	rtpEvtFetIpAddress OBJECT-TYPE
+	    SYNTAX OCTET STRING (SIZE (4..8))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The IP address of a management station is used
+		 to localize the corresponding event filter in the
+		 event filter table (see rtpEvtFilterTable).
+		 Each octet of this value represents one part (byte) of
+		 the IP address; 4 bytes for IPv4 or 8 bytes for IPv6.
+		 (IPv6 is only prepared but not yet supported!)"
+	    ::= { rtpEvtFilteredEventEntry 1 }
+
+	rtpEvtFetCurrId OBJECT-TYPE
+	    SYNTAX  Unsigned32
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The current log record Id of the event in the database.
+		 Note: because the events are filtered their
+		 current Id's can be uncontinuous."
+	    ::= { rtpEvtFilteredEventEntry 2 }
+
+	rtpEvtFetSet OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS set number of the event"
+	    ::= { rtpEvtFilteredEventEntry 3 }
+
+	rtpEvtFetNum OBJECT-TYPE
+	    SYNTAX  Integer32(1..32767)
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"NLS id number of the event"
+	    ::= { rtpEvtFilteredEventEntry 4 }
+
+	rtpEvtFetSeverity OBJECT-TYPE
+	    SYNTAX  INTEGER { 
+		critical(1), 
+		major(2), 
+		minor(3), 
+		warning(4), 
+		information(5), 
+		clear(6), 
+		unknown(7) }
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"the event's severity level"
+	    ::= { rtpEvtFilteredEventEntry 5 }
+
+	rtpEvtFetEventTime OBJECT-TYPE
+	    SYNTAX  TimeStampSeconds
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The time when the event occurred, in seconds since 1.Jan.1970
+		 00:00:00h UTC."
+	    ::= { rtpEvtFilteredEventEntry 6 }
+
+	rtpEvtFetReportingObject OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..63))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The reporting object is the process calling RtpEvtSendEventExt and
+		 is a field in the event logged in the event log table. In the
+		 extended notation mode, the new notation in the format
+		 MOC[:node[.object]] applies to the reportingObject
+		 (see rtpEvtFetFaultyObject).
+		 In non extended notation mode, the reporting object only contains
+		 the name of the reporting process. For the RtpEvtSendEvent call,
+		 faultyObject is always identical to the reportingObject."
+	    ::= { rtpEvtFilteredEventEntry 7 }
+
+	rtpEvtFetFaultyObject OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..63))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Specifies the faulty managed object. If the RTP configuration
+		 parameter Rtp/Evt/RtpEvtNewManagedObjectNotation is set to RtpTrue,
+		 an extended faulty object notation in the format MOC[:node[.object]]
+		 is supported (called extended notation mode), where MOC means the
+		 managed object class (i.e. one of the subsystems CS, OS, DB, RTP,
+		 OMNI, APPL), in which the event occurred, and node.object the managed
+		 object instance. node is the hostname of the faulty node (uname -n),
+		 and object the faulty instance itself (e.g. the faulty process)."
+	    ::= { rtpEvtFilteredEventEntry 8 }
+
+	rtpEvtFetEndkey OBJECT-TYPE
+	    SYNTAX  INTEGER {
+		noRecoveryDefined(0),
+		recoveryManagerInformed(1) }
+	    MAX-ACCESS  read-only
+	    STATUS  obsolete
+	    DESCRIPTION
+		"End Key no longer supported and always set to noRecoveryDefined.
+
+                 End Key as integer. This field indicates whether an automatic 
+		 recovery action has been initiated at the RTP or not. If this 
+		 action succeeds an appropriate clear message will be sent by 
+		 the RTP. Otherwise no clear message will be sent."
+	    ::= { rtpEvtFilteredEventEntry 9 }
+
+	rtpEvtFetFormatText OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..512))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Format string of the default short text with place holders like
+		 printf format for variable parameters.
+
+		 Please note: as this is the default text, it is NOT localized.
+		 The localized versions of short, long and repair texts are
+		 accessible by NLS catalogues in source format that can be
+		 downloaded from the RTP."
+	    ::= { rtpEvtFilteredEventEntry 10 }
+	
+	rtpEvtFetParameters OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..4096))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Variable parts of event, encoded as follows:
+	         rtpEvtFetParameters := /* empty */
+		          | rtpEvtParameters parameter
+		 parameter := type '=' value <null-byte>
+		      type := 'c'  /* character */
+			    | 's'  /* string */
+			    | 'd'  /* integer/long integer */
+			    | 'u'  /* unsigned integer/unsigned long integer */
+		            | 'g'  /* float/double */
+		     value := /* empty */
+		 	    | value <non-null-character>"
+	    ::= { rtpEvtFilteredEventEntry 11 }
+
+	rtpEvtFetAlarmType OBJECT-TYPE
+	    SYNTAX  AlarmType
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The type of the Alarm Object which this event belongs to."
+	    ::= { rtpEvtFilteredEventEntry 12 }
+
+	rtpEvtFetShortText OBJECT-TYPE
+	    SYNTAX  OCTET STRING (SIZE (0..512))
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"Localized short text including all variable parameters.
+
+		 The locale that is used depends on the settings in the
+		 runtime environment of the RTP."
+	    ::= { rtpEvtFilteredEventEntry 13 }
+
+
+    --
+    -- The Event Filter Table
+    --
+
+    rtpEvtFilterTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF RtpEvtFilterEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+	    "A list of event filter entries. A management station can use one
+	     entry in this table to define its own event filter."
+	::= { rtpEventMgmt 9 }
+
+	rtpEvtFilterEntry OBJECT-TYPE
+	    SYNTAX  RtpEvtFilterEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An event filter entry indexed by IpAddress."
+	    INDEX { rtpEvtFilterIpAddress }
+	    ::= { rtpEvtFilterTable 1 }
+
+	RtpEvtFilterEntry ::=
+	    SEQUENCE {
+		rtpEvtFilterIpAddress		OCTET STRING,
+		rtpEvtFilterEventSets		OCTET STRING,
+		rtpEvtFilterSeverityLevels	OCTET STRING,
+		rtpEvtFilterSnmpVersion		INTEGER,
+		rtpEvtFilterLastTransId		Unsigned32,
+		rtpEvtFilterLastCurrId		Unsigned32,
+		rtpEvtFilterRowStatus		RowStatus,
+		rtpEvtFilterTrapDestPort	Integer32
+	    }
+
+	rtpEvtFilterIpAddress OBJECT-TYPE
+	    SYNTAX OCTET STRING (SIZE (4..8))
+	    MAX-ACCESS read-only
+	    STATUS current
+	    DESCRIPTION
+		"This is the IP address of the management station which
+		 defines this event filter entry.
+		 Each octet of this value represents one part (byte) of
+		 the IP address; (IPv6 is not supported!)
+
+		 It's used as table index and assigned during creation of
+		 a new conceptual row."
+	    ::= { rtpEvtFilterEntry 1 }
+
+	rtpEvtFilterEventSets OBJECT-TYPE
+	    SYNTAX OCTET STRING (SIZE (0..512))
+	    MAX-ACCESS read-create
+	    STATUS current
+	    DESCRIPTION
+		"This value is the ascii representation of the selected
+		 event sets separated by colons. (e.g. 5:8:12:25:110)
+		 An empty (i.e. an octet string with length 0) value
+		 means: no event set filtering.
+		 This value is mandatory for event filter (row) creation.
+		 It also can be set after the event filter has been created."
+	    ::= { rtpEvtFilterEntry 2 }
+
+	rtpEvtFilterSeverityLevels OBJECT-TYPE
+	    SYNTAX OCTET STRING (SIZE (0..13))
+	    MAX-ACCESS read-create
+	    STATUS current
+	    DESCRIPTION
+		"This value is the ascii representation of the selected
+		 severity levels separated by colons. (e.g. 1:3:4)
+		 Use:	1 = critical
+		 	2 = major
+		 	3 = minor
+		 	4 = warning
+		 	5 = information
+		 	6 = clear
+		 	7 = indeterminate
+
+		 An empty (i.e. an octet string with length 0) value
+		 means: no severity level filtering.
+		 This value is mandatory for event filter (row) creation.
+		 It also can be set after the event filter has been created."
+	    ::= { rtpEvtFilterEntry 3 }
+
+	rtpEvtFilterSnmpVersion OBJECT-TYPE
+	    SYNTAX INTEGER { v1(1), v2c(2), v3(3) }
+	    MAX-ACCESS read-create
+	    STATUS current
+	    DESCRIPTION
+		"The version of the SNMP traps sent to the management
+		 station; can be SNMPv1, SNMPv2c or SNMPv3.
+
+		 Note: if 'SNMPv3' is selected but not supported (EMANATE
+		 major version <= 14) SNMPv2c traps will be sent instead!
+		 If 'SNMPv3' is selected the subagent uses the user name
+		 'RtpSnmp1' with HMAC-MD5 authentication protocol and
+		 without a privacy protocol! The user must be configured
+		 in the configuration files 'mgr.cnf' and 'snmpd.cnf'.
+		  
+
+		 This value is mandatory for event filter (row) creation.
+		 It also can be set after the event filter has been created."
+	    ::= { rtpEvtFilterEntry 4 }
+
+	rtpEvtFilterLastTransId OBJECT-TYPE
+	    SYNTAX Unsigned32
+	    MAX-ACCESS read-only
+	    STATUS current
+	    DESCRIPTION
+		"Transmission identifier used for the last sent event trap.
+		 This value will be incremented every time before sending a trap
+		 to the management station which has defined this event filter.
+
+		 A management station which has defined an event filter can
+		 detect the loss of events when subsequently received event
+		 traps do not have subsequent transmission identifiers
+		 (i.e. transId2 - transId1 > 1). See also 'rtpEvtTraps'!
+		 A management station should poll this object to detect the
+		 loss of traps (e.g. when receiving traps fails).
+
+		 Warning: this is a non-persistent value. Each time the agent
+		 restarts, its value is 0 until the 1st event trap with the
+		 transmission id of 1 is sent."
+	    ::= { rtpEvtFilterEntry 5 }
+
+	rtpEvtFilterLastCurrId OBJECT-TYPE
+	    SYNTAX Unsigned32
+	    MAX-ACCESS read-only
+	    STATUS current
+	    DESCRIPTION
+		"The current log record Id of the event contained in the
+		 last sent event trap (see rtpEvtTraps).
+
+		 Warning: this is a non-persistent value. Each time the agent
+		 restarts, its value is 0 until the 1st event trap is sent."
+	    ::= { rtpEvtFilterEntry 6 }
+
+	rtpEvtFilterRowStatus OBJECT-TYPE
+	    SYNTAX RowStatus
+	    MAX-ACCESS read-create
+	    STATUS current
+	    DESCRIPTION
+		"The current status of this conceptual row of the table.
+
+		 'active' (returned) indicates that the conceptual row is
+		 available for use by the system.
+
+		 'createAndGo' has to be set when a new conceptual row is to
+		 be created; all of the columnar objects with a MAX-ACCESS of
+		 'read-create' that do not have a default value have to be set
+		 within the same Set PDU. The index value must not exist in the
+		 table when the row is created. (Any non-existing index value
+		 will be accepted.)
+		 After a successful creation, this object is automatically set
+		 to 'active'.
+
+		 'destroy' has to be set when the conceptual row is to be
+		 deleted.
+
+		 None of the other values defined for 'RowStatus' are expected
+		 to be set by the management station or are returned."
+	    ::= { rtpEvtFilterEntry 7 }
+
+	rtpEvtFilterTrapDestPort OBJECT-TYPE
+	    SYNTAX Integer32 (-1 | 1..32767)
+	    MAX-ACCESS read-create
+	    STATUS current
+	    DESCRIPTION
+		"This is the destination port number for traps.
+
+		 By default this value is set to -1. When no other
+		 port number is specified, the master agent uses
+		 the default port 162."
+		DEFVAL {-1}
+	    ::= { rtpEvtFilterEntry 8 }
+
+END

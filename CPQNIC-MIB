@@ -5,7 +5,7 @@
 --         Management Information Base for SNMP Network Management
 --
 --
---      Copyright 1998,2003 Hewlett-Packard Development Company, L.P.
+--      Copyright 1998,2010 Hewlett-Packard Development Company, L.P.
 --
 --      Hewlett-Packard Company shall not be liable for technical or
 --      editorial errors or omissions contained herein. The information in
@@ -59,6 +59,7 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
     cpqNicIfPhysAdapter OBJECT IDENTIFIER ::= { cpqNicComponent 3 }
     cpqNicOsCommon      OBJECT IDENTIFIER ::= { cpqNicInterface 4 }
     cpqNicIfVlanMap     OBJECT IDENTIFIER ::= { cpqNicComponent 4 }
+    cpqNicVirusThrottle OBJECT IDENTIFIER ::= { cpqNicComponent 5 }
 
 -- ****************************************************************************
 --   NIC Information MIB Revision
@@ -72,9 +73,7 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
 --      supporting the NIC MIB.
 --
 --      An SNMP Agent conforming to this document will return a
---      cpqNicMibRevMajor of one (1) and a cpqNicMibRevMinor of nine (9).
---
---
+--      cpqNicMibRevMajor of one (1) and a cpqNicMibRevMinor of forty-eight (48).
 -- ****************************************************************************
 
     cpqNicMibRevMajor OBJECT-TYPE
@@ -318,7 +317,12 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
         cpqNicIfLogMapSpeed               Gauge,
         cpqNicIfLogMapVlanCount           INTEGER,
         cpqNicIfLogMapVlans               OCTET STRING,
-        cpqNicIfLogMapLastChange          TimeTicks
+        cpqNicIfLogMapLastChange          TimeTicks,
+        cpqNicIfLogMapAdvancedTeaming     INTEGER,
+        cpqNicIfLogMapSpeedMbps           Gauge,
+        cpqNicIfLogMapIPV6Address         DisplayString,
+        cpqNicIfLogMapLACNumber	          DisplayString,
+	cpqNicIfLogMapDHCP		  INTEGER
     }
 
     cpqNicIfLogMapIndex OBJECT-TYPE
@@ -355,9 +359,7 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
         STATUS  mandatory
         DESCRIPTION
             "Description of the logical adapter. This string
-             is NULL terminated.  This field is only populated
-             when the logical adapter represents a group of
-             physical adapters."
+             is NULL terminated."
         ::= { cpqNicIfLogMapEntry 3 }
 
     cpqNicIfLogMapGroupType OBJECT-TYPE
@@ -372,7 +374,11 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
             gec(7),
             ad(8),
             slb(9),
-            tlb(10)
+            tlb(10),
+ 			redundancySet(11),
+			switchInd(12),
+			lacp(13),
+			team(14)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -440,7 +446,21 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
                more than one physical adapter associated with it.  One adapter
                transmits and receives, while the others only transmit.  If the
                receiving adapter fails, one of the other adapters assumes this
-               role.  Formerly alb."
+               role.  Formerly alb.
+	     
+			 redundancySet(11)
+               Indicates that the logical adapter has more than one adapter associated
+               with it. This value is used when the type of the team could not be determined.
+	
+			 switchInd(12)
+				 The teaming will work with any Ethernet switches - even non-intelligent switches.
+
+			 lacp(13)
+				IEEE 802.1ax works by using the Link Aggregation Control Protocol (LACP) to 
+				dynamically identify links that are connected between the host and a given switch. 
+
+			 team(14)
+				just team."
 
         ::= { cpqNicIfLogMapEntry 4 }
 
@@ -492,7 +512,9 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
             none(2),
             manual(3),
             switchOnFail(4),
-            preferredPrimary(5)
+            preferredPrimary(5),
+            auto(6),
+            preferenceOrder(7)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -528,7 +550,18 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
                adapter associated with it.  If a failure of the active adapter
                is detected, network traffic will automatically switch to a
                standby adapter.  If the original primary adapter recovers from
-               the failure, it will automatically become active again."
+               the failure, it will automatically become active again.
+
+             auto(6)
+               Indicates that the logical adapter is not in manual failover
+               mode.
+
+             preferenceOrder(7)
+               Indicates that the logical adapter has more than one physical
+               adapter associated with it. When a failure of the active adapter
+               is detected, network traffic automatically switchs to one
+               standby adapter. The relative priority of adapters are used to
+               select the new primary adapter."
         ::= { cpqNicIfLogMapEntry 9 }
 
 
@@ -577,7 +610,9 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
             ok(2),
             primaryFailed(3),
             standbyFailed(4),
-            groupFailed(5)
+            groupFailed(5),
+            redundancyReduced(6),
+            redundancyLost(7)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -611,7 +646,15 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
                All adapters in the group have failed.  Network connectivity
                has been lost for the group.  This status will be returned
                for logical groups with a single physical adapter that
-               has failed."
+               has failed.
+
+             redundancyReduced(6)
+               Atleast one adapter in the team has failed but there are
+               more than one adapter available.
+               
+             redundancyLost(7)
+               Only one adapter in the team is functioning properly. If this
+               adapter fails, the team will go to failed status."
         ::= { cpqNicIfLogMapEntry 11 }
 
     cpqNicIfLogMapNumSwitchovers OBJECT-TYPE
@@ -635,23 +678,6 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              be determined or is irrelevant."
         ::= { cpqNicIfLogMapEntry 13 }
 
-    cpqNicIfLogMapOverallCondition OBJECT-TYPE
-        SYNTAX  INTEGER
-        {
-            other(1),
-            ok(2),
-            degraded(3),
-            failed(4)
-        }
-        ACCESS  read-only
-        STATUS  mandatory
-        DESCRIPTION
-            "The overall condition of all interfaces.  This object
-             is the worst case of any individual interface.  For
-             example, if there is one degraded interface, this variable
-             will have a value of degraded(3).  If there is one failed
-             interface, this variable will have a value of failed(4)."
-        ::= { cpqNicIfLogMap 2 }
 
     cpqNicIfLogMapSpeed OBJECT-TYPE
         SYNTAX  Gauge
@@ -659,10 +685,13 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
         STATUS  mandatory
         DESCRIPTION
             "An estimate of the interface's current bandwidth
-             in bits per second.  For interfaces which do not
+             in bits per second. For interfaces which do not
              vary in bandwidth or for those where no accurate
              estimation can be made, this object should contain
-             the nominal bandwidth."
+             the nominal bandwidth. This will be set to zero (0)
+             if the speed exceeds 4294967296(4G) bits per second.
+             The OID cpqNicIfLogMapSpeedMbps can be used
+             instead in such case."
         ::= { cpqNicIfLogMapEntry 14 }
 
 
@@ -697,6 +726,100 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              link down or link down to link up."
        ::= { cpqNicIfLogMapEntry 17 }
 
+  cpqNicIfLogMapAdvancedTeaming OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+          "This bitmap indicates the advanced features being used by the
+          logical adapter (team).
+          cpqNicIfLogMapAdvancedTeaming AND 1 is 1, Active Path Failover is
+          enabled.
+          cpqNicIfLogMapAdvancedTeaming AND 2 is 2, Fast Path Failover is
+          enabled.
+          cpqNicIfLogMapAdvancedTeaming AND 4 is 4, Static dual channel is
+          enabled.
+          cpqNicIfLogMapAdvancedTeaming AND 8 is 8, Dynamic dual channel is
+          enabled.
+	        cpqNicIfLogMapAdvancedTeaming AND 16 is 16, Router Path Failover is
+          enabled.	
+		   cpqNicIfLogMapAdvancedTeaming AND 32 is 32, Load balance address hash.  
+		   cpqNicIfLogMapAdvancedTeaming AND 64 is 64, Load balance hyper v port
+		   cpqNicIfLogMapAdvancedTeaming AND 128 is 128, Load balance IP based.	
+		   cpqNicIfLogMapAdvancedTeaming AND 256 is 256, Load balance mac address based."
+        ::= { cpqNicIfLogMapEntry 18 }
+
+    cpqNicIfLogMapSpeedMbps OBJECT-TYPE
+        SYNTAX  Gauge
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "An estimate of the interface's current bandwidth
+             in Megabits per second. For interfaces which do not
+             vary in bandwidth or for those where no accurate
+             estimation can be made, this object should contain
+             the nominal bandwidth."
+        ::= { cpqNicIfLogMapEntry 19 }
+        
+        cpqNicIfLogMapIPV6Address OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "The CIDR(Classless Inter-Domain Routing) notation that the logical adapter
+             presents to the network."
+        ::= { cpqNicIfLogMapEntry 20 }
+        
+        cpqNicIfLogMapLACNumber OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "Local Area Connection number that the logical adapter 
+            presents to the network."
+        ::= { cpqNicIfLogMapEntry 21 }
+
+	cpqNicIfLogMapDHCP OBJECT-TYPE
+        SYNTAX  INTEGER
+        {
+            true(1),
+            false(2)
+        }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "This value indicates whether logical adapter ip address
+	     was obtained via a DHCP server.
+             
+             The following values are valid:
+
+             true(1)
+               ip address is a dhcp address.
+
+             false(2)
+               ip address is a static address."
+        ::= { cpqNicIfLogMapEntry 22 }
+
+        
+
+
+    cpqNicIfLogMapOverallCondition OBJECT-TYPE
+        SYNTAX  INTEGER
+        {
+            other(1),
+            ok(2),
+            degraded(3),
+            failed(4)
+        }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "The overall condition of all interfaces.  This object
+             is the worst case of any individual interface.  For
+             example, if there is one degraded interface, this variable
+             will have a value of degraded(3).  If there is one failed
+             interface, this variable will have a value of failed(4)."
+        ::= { cpqNicIfLogMap 2 }
 
 -- ****************************************************************************
 --   Physical Network Adapter Table
@@ -768,7 +891,17 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
         cpqNicIfPhysAdapterHwLocation                DisplayString,
         cpqNicIfPhysAdapterPartNumber                DisplayString,
         cpqNicIfPhysAdapterSpeed                     Gauge,
-        cpqNicIfPhysAdapterConfSpeedDuplex           INTEGER
+        cpqNicIfPhysAdapterConfSpeedDuplex           INTEGER,
+        cpqNicIfPhysAdapterAggregationGID            INTEGER,
+        cpqNicIfPhysAdapterSpeedMbps                 Gauge,
+        cpqNicIfPhysAdapterInOctets                  Counter,
+        cpqNicIfPhysAdapterOutOctets                 Counter,
+	cpqNicIfPhysAdapterName                      DisplayString,
+	cpqNicIfPhysAdapterIoBayNo		     INTEGER,
+        cpqNicIfPhysAdapterFWVersion		     DisplayString,
+        cpqNicIfPhysAdapterVirtualPortNumber         INTEGER
+
+
     }
 
     cpqNicIfPhysAdapterIndex OBJECT-TYPE
@@ -804,7 +937,13 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
             unknown(1),
             primary(2),
             secondary(3),
-            member(4)
+            member(4),
+            txRx(5),
+            tx(6),
+            standby(7),
+            none(8),
+			active(9),
+            notApplicable(255)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -841,7 +980,27 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              member(4)
                The adapter is a member of a Switch Assisted Load
                Balancing Team.  The adapter participates fully in network
-               traffic."
+               traffic.
+               
+             TxRx(5)
+               The adapter can transmit and receive.
+               
+             Tx(6)
+               The adapter can only transmit.
+
+             standby(7)
+               The adapter does not transmit or receive. It can go to TxRx or
+               Tx when required.
+
+             none(8)
+               The adapter is not in use.
+			
+			 active(9)
+				New role in MS teaming.
+
+             notApplicable(255)
+                The physical adapter is not a member of any group."
+
         ::= { cpqNicIfPhysAdapterEntry 3 }
 
     cpqNicIfPhysAdapterMACAddress OBJECT-TYPE
@@ -964,7 +1123,7 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
 
              failed(4)
                Indicates that the value of the Physical Adapter
-               Status is generalFailure(4) or linkFailure(5)."
+               Status is linkFailure(4)."
         ::= { cpqNicIfPhysAdapterEntry 12 }
 
     cpqNicIfPhysAdapterState OBJECT-TYPE
@@ -1569,7 +1728,10 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              in bits per second.  For interfaces which do not
              vary in bandwidth or for those where no accurate
              estimation can be made, this object should contain
-             the nominal bandwidth."
+             the nominal bandwidth. This will be set to zero (0)
+             if the speed exceeds 4294967296(4G) bits per second.
+             The OID cpqNicIfPhysAdapterSpeedMbps can be used
+             instead in such case."
         ::= { cpqNicIfPhysAdapterEntry 33 }
 
     cpqNicIfPhysAdapterConfSpeedDuplex OBJECT-TYPE
@@ -1581,7 +1743,9 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
             ethernetFull(4),
             fastEthernetHalf(5),
             fastEthernetFull(6),
-            gigEthernetFull(8)
+            gigEthernetHalf(7),
+            gigEthernetFull(8),
+	        gig10EthernetFull(9)
         }
         ACCESS  read-only
         STATUS  mandatory
@@ -1597,9 +1761,156 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
                Auto negotiate both speed and duplex.
 
              ethernetHalf(3),  ethernetFull(4), fastEthernetHalf(5),
-             fastEthernetFull(6), gigEthernetFull(8)
+             fastEthernetFull(6), gigEthernetHalf(7),
+             gigEthernetFull(8), gig10EthernetFull(9)
                Speed and duplex forced to the given value."
         ::= { cpqNicIfPhysAdapterEntry 34 }
+
+    cpqNicIfPhysAdapterAggregationGID OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Aggregation group number of the adapter. A value of -1 means the
+            Aggregation group number could not be determined or not present."
+        ::= { cpqNicIfPhysAdapterEntry 35 }
+
+    cpqNicIfPhysAdapterSpeedMbps OBJECT-TYPE
+        SYNTAX  Gauge
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "An estimate of the interface's current bandwidth
+             in Megabits per second.  For interfaces which do not
+             vary in bandwidth or for those where no accurate
+             estimation can be made, this object should contain
+             the nominal bandwidth."
+        ::= { cpqNicIfPhysAdapterEntry 36 }
+
+    cpqNicIfPhysAdapterInOctets OBJECT-TYPE
+        SYNTAX    Counter
+        ACCESS    read-only
+        STATUS    optional
+        DESCRIPTION
+            "A count of Octets Received on the physical adapter.
+             This includes traffic generated due to different protocols
+             like TCP/IP, DECNET etc"
+        ::= { cpqNicIfPhysAdapterEntry 37 }
+
+    cpqNicIfPhysAdapterOutOctets OBJECT-TYPE
+        SYNTAX    Counter
+        ACCESS    read-only
+        STATUS    optional
+        DESCRIPTION
+            "A count of Octets Sent on the physical adapter.
+             This includes traffic generated due to different protocols
+             like TCP/IP, DECNET etc"
+        ::= { cpqNicIfPhysAdapterEntry 38 }
+
+	cpqNicIfPhysAdapterName OBJECT-TYPE
+        SYNTAX  DisplayString (SIZE (0..255))
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "Name of the physical adapter. This string
+             is NULL terminated."
+        ::= { cpqNicIfPhysAdapterEntry 39 }
+
+	cpqNicIfPhysAdapterIoBayNo OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "Identifies the Interconnect Bay Number to which the adapter is connected in a 
+	Blade Environment. A value of -1 means the Interconnect Bay number could not be 
+	determined or its not a Blade Environment. cpqNicIfPhysAdapterSlot will reflect a
+	Mezz number and cpqNicIfPhysAdapterPort will reflect Switch Port number when 
+	Interconnect Bay number is not -1."
+        ::= { cpqNicIfPhysAdapterEntry 40 }
+
+	cpqNicIfPhysAdapterFWVersion OBJECT-TYPE
+        SYNTAX  DisplayString (SIZE (0..255))
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "Firmware version of the physical adapter. This string
+             is NULL terminated."
+        ::= { cpqNicIfPhysAdapterEntry 41 }
+
+	cpqNicIfPhysAdapterVirtualPortNumber OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "Identifies the virtual port number of a partioned adapter . A value of -1 means the 
+             virtual port number could not be determined or its not a partitioned adapter."
+        ::= { cpqNicIfPhysAdapterEntry 42 }
+
+	
+-- ****************************************************************************
+--   Physical Adapter Base Memory
+--   ============================
+--
+-- The compaq enterprise                  (1.3.6.1.4.1.232)
+--      cpqNic Group                      (1.3.6.1.4.1.232.18)
+--       cpqNicComponent Group            (1.3.6.1.4.1.232.18.2)
+--        cpqNicIfPhysAdapter Group       (1.3.6.1.4.1.232.18.2.3)
+--          cpqNicPhyAdapBaseMemTable   (1.3.6.1.4.1.232.18.2.3.2)
+--
+--
+--  Implementation of the cpqNicPhysAdapBaseMemTable table is optional for all
+--  agents that support the NIC MIB.
+--
+-- ****************************************************************************
+
+    cpqNicPhyAdapBaseMemTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CpqNicPhyAdapBaseMemEntry
+        ACCESS  not-accessible
+        STATUS  optional
+        DESCRIPTION
+            "A table of base memory used by a physical adapter."
+        ::= { cpqNicIfPhysAdapter 2 }
+
+    cpqNicPhyAdapBaseMemEntry OBJECT-TYPE
+        SYNTAX  CpqNicPhyAdapBaseMemEntry
+        ACCESS  not-accessible
+        STATUS  optional
+        DESCRIPTION
+            "A base memory table entry."
+        INDEX   { cpqNicPhyAdapBaseMemIndex }
+        ::= { cpqNicPhyAdapBaseMemTable 1 }
+
+        CpqNicPhyAdapBaseMemEntry ::= SEQUENCE {
+            cpqNicPhyAdapBaseMemIndex   INTEGER,
+            cpqNicPhyAdapBaseMemIfIndex INTEGER,
+            cpqNicPhyAdapBaseMemAddr    INTEGER
+        }
+
+    cpqNicPhyAdapBaseMemIndex OBJECT-TYPE
+        SYNTAX  INTEGER (0..65535)
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "An index that uniquely specifies this entry."
+        ::= { cpqNicPhyAdapBaseMemEntry 1 }
+
+    cpqNicPhyAdapBaseMemIfIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "An index ifTable.  This identifies the physical adapter
+            interface this Base memory address is associated with."
+        ::= { cpqNicPhyAdapBaseMemEntry 2 }
+
+    cpqNicPhyAdapBaseMemAddr OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "A base memory address used by the physical hardware
+             interface associated."
+        ::= { cpqNicPhyAdapBaseMemEntry 3 }
 
 
 -- ****************************************************************************
@@ -1643,7 +1954,10 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
         cpqNicIfVlanMapLogIndex           INTEGER,
         cpqNicIfVlanMapIfIndex            INTEGER,
         cpqNicIfVlanMapVlanId             INTEGER,
-        cpqNicIfVlanMapVlanName           DisplayString
+        cpqNicIfVlanMapVlanName           DisplayString,
+        cpqNicIfVlanMapVlanIPV6Address    DisplayString,
+        cpqNicIfVlanMapVlanLACNumber      DisplayString
+        
     }
 
     cpqNicIfVlanMapIndex OBJECT-TYPE
@@ -1689,6 +2003,83 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
             "The name of this VLAN."
         ::= { cpqNicIfVlanMapEntry 5 }
 
+    cpqNicIfVlanMapVlanIPV6Address OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "The CIDR(Classless Inter-Domain Routing) notation that the VLAN
+             presents to the network."
+        ::= { cpqNicIfVlanMapEntry 6 }
+        
+     cpqNicIfVlanMapVlanLACNumber OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  optional
+        DESCRIPTION
+            "Local Area Connection number that the VLAN 
+            presents to the network."
+        ::= { cpqNicIfVlanMapEntry 7 }
+        
+
+
+
+
+-- ****************************************************************************
+--   NIC Virus Throttle Table
+--   ====================================
+--
+-- The compaq enterprise               (1.3.6.1.4.1.232)
+--      cpqNic Group                   (1.3.6.1.4.1.232.18)
+--       cpqNicComponent Group         (1.3.6.1.4.1.232.18.2)
+--        cpqNicVirusThrottle Group          (1.3.6.1.4.1.232.18.2.5)
+--
+--  The cpqNicVirusThrottle table contains information pertaining to the
+--  Virus Throttle Filter Driver.  The Virus Throttle Filter Driver detects
+--  virus like activity and attempts to minimize potential damage according
+--  to its configuration parameters.  Refer to the Virus Throttle Filter
+--  Driver configuration utility for more information.
+--
+--  Implementation of the cpqNicVirusThrottle group is mandatory for all agents
+--  that support the NIC MIB.
+--
+-- ****************************************************************************
+
+    cpqNicVtInstalled OBJECT-TYPE
+        SYNTAX  INTEGER
+        {
+         notInstalled(1),
+            installed(2)
+        }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Indicates installation status of Virus Throttle Filter Driver"
+        ::= { cpqNicVirusThrottle 1 }
+
+   cpqNicVtLicensed OBJECT-TYPE
+        SYNTAX  INTEGER
+        {
+         notLicensed(1),
+            licensed(2)
+        }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Indicates license status of Virus Throttle Filter Driver"
+        ::= { cpqNicVirusThrottle 2 }
+
+   cpqNicVtVirusActivity OBJECT-TYPE
+        SYNTAX  INTEGER
+        {
+         notDetected(1),
+            detected(2)
+        }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Indicates virus activity detection status of Virus Throttle Filter Driver"
+        ::= { cpqNicVirusThrottle 3 }
 
 
 
@@ -1722,12 +2113,15 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
 
              User Action: None required."
 
-             --#TYPE "NIC Status Trap"
+             --#TYPE "NIC Status Trap (18001)"
              --#SUMMARY "Connectivity is restored for adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY INFORMATIONAL
              --#TIMEINDEX 18
              --#STATE OPERATIONAL
+             --#SIMPLE_SEVERITY OK
+             --#HWSTATUS_CATEGORY NETWORK
+                     
         ::= 18001
 
 -- Deprecated in 5.30 - use 18006
@@ -1750,12 +2144,16 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              Switch.  If no cable problems are found, the adapter, Hub,
              or Switch may need replacement."
 
-             --#TYPE "NIC Status Trap"
+             --#TYPE "NIC Status Trap (18002)"
              --#SUMMARY "Connectivity lost for adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY MAJOR
              --#TIMEINDEX 99
              --#STATE DEGRADED
+             --#SIMPLE_SEVERITY MAJOR
+             --#HWSTATUS_CATEGORY NETWORK
+             --#ACTION "Check the cables to the adapter and the Hub or Switch.  If no cable problems are found, the adapter, Hub, or Switch may need replacement."
+                          
         ::= 18002
 
 -- Deprecated in 5.30 - use 18007
@@ -1776,12 +2174,15 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
 
              User Action:  None required."
 
-             --#TYPE "NIC Status Trap"
+             --#TYPE "NIC Status Trap (18003)"
              --#SUMMARY "Redundancy increased by adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY INFORMATIONAL
              --#TIMEINDEX 99
              --#STATE OPERATIONAL
+             --#SIMPLE_SEVERITY OK
+             --#HWSTATUS_CATEGORY NETWORK
+             
         ::= 18003
 
 -- Deprecated in 5.30 - use 18008
@@ -1803,15 +2204,20 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              Switch.  If no cable problems are found, the adapter, Hub,
              or Switch may need replacement."
 
-             --#TYPE "NIC Status Trap"
+             --#TYPE "NIC Status Trap (18004)"
              --#SUMMARY "Redundancy decreased by adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY MAJOR
              --#TIMEINDEX 99
              --#STATE DEGRADED
+             --#SIMPLE_SEVERITY MAJOR
+             --#HWSTATUS_CATEGORY NETWORK
+             --#ACTION "Check the cables to the adapter and the Hub or Switch.  If no cable problems are found, the adapter, Hub, or Switch may need replacement."             
+             
         ::= 18004
 
 -- New in 5.30
+-- Deprecated in 8.00 - use 18011
     cpqNic2ConnectivityRestored TRAP-TYPE
         ENTERPRISE compaq
         VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
@@ -1830,15 +2236,19 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
 
              User Action: None required."
 
-             --#TYPE "NIC Connectivity Restored Trap"
+             --#TYPE "NIC Connectivity Restored Trap (18005)"
              --#SUMMARY "Connectivity is restored for adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY INFORMATIONAL
              --#TIMEINDEX 18
              --#STATE OPERATIONAL
+             --#SIMPLE_SEVERITY OK
+             --#HWSTATUS_CATEGORY NETWORK
+             
         ::= 18005
 
 -- New in 5.30
+-- Deprecated in 8.00 - use 18012
     cpqNic2ConnectivityLost TRAP-TYPE
         ENTERPRISE compaq
         VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
@@ -1860,15 +2270,20 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              Switch.  If no cable problems are found, the adapter, Hub,
              or Switch may need replacement."
 
-             --#TYPE "NIC Connectivity Lost Trap"
+             --#TYPE "NIC Connectivity Lost Trap (18006)"
              --#SUMMARY "Connectivity lost for adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY MAJOR
              --#TIMEINDEX 18
              --#STATE NONOPERATIONAL
+             --#SIMPLE_SEVERITY MAJOR
+             --#HWSTATUS_CATEGORY NETWORK
+             --#ACTION "Check the cables to the adapter and the Hub or Switch.  If no cable problems are found, the adapter, Hub, or Switch may need replacement."
+                          
         ::= 18006
 
 -- New in 5.30
+-- Deprecated in 8.00 - use 18013
     cpqNic2RedundancyIncreased TRAP-TYPE
         ENTERPRISE compaq
         VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
@@ -1889,15 +2304,18 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
 
              User Action:  None required."
 
-             --#TYPE "NIC Redundancy Increased Trap"
+             --#TYPE "NIC Redundancy Increased Trap (18007)"
              --#SUMMARY "Redundancy increased by adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY INFORMATIONAL
              --#TIMEINDEX 99
              --#STATE OPERATIONAL
+             --#SIMPLE_SEVERITY OK
+             --#HWSTATUS_CATEGORY NETWORK
         ::= 18007
 
 -- New in 5.30
+-- Deprecated in 8.00 - use 18014
     cpqNic2RedundancyReduced TRAP-TYPE
         ENTERPRISE compaq
         VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
@@ -1919,13 +2337,189 @@ CPQNIC-MIB DEFINITIONS ::= BEGIN
              Switch.  If no cable problems are found, the adapter, Hub,
              or Switch may need replacement."
 
-             --#TYPE "NIC Redundancy Reduced Trap"
+             --#TYPE "NIC Redundancy Reduced Trap (18008)"
              --#SUMMARY "Redundancy decreased by adapter in slot %d, port %d."
              --#ARGUMENTS {2, 3}
              --#SEVERITY MAJOR
              --#TIMEINDEX 99
              --#STATE DEGRADED
+             --#SIMPLE_SEVERITY MAJOR
+             --#HWSTATUS_CATEGORY NETWORK
+             --#ACTION "Check the cables to the adapter and the Hub or Switch.  If no cable problems are found, the adapter, Hub, or Switch may need replacement."
+                          
         ::= 18008
+
+
+-- New in 7.20
+    cpqNicVirusLikeActivityDetected TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES { sysName, cpqHoTrapFlags,
+                    cpqSiServerSystemId }
+        DESCRIPTION
+         "This trap will be sent when the Virus Throttle Filter
+          Driver detects virus like activity.
+
+          User Action:  The system reporting this trap requires
+          immediate attention."
+
+             --#TYPE "NIC Virus-like Activity Detected Trap (18009)"
+             --#SUMMARY "Virus-like activity detected"
+             --#SEVERITY MAJOR
+             --#TIMEINDEX 99
+             --#STATE DEGRADED
+             --#SIMPLE_SEVERITY MAJOR
+             --#HWSTATUS_CATEGORY NETWORK
+             --#ACTION "The system reporting this trap requires immediate attention."
+             
+        ::= 18009
+
+-- New in 7.20
+    cpqNicVirusLikeActivityStopped TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES { sysName, cpqHoTrapFlags,
+                    cpqSiServerSystemId }
+        DESCRIPTION
+         "This trap will be sent when the Virus Throttle Filter
+          Driver no longer detects virus like activity.
+
+          User Action:  None required."
+
+             --#TYPE "NIC Virus-like Activity No Longer Detected Trap (18010)"
+             --#SUMMARY "Virus-like activity no longer detected"
+             --#SEVERITY INFORMATIONAL
+             --#TIMEINDEX 99
+             --#STATE OPERATIONAL
+             --#SIMPLE_SEVERITY OK
+             --#HWSTATUS_CATEGORY NETWORK
+             
+        ::= 18010
+
+-- New in 8.00
+    cpqNic3ConnectivityRestored TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
+                    cpqNicIfPhysAdapterPort, cpqSiServerSystemId,
+                    cpqNicIfPhysAdapterStatus, cpqSePciSlotBoardName,
+                    cpqNicIfPhysAdapterPartNumber, ipAdEntAddr, cpqNicIfLogMapIPV6Address }
+        DESCRIPTION
+            "This trap will be sent any time connectivity is restored
+             to a logical adapter.  This occurs when the physical
+             adapter in a single adapter configuration returns to
+             the OK condition or at least one physical adapter
+             in a logical adapter group returns to the OK condition.
+
+             This can be caused by replacement of a faulty cable
+             or re-attaching a cable that was unplugged.
+
+             User Action: None required."
+
+             --#TYPE "NIC Connectivity Restored Trap (18011)"
+             --#SUMMARY "Connectivity is restored for adapter in slot %d, port %d."
+             --#ARGUMENTS {2, 3}
+             --#SEVERITY INFORMATIONAL
+             --#TIMEINDEX 18
+             --#STATE OPERATIONAL
+             --#SIMPLE_SEVERITY OK
+             --#HWSTATUS_CATEGORY NETWORK
+             
+        ::= 18011
+
+-- New in 8.00
+    cpqNic3ConnectivityLost TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
+                    cpqNicIfPhysAdapterPort, cpqSiServerSystemId,
+                    cpqNicIfPhysAdapterStatus, cpqSePciSlotBoardName,
+                    cpqNicIfPhysAdapterPartNumber, ipAdEntAddr, cpqNicIfLogMapIPV6Address }
+        DESCRIPTION
+            "This trap will be sent any time the status of a logical
+             adapter changes to the Failed condition.  This occurs
+             when the adapter in a single adapter configuration fails,
+             or when the last adapter in a redundant configuration fails.
+
+             This can be caused by loss of link due to a cable being
+             removed from the adapter or the Hub or Switch.  Internal
+             adapter, Hub, or Switch failures can also cause this
+             condition.
+
+             User Action: Check the connection to the adapter and validate the connectivity from the server to any external device, including the cabling. If no problems are found, the adapter or other connectivity device may need replacement."
+
+             --#TYPE "NIC Connectivity Lost Trap (18012)"
+             --#SUMMARY "Connectivity lost for adapter in slot %d, port %d."
+             --#ARGUMENTS {2, 3}
+             --#SEVERITY MAJOR
+             --#TIMEINDEX 18
+             --#STATE NONOPERATIONAL
+             --#SIMPLE_SEVERITY MAJOR
+             --#HWSTATUS_CATEGORY NETWORK
+             --#ACTION "Check the connection to the adapter and validate the connectivity from the server to any external device, including the cabling. If no problems are found, the adapter or other connectivity device may need replacement."
+                          
+        ::= 18012
+
+-- New in 8.00
+    cpqNic3RedundancyIncreased TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
+                    cpqNicIfPhysAdapterPort, cpqSiServerSystemId,
+                    cpqNicIfPhysAdapterStatus, cpqSePciSlotBoardName,
+                    cpqNicIfPhysAdapterPartNumber, ipAdEntAddr, cpqNicIfLogMapIPV6Address,
+                    cpqNicIfLogMapAdapterOKCount }
+        DESCRIPTION
+            "This trap will be sent any time a previously failed physical
+             adapter in a connected logical adapter group returns to the OK
+             condition.  This trap is not sent when a logical adapter
+             group has connectivity restored from a Failed condition.  The
+             cpqNicConnectivityRestored trap is sent instead.
+
+             This can be caused by replacement of a faulty cable
+             or re-attaching a cable that was unplugged.
+
+
+             User Action:  None required."
+
+             --#TYPE "NIC Redundancy Increased Trap (18013)"
+             --#SUMMARY "Redundancy increased by adapter in slot %d, port %d."
+             --#ARGUMENTS {2, 3}
+             --#SEVERITY INFORMATIONAL
+             --#TIMEINDEX 99
+             --#STATE OPERATIONAL
+             --#SIMPLE_SEVERITY OK
+             --#HWSTATUS_CATEGORY NETWORK
+             
+        ::= 18013
+
+-- New in 8.00
+    cpqNic3RedundancyReduced TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES { sysName, cpqHoTrapFlags, cpqNicIfPhysAdapterSlot,
+                    cpqNicIfPhysAdapterPort, cpqSiServerSystemId,
+                    cpqNicIfPhysAdapterStatus, cpqSePciSlotBoardName,
+                    cpqNicIfPhysAdapterPartNumber, ipAdEntAddr, cpqNicIfLogMapIPV6Address,
+                    cpqNicIfLogMapAdapterOKCount }
+        DESCRIPTION
+            "This trap will be sent any time a physical adapter in a
+             logical adapter group changes to the Failed condition, but
+             at least one physical adapter remains in the OK condition..
+
+             This can be caused by loss of link due to a cable being
+             removed from the adapter or the Hub or Switch.  Internal
+             adapter, Hub, or Switch failures can also cause this
+             condition.
+
+             User Action: Check the connection to the adapter and validate the connectivity from the server to any external device, including the cabling. If no problems are found, the adapter or other connectivity device may need replacement."
+
+             --#TYPE "NIC Redundancy Reduced Trap (18014)"
+             --#SUMMARY "Redundancy decreased by adapter in slot %d, port %d."
+             --#ARGUMENTS {2, 3}
+             --#SEVERITY MAJOR
+             --#TIMEINDEX 99
+             --#STATE DEGRADED
+             --#SIMPLE_SEVERITY MAJOR
+             --#HWSTATUS_CATEGORY NETWORK
+             --#ACTION "Check the connection to the adapter and validate the connectivity from the server to any external device, including the cabling. If no problems are found, the adapter or other connectivity device may need replacement."
+                          
+        ::= 18014
+
 
 END
 

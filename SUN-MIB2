@@ -1,0 +1,1168 @@
+SUN-MIB2 DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    enterprises
+        FROM SNMPv2-SMI;
+
+sun MODULE-IDENTITY
+    LAST-UPDATED "0609201256Z"
+    ORGANIZATION "Sun Microsystems Inc."
+    CONTACT-INFO
+        "        Sun Microsystems Inc.
+       Customer Support
+            Postal: 901 San Antonio Road 
+       Palo Alto, CA-94303-4900
+    USA
+                         Tel: 650-960-1300
+                E-mail: service@sun.com"
+
+    DESCRIPTION
+        "The Structure of Management Information for the Sun enterprise"
+    ::= { enterprises 42 }
+
+prod	OBJECT IDENTIFIER ::= { sun 2 }
+
+sunsymon	OBJECT IDENTIFIER ::= { prod 12 }
+
+agent	OBJECT IDENTIFIER ::= { sunsymon 2 }
+
+traps	OBJECT IDENTIFIER ::= { agent 0 }
+
+statusChange	OBJECT IDENTIFIER ::= { traps 1 }
+
+valueRefresh	OBJECT IDENTIFIER ::= { traps 2 }
+
+event	OBJECT IDENTIFIER ::= { traps 3 }
+
+moduleLoaded	OBJECT IDENTIFIER ::= { traps 4 }
+
+moduleUnloaded	OBJECT IDENTIFIER ::= { traps 5 }
+
+userConfig	OBJECT IDENTIFIER ::= { traps 6 }
+
+trapClient	OBJECT IDENTIFIER ::= { traps 7 }
+
+userUpdate	OBJECT IDENTIFIER ::= { traps 8 }
+
+base	OBJECT IDENTIFIER ::= { agent 1 }
+
+mibman	OBJECT IDENTIFIER ::= { base 1 }
+
+RowStatus ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+               "RowStatus"
+    SYNTAX       INTEGER {
+                     -- the following two values are states:
+                     -- these values may be read or written
+                     active(1),
+                     notInService(2),
+
+                     -- the following value is a state:
+                     -- this value may be read, but not written
+                     notReady(3),
+
+                     -- the following three values are
+                     -- actions: these values may be written,
+                     --   but are never read
+                     createAndGo(4),
+                     createAndWait(5),
+                     destroy(6)
+                 }
+
+DisplayString ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "255a"
+    STATUS       current
+    DESCRIPTION
+            "Represents textual information taken from the NVT ASCII
+            character set, as defined in pages 4, 10-11 of RFC 854.
+
+            To summarize RFC 854, the NVT ASCII repertoire specifies:
+
+              - the use of character codes 0-127 (decimal)
+
+              - the graphics characters (32-126) are interpreted as
+                US ASCII
+
+              - NUL, LF, CR, BEL, BS, HT, VT and FF have the special
+                meanings specified in RFC 854
+
+              - the other 25 codes have no standard interpretation
+
+              - the sequence 'CR LF' means newline
+
+              - the sequence 'CR NUL' means carriage-return
+
+              - an 'LF' not preceded by a 'CR' means moving to the
+                same column on the next line.
+
+              - the sequence 'CR x' for any x other than LF or NUL is
+                illegal.  (Note that this also means that a string may
+                end with either 'CR LF' or 'CR NUL', but not with CR.)
+
+            Any object defined using this syntax may not exceed 255
+            characters in length."
+    SYNTAX       OCTET STRING (SIZE (0..255))
+
+mibFinder OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "The variable used to locate MIB nodes"
+    ::= { mibman 1 }
+
+mibLoader OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "The variable used to load MIB modules"
+    ::= { mibman 2 }
+
+mibBrowserRoot OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The root URL used by the browser"
+    ::= { mibman 3 }
+
+mibChecker OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "The variable used to check the existence of a module"
+    ::= { mibman 4 }
+
+mibModuleRegistry OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "The variable used to return revision list of loaded modules"
+    ::= { mibman 5 }
+
+mibModules	OBJECT IDENTIFIER ::= { mibman 6 }
+
+mibHardware	OBJECT IDENTIFIER ::= { mibModules 1 }
+
+hwModuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF HwModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { mibHardware 1 }
+
+hwModuleEntry OBJECT-TYPE
+    SYNTAX      HwModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { hwModspec }
+    ::= { hwModuleTable 1 }
+
+HwModuleEntry ::=
+    SEQUENCE {
+        hwModspec
+            DisplayString,
+        hwName
+            DisplayString,
+        hwI18nName
+            DisplayString,
+        hwVersion
+            DisplayString,
+        hwUrl
+            DisplayString,
+        hwStatus
+            DisplayString,
+        hwId
+            DisplayString
+    }
+
+hwModspec OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { hwModuleEntry 1 }
+
+hwName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { hwModuleEntry 2 }
+
+hwI18nName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { hwModuleEntry 3 }
+
+hwVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { hwModuleEntry 4 }
+
+hwUrl OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { hwModuleEntry 5 }
+
+hwStatus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Node whose status equals its value"
+    ::= { hwModuleEntry 6 }
+
+hwId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { hwModuleEntry 7 }
+
+mibOperatingSystem	OBJECT IDENTIFIER ::= { mibModules 2 }
+
+osModuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF OsModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { mibOperatingSystem 1 }
+
+osModuleEntry OBJECT-TYPE
+    SYNTAX      OsModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { osModspec }
+    ::= { osModuleTable 1 }
+
+OsModuleEntry ::=
+    SEQUENCE {
+        osModspec
+            DisplayString,
+        osName
+            DisplayString,
+        osI18nName
+            DisplayString,
+        osVersion
+            DisplayString,
+        osUrl
+            DisplayString,
+        osStatus
+            DisplayString,
+        osId
+            DisplayString
+    }
+
+osModspec OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { osModuleEntry 1 }
+
+osName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { osModuleEntry 2 }
+
+osI18nName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { osModuleEntry 3 }
+
+osVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { osModuleEntry 4 }
+
+osUrl OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { osModuleEntry 5 }
+
+osStatus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Node whose status equals its value"
+    ::= { osModuleEntry 6 }
+
+osId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { osModuleEntry 7 }
+
+mibLocalApplication	OBJECT IDENTIFIER ::= { mibModules 3 }
+
+laModuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF LaModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { mibLocalApplication 1 }
+
+laModuleEntry OBJECT-TYPE
+    SYNTAX      LaModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { laModspec }
+    ::= { laModuleTable 1 }
+
+LaModuleEntry ::=
+    SEQUENCE {
+        laModspec
+            DisplayString,
+        laName
+            DisplayString,
+        laI18nName
+            DisplayString,
+        laVersion
+            DisplayString,
+        laUrl
+            DisplayString,
+        laStatus
+            DisplayString,
+        laId
+            DisplayString
+    }
+
+laModspec OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { laModuleEntry 1 }
+
+laName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { laModuleEntry 2 }
+
+laI18nName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { laModuleEntry 3 }
+
+laVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { laModuleEntry 4 }
+
+laUrl OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { laModuleEntry 5 }
+
+laStatus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Node whose status equals its value"
+    ::= { laModuleEntry 6 }
+
+laId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { laModuleEntry 7 }
+
+mibRemoteSystem	OBJECT IDENTIFIER ::= { mibModules 4 }
+
+rsModuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RsModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { mibRemoteSystem 1 }
+
+rsModuleEntry OBJECT-TYPE
+    SYNTAX      RsModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { rsModspec }
+    ::= { rsModuleTable 1 }
+
+RsModuleEntry ::=
+    SEQUENCE {
+        rsModspec
+            DisplayString,
+        rsName
+            DisplayString,
+        rsI18nName
+            DisplayString,
+        rsVersion
+            DisplayString,
+        rsUrl
+            DisplayString,
+        rsStatus
+            DisplayString,
+        rsId
+            DisplayString
+    }
+
+rsModspec OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { rsModuleEntry 1 }
+
+rsName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { rsModuleEntry 2 }
+
+rsI18nName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { rsModuleEntry 3 }
+
+rsVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { rsModuleEntry 4 }
+
+rsUrl OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { rsModuleEntry 5 }
+
+rsStatus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Node whose status equals its value"
+    ::= { rsModuleEntry 6 }
+
+rsId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { rsModuleEntry 7 }
+
+mibServerSupport	OBJECT IDENTIFIER ::= { mibModules 5 }
+
+ssModuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF SsModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { mibServerSupport 1 }
+
+ssModuleEntry OBJECT-TYPE
+    SYNTAX      SsModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { ssModspec }
+    ::= { ssModuleTable 1 }
+
+SsModuleEntry ::=
+    SEQUENCE {
+        ssModspec
+            DisplayString,
+        ssName
+            DisplayString,
+        ssI18nName
+            DisplayString,
+        ssVersion
+            DisplayString,
+        ssUrl
+            DisplayString,
+        ssStatus
+            DisplayString,
+        ssId
+            DisplayString
+    }
+
+ssModspec OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { ssModuleEntry 1 }
+
+ssName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { ssModuleEntry 2 }
+
+ssI18nName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { ssModuleEntry 3 }
+
+ssVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { ssModuleEntry 4 }
+
+ssUrl OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { ssModuleEntry 5 }
+
+ssStatus OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Obselete Server Support status field"
+    ::= { ssModuleEntry 6 }
+
+ssId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { ssModuleEntry 7 }
+
+mibSchedule	OBJECT IDENTIFIER ::= { mibman 7 }
+
+mibScheduleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MibScheduleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { mibSchedule 1 }
+
+mibScheduleEntry OBJECT-TYPE
+    SYNTAX      MibScheduleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { mibModspec }
+    ::= { mibScheduleTable 1 }
+
+MibScheduleEntry ::=
+    SEQUENCE {
+        mibRowstatus
+            RowStatus,
+        mibModspec
+            DisplayString,
+        mibEnabletimewindow
+            DisplayString,
+        mibEnablestate
+            DisplayString,
+        mibLoadtimewindow
+            DisplayString,
+        mibLoadstate
+            DisplayString,
+        mibInfo
+            DisplayString
+    }
+
+mibRowstatus OBJECT-TYPE
+    SYNTAX      RowStatus 
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Table row status"
+    ::= { mibScheduleEntry 1 }
+
+mibModspec OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibScheduleEntry 2 }
+
+mibEnabletimewindow OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibScheduleEntry 3 }
+
+mibEnablestate OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibScheduleEntry 4 }
+
+mibLoadtimewindow OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibScheduleEntry 5 }
+
+mibLoadstate OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibScheduleEntry 6 }
+
+mibInfo OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibScheduleEntry 7 }
+
+mibScheduleRequest OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibSchedule 2 }
+
+mibShadowSpec OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { mibman 8 }
+
+info	OBJECT IDENTIFIER ::= { base 2 }
+
+infoSystem	OBJECT IDENTIFIER ::= { info 1 }
+
+infoSystemName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Fully qualified hostname"
+    ::= { infoSystem 1 }
+
+infoArch OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "System architecture"
+    ::= { infoSystem 2 }
+
+infoOs OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Operating system version"
+    ::= { infoSystem 3 }
+
+infoHw OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "System hardware configuration description"
+    ::= { infoSystem 4 }
+
+infoAddress OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Network address of the primary interface"
+    ::= { infoSystem 5 }
+
+infoTrapdest OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Hostname of the default SNMP trap destination"
+    ::= { infoSystem 6 }
+
+infoTrapaddr OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "IP and port of the default SNMP trap destination"
+    ::= { infoSystem 7 }
+
+infoEventdest OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Hostname of the default SNMP event destination"
+    ::= { infoSystem 8 }
+
+infoFamilytype OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "FamilyType identifying type of the machine."
+    ::= { infoSystem 9 }
+
+infoLocaltime OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoSystem 10 }
+
+infoLogicalAddressPort OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoSystem 11 }
+
+infoAgent	OBJECT IDENTIFIER ::= { info 2 }
+
+infoGeneral	OBJECT IDENTIFIER ::= { infoAgent 1 }
+
+infoOaversion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "PrimeAlert Version"
+    ::= { infoGeneral 1 }
+
+infoTclversion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Tcl Version"
+    ::= { infoGeneral 2 }
+
+infoTclpatchlevel OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Tcl Patch Level"
+    ::= { infoGeneral 3 }
+
+infoComponent OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Agent Name"
+    ::= { infoGeneral 4 }
+
+infoFeatures OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Agent Features"
+    ::= { infoGeneral 5 }
+
+infoTimezone OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Agent Local Time Zone"
+    ::= { infoGeneral 6 }
+
+infoPrivoid OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Snmp Privacy Oid"
+    ::= { infoGeneral 7 }
+
+infoFaultCause OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Octet String value"
+    ::= { infoGeneral 8 }
+
+infoFileinfo	OBJECT IDENTIFIER ::= { infoAgent 3 }
+
+infoAlarmactionfiles OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The variable is used to hold the list of available alarm actions on the host"
+    ::= { infoFileinfo 1 }
+
+infoSunmclogfiles OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "The variable is used to hold the list of SunMC logfiles"
+    ::= { infoFileinfo 2 }
+
+infoModules	OBJECT IDENTIFIER ::= { info 3 }
+
+infoModuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF InfoModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { infoModules 1 }
+
+infoModuleEntry OBJECT-TYPE
+    SYNTAX      InfoModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { infoModule }
+    ::= { infoModuleTable 1 }
+
+InfoModuleEntry ::=
+    SEQUENCE {
+        infoModule
+            DisplayString,
+        infoModuledesc
+            DisplayString,
+        infoI18nModuleDesc
+            DisplayString,
+        infoVersion
+            DisplayString,
+        infoInstance
+            DisplayString,
+        infoModulecnt
+            Integer32,
+        infoModuleEntryName
+            DisplayString,
+        infoModuleEntryXfile
+            DisplayString
+    }
+
+infoModule OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoModuleEntry 1 }
+
+infoModuledesc OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoModuleEntry 2 }
+
+infoI18nModuleDesc OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoModuleEntry 3 }
+
+infoVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoModuleEntry 4 }
+
+infoInstance OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoModuleEntry 5 }
+
+infoModulecnt OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Integer value"
+    ::= { infoModuleEntry 6 }
+
+infoModuleEntryName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoModuleEntry 7 }
+
+infoModuleEntryXfile OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoModuleEntry 8 }
+
+infoEditModuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF InfoEditModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    ::= { infoModules 2 }
+
+infoEditModuleEntry OBJECT-TYPE
+    SYNTAX      InfoEditModuleEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+                "MIB tree branch"
+    INDEX  { infoEditModuleEntryName}
+    ::= { infoEditModuleTable 1 }
+
+InfoEditModuleEntry ::=
+    SEQUENCE {
+        infoEditModuleEntryName
+            DisplayString,
+        infoEditModuleEntryXfile
+            DisplayString
+    }
+
+infoEditModuleEntryName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoEditModuleEntry 1 }
+
+infoEditModuleEntryXfile OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { infoEditModuleEntry 2 }
+
+trapInfo	OBJECT IDENTIFIER ::= { base 3 }
+
+statusOID OBJECT-TYPE
+    SYNTAX      OBJECT IDENTIFIER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Status change trap object"
+    ::= { trapInfo 1 }
+
+refreshOID OBJECT-TYPE
+    SYNTAX      OBJECT IDENTIFIER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Value Refresh trap object"
+    ::= { trapInfo 2 }
+
+eventInfo OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Event trap object"
+    ::= { trapInfo 3 }
+
+userConfig OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "User Config Trap Object"
+    ::= { trapInfo 4 }
+
+moduleInfo OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { trapInfo 5 }
+
+trapForward	OBJECT IDENTIFIER ::= { base 4 }
+
+clientRegistrar OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { trapForward 1 }
+
+jobAdder OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { trapForward 2 }
+
+jobRemover OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { trapForward 3 }
+
+control	OBJECT IDENTIFIER ::= { base 5 }
+
+contrAction OBJECT-TYPE
+    SYNTAX      INTEGER {
+                   restart(1),
+                   shutdown(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Node for restarting or shutting down agent"
+    ::= { control 1 }
+
+contrCache OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Node for reading, or clearing part of, or all of, the Finder and Privacy OID cache"
+    ::= { control 2 }
+
+contrDdl OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+                "Node for enabling or disabling log channels"
+    ::= { control 3 }
+
+contrRuleDump OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+                "Character string value"
+    ::= { control 4 }
+
+modules	OBJECT IDENTIFIER ::= { agent 2 }
+
+hardware	OBJECT IDENTIFIER ::= { modules 1 }
+
+config	OBJECT IDENTIFIER ::= { hardware 1 }
+
+operatingSystem	OBJECT IDENTIFIER ::= { modules 2 }
+
+localApplication	OBJECT IDENTIFIER ::= { modules 3 }
+
+remoteSystem	OBJECT IDENTIFIER ::= { modules 4 }
+
+entdiag	OBJECT IDENTIFIER ::= { prod 45 }
+-- edit
+-- agent	OBJECT IDENTIFIER ::= { entdiag 1 }
+-- since base :: = {agent 1}
+-- modules	OBJECT IDENTIFIER ::= { agent 1 }
+END

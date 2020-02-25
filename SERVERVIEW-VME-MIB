@@ -1,0 +1,2707 @@
+SERVERVIEW-VME-MIB DEFINITIONS ::= BEGIN
+
+-- 
+-- VME MIB - for VME threshold value monitoring and
+-- report management.
+-- 
+-- MIB Revision: 1.04.00
+-- 
+-- Copyright (c) Fujitsu Technology Solutions GmbH 2009-2010
+-- All rights reserved
+-- 
+
+   IMPORTS
+        OBJECT-TYPE                            FROM RFC-1212
+        mib-2                                  FROM RFC1213-MIB
+        DisplayString                          FROM RFC1213-MIB
+        PhysAddress                            FROM RFC1213-MIB
+        Counter, Gauge, IpAddress, enterprises FROM RFC1155-SMI;
+
+-- The Windows MIB compiler doesn't support IMPORTS.
+-- In this case uncomment the next few lines.
+-- 
+-- DisplayString ::= OCTET STRING
+-- PhysAddress   ::= OCTET STRING
+-- enterprises       OBJECT IDENTIFIER   ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+
+   sni                   OBJECT IDENTIFIER ::= { enterprises 231 }
+   sniProductMibs        OBJECT IDENTIFIER ::= { sni 2 }
+
+   serverviewVMEMIB OBJECT IDENTIFIER   ::= { sniProductMibs 54 }
+   svVmeObjects OBJECT IDENTIFIER   ::= { serverviewVMEMIB 1 }
+   svVmeNotifications OBJECT IDENTIFIER   ::= { serverviewVMEMIB 2 }
+
+   --
+   -- Textual conventions
+   --
+
+   TrueFalse ::= INTEGER
+   {
+      false(1),
+      true(2)
+   }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        svVmeNotificationsInfo
+-- DESCRIPTION  "This group defines the notifications/traps and their parameter variables.
+--               They are not accessible directly, but sent together with traps."
+--
+--      svVmeNotificationsInfo group: 1.3.6.1.4.1.231.2.54.2.1
+--
+-- **********************************************************************************************
+
+svVmeNotificationsInfo OBJECT IDENTIFIER		::= { svVmeNotifications 1 }
+
+-- VME threshold traps parameter variables
+
+svVmeTrapInfoServerName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Name of the server the trap comes from"
+    ::= { svVmeNotificationsInfo 1 }
+
+svVmeTrapInfoTime OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Time when the trap occured (in seconds since 01/01/1970 00:00h)"
+    ::= { svVmeNotificationsInfo 2 }
+
+svVmeTrapParameterName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Name of the parameter that exceeded a threshold"
+    ::= { svVmeNotificationsInfo 3 }
+
+svVmeTrapParameterValue OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Current value of the parameter that exceeded a threshold"
+    ::= { svVmeNotificationsInfo 4 }
+
+svVmeTrapThresholdValue OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Value of the threshold that got exceeded"
+    ::= { svVmeNotificationsInfo 5 }
+
+-- VMware notifications/traps parameter variables
+
+svVmeEventCreatedTime OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The time the event was created. "
+    ::= { svVmeNotificationsInfo 6 }
+
+svVmeEventType OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Event type"
+    ::= { svVmeNotificationsInfo 7 }
+
+svVmeEventFullFormattedMessage OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "A formatted text message describing the event."
+    ::= { svVmeNotificationsInfo 8 }
+
+svVmeEventHost OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The Host object of the event. "
+    ::= { svVmeNotificationsInfo 9 }
+
+svVmeEventUserName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The user who caused the event."
+    ::= { svVmeNotificationsInfo 10 }
+
+svVmeEventVM OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The VirtualMachine object of the event."
+    ::= { svVmeNotificationsInfo 11 }
+
+svVmeEventServerName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The name of server who caused the event."
+    ::= { svVmeNotificationsInfo 12 }
+
+svVmeIpAddress OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The IP address of the peer that initiated the connection. This may be the client that originated the session, or it may be an intervening proxy if the binding uses a protocol that supports proxies, such as HTTP."
+    ::= { svVmeNotificationsInfo 13 }
+
+svVmeTemplate OBJECT-TYPE
+    SYNTAX       TrueFalse
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Indicates whether or not the virtual machine is marked as a template."
+    ::= { svVmeNotificationsInfo 14 }
+
+svVmeIpAddress2 OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The IP address of the peer that initiated the connection. This may be the client that originated the session, or it may be an intervening proxy if the binding uses a protocol that supports proxies, such as HTTP."
+    ::= { svVmeNotificationsInfo 15 }
+
+svVmeWWN OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The WWN (World Wide Name) in conflict. "
+    ::= { svVmeNotificationsInfo 16 }
+
+svVmeConflictedVm OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The virtual machine whose MAC address conflicts with the current virtual machine's address. "
+    ::= { svVmeNotificationsInfo 17 }
+
+svVmeReason OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The reason for the failure. "
+    ::= { svVmeNotificationsInfo 18 }
+
+svVmeConflictedHosts OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The host whose physical WWN conflicts with the current host's WWN."
+    ::= { svVmeNotificationsInfo 19 }
+
+svVmeConflictedVms OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The virtual machine whose WWN conflicts with the current host's WWN."
+    ::= { svVmeNotificationsInfo 20 }
+
+svVmeDstHost OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The name of the destination host. "
+    ::= { svVmeNotificationsInfo 21 }
+
+svVmeEntity OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The entity on which the scheduled task registered. "
+    ::= { svVmeNotificationsInfo 22 }
+
+svVmeDestFolder OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The destination folder to which the virtual machine is being cloned."
+    ::= { svVmeNotificationsInfo 23 }
+
+svVmeDestHost OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The destination host to which the virtual machine is being cloned."
+    ::= { svVmeNotificationsInfo 24 }
+
+svVmeDestName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The name of the destination virtual machine. "
+    ::= { svVmeNotificationsInfo 25 }
+
+svVmeDestDatastore OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The destination datastore the template is being deployed to."
+    ::= { svVmeNotificationsInfo 26 }
+
+svVmeDisk OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The name of the virtual disk."
+    ::= { svVmeNotificationsInfo 27 }
+
+svVmeMac OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The MAC address that is in conflict."
+    ::= { svVmeNotificationsInfo 28 }
+
+svVmeUuid OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The BIOS UUID in conflict."
+    ::= { svVmeNotificationsInfo 29 }
+
+svVmeAlarm OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The associated alarm object."
+    ::= { svVmeNotificationsInfo 30 }
+
+svVmeScript OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The script triggered by the alarm."
+    ::= { svVmeNotificationsInfo 31 }
+
+svVmeParent OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The folder where the datacenter is created."
+    ::= { svVmeNotificationsInfo 32 }
+
+svVmeNewName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The new datacenter name."
+    ::= { svVmeNotificationsInfo 33 }
+
+svVmeOldName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The old datacenter name."
+    ::= { svVmeNotificationsInfo 34 }
+
+svVmeDuplicateIP OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The Duplicate IP address detected."
+    ::= { svVmeNotificationsInfo 35 }
+
+svVmeMacAddress OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The MAC associated with duplicate IP."
+    ::= { svVmeNotificationsInfo 36 }
+
+svVmeNewIP OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "New IP address of the host."
+    ::= { svVmeNotificationsInfo 37 }
+
+svVmeOldIP OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Old IP address of the host."
+    ::= { svVmeNotificationsInfo 38 }
+
+svVmeConfigSpec OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The configuration specification that was used to create this virtual machine."
+    ::= { svVmeNotificationsInfo 39 }
+
+svVmeSrcTemplate OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The template object from which the virtual machine is being deployed."
+    ::= { svVmeNotificationsInfo 40 }
+
+svVmeSourceVm OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The source virtual machine for the clone operation."
+    ::= { svVmeNotificationsInfo 41 }
+
+svVmeAdapter OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The name of the virtual adapter."
+    ::= { svVmeNotificationsInfo 42 }
+
+svVmeNewMac OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The new MAC address."
+    ::= { svVmeNotificationsInfo 43 }
+
+svVmeOldMac OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The old MAC address."
+    ::= { svVmeNotificationsInfo 44 }
+
+svVmeSourceHost OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The source host."
+    ::= { svVmeNotificationsInfo 45 }
+
+svVmeIsolatedHost OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The isolated host on which a virtual machine is powered off."
+    ::= { svVmeNotificationsInfo 46 }
+
+svVmeGuestId OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The guest id"
+    ::= { svVmeNotificationsInfo 47 }
+
+svVmeNewUuid OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The new BIOS UUID."
+    ::= { svVmeNotificationsInfo 48 }
+
+svVmeOldUuid OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The old BIOS UUID."
+    ::= { svVmeNotificationsInfo 49 }
+
+svVmeNodeWwns OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The new node WWN."
+    ::= { svVmeNotificationsInfo 50 }
+
+svVmePortWwns OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The new port WWN."
+    ::= { svVmeNotificationsInfo 51 }
+
+svVmeOldNodeWwns OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The old node WWN."
+    ::= { svVmeNotificationsInfo 52 }
+
+svVmeMessage OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Message reported by hypervisor."
+    ::= { svVmeNotificationsInfo 53 }
+
+svVmeOldPortWwns OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The old port WWN."
+    ::= { svVmeNotificationsInfo 54 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        svVmeNotificationsTraps
+-- DESCRIPTION  "This group defines the traps."
+--
+--     Trap enterprise: svVmeNotifications (1.3.6.1.4.1.231.2.54.2)
+--
+-- **********************************************************************************************
+
+svVmeTrapThresholdExceededCritical TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeTrapInfoServerName,
+        svVmeTrapInfoTime,
+        svVmeTrapParameterName,
+        svVmeTrapParameterValue,
+        svVmeTrapThresholdValue
+        }
+    DESCRIPTION     "A threshold type changed to critical."
+    --#TYPE         "Critical performance threshold exceeded"
+    --#SUMMARY      "Upper critical performance threshold exceeded at server %s."
+    --#SUMMARY      "The performance parameter '%s' with value %d exceeded upper critical performance threshold %d."
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Check your performance threshold settings. Add more resources or reduce system load depending on parameter."
+    --#STATE        OPERATIONAL
+    ::= 2500
+
+svVmeTrapThresholdExceededNormal TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeTrapInfoServerName,
+        svVmeTrapInfoTime,
+        svVmeTrapParameterName,
+        svVmeTrapParameterValue
+        }
+    DESCRIPTION     "A threshold type changed to normal."
+    --#TYPE         "Monitored performance parameter returned to normal"
+    --#SUMMARY      "Monitored performance parameter returned to normal state at server %s."
+    --#SUMMARY      "The performance parameter '%s' reached value %d."
+    --#ARGUMENTS    { 0, 2, 3 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "This trap is just for information that a monitored parameter is now in the normal operating range."
+    --#STATE        OPERATIONAL
+    ::= 2501
+
+svVmeTrapThresholdExceededUpperWarning TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeTrapInfoServerName,
+        svVmeTrapInfoTime,
+        svVmeTrapParameterName,
+        svVmeTrapParameterValue,
+        svVmeTrapThresholdValue
+        }
+    DESCRIPTION     "A threshold type changed to upper warning."
+    --#TYPE         "Upper warning performance threshold exceeded"
+    --#SUMMARY      "Upper warning performance threshold exceeded at server %s."
+    --#SUMMARY      "The performance parameter '%s' with value %d exceeded upper warning performance threshold %d."
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Check your threshold settings. Add more resources or reduce system load depending on parameter."
+    --#STATE        OPERATIONAL
+    ::= 2502
+
+svVmeTrapThresholdExceededLowerWarning TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeTrapInfoServerName,
+        svVmeTrapInfoTime,
+        svVmeTrapParameterName,
+        svVmeTrapParameterValue,
+        svVmeTrapThresholdValue
+        }
+    DESCRIPTION     "A threshold type changed to lower warning."
+    --#TYPE         "Lower warning performance threshold reached"
+    --#SUMMARY      "Lower warning performance threshold reached at server %s."
+    --#SUMMARY      "The performance parameter '%s' with value %d fell below lower warning performance threshold %d."
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Check your threshold settings. Add more resources or reduce system load depending on parameter."
+    --#STATE        OPERATIONAL
+    ::= 2503
+
+-- VMware common events traps
+
+svVmeErrorEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "Base error event."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2510
+
+svVmeInfoEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "Base informational event."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2511
+
+svVmeWarningEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "Base warning event."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2512
+
+svVmeUserEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "Base user event."
+    --#TYPE         "VMware event occured (user)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2513
+
+-- VMware specific events traps
+
+svVmeAdminPasswordNotChangedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "Default password for the Admin user on the host has not been changed."
+    --#TYPE        "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2520
+
+svVmeAlarmCreatedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeEntity,
+        svVmeAlarm
+        }
+    DESCRIPTION     "VMware event records the creation of an alarm."
+    --#TYPE        "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The entity %s with which the alarm %s is registered."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2521
+
+svVmeAlarmRemovedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeEntity,
+        svVmeAlarm
+        }
+    DESCRIPTION     "VMware event records the removal of an alarm. "
+    --#TYPE        "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The entity %s with which the alarm %s is registered."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2522
+
+svVmeAlarmScriptFailedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeEntity,
+        svVmeAlarm,
+        svVmeScript,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to complete an alarm-triggered script."
+    --#TYPE        "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The entity %s with which the alarm %s is registered."
+    --#SUMMARY      "The script %s triggered by the alarm."
+    --#SUMMARY      "The reason for the failure is %s"
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8, 9, 10 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2523
+
+svVmeBadUsernameSessionEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeIpAddress
+        }
+    DESCRIPTION     "VMware event records a failed user logon. Failed logons are due to no match existing between the provided user name and password combination and the combinations stored for authentication."
+    --#TYPE        "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The IP address %s of the peer that initiated the connection. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2524
+
+svVmeDatacenterCreatedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeParent
+        }
+    DESCRIPTION     "VMware event records a datacenter is created."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The folder %s datacenter is created. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2525
+
+svVmeDatacenterRenamedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeNewName,
+        svVmeOldName
+        }
+    DESCRIPTION     "VMware event records a renamed datacenter."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The datacenter name %s renamed in %s . "
+    --#ARGUMENTS    { 1, 6, 2, 4, 8, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2526
+
+svVmeDuplicateIpDetectedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDuplicateIP,
+        svVmeMacAddress
+        }
+    DESCRIPTION     "VMware event records that a duplicate IP address has been observed in conflict with the vmotion or IP storage interface configured on the host. "
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The Duplicate IP address %s detected. The MAC %s associated with duplicate IP.  ."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2527
+
+svVmeGeneralHostErrorEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeMessage
+        }
+    DESCRIPTION     "Vmware event is the general error event for a host."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      " %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2528
+
+svVmeGeneralHostInfoEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeMessage
+        }
+    DESCRIPTION     "VMware event is the general info event for a host."
+    --#TYPE         "VMware event occured (informantional)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      " %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2529
+
+svVmeGeneralHostWarningEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeMessage
+        }
+    DESCRIPTION     "VMware event is the general warning event for a host."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      " %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2530
+
+svVmeGeneralVmErrorEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeMessage
+        }
+    DESCRIPTION     "VMware event is the general error event for a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      " %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2531
+
+svVmeGeneralVmInfoEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeMessage
+        }
+    DESCRIPTION     "VMware event is the general info event for a virtual machine."
+    --#TYPE         "VMware event occured (informantional)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      " %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2532
+
+svVmeGeneralVmWarningEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeMessage
+        }
+    DESCRIPTION     "VMware event is the general warning event for a virtual machine."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      " %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2533
+
+svVmeEnteredMaintenanceModeEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that the host has completely entered maintenance mode. A host in this mode has no running virtual machines and no provisioning operations are occuring."
+    --#TYPE         "VMware event occured (informantional)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2534
+
+svVmeEnteredStandbyModeEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that the host has completely entered standby mode. A host in this mode has no running virtual machines and no provisioning operations are occurring."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2535
+
+svVmeEnteringMaintenanceModeEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that a host has begun the process of entering maintenance mode."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2536
+
+svVmeEnteringStandbyModeEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that a host has begun the process of entering standby mode."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2537
+
+svVmeExitedStandbyModeEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that the host is no longer in standby mode."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2538
+
+svVmeExitMaintenanceModeEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that the host is no longer in maintenance mode."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2539
+
+svVmeHostIpChangedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeNewIP,
+        svVmeOldIP
+        }
+    DESCRIPTION     "VMware event records a change in host IP address. "
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "Host IP %s changed to %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 8, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2540
+
+svVmeHostIpInconsistentEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeIpAddress,
+        svVmeIpAddress2
+        }
+    DESCRIPTION     "VMware event records that the IP address resolution returned different addresses on the host."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The IP address resolution returned  %s and %s addresses on the host. Please check your host's network configuration."
+    --#ARGUMENTS    { 1, 6, 2, 4, 8, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2541
+
+svVmeHostShutdownEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records the shutdown of a host. "
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the host shutdown is %s"
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2542
+
+svVmeNoMaintenanceModeDrsRecommendationForVM TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that DRS did not recommend a migration for a powered on virtual machine, even though its host is going into maintenance mode."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2543
+
+svVmeNotEnoughResourcesToStartVmEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records when the HA does not find sufficient resources to failover a virtual machine."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2544
+
+svVmeVmAutoRenameEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeNewName,
+        svVmeOldName
+        }
+    DESCRIPTION     "VMware event records that a virtual machine was automatically renamed because of a name conflict."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The virtual machine was automatically renamed from %s to %s because of a name conflict."
+    --#ARGUMENTS    { 1, 6, 2, 4, 8, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2545
+
+svVmeVmBeingClonedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDestFolder,
+        svVmeDestHost,
+        svVmeDestName
+        }
+    DESCRIPTION     "VMware event records a virtual machine being cloned."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The virtual machine %s is being cloned on host %s in folder %s  "
+    --#ARGUMENTS    { 1, 6, 2, 4, 9, 8, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2546
+
+svVmeVmBeingCreatedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeConfigSpec
+        }
+    DESCRIPTION     "VMware event records a virtual machine being created."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The configuration specification %s that was used to create this virtual machine."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2547
+
+svVmeVmBeingDeployedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeSrcTemplate
+        }
+    DESCRIPTION     "VMware event records a virtual machine being deployed from a template."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The template object %s from which the virtual machine is being deployed. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2548
+
+svVmeVmBeingHotMigratedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDestHost
+        }
+    DESCRIPTION     "VMware event records that a virtual machine is being hot-migrated."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The destination host %s to which the virtual machine is to be migrated."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2549
+
+svVmeVmBeingMigratedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDestHost
+        }
+    DESCRIPTION     "VMware event records that a virtual machine is being migrated."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The destination host %s to which the virtual machine is to be migrated."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2550
+
+svVmeVmBeingRelocatedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDestHost
+        }
+    DESCRIPTION     "VMware event records that a virtual machine is being relocated."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The destination host %s to which the virtual machine is being relocated."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2551
+
+svVmeVmClonedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeSourceVm
+        }
+    DESCRIPTION     "VMware event records the completion of a virtual machine cloning operation."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The source virtual machine %s for the clone operation. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2552
+
+svVmeVmClonedFailEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDestFolder,
+        svVmeDestHost,
+        svVmeDestName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to clone a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason why this clone operation failed: %s."
+    --#SUMMARY      "The virtual machine %s is being cloned on host %s in folder %s "
+    --#ARGUMENTS    { 1, 6, 2, 4, 10, 9, 8, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2553
+
+svVmeVmConfigMissingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records if the configuration file can not be found."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2554
+
+svVmeVmConnectedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that a virtual machine is connected."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2555
+
+svVmeVmDeployedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeSrcTemplate
+        }
+    DESCRIPTION     "VMware event records the completion of a virtual machine deployment operation."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The template object %s from which the virtual machine has been deployed."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2556
+
+svVmeVmDeployFailedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDestDatastore,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to deploy from a template."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The destination datastore %s the template is being deployed to."
+    --#SUMMARY      "The reason %s for the failure."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2557
+
+svVmeVmDisconnectedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that a virtual machine disconnected."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2558
+
+svVmeVmDiscoveredEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a virtual machine discovery."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2559
+
+svVmeVmDiskFailedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDisk,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to create a virtual disk in a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "Creation of the virtual disk %s failed because %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2560
+
+svVmeVmEmigratingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a virtual machine emigration."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2561
+
+svVmeVmFailedMigrateEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeDestHost,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to migrate a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The destination host is %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2562
+
+svVmeVmFailedRelayoutEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a specific failure to relay out a virtual machine, such as a failure to access the disk."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2563
+
+svVmeVmFailedRelayoutOnVmfs2DatastoreEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a failure to relay out a virtual machine when the virtual machine still has disks on a VMFS2 volume."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2564
+
+svVmeVmFailedToPowerOffEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to power off a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2565
+
+svVmeVmFailedToPowerOnEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to power on a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2566
+
+svVmeVmFailedToRebootGuestEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to reboot the guest on a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2567
+
+svVmeVmFailedToResetEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to reset a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2568
+
+svVmeVmFailedToShutdownGuestEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to shut down the guest on a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2569
+
+svVmeVmFailedToStandbyGuestEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to set the guest on a virtual machine to a standby state."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2570
+
+svVmeVmFailedToSuspendEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason
+        }
+    DESCRIPTION     "VMware event records a failure to suspend a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2571
+
+svVmeVmFailoverFailed TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records when a virtual machine failover was unsuccessful."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2572
+
+svVmeVmGuestRebootEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "A virtual machine guest reboot request VMware event"
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2573
+
+svVmeVmGuestShutdownEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "A virtual machine guest shutdown request VMware event"
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2574
+
+svVmeVmGuestStandbyEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "A virtual machine guest standby request VMware event"
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2575
+
+svVmeVmMacAssignedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeAdapter,
+        svVmeMac
+        }
+    DESCRIPTION     "VMware event records the assignment of a new MAC address to a virtual network adapter."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "A new MAC address %s was assigned to a virtual network adapter %s. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 8, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2576
+
+svVmeVmMacChangedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeAdapter,
+        svVmeNewMac,
+        svVmeOldMac
+        }
+    DESCRIPTION     "VMware event records a change in a virtual machine's MAC address."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The MAC address %s was changed to %s on network adapter %s. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 9, 8, 7 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2577
+
+svVmeVmMacConflictEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeConflictedVm,
+        svVmeMac
+        }
+    DESCRIPTION     "VMware event records a MAC address conflict for a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The virtual machine %s whose MAC address %s conflicts with the current virtual machine's address."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2578
+
+svVmeVmMigratedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeSourceHost
+        }
+    DESCRIPTION     "VMware event records a virtual machine migration."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The virtual machine %s was migrated from source host %s to destination host %s ."
+    --#ARGUMENTS    { 1, 6, 2, 4, 5, 7, 3 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2579
+
+svVmeVmPoweredOffEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records when a virtual machine finished powering off."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2580
+
+svVmeVmPoweredOnEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records when a virtual machine finished powering on."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2581
+
+svVmeVmPowerOffOnIsolationEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeIsolatedHost
+        }
+    DESCRIPTION     "VMware event records when a virtual machine has been powered off on an isolated host in a HA cluster."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "A virtual machine has been powered off on an isolated host %s in a HA cluster."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2582
+
+svVmeVmReconfiguredEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeConfigSpec
+        }
+    DESCRIPTION     "VMware event records a reconfiguration of the virtual machine."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The configuration specification %s that was used for the reconfiguration."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2583
+
+svVmeVmRegisteredEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that a virtual machine was successfully registered."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2584
+
+svVmeVmRelocateFailedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeReason,
+        svVmeDestHost
+        }
+    DESCRIPTION     "VMware event records a failure to relocate a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The reason for the failure is %s ."
+    --#SUMMARY      "The destination host %s to which the virtual machine is being relocated."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2585
+
+svVmeVmRenamedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeOldName,
+        svVmeNewName
+        }
+    DESCRIPTION     "VMware event records the renaming of a virtual machine."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The virtual machine %s was renamed to %s ."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2586
+
+svVmeVmResettingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a virtual machine resetting."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2587
+
+svVmeVmRestartedOnAlternateHostEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeSourceHost
+        }
+    DESCRIPTION     "VMware event records that the virtual machine was restarted on a host, since its original host had failed."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The host %s that failed."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2588
+
+svVmeVmResumingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a virtual machine resuming."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2589
+
+svVmeVmStartingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a virtual machine powering on."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2590
+
+svVmeStaticMacConflictEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeConflictedVm,
+        svVmeMac
+        }
+    DESCRIPTION     "VMware event records a static MAC address conflict for a virtual machine."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "MAC address %s conflicts with the current virtual machine's address %s"
+    --#ARGUMENTS    { 1, 6, 2, 4, 8, 7 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2591
+
+svVmeVmStoppingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a virtual machine stopping."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2592
+
+svVmeVmSuspendedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records when a virtual machine finished suspending."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2593
+
+svVmeVmSuspendingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a virtual machine suspending."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2594
+
+svVmeVmUnsupportedStartingEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeGuestId
+        }
+    DESCRIPTION     "VMware event records when an unsupported guest is powering on."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "An unsupported guest %s is powering on."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2595
+
+svVmeVmUpgradeFailedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records a failure to upgrade virtual hardware."
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2596
+
+svVmeVmUuidAssignedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeUuid
+        }
+    DESCRIPTION     "VMware event records the assignment of a new BIOS UUID to a virtual machine."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The new BIOS UUID %s was assigned to a virtual machine. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 7 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2597
+
+svVmeVmUuidChangedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeOldUuid,
+        svVmeNewUuid
+        }
+    DESCRIPTION     "VMware event records a change in a virtual machine's BIOS UUID."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The BIOS UUID %s was changed to %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2598
+
+svVmeVmUuidConflictEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeUuid,
+        svVmeConflictedVm
+        }
+    DESCRIPTION     "This event records a conflict of virtual machine BIOS UUIDs. "
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The virtual machine %s whose UUID conflicts with the current virtual machine's UUID %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 8, 7 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2599
+
+svVmeVmWwnAssignedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeNodeWwns,
+        svVmePortWwns
+        }
+    DESCRIPTION     "VMware event records the assignment of a new WWN (World Wide Name) to a virtual machine."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The new node WWN is %s."
+    --#SUMMARY      "The new port WWN is %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2600
+
+svVmeVmWwnChangedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeOldNodeWwns,
+        svVmeNodeWwns,
+        svVmeOldPortWwns,
+        svVmePortWwns
+        }
+    DESCRIPTION     "VMware event records a change in a virtual machine's WWN (World Wide Name)."
+    --#TYPE         "VMware event occured (warning)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The node WWN %s was changed to %s."
+    --#SUMMARY      "The port WWN %s was changed to %s."
+    --#ARGUMENTS    { 1, 6, 2, 4, 7, 8, 9, 10 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2601
+
+svVmeVmWwnConflictEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName,
+        svVmeWWN,
+        svVmeTemplate,
+        svVmeConflictedHosts,
+        svVmeConflictedVms
+        }
+    DESCRIPTION     "This event records a conflict of virtual machine WWNs (World Wide Name). "
+    --#TYPE         "VMware event occured (error)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#SUMMARY      "The host ( %s ) whose physical WWN conflicts with the current virtual machine's WWN %d. "
+    --#ARGUMENTS    { 1, 6, 2, 4, 9, 7}
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2602
+
+svVmeVmCreatedEvent TRAP-TYPE
+    ENTERPRISE svVmeNotifications
+    VARIABLES {
+        svVmeEventCreatedTime,
+        svVmeEventType,
+        svVmeEventFullFormattedMessage,
+        svVmeEventHost,
+        svVmeEventUserName,
+        svVmeEventVM,
+        svVmeEventServerName
+        }
+    DESCRIPTION     "VMware event records that a virtual machine is created."
+    --#TYPE         "VMware event occured (informational)"
+    --#SUMMARY      "%s occured at server %s."
+    --#SUMMARY      "The event message: %s."
+    --#SUMMARY      "Event caused by user %s."
+    --#ARGUMENTS    { 1, 6, 2, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "Please consult VMware documentation"
+    --#STATE        OPERATIONAL
+    ::= 2603
+
+
+END

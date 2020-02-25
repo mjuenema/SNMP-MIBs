@@ -1,0 +1,1178 @@
+-- COPYRIGHT NOTICE
+-- Copyright (c) Alteon Networks, Inc. 2002 
+-- All rights reserved
+
+CHEETAH-TRAP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS 
+    OBJECT-TYPE
+        FROM RFC-1212
+    TRAP-TYPE
+        FROM RFC-1215
+    sysName, sysLocation, sysContact, DisplayString
+        FROM RFC1213-MIB
+    aws-switch 
+        FROM ALTEON-ROOT-MIB
+    vlanCurCfgVlanId, vlanCurCfgVlanName
+	FROM ALTEON-CS-PHYSICAL-MIB
+    ipCurCfgGwIndex, ipCurCfgGwAddr, 
+    vrrpCurCfgVirtRtrIndx, vrrpCurCfgVirtRtrAddr,
+    vrrpCurCfgIfIndx, vrrpCurCfgIfPasswd
+        FROM ALTEON-CHEETAH-NETWORK-MIB
+    slbCurCfgRealServerIndex, slbCurCfgRealServerIpAddr,
+    slbCurCfgRealServerName,slbCurCfgGroupIndex, slbCurCfgGroupName,
+    slbCurCfgGroupHealthCheckFormula, fltCurCfgIndx, fltCurCfgPortIndx, 
+    slbCurCfgVirtServiceRealPort, fltCurCfgSrcIp,
+    slbCurCfgVirtServerIndex, slbCurCfgVirtServerIpAddress,
+    slbCurCfgVirtServerVname
+        FROM ALTEON-CHEETAH-LAYER4-MIB
+      ;
+
+altTraps		OBJECT IDENTIFIER ::= { aws-switch 7 }
+
+-- SECTION 2:  Temporary Object Definitions Used In Traps
+ 
+altSwTrapDisplayString OBJECT-TYPE
+    SYNTAX  DisplayString (SIZE(0..255))
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "Temporary string object used to store information being sent
+         in an Alteon Switch trap."
+    ::= { altTraps 1000 }
+
+altSwTrapRate OBJECT-TYPE
+    SYNTAX  INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "Temporary integer object used to store information being sent
+         in an Alteon Switch trap."
+    ::= { altTraps 1001 }
+
+-- SECTION 3:  Trap Definitions
+
+-- Many of the following traps include sysName, sysLocation and sysContact. 
+-- These variables are all defined in the rfc1213 MIB.  
+--
+-- sysName is the administratively-assigned name for this managed node. By  
+-- convention, this is the node's fully-qualified domain name. 
+--
+-- sysLocation is the physical location of this node (e.g., 'telephone closet, 
+-- 3rd floor'). 
+--
+-- sysContact is textual identification of the contact person for this managed 
+-- node, together with information on how to contact this person. 
+
+altSwPrimaryPowerSupplyFailure TRAP-TYPE
+    ENTERPRISE altTraps
+    DESCRIPTION
+        "A altSwPrimaryPowerSupplyFailure trap signifies that the 
+	 primary power supply failed."
+    ::= 1   -- 0x01
+
+altSwDefGwUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { ipCurCfgGwIndex,
+                 ipCurCfgGwAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwDefGwUp trap signifies that the default gateway is alive. 
+         ipCurCfgGwIndex is the index of the Gateway in ipCurCfgGwTable.
+         The range for ipCurCfgGwIndex is from 1 to ipGatewayTableMax.
+         ipCurCfgGwAddr is the IP address of the default gateway."
+    ::= 2   -- 0x02
+
+altSwDefGwDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { ipCurCfgGwIndex,
+                 ipCurCfgGwAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwDefGwDown trap signifies that the default gateway is down.
+         ipCurCfgGwIndex is the index of the Gateway in ipCurCfgGwTable. 
+         The range for ipCurCfgGwIndex is from 1 to ipGatewayTableMax.
+         ipCurCfgGwAddr is the IP address of the default gateway."
+    ::= 3   -- 0x03
+
+altSwDefGwInService TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { ipCurCfgGwIndex,
+                 ipCurCfgGwAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+         "A altSwDefGwInService trap signifies that the default gateway is
+          up and in service. 
+          ipCurCfgGwIndex is the index of the Gateway in ipCurCfgGwTable. 
+          The range for ipCurCfgGwIndex is from 1 to ipGatewayTableMax. 
+          ipCurCfgGwAddr is the IP address of the default gateway."
+    ::= 4   -- 0x04
+
+altSwDefGwNotInService TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { ipCurCfgGwIndex,
+                 ipCurCfgGwAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwDefGwNotInService trap signifies that the default gateway 
+         is alive but not in service. 
+         ipCurCfgGwIndex is the index of the Gateway in ipCurCfgGwTable. 
+         The range for ipCurCfgGwIndex is from 1 to ipGatewayTableMax. 
+         ipCurCfgGwAddr is the IP address of the default gateway."
+    ::= 5   -- 0x05
+
+altSwSlbRealServerUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRealServerUp trap signifies that the real server 
+         (which had gone down )is back up and operational now.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the 
+         affected Real Server."
+    ::= 6   -- 0x06
+
+altSwSlbRealServerDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRealServerDown trap signifies that the real server has gone
+         down and is out of service.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the 
+         affected Real Server."
+    ::= 7   -- 0x07
+
+altSwSlbRealServerMaxConnReached TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRealServerMaxConnReached trap signifies that the real 
+         server has reached maximum connections. The Real server will not be 
+         sent any more traffic from the switch until the number of connections
+         drops below the maximum. If a backup server has been specified, it 
+         will be used to service additional requests, which is referred to as 
+         an Overflow server.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the 
+         affected Real Server."
+    ::= 8   -- 0x08
+
+altSwSlbBkupRealServerAct TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbBkupRealServerAct trap signifies that this backup real 
+         server has been activated because the Real server that it backs up 
+         went down.One might expect that a altSwSlbRealServerDown trap with 
+         the primary real server specified would preceded this one.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the 
+         affected Real Server."
+    ::= 9   -- 0x09
+
+altSwSlbBkupRealServerDeact TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbBkupRealServerDeact trap signifies that the backup real 
+         server is deactivated because the primary real server has become 
+         available. One might expect that a altSwSlbRealServerUp trap with the
+         primary real server specified would preceded this one.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the 
+         affected Real Server."
+    ::= 10   -- 0x0A
+
+altSwSlbBkupRealServerActOverflow TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbBkupRealServerActOverflow trap signifies that the backup 
+         real server is activated because the primary real server has reached 
+         the maximum allowed connections and is considered to be  is in the 
+         Overflow state. One would expect an altSwSlbRealServerMaxConnReached 
+         trap from the Real server that just entered Overflow would preceded  
+         this one. 
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the 
+         affected Real Server."
+    ::= 11   -- 0x0B
+
+altSwSlbBkupRealServerDeactOverflow TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbBkupRealServerDeactOverflow trap signifies that the backup 
+         real server is deactivated because the primary real server is no 
+         longer in Overflow. The number of connections to the real server has 
+         fallen below the maximum allowed. The backup/overflow server is no 
+         longer needed.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the 
+         affected Real Server."
+    ::= 12   -- 0x0C
+
+altSwfltFilterFired TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { fltCurCfgIndx, fltCurCfgPortIndx,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwfltFilterFired trap signifies that the packet received on a 
+         switch port matches the filter rule.
+         fltCurCfgIndx is the affected filter index, referenced in 
+         fltCurCfgTable. The range is from 1 to fltCfgTableMaxSize.
+         fltCurCfgPortIndx is the affected port index, referenced in 
+         fltCurCfgPortTable. The range is from 1 to agPortTableMaxEnt."
+    ::= 13   -- 0x0D
+
+altSwSlbRealServerServiceUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 slbCurCfgVirtServiceRealPort,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION    
+        "A altSwSlbRealServerServiceUp trap signifies that the service port of
+         the real server is up and operational.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to the value return from slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the affected 
+         Real Server.
+         slbCurCfgVirtualServiceRealPort referenced in
+         slbCurCfgVirtServicesTable. This is the layer 4 real port number of 
+         the service."
+    ::= 14   -- 0x0E
+ 
+altSwSlbRealServerServiceDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 slbCurCfgVirtServiceRealPort,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION    
+        "A altSwSlbRealServerServiceDown trap signifies that the service port 
+         of the real server is down and out of service.
+         slbCurCfgRealServerIndex is the affected Real Server Number.
+         The range is from 1 to the value return from slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected 
+         Real Server.
+         slbCurCfgRealServerName is the optional Name given to the affected 
+         Real Server.
+         slbCurCfgVirtualServiceRealPort referenced in 
+         slbCurCfgVirtServicesTable.  
+         This is the layer 4 real port number of the service."
+    ::= 15   -- 0x0F
+
+altSwVrrpNewMaster TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vrrpCurCfgVirtRtrIndx,
+                 vrrpCurCfgVirtRtrAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION    
+        "The altSwVrrpNewMaster trap indicates that the sending agent has 
+         transitioned to 'Master' state.
+         vrrpCurCfgVirtRtrIndx is the VRRP virtual router table index 
+         referenced in vrrpCurCfgVirtRtrTable. The range is from 1 to 
+         vrrpVirtRtrTableMaxSize.
+         vrrpCurCfgVirtRtrAddr is the VRRP virtual router IP address."
+    ::= 16 -- 0x10
+ 
+altSwVrrpNewBackup TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vrrpCurCfgVirtRtrIndx,
+                 vrrpCurCfgVirtRtrAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION    
+        "The altSwVrrpNewBackup trap indicates that the sending agent has 
+         transitioned to 'Backup' state.
+         vrrpCurCfgVirtRtrIndx is the VRRP virtual router table index 
+         referenced in vrrpCurCfgVirtRtrTable. The range is from 1 to 
+         vrrpVirtRtrTableMaxSize.
+         vrrpCurCfgVirtRtrAddr is the VRRP virtual router IP address."
+    ::= 17 -- 0x11
+ 
+altSwVrrpAuthFailure TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vrrpCurCfgIfIndx,
+                 vrrpCurCfgIfPasswd,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION    
+        "A altSwVrrpAuthFailure trap signifies that a packet has been received
+         from a router whose authentication key or authentication type 
+         conflicts with this router's authentication key or authentication 
+         type. Implementation of this trap is optional.
+         vrrpCurCfgIfIndx is the VRRP interface index. This is equivalent to 
+         ifIndex in RFC 1213 mib. The range is from 1 to vrrpIfTableMaxSize.
+         vrrpCurCfgIfPasswd is the password for authentication. It is a
+         DisplayString of 0 to 7 characters."
+    ::= 18 -- 0x12
+
+altSwLoginFailure TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwLoginFailure trap signifies that someone failed to enter a 
+         valid username/password combination. 
+         altSwTrapDisplayString specifies whether the login attempt was from 
+         CONSOLE or TELNET. In case of TELNET login it also specifies the IP 
+         address of the host from which the attempt was made."
+    ::= 19 -- 0x13
+
+altSwSlbSynAttack TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapRate,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbSynAttack trap signifies that a SYN attack has been 
+         detected.
+         altSwTrapRate specifies the number of new half-open sessions per 
+         second."
+    ::= 20   -- 0x14
+
+altSwTcpHoldDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { fltCurCfgSrcIp,
+                 altSwTrapRate,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwTcpHoldDown trap signifies that new TCP connection requests
+         from a particular client will be blocked for a pre-determined amount
+         of time since the rate of new TCP connections from that client has
+         reached a pre-determined threshold. 
+         The fltCurCfgSrcIp is the client source IP address for which new TCP 
+         connection requests will be blocked. 
+         The altSwTrapRate specifies the amount of time in minutes that the 
+         particular client will be blocked."
+    ::= 21   -- 0x15
+
+altSwTempExceedThreshold TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwTempExceedThreshold trap signifies that the
+         switch temperature has exceeded maximum safety limits. 
+         altSwTrapDisplayString specifies the sensor, the current sensor 
+         temperature and the threshold for the particular sensor."
+    ::= 22   -- 0x16
+
+altSwSlbSessAttack TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapRate,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbSessAttack trap signifies that a SLB attack has been 
+         detected.
+         altSwTrapRate specifies the number of new sessions per second." 
+    ::= 23   -- 0x17
+
+altSwFanFailure TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwFanFailure trap signifies that a fan failure has occured."
+    ::= 24   -- 0x18
+
+altSwSlbVirtServerServicesUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgVirtServerIndex,
+                 slbCurCfgVirtServerIpAddress,
+                 slbCurCfgVirtServerVname,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbVirtServerServicesUp trap signifies that the service ports
+         of the virtual server is up and operational.
+         slbCurCfgVirtServerIndex is the affected Virtual Server Number.
+         The range is from 1 to the value return from slbVirtServerTableMaxSize.
+         slbCurCfgVirtServerIpAddress is the IP address of the affected
+         Virtual Server.
+         slbCurCfgVirtServerVname is the optional Name given to the affected
+         Virtal Server."
+    ::= 25   -- 0x19
+
+altSwSlbVirtServerServicesDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgVirtServerIndex,
+                 slbCurCfgVirtServerIpAddress,
+                 slbCurCfgVirtServerVname,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbVirtServerServicesDown trap signifies that the service ports
+         of the Virtual server is down and out of service.
+         slbCurCfgVirtServerIndex is the affected Virtual Server Number.
+         The range is from 1 to the value return from slbVirtServerTableMaxSize.
+         slbCurCfgVirtServerIpAddress is the IP address of the affected
+         Virtual Server.
+         slbCurCfgVirtServerVname is the optional Name given to the affected
+         Virtual Server."
+    ::= 26   -- 0x1A 
+
+altSwSlbRealGroupAdvhlUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgGroupIndex,
+                 slbCurCfgGroupName,
+                 slbCurCfgGroupHealthCheckFormula,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRealGroupAdvhlUp trap signifies that the real group is
+         up with advanced health check formula.
+         slbCurCfgGroupIndex is the affected real server group number.
+         slbCurCfgGroupName is the optional name given to the affected
+         real server group.
+         slbCurCfgGroupHealthCheckFormula is The formula used to state the
+         actual health of a virtual service."
+    ::= 27   -- 0x1B
+
+altSwSlbRealGroupAdvhlDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgGroupIndex,
+                 slbCurCfgGroupName,
+                 slbCurCfgGroupHealthCheckFormula,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRealGroupAdvhlDown trap signifies that the real group is
+         down with advanced health check formula.
+         slbCurCfgGroupIndex is the affected real server group number.
+         slbCurCfgGroupName is the optional name given to the affected
+         real server group.
+         slbCurCfgGroupHealthCheckFormula is The formula used to state the
+         actual health of a virtual service."
+    ::= 28   -- 0x1C
+
+altSwSlbBkupGroupAct TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgGroupIndex,
+                 slbCurCfgGroupName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbBkupGroupAct trap signifies that the backup group is enabled
+         while primary group is going down with advanced health check formula.
+         slbCurCfgGroupIndex is the affected real server group number.
+         slbCurCfgGroupName is the optional name given to the affected
+         real server group.
+         slbCurCfgGroupIndex is the primary real group number adding in the
+         trap message."
+    ::= 29   -- 0x1D
+
+altSwSlbBkupGroupDeact TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgGroupIndex,
+                 slbCurCfgGroupName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbBkupGroupDeact trap signifies that the backup group is disabled
+         while primary group is getting up with advanced health check formula.
+         slbCurCfgGroupIndex is the affected real server group number.
+         slbCurCfgGroupName is the optional name given to the affected
+         real server group.
+         slbCurCfgGroupIndex is the primary real group number adding in the
+         trap message."
+    ::= 30   -- 0x1E
+
+altSwSlbRemoteRealServerUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRemoteRealServerUp trap signifies that the remote
+         real server is up.
+         slbCurCfgRealServerIndex is the affected real server number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected
+         real server.
+         slbCurCfgRealServerName is the optional name given to the
+         affected real server."
+    ::= 31   -- 0x1F
+
+altSwSlbRemoteRealServerDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRemoteRealServerDown trap signifies that them remote
+         real server has gone down and is out of service.
+         slbCurCfgRealServerIndex is the affected real server number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected
+         real server.
+         slbCurCfgRealServerName is the optional name given to the
+         affected real server."
+    ::= 32   -- 0x20
+
+altSwSlbRealServerOperDis TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRealServerOperDis trap signifies that the real server is
+         disabled operationally. The real server will not be sent any traffic
+         from the switch until the real server enabled operationally.
+         slbCurCfgRealServerIndex is the affected real server number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected
+         real server.
+         slbCurCfgRealServerName is the optional name given to the
+         affected real server."
+    ::= 33   -- 0x21
+
+altSwSlbRealServerOperEna TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { slbCurCfgRealServerIndex,
+                 slbCurCfgRealServerIpAddr,
+                 slbCurCfgRealServerName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwSlbRealServerOperEna trap signifies that the real server is
+         enabled operationally. The real server will be send traffic again.
+         slbCurCfgRealServerIndex is the affected real server number.
+         The range is from 1 to slbRealServerMaxSize.
+         slbCurCfgRealServerIpAddr is the IP address of the affected
+         real server.
+         slbCurCfgRealServerName is the optional name given to the
+         affected real server."
+    ::= 34   -- 0x22
+
+altSwIfcVlanDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vlanCurCfgVlanId,
+                 vlanCurCfgVlanName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A altSwIfcVlanDown trap signifies that all the interfaces in that 
+	vlan either disabled or moved to different vlan.
+	vlanCurCfgVlanId is the affected vlan number.
+	vlanCurCfgVlanName is the optional name given to the affected vlan."
+    ::= 35   -- 0x23			
+
+altSwPortVlanDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vlanCurCfgVlanId,
+                 vlanCurCfgVlanName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwPortVlanDown trap signifies that all the ports either down 
+        or moved to different vlan and interfaces are down in that vlan.
+        vlanCurCfgVlanId is the affected vlan number.
+        vlanCurCfgVlanName is the optional name given to the affected vlan."
+    ::= 36   -- 0x24
+
+altSwIfcVlanUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vlanCurCfgVlanId,
+                 vlanCurCfgVlanName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwIfcVlanUp trap signifies that interfaces are available for
+        this vlan.
+        vlanCurCfgVlanId is the affected vlan number.
+        vlanCurCfgVlanName is the optional name given to the affected vlan."
+    ::= 37   -- 0x25
+
+altSwPortVlanUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vlanCurCfgVlanId,
+                 vlanCurCfgVlanName,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "A altSwPortVlanUp trap signifies that physical ports and interfaces
+        are available for this  vlan.
+        vlanCurCfgVlanId is the affected vlan number.
+        vlanCurCfgVlanName is the optional name given to the affected vlan."
+    ::= 38   -- 0x26
+
+altSwBulkApply TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A altSwBulkApply trap signifies that new configuration
+	has been applied."
+    ::= 39   -- 0x27
+
+altSwDeviceTemperatureNormal TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Sent whenever the temperature changes back to normal."
+    ::= 40   --  0x28
+
+altSwDeviceTemperatureHigh TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Sent whenever the temperature changes to high."
+    ::= 41   --  0x29
+
+altSwDeviceTemperatureCritical TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Sent whenever the temperature becomes critical."
+    ::= 42   --  0x2A
+
+altSwDualPowerSupplyProblem TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "This warning trap is sent when a power supply becomes inactive
+         on a dual power supply device."
+    ::= 43   --  0x2B
+
+altSwDualPowerSupplyUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "This info trap is sent when a power supply changes state from
+         inactive to active on a dual power supply device."
+    ::= 44   --  0x2C
+
+altSwTputReachThreshold TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Sent whenever the throughput reaches threshold value."
+    ::= 47   --  0x2F
+
+altSwTputExceedLimit TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Sent whenever the throughput exceeds threshold value."
+    ::= 48   --  0x30
+
+altSwcompCardNotAvail TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "No compression hardware was detected during boot-up."
+    ::= 49   --  0x31
+
+
+altSwsslCardNotAvail TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "No SSL acceleration chip was detected during boot-up."
+    ::= 50   --  0x32
+
+altSwloginSsh TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "User <user-name> has logged in via SSH console."
+    ::= 51   --  0x33
+
+altSwtmpCecLmtStop TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Temporary limitation of maximum number of connections due to memory limitation has stopped."
+    ::= 52   --  0x34
+
+altSwcacheLimitShortSpace TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Temporarily limiting caching due to critical cache space shortage."
+    ::= 53   --  0x35
+
+altSwcacheReache80 TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Allocated cache space has reached 80%."
+    ::= 54   --  0x36
+
+altSwcacheBelow80 TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Allocated cache space is below 80%."
+    ::= 55   --  0x37
+
+altSwlogDiskSpace TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "80% of logging disk space was reached."
+    ::= 56   --  0x38
+
+altSwcpuCross80 TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "CPU utilization has reached 80%, while before that it was below 80% ."
+    ::= 57   --  0x39
+
+altSwcpuFell80 TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "CPU utilization has dropped below 80%, while before that it was above 80%."
+    ::= 58   --  0x3A
+
+altSwtmpCecLimitMemShort TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "The device is near full memory capacity <% memory usage>. Temporarily limiting maximum number of connections."
+    ::= 59   --  0x3B
+
+altSwconfProtectionActive TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Configuration Protection mechanism was initiated."
+    ::= 60   --  0x3C
+
+altSwkeyLoadErr TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "An Error occurred while loading %s certificate key to HSM module. Check HSM management authorization and retry."
+    ::= 61   --  0x3D
+
+altSwcompCardDetect TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        ": Hardware compression card detected. Hardware compression capabilities will be enabled."
+    ::= 62   --  0x3E
+
+altSwfipsEngineNotRunning TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "The HSM support engine is not detected as running. Reboot machine and contact Radware support if it fails to help."
+    ::= 63   --  0x3F
+
+altSwsslAclTypeDetected TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "SSL Acceleration card <nCipher/Cavium/Broadcom> detected."
+    ::= 64   --  0x40
+
+altSwocspSvrErr TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Failed to connect to OCSP server <OCSP-hostname> to verify certificate validity. Certificates will be rejected until connection is reestablished."
+    ::= 65   --  0x41
+
+altSwocspRespVerifyErr TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Failed to verify OCSP response. Certificate will be rejected."
+    ::= 66   --  0x42
+
+altSwoscpQueryErr TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Failed to query <OCSP-hostname> OCSP server for certificate validity. Certificate will be rejected."
+    ::= 67   --  0x43
+
+altSwcertRevokedID TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Certificate was revoke according to OCSP."
+    ::= 68   --  0x44
+
+altSwerrCrlUpdTime TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "CRL next update time not specified correctly. CRL updates may not occur until corrected."
+    ::= 69   --  0x45
+
+altSwcrlExp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        ": CRL has expired. Certificates will be accepted during prolongation period and rejected after it until CRL is updated."
+    ::= 70   --  0x46
+
+altSwcertExpDays TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Server Certificate will expire in X days."
+    ::= 71   --  0x47
+
+altSwcompDisDueMemLimit TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Compression disable due to memory limit."
+    ::= 72   --  0x48
+
+altSwcompEnaAfterMemLimit TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Compression enable after memory limit."
+    ::= 73   --  0x49
+
+altSwcompLicenseOverflow TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "compression license overflow."
+    ::= 74   --  0x4A
+
+altSwsslCpsLicenseOverflow TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "SSL Cps license overflow."
+    ::= 75   --  0x4B
+
+altSwtslValidationFailure TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL validation failure."
+    ::= 76   --  0x4C
+
+altSwtslOcspCertRevoked TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL OCSP certification revoked."
+    ::= 77   --  0x4D
+
+altSwtslOcspCertUnknown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL OCSP certification unknown."
+    ::= 78   --  0x4E
+
+altSwtslSignatureNodeMissing TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL signature node missing."
+    ::= 79   --  0x4F
+
+altSwtslSignatureValidFailure TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL signature validation failure."
+    ::= 80   --  0x50
+
+altSwtslNewSeqNumLessThanExisting TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL new sequence number less than existing."
+    ::= 81   --  0x51
+
+altSwtslNextUpdateInThePast TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL next update in the past."
+    ::= 82   --  0x52
+
+altSwtslNextUpdateOver30Days TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL next update over 30 days."
+    ::= 83   --  0x53
+
+altSwtslOcspTimingErrorField TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL oCSP timing error field."
+    ::= 84   --  0x54
+
+altSwtslInvalidOcspTimingErrorField TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL invalid OCSP signing algorithm."
+    ::= 85   --  0x55
+
+altSwtslFetcherFetchingError TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL fetcher fetching error."
+    ::= 86   --  0x56
+
+altSwtslFetcherSignatureError TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL fetcher signature error."
+    ::= 87   --  0x57
+
+altSwtslFetcherOcspError TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL fetcher OCSP error."
+    ::= 88   --  0x58
+
+altSwtslFetcherXmlParsingError TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL Fetcher XML parsing error."
+    ::= 89   --  0x59
+
+altSwtslFetcherIdenticalSeqNum TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL fetcher identical sequence number."
+    ::= 90   --  0x5A
+
+altSwtslFetchingDone TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "TSL fetching done."
+    ::= 91   --  0x5B
+
+altSwsslCpsLicenseWatermark TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "SSL CPS licence watermark."
+    ::= 92   --  0x5C
+
+altSwcompressionLicensewatermark TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Compression license watermark."
+    ::= 93   --  0x5D
+
+altSwpipAllocFailed TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "PIP allocation failed"
+    ::= 94   --  0x5E
+
+altAxUpdateFailed TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { altSwTrapDisplayString,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION
+        "Config update to Application service engine failed"
+    ::= 95   --  0x5F
+
+altSwVrrpVsrNewMaster TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vrrpCurCfgVirtRtrIndx,
+                 vrrpCurCfgVirtRtrAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION    
+        "The altSwVrrpVsrNewMaster trap indicates that the sending agent
+         configured as VSR has transitioned to 'Master' state.
+         vrrpCurCfgVirtRtrIndx is the VRRP virtual router table index 
+         referenced in vrrpCurCfgVirtRtrTable. The range is from 1 to 
+         vrrpVirtRtrTableMaxSize.
+         vrrpCurCfgVirtRtrAddr is the VRRP virtual router IP address."
+    ::= 96 -- 0x60
+
+altSwVrrpVsrNewBackup TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES  { vrrpCurCfgVirtRtrIndx,
+                 vrrpCurCfgVirtRtrAddr,
+                 sysName, sysLocation, sysContact }
+    DESCRIPTION    
+        "The altSwVrrpVsrNewBackup trap indicates that the sending agent
+         configured as VSR has transitioned to 'Backup' state.
+         vrrpCurCfgVirtRtrIndx is the VRRP virtual router table index 
+         referenced in vrrpCurCfgVirtRtrTable. The range is from 1 to 
+         vrrpVirtRtrTableMaxSize.
+         vrrpCurCfgVirtRtrAddr is the VRRP virtual router IP address."
+    ::= 97 -- 0x61
+vadcStateChange TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A vadcStateChange trap signifies that the vADC state
+	has been changed."
+    ::= 98   -- 0x62
+
+vadcStateUp TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A vadcStateUp trap signifies that vADC state is up."
+    ::= 99   -- 0x63
+
+vadcStateDown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A vadcStateDown trap signifies that vADC state is down."
+    ::= 100  -- 0x64
+
+vadcStateShutdown TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A vadcStateShutdown trap signifies that vADC
+	shutdown completed."
+    ::= 101   -- 0x65
+
+vadcStateRestart TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A vadcStateRestart trap signifies that vADC
+	has been restarted."
+    ::= 102   -- 0x66
+
+vadcStateVrrpMaster TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A vadcStateVrrpMaster trap signifies that vADC VRRP state
+	has been changed to MASTER."
+    ::= 103   -- 0x67
+
+vadcStateVrrpBackup TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"A vadcStateVrrpBackup trap signifies that vADC VRRP state
+	has been changed to BACKUP"
+    ::= 104   -- 0x68
+
+
+dnssecNotify TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"."
+    ::= 107   -- 0x6B
+
+agTftpActionStatus TRAP-TYPE
+    ENTERPRISE altTraps
+    VARIABLES { sysName, sysLocation, sysContact }
+    DESCRIPTION
+	"agTftpActionStatus notification."
+    ::= 108   -- 0x6C
+
+END

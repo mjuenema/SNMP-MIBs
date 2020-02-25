@@ -1,0 +1,754 @@
+SIEMENS-VV-MIB DEFINITIONS ::= BEGIN
+
+--
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1997
+-- Copyright (C) Siemens AG 1998
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001-2003
+-- All rights reserved
+--
+--
+-- MIB Revision: 3.00.02
+--
+
+IMPORTS
+	OBJECT-TYPE				FROM RFC-1212
+	mib-2, DisplayString			FROM RFC1213-MIB
+	TimeTicks, Counter, Gauge, enterprises	FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+-- Fujitsu Siemens Server Management MIB nodes
+
+sni             OBJECT IDENTIFIER ::= { enterprises     231 }
+sniProductMibs  OBJECT IDENTIFIER ::= { sni             2   }
+sniExtensions  	OBJECT IDENTIFIER ::= { sniProductMibs  10  }
+sniServerMgmt  	OBJECT IDENTIFIER ::= { sniExtensions   2   }
+
+-- This MIB
+
+sieVersionView	OBJECT IDENTIFIER ::= { sniServerMgmt   10 }
+sieVvAgentInfo	OBJECT IDENTIFIER ::= { sieVersionView  1  }
+sieVvState		OBJECT IDENTIFIER ::= { sieVersionView  2  }
+sieVvDef		OBJECT IDENTIFIER ::= { sieVersionView  3  }
+sieVvCont		OBJECT IDENTIFIER ::= { sieVersionView  4  }
+sieVvInfos		OBJECT IDENTIFIER ::= { sieVersionView  5  }
+sieVvFwuObjects	OBJECT IDENTIFIER ::= { sieVersionView  6  }
+
+
+-- The MIB objects
+
+--------------------------------------------------------------------------
+-- The VersionView SNMP Agent's Info group (for debugging and info)
+--      sieVersionView MIB:        1.3.6.1.4.1.231.2.10.2.10
+--       sieVvAgentInfo group:     1.3.6.1.4.1.231.2.10.2.10.1
+--------------------------------------------------------------------------
+sieVvAgentId    OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "VersionView SNMP agent ID string"
+    ::= { sieVvAgentInfo 1 }
+
+sieVvAgentCompany   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "VersionView SNMP agent company string"
+    ::= { sieVvAgentInfo 2 }
+
+sieVvAgentVersion   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "VersionView SNMP agent version string"
+    ::= { sieVvAgentInfo 3 }
+
+sieVvAgentBuild   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "VersionView SNMP agent build date and time string"
+    ::= { sieVvAgentInfo 4 }
+
+----------------------------------------------------------------------
+-- The Version View State Group
+--      sieVersionView MIB:       1.3.6.1.4.1.231.2.10.2.10
+--       sieVvState group:        1.3.6.1.4.1.231.2.10.2.10.2
+----------------------------------------------------------------------
+ 
+-- Filling up all tables of this MIB may be time-consuming. Therefore
+-- the agent collects these data first at installation time. Whenever
+-- the inventory is modified (hot plug, new SW, FW), the agent updates
+-- the table. After a reboot, the agent checks whether an update of the
+-- collected data is necessary. The object sieVvLastDate delivers the
+-- date of the last update of the data of the MIB.
+-- An SNMP frontend which has read already this MIB, first reads
+-- this object in order to decide, whether its stored MIB data are
+-- obsolete and have to be re-read.
+
+
+sieVvLastDate OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+	"Date of actual collection of data
+	in time_t (seconds since 1.1.70 00:00:00)"
+	::= { sieVvState 1 }
+
+sieVvLastScan OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+	"Date of last scanning cycle
+	in time_t (seconds since 1.1.70 00:00:00)"
+	::= { sieVvState 2 }
+
+sieVvScanState OBJECT-TYPE
+	SYNTAX	INTEGER {
+	unknown(1),
+	scan-in-progress(2),
+	scan-done(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+	"actual scanning state"
+	::= { sieVvState 3 }
+
+
+----------------------------------------------------------------------
+-- The Version View Definition Group
+--      sieVersionView MIB:       1.3.6.1.4.1.231.2.10.2.10
+--       sieVvDef group:          1.3.6.1.4.1.231.2.10.2.10.3
+----------------------------------------------------------------------
+ 
+-- Each component of a system belongs to a component type. These
+-- types are not defined in the MIB definition, because new types
+-- will be added when necessary. The types are defined in the
+-- VersionView Master Database and in the document VersionView
+-- MIB Supplementary. The MIB delivers also two trees, which
+-- express the physical and the functional containment of the
+-- components. The node types of these trees are also defined
+-- in the document VersionView MIB Supplementary and are defined
+-- in the two tables sieVvPhysNodeDefTable and sieVvFuncNodeDefTable.
+-- The data in the sieVvCont group and the sieVvInfo group refer
+-- to the definitions in this group.
+-- These information is stored in a VersionView.ini - file
+-- which is supported with the actual version of the VersionView Agent.
+-- This .ini-file is to be updated whenever a new component type
+-- is defined!
+
+	----------------------------------
+	-- Component Type Definition Table
+	----------------------------------
+sieVvCompDefTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieVvCompDef
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Table of available Component Type Definitions "
+	::= { sieVvDef 1 }
+
+sieVvCompDef OBJECT-TYPE
+	SYNTAX	SieVvCompDef
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Entry in Table of Component Type Definitions"
+	INDEX	{sieVvCompDefNo}
+	::=	{sieVvCompDefTable 1}
+
+SieVvCompDef ::= SEQUENCE {
+	sieVvCompDefNo		INTEGER,
+	sieVvCompDefType	INTEGER,
+	sieVvCompDefName	DisplayString
+	} 
+              
+sieVvCompDefNo OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION                                      
+	"Number of Table Entry:
+	A unique value for each component definition.
+	Its value starts at 1 and must remain constant at
+	least from one re-initialization of the SNMP agent
+	to the next reinitialization."
+	::= { sieVvCompDef 1 }
+  
+sieVvCompDefType OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Type of Component from Master DB. The details are
+	defined in the document: VersionView MIB Supplementary.
+	Declaration is found in the file VersionView.ini "
+	::= { sieVvCompDef 2 }
+
+sieVvCompDefName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Name of Component. The details are
+	defined in the document: VersionView MIB Supplementary.
+	Declaration is found in the file VersionView.ini "
+	::= { sieVvCompDef 3 }
+
+	----------------------------------
+	-- Physical Container Definition Table
+	----------------------------------
+sieVvPhysNodeDefTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieVvPhysNodeDef
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Table of node definitions that are used in the
+	sieVvCont group"
+	::= { sieVvDef 2 }
+
+sieVvPhysNodeDef OBJECT-TYPE
+	SYNTAX	SieVvPhysNodeDef
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Entry in Table of Physical Node Definitions"
+	INDEX	{sieVvPhysNodeDefNo}
+	::=	{sieVvPhysNodeDefTable 1}
+
+SieVvPhysNodeDef ::= SEQUENCE {
+	sieVvPhysNodeDefNo	INTEGER,
+	sieVvPhysNodeDefType	INTEGER,
+	sieVvPhysNodeDefName	DisplayString
+	} 
+              
+sieVvPhysNodeDefNo OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION                                      
+	"Number of Table Entry:
+	A unique value for each physical container definition.
+	Its value starts at 1 and must remain constant at
+	least from one re-initialization of the SNMP agent
+	to the next reinitialization."
+	::= { sieVvPhysNodeDef 1 }
+  
+sieVvPhysNodeDefType OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Type of node in the physical tree. The details are
+	defined in the document: VersionView MIB Supplementary. "
+	::= { sieVvPhysNodeDef 2 }
+
+sieVvPhysNodeDefName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Name of node in the physical tree. The details are
+	defined in the document: VersionView MIB Supplementary. "
+	::= { sieVvPhysNodeDef 3 }
+
+	----------------------------------
+	-- Functional Container Definition Table
+	----------------------------------
+sieVvFuncNodeDefTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieVvFuncNodeDef
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Table of node definitions that are used in the
+	sieVvCont group"
+	::= { sieVvDef 3 }
+
+sieVvFuncNodeDef OBJECT-TYPE
+	SYNTAX	SieVvFuncNodeDef
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Entry in Table of Functional Node Definitions"
+	INDEX	{sieVvFuncNodeDefNo}
+	::=	{sieVvFuncNodeDefTable 1}
+
+SieVvFuncNodeDef ::= SEQUENCE {
+	sieVvFuncNodeDefNo	INTEGER,
+	sieVvFuncNodeDefType	INTEGER,
+	sieVvFuncNodeDefName	DisplayString
+	} 
+              
+sieVvFuncNodeDefNo OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION                                      
+	"Number of Table Entry:
+	A unique value for each functional container definition.
+	Its value starts at 1 and must remain constant at
+	least from one re-initialization of the SNMP agent
+	to the next reinitialization."
+	::= { sieVvFuncNodeDef 1 }
+  
+sieVvFuncNodeDefType OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Type of node in the functional tree. The details are
+	defined in the document: VersionView MIB Supplementary. "
+	::= { sieVvFuncNodeDef 2 }
+
+sieVvFuncNodeDefName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Name of node in the functional tree. The details are
+	defined in the document: VersionView MIB Supplementary. "
+	::= { sieVvFuncNodeDef 3 }
+
+----------------------------------------------------------------------
+-- The Version View Container Group
+--      sieVersionView MIB:       1.3.6.1.4.1.231.2.10.2.10
+--       sieVvCont group:         1.3.6.1.4.1.231.2.10.2.10.4
+----------------------------------------------------------------------
+ 
+	----------------------------------
+	--	Physical Container Table
+	----------------------------------
+sieVvPhysContTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieVvPhysCont
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Table of expressing the hierarchy of
+	Physical Containers for Components "
+	::= { sieVvCont 1 }
+
+sieVvPhysCont OBJECT-TYPE
+	SYNTAX	SieVvPhysCont
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Entry in Table of Physical Containers"
+	INDEX	{sieVvPhysContNo}
+	::=	{sieVvPhysContTable 1}
+
+SieVvPhysCont ::= SEQUENCE {
+	sieVvPhysContNo		INTEGER,
+	sieVvPhysContType	INTEGER,
+	sieVvPhysContParent	INTEGER,
+	sieVvPhysContName	DisplayString
+	}               
+
+sieVvPhysContNo  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION                                      
+	"Number of Table Entry
+	A unique value for each physical container. Its value
+	starts at 1. The value for each container may change
+	during an update of the MIB data, i.e. at the date
+	specified in sieVvLastDate."
+	::= { sieVvPhysCont 1 }
+  
+sieVvPhysContType  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Type of Physical Container. This value is the value of
+	sieVvPhysNodeDefNo of the corresponding entry in the
+	table of Physical Container Definitions. "
+	::= { sieVvPhysCont 2 }
+
+sieVvPhysContParent  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Value of sieVvPhysContNo for the entry which describes
+	the parent container. The value 0 indicates that there
+	is no parent container, i.e. it is the root. "
+	::= { sieVvPhysCont 3 }
+
+sieVvPhysContName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Name of node in the physical tree, corresponding to
+	Type of Physical Container. The details are defined
+	in the document: VersionView MIB Supplementary.
+	(Added for debug purpose) "
+	::= { sieVvPhysCont 4 }
+
+	----------------------------------
+	--	Functional Container Table
+	----------------------------------
+sieVvFuncContTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieVvFuncCont
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Table of available Components "
+	::= { sieVvCont 2 }
+
+sieVvFuncCont OBJECT-TYPE
+	SYNTAX	SieVvFuncCont
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Entry in Table of Functional Containers"
+	INDEX	{sieVvFuncContNo}
+	::=	{sieVvFuncContTable 1}
+
+SieVvFuncCont ::= SEQUENCE {
+	sieVvFuncContNo		INTEGER,
+	sieVvFuncContType	INTEGER,
+	sieVvFuncContParent	INTEGER,
+	sieVvFuncContName	DisplayString
+	}
+               
+sieVvFuncContNo  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION                                      
+	"Number of Table Entry:
+	A unique value for each functional container. Its value
+	starts at 1. The value for each container may change
+	during an update of the MIB data, i.e. at the date
+	specified in sieVvLastDate."
+	::= { sieVvFuncCont 1 }
+
+sieVvFuncContType  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Type of Functional Container. This value is the value of
+	sieVvFuncNodeDefNo of the corresponding entry in the
+	table of Functional Container Definitions. "
+	::= { sieVvFuncCont 2 } 
+ 
+sieVvFuncContParent  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Value of sieVvFuncContNo for the entry which describes
+	the parent container. The value 0 indicates that there
+	is no parent container, i.e. it is the root. "
+	::= { sieVvFuncCont 3 }
+
+sieVvFuncContName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Name of node in the functional tree, corresponding to
+	Type of Functional Container. The details are defined
+	in the document: VersionView MIB Supplementary.
+	(Added for debug purpose)"
+	::= { sieVvFuncCont 4 }
+
+----------------------------------------------------------------------
+-- The Version View Component Info Group
+--      sieVersionView MIB:       1.3.6.1.4.1.231.2.10.2.10
+--       sieVvInfos group         1.3.6.1.4.1.231.2.10.2.10.5
+----------------------------------------------------------------------
+
+-- Each entry in the sieVvInfoTable table describes a component
+-- of the server. Each entry is associated with an entry in the
+-- component definition table, the physical container table
+-- and the functional container table. The other objects of an
+-- entry identify the component unambiguously in both, the
+-- server and the ServerView Master DB.
+
+sieVvInfoTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieVvInfo
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Table of available Components "
+	::= { sieVvInfos 1 }
+
+sieVvInfo OBJECT-TYPE
+	SYNTAX	SieVvInfo
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Entry in Table of Components"
+	INDEX	{sieVvInfoNo}
+	::=	{sieVvInfoTable 1}
+	
+SieVvInfo ::= SEQUENCE {
+	sieVvInfoNo		INTEGER,
+	sieVvInfoPhysContNo	INTEGER,
+	sieVvInfoFuncContNo	INTEGER,
+	sieVvInfoCompType	INTEGER,
+	sieVvInfoVendor		DisplayString,
+	sieVvInfoProductName	DisplayString,
+	sieVvInfoProductNumber	DisplayString,
+	sieVvInfoProductDescription	DisplayString,
+	sieVvInfoVersion	DisplayString,
+	sieVvInfoManufacturingDate	DisplayString,
+	sieVvInfoSerialNo	DisplayString,
+	sieVvInfoLanguage	DisplayString,
+	sieVvInfoComponentId	DisplayString
+	}
+               
+sieVvInfoNo  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION                                      
+	"Number of Table Entry:
+	A unique value for each component. Its value
+	starts at 1. The value for each component may change
+	during an update of the MIB data, i.e. at the date
+	specified in sieVvLastDate."
+	::= { sieVvInfo 1 }
+  
+sieVvInfoPhysContNo  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Value of sieVvPhysContNo for the entry which describes
+	the parent container. The value 0 indicates that there
+	is no parent container. For example, software or firmware
+	components are in no physical containers. "
+	::= { sieVvInfo 2 }
+
+sieVvInfoFuncContNo  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Value of sieVvFuncContNo for the entry which describes
+	the functional parent container. "
+	::= { sieVvInfo 3 }
+ 
+sieVvInfoCompType  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Component type: This value is the value of
+	sieVvCompDefNo of the corresponding entry in the
+	table of Component Definitions."
+	::= { sieVvInfo 4 }
+
+sieVvInfoVendor  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Component Vendor"
+	::= { sieVvInfo 5 }
+
+sieVvInfoProductName  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Product Name of Component
+	Software: (e.g. Driver)	File Name (e.g. abcd.sys)
+	HW: Component Name (e.g. DAC960xx, D981)"
+	::= { sieVvInfo 6 }
+
+sieVvInfoProductNumber  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Product Number of Component
+	e.g. S26361 D981"
+	::= { sieVvInfo 7 }
+
+sieVvInfoProductDescription  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Description of Component
+	e.g. SCSI Miniport Driver, CD-ROM IDE Device"
+	::= { sieVvInfo 8 }
+
+sieVvInfoVersion  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Version Number of Component
+	e.g. for Driver: FileVersion//ProductVersion//InternalName//OperatingSystem
+	e.g. for HW: V2 GS1 or Version x.y Revision a.b"
+	::= { sieVvInfo 9 }
+
+sieVvInfoManufacturingDate  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Manufacturing Date of Component
+	in the form YYYY-MM-DD hh:mm:ss
+	e.g. for Software: Date of last change"
+	::= { sieVvInfo 10 }
+
+sieVvInfoSerialNo  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Serial Number of Component"
+	::= { sieVvInfo 11 }
+
+sieVvInfoLanguage  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Supported Language of Component
+	as defined in ISO 639/ISO 3166
+	(ISO 639 LanguageName//ISO 3166 Territory Name)
+	e.g. en//US"
+	::= { sieVvInfo 12 }
+
+sieVvInfoComponentId  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Identification String for Component
+	e.g. <Bus>\VEN_110A&DEV_0013&SUBSYS_0013110A&REV_01
+	Bus		PCI, EISA, USB,...
+	VEN_vvvv	VendorID from PCI-ConfigSpace
+	DEV_dddd	DeviceID from PCI-ConfigSpace
+	SUBSYS_sdsdsvsv	SubDeviceID/SubVendorID from PCI-ConfigSpace
+	REV_rr		Revision from PCI-ConfigSpace
+	the entries SUBSYS_sdsdsvsv and REV_rr are optional"
+	::= { sieVvInfo 13 }
+
+----------------------------------------------------------------------
+-- The Version View Firmware Update Group
+--      sieVersionView MIB:       1.3.6.1.4.1.231.2.10.2.10
+--       sieVvFwuObjects group:   1.3.6.1.4.1.231.2.10.2.10.6
+----------------------------------------------------------------------
+
+sieVvFwuObjectTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieVvFwuObject
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Table of objects having updatable firmware."
+	::= { sieVvFwuObjects 1 }
+
+sieVvFwuObject OBJECT-TYPE
+	SYNTAX	SieVvFwuObject
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+	"Entry in Table of Firmware Update Objects"
+	INDEX	{sieVvFwuObjectNo}
+	::=	{ sieVvFwuObjectTable 1 }
+	
+SieVvFwuObject ::= SEQUENCE {
+	sieVvFwuObjectNo				INTEGER,
+	sieVvFwuObjectName				DisplayString,
+	sieVvFwuObjectPath				DisplayString,
+	sieVvFwuObjectParent			DisplayString,
+	sieVvFwuObjectUpdateState		INTEGER,
+	sieVvFwuObjectComponentIndex	INTEGER
+	}
+               
+sieVvFwuObjectNo  OBJECT-TYPE
+	SYNTAX  INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION                                      
+	"Number of Table Entry:
+	A unique value for each update object. Its value
+	starts at 1. The value for each object may change
+	during an update of the MIB data, i.e. at the date
+	specified in sieVvLastDate."
+	::= { sieVvFwuObject 1 }
+  
+sieVvFwuObjectName  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Unique name to identify the updatable object within
+	the server system:
+	NT device name, with an extension in some cases
+	such as a physical disk within a RAID array."
+	::= { sieVvFwuObject 2 }
+  
+sieVvFwuObjectPath  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Pathname to indicate more precisely the logical
+	position of the object within the server system:
+	e.g. bus path (including for example PCI bridge),
+	SCSI target ID., etc."
+	::= { sieVvFwuObject 3 }
+  
+sieVvFwuObjectParent  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"In some cases an object hierarchy has to be established
+	for the purpose of updating firmware, e.g. a RAID
+	controller which contains a physical disk, acting
+	as a passthrough controller to that disk."
+	::= { sieVvFwuObject 4 }
+
+sieVvFwuObjectUpdateState  OBJECT-TYPE
+	SYNTAX	INTEGER {
+		updateStateIdle (0),
+		updateStateDelayed (1),
+		updateStatePending (2),
+		updateStateFailed (3),
+		updateStateWaitForReboot (4),
+		updateStateWaitForReset (5)
+	}
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Specifies the state of this object with regard to update:
+	0 = normal, default state,
+	1 = cannot update now, e.g. a RAID rebuild is running,
+	2 = in the process of updating,
+	3 = error, update could not be completed successfully.
+	4 = update OK, but needs a reboot to become active,
+	5 = update OK, but needs a reset to become active."
+	::= { sieVvFwuObject 5 }
+
+sieVvFwuObjectComponentIndex  OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+	"Value of sieVvInfoNo for the entry which describes the
+	updatable object in the table of component information."
+	::= { sieVvFwuObject 6 }
+
+END

@@ -1,0 +1,535 @@
+-- ************************************************************************
+-- 01,20110916,yangkewei,去掉raisecomOamLostTrap 的绑定变量 dot3OamPeerMacAddress ，与代码一致
+-- 02,20110111,yangfan,增加OAM Loopback 超时相关的mib表和节点
+-- **************************************************************************
+ 
+--MibName=raisecomOamMIB
+   RAISECOM-OAM-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+      MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,Integer32
+        									FROM SNMPv2-SMI
+        Dot3Oui,
+        dot3OamPeerMacAddress,
+        dot3OamPeerVendorOui,
+        dot3OamPeerVendorInfo, 
+        dot3OamPeerFunctionsSupported,
+        dot3OamEventLogOui,
+        dot3OamEventLogType,
+        dot3OamEventLogTimestamp,
+        dot3OamEventLogLocation,
+        dot3OamEventLogWindowHi,
+        dot3OamEventLogWindowLo,
+        dot3OamEventLogThresholdHi,
+        dot3OamEventLogThresholdLo,
+        dot3OamEventLogValue,
+        dot3OamEventLogRunningTotal,
+        dot3OamEventLogEventTotal           FROM  DOT3-OAM-MIB
+      	ifIndex   			       			FROM IF-MIB
+      	draft								FROM RAISECOM-BASE-MIB
+      	TimeStamp, TruthValue				FROM SNMPv2-TC;
+
+      oam OBJECT IDENTIFIER ::= {draft 1}
+
+      raisecomOamMIB MODULE-IDENTITY
+        LAST-UPDATED "200609050000Z"  -- Sept 5,2006"
+        ORGANIZATION
+          "raisecom"
+        CONTACT-INFO
+          "          "
+        DESCRIPTION
+          "The MIB module for managing trap and notification of oam."
+
+        REVISION    "200609050000Z"  -- Sept 5, 2006"
+        DESCRIPTION ""
+
+         ::= { oam 2 }
+
+      --
+      -- Sections of the raisecom OAM MIB
+      --
+         raisecomOamObjects 			OBJECT IDENTIFIER ::= { raisecomOamMIB 1 }
+         raisecomOamNotifications       OBJECT IDENTIFIER ::= { raisecomOamMIB 2 }
+         raisecomOamScalar              OBJECT IDENTIFIER ::= { raisecomOamMIB 3 }
+
+      -- ***************************************************************
+      --
+      -- private OAM object group
+      --
+
+
+      raisecomOamTrapTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RaisecomOamTrapEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+          "A table of OAM trap. "
+        ::= { raisecomOamObjects 1 }
+
+      raisecomOamTrapEntry OBJECT-TYPE
+        SYNTAX     RaisecomOamTrapEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+          "Table entry for OAM trap.    "
+        INDEX       { ifIndex }
+        ::= { raisecomOamTrapTable 1 }
+
+      RaisecomOamTrapEntry ::=
+        SEQUENCE {
+          raisecomOamEventTrapEnable			TruthValue,
+          raisecomOamPeerEventTrapEnable		TruthValue,
+          raisecomOamDiscoveryTrapTotal			Unsigned32,
+          raisecomOamDiscoveryTrapTimestamp     TimeStamp,
+          raisecomOamLostTrapTotal              Unsigned32,
+          raisecomOamLostTrapTimestamp          TimeStamp
+        }
+
+      raisecomOamEventTrapEnable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+          "Enable or disable trap for the local normal link events."
+         ::= { raisecomOamTrapEntry 1 }
+
+      raisecomOamPeerEventTrapEnable OBJECT-TYPE
+        SYNTAX    TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+          "Enable or disable trap for the peer normal link events. "
+        ::= { raisecomOamTrapEntry 2 }
+
+      raisecomOamDiscoveryTrapTotal OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+          "A running total of the number of times the discovery trap has occurred.  "
+        ::= { raisecomOamTrapEntry 3 }
+
+      raisecomOamDiscoveryTrapTimestamp OBJECT-TYPE
+        SYNTAX      TimeStamp
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+          "A timestamp of the last discovery trap."
+        ::= { raisecomOamTrapEntry 4 }
+
+      raisecomOamLostTrapTotal OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+          "A running total of the number of times the peer lost trap has occurred. "
+        ::= { raisecomOamTrapEntry 5 }
+
+      raisecomOamLostTrapTimestamp OBJECT-TYPE
+        SYNTAX      TimeStamp
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+          "A timestamp of the last peer lost trap."
+        ::= { raisecomOamTrapEntry 6 }  
+        
+
+      -- ***************************************************************
+      --
+      -- remote management table
+      --
+
+      raisecomOamRemoteMgtTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RaisecomOamRemoteMgtEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+          "A table of OAM trap. "
+        ::= { raisecomOamObjects 2 }
+
+      raisecomOamRemoteMgtEntry OBJECT-TYPE
+        SYNTAX     RaisecomOamRemoteMgtEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+          "Table entry for OAM trap.    "
+        INDEX       { ifIndex }
+        ::= { raisecomOamRemoteMgtTable 1 }
+
+      RaisecomOamRemoteMgtEntry ::=
+        SEQUENCE {
+          raisecomOamRemoteMgtBranch	INTEGER,
+          raisecomOamRemoteMgtLeaf		INTEGER,
+          raisecomOamRemoteMgtValue		OCTET STRING,
+          raisecomOamRemoteMgtStatus    INTEGER
+        }
+
+      raisecomOamRemoteMgtBranch OBJECT-TYPE
+        SYNTAX      INTEGER {
+        	object(3),
+			package(4),
+        	attribute(7)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+          "Derived from the CMIP protocol encodings in Annex 30A,
+          Variable Branches may reference attributes, objects or packages."
+         ::= { raisecomOamRemoteMgtEntry 1 }
+
+      raisecomOamRemoteMgtLeaf OBJECT-TYPE
+        SYNTAX      INTEGER  (1..65535)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+          "The leaf is derived from the CMIP protocol encodings in Annex 30A"
+         ::= { raisecomOamRemoteMgtEntry 2 }
+
+      raisecomOamRemoteMgtValue OBJECT-TYPE
+        SYNTAX      OCTET STRING  (SIZE(1..512))
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+          "A list of variable widths and values copyed from
+          IEEE802.3ah OAM variable container. It is valid only
+          when raisecomOamRemoteMgtStatus is 0. A single value
+          '0' means error occurred durning OAM mib-get. "
+         ::= { raisecomOamRemoteMgtEntry 3 }
+
+      raisecomOamRemoteMgtStatus OBJECT-TYPE
+        SYNTAX INTEGER  {
+               ok(0),
+               wait(1),
+               get(2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+          "Status of OAM mib get."
+         ::= { raisecomOamRemoteMgtEntry 4 }     
+         
+         
+	-- ***************************************************************
+	--
+	-- oam loopback timeout table
+	--
+         
+      raisecomOamTimeoutTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF raisecomOamTimeoutEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION 
+          "A table of OAM loopback timeout parameter. "   
+        ::= { raisecomOamObjects 3 }
+   
+      raisecomOamTimeoutEntry OBJECT-TYPE
+        SYNTAX     raisecomOamTimeoutEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION 
+          "Table entry for OAM Timeout Table."
+        INDEX       { ifIndex }
+        ::= { raisecomOamTimeoutTable 1 }
+   
+      raisecomOamTimeoutEntry ::=
+        SEQUENCE {
+          		raisecomOamLoopbackTimeout		    Integer32, 
+          		raisecomOamLoopbackRetryTimes		Integer32 
+        }
+            
+      raisecomOamLoopbackTimeout OBJECT-TYPE
+        SYNTAX      Integer32(1..10)        
+        MAX-ACCESS  read-write
+        STATUS      current 
+        DESCRIPTION 
+          "This object is used to administrate OAM loopback timeout time."    
+        DEFVAL{ 3 }
+        ::= { raisecomOamTimeoutEntry 1 } 
+        
+      raisecomOamLoopbackRetryTimes OBJECT-TYPE
+        SYNTAX      Integer32(0..10)        
+        MAX-ACCESS  read-write
+        STATUS      current 
+        DESCRIPTION 
+          "This object is used to to administrate OAM loopback timeout retry times."    
+        DEFVAL{ 2 }
+        ::= { raisecomOamTimeoutEntry 2 }     
+        
+ 
+	-- ***************************************************************
+	--
+	-- oam loopback initiate result table
+	--
+      raisecomOamLoopbackResultTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF raisecomOamLoopbackResultEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+          "A table of OAM loopback initiate result. "
+        ::= { raisecomOamObjects 4 }
+
+      raisecomOamLoopbackResultEntry OBJECT-TYPE
+        SYNTAX     raisecomOamLoopbackResultEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+          "Table entry for OAM loopback initiate result.    "
+        INDEX       { ifIndex }
+        ::= { raisecomOamLoopbackResultTable 1 }
+
+      raisecomOamLoopbackResultEntry ::=
+        SEQUENCE {
+			raisecomOamLoopbackResult			INTEGER
+        }
+
+      raisecomOamLoopbackResult OBJECT-TYPE
+        SYNTAX	INTEGER{
+				none(0),
+				sucess(1),
+				fail(2)
+        }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+          "The result of oam initiating loopback."
+         ::= { raisecomOamLoopbackResultEntry 1 }
+
+
+      -- ***************************************************************
+      --
+      -- private OAM Notifications
+      --
+
+      raisecomOamDiscoveryTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+            	dot3OamPeerMacAddress,
+            	dot3OamPeerVendorOui,
+            	dot3OamPeerVendorInfo
+            	}
+        STATUS  current
+        DESCRIPTION
+          "OAM Discovery Trap"
+       ::= { raisecomOamNotifications 1 }
+
+
+      raisecomOamLostTrap NOTIFICATION-TYPE
+        OBJECTS {  ifIndex }
+        STATUS  current
+        DESCRIPTION
+          "The OAM peer lost."
+       ::= { raisecomOamNotifications 2 }
+
+
+      raisecomOamNormalTrap NOTIFICATION-TYPE
+        OBJECTS { dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation
+                }
+        STATUS  current
+        DESCRIPTION
+          ""
+       ::= { raisecomOamNotifications 3 } 
+       
+       
+       raisecomOamLoopbackTimeoutTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+                  dot3OamPeerMacAddress,
+                  dot3OamPeerFunctionsSupported
+                }
+        STATUS  current
+        DESCRIPTION
+          "OAM loopback timeout."
+       ::= { raisecomOamNotifications 4 }    
+       
+	   raisecomOamErroredFramePeriodEventTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+        		  dot3OamEventLogTimestamp,
+                  dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation,
+                  dot3OamEventLogWindowHi,
+                  dot3OamEventLogWindowLo,
+                  dot3OamEventLogThresholdHi,
+                  dot3OamEventLogThresholdLo,
+                  dot3OamEventLogValue,
+                  dot3OamEventLogRunningTotal,
+                  dot3OamEventLogEventTotal
+                }
+        STATUS  current
+        DESCRIPTION
+          "A raisecomOamErroredFramePeriodEventTrap notification
+           is sent when a local or remote threshold crossing event
+           is detected.  A local ErroredFramePeriod event is detected
+           by the local entity,while a remote ErroredFramePeriod event
+           is detected by the reception of an Ethernet OAM Event 
+           Notification OAMPDU that indicates a threshold event."
+       ::= { raisecomOamNotifications  5}
+       
+	   raisecomOamErroredFrameEventTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+        		  dot3OamEventLogTimestamp,
+                  dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation,
+                  dot3OamEventLogWindowHi,
+                  dot3OamEventLogWindowLo,
+                  dot3OamEventLogThresholdHi,
+                  dot3OamEventLogThresholdLo,
+                  dot3OamEventLogValue,
+                  dot3OamEventLogRunningTotal,
+                  dot3OamEventLogEventTotal
+                }
+        STATUS  current
+        DESCRIPTION
+          "A raisecomOamErroredFrameEventTrap notification is sent when 
+           a local or remote ErroredFrame event is detected.  A local 
+           ErroredFrame event is detected by the local entity,while a 
+           remote ErroredFrame event is detected by the reception of an 
+           Ethernet OAM Event Notification OAMPDU that indicates a threshold event."
+       ::= { raisecomOamNotifications  6}
+       
+	   raisecomOamErroredFrameSecondsEventTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+        		  dot3OamEventLogTimestamp,
+                  dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation,
+                  dot3OamEventLogWindowHi,
+                  dot3OamEventLogWindowLo,
+                  dot3OamEventLogThresholdHi,
+                  dot3OamEventLogThresholdLo,
+                  dot3OamEventLogValue,
+                  dot3OamEventLogRunningTotal,
+                  dot3OamEventLogEventTotal
+                }
+        STATUS  current
+        DESCRIPTION
+          "A raisecomOamErroredFrameSecondsEventTrap notification
+           is sent when a local or remote ErroredFrameSeconds event
+           is detected.  A local ErroredFrameSeconds event is detected
+           by the local entity,while a remote ErroredFrameSeconds event
+           is detected by the reception of an Ethernet OAM Event 
+           Notification OAMPDU that indicates a threshold event."
+       ::= { raisecomOamNotifications 7 }
+       
+	   raisecomOamErroredSymbolEventTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+        		  dot3OamEventLogTimestamp,
+                  dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation,
+                  dot3OamEventLogWindowHi,
+                  dot3OamEventLogWindowLo,
+                  dot3OamEventLogThresholdHi,
+                  dot3OamEventLogThresholdLo,
+                  dot3OamEventLogValue,
+                  dot3OamEventLogRunningTotal,
+                  dot3OamEventLogEventTotal
+                }
+        STATUS  current
+        DESCRIPTION
+          "A raisecomOamErroredSymbolEventTrap notification
+           is sent when a local or remote ErroredSymbol event
+           is detected.  A local ErroredSymbol event is detected
+           by the local entity,while a remote ErroredSymbol event
+           is detected by the reception of an Ethernet OAM Event 
+           Notification OAMPDU that indicates a threshold event."
+       ::= { raisecomOamNotifications 8 }                     
+              
+       raisecomOamLinkFaultEventTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+        		  dot3OamEventLogTimestamp,
+                  dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation,
+                  dot3OamEventLogEventTotal
+                }
+        STATUS  current
+        DESCRIPTION
+          "A raisecomOamLinkFaultEventTrap notification is sent when a 
+          local or remote LinkFault event is detected.  A local
+          event is detected by the local entity, while a remote event is
+          detected by the reception of an Ethernet OAM Event
+          Notification OAMPDU that indicates a LinkFault event."
+       ::= { raisecomOamNotifications 9 }  
+       
+       raisecomOamLinkFaultRecoverTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,  
+        	      dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation
+                }
+        STATUS  current
+        DESCRIPTION
+          ""
+       ::= { raisecomOamNotifications 10 }
+       
+       raisecomOamDyingGaspEventTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+        		  dot3OamEventLogTimestamp,
+                  dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation,
+                  dot3OamEventLogEventTotal
+                }
+        STATUS  current
+        DESCRIPTION
+          "A raisecomOamDyingGaspEventTrap notification is sent when a 
+          remote DyingGasp event is detected.  A remote event is
+          detected by the reception of an Ethernet OAM Event
+          Notification OAMPDU that indicates a DyingGasp event."
+       ::= { raisecomOamNotifications 11 }  
+       
+       raisecomOamCriticalEventTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,
+        		  dot3OamEventLogTimestamp,
+                  dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation,
+                  dot3OamEventLogEventTotal
+                }
+        STATUS  current
+        DESCRIPTION
+          "A raisecomOamCriticalEventTrap notification is sent when a 
+          local or remote Critical event is detected.  A local
+          event is detected by the local entity, while a remote event is
+          detected by the reception of an Ethernet OAM Event
+          Notification OAMPDU that indicates a critical link event."
+       ::= { raisecomOamNotifications 12 }
+       
+       raisecomOamCriticalRecoverTrap NOTIFICATION-TYPE
+        OBJECTS { ifIndex,  
+        	      dot3OamEventLogOui,
+                  dot3OamEventLogType,
+                  dot3OamEventLogLocation
+                }
+        STATUS  current
+        DESCRIPTION
+          ""
+       ::= { raisecomOamNotifications 13 }
+              
+      -- ***************************************************************
+      --
+      -- private raisecomOamScalar
+      --
+
+      raisecomOamSendPeriod OBJECT-TYPE
+        SYNTAX  Integer32(1..100)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+        "This object indicates oam pdu send period(in 100ms increments).
+         The default value is 10 (1 second)."
+        DEFVAL{ 10 }
+        ::= { raisecomOamScalar 1 }
+
+      raisecomOamLinkTimeout OBJECT-TYPE
+        SYNTAX    Integer32(1..50)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+        "This object indicates oam pdu timeout time(in 1s increments)."
+        DEFVAL{ 5 }
+        ::= { raisecomOamScalar 2 }
+
+      END

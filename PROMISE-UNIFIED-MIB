@@ -1,0 +1,1518 @@
+
+-- **************************************************************************
+-- Promise Technology, Inc.
+
+-- Description: This Extension Agent implements the first revision of the
+-- proposed unified MIB for all FSC Promise products. 
+--***************************************************************************                                                                             
+                                                                                                                                                          
+         PROMISE-UNIFIED-MIB DEFINITIONS ::= BEGIN
+         IMPORTS
+                 enterprises
+                         FROM RFC1155-SMI
+                 DisplayString
+                         FROM RFC1213-MIB;
+
+	--promise   MODULE-IDENTITY
+
+    --   LAST-UPDATED "0011280100Z"
+
+    --   ORGANIZATION "Promise Technology Inc."
+         
+	--CONTACT-INFO
+              --"Promise Technology Inc.
+              --1745 McCandless Drive
+              --Milpitas, CA 95035
+              --USA
+
+              --Phone:  (408)-228-6300
+              --Fax:    (408)-228-6400
+              --Web:    http://www.promise.com/
+              --E-Mail: jordanr@promise.com"
+              --Maintainer: Jordan Rhody
+
+       --  DESCRIPTION  "Promise Technology Inc. root MIB module. Particular MIB"
+       --  DESCRIPTION  "is meant for FastTrak S150 TX4/SX4 definition" 
+
+		promise		   		OBJECT IDENTIFIER ::= { enterprises 7933 }
+        
+        otherEnterprises	OBJECT IDENTIFIER ::= { promise 4}    
+        
+        toplevelFSC			OBJECT IDENTIFIER ::= { otherEnterprises 1 }
+         
+        -- fasttrak MIB
+
+		promiseManufacturer OBJECT-TYPE
+             SYNTAX  DisplayString
+             ACCESS  read-only
+             STATUS  mandatory
+             DESCRIPTION
+                     "The name of the product's manufacturer. For instance,
+                      Promise Technology Inc."
+             ::= { toplevelFSC 1 }
+
+         promiseVerify OBJECT-TYPE
+             SYNTAX  INTEGER {
+				error(0),
+				does-not-exist(1),
+				verification-not-supported(2),
+				reserved(3),
+				exists-functionality-not-tested(4),
+				exists-functionality-unknown(5),
+				exists-not-functioning-correctly(6),
+				exists-functioning-correctly(7)
+			 }
+             ACCESS  read-only
+             STATUS  mandatory
+             DESCRIPTION
+                     "A code that provides a level of verification that the
+		              component is still installed and working"
+             ::= { toplevelFSC 2 } 
+             
+        promiseRebuildRate OBJECT-TYPE
+             SYNTAX	INTEGER
+             ACCESS  read-write
+             STATUS  mandatory
+             DESCRIPTION
+                     "A code that show the rebuild rate."
+             ::= { toplevelFSC 8 } 
+
+
+        promiseWriteCache OBJECT-TYPE
+              SYNTAX  INTEGER {
+                not-supported(-1),
+				disable(0),
+				enable(1)
+			     }
+             ACCESS  read-write
+             STATUS  mandatory
+             DESCRIPTION
+                     "A code that enable or disable PBM cache function."
+             ::= { toplevelFSC 9 }
+
+        promiseSMART OBJECT-TYPE
+             SYNTAX  INTEGER {
+             	not-supported(-1),
+				disable(0),
+				enable(1)
+			     }
+             ACCESS  read-write
+             STATUS  mandatory
+             DESCRIPTION
+                     "A code that enable or disable smart function"
+             ::= { toplevelFSC 10 } 
+             
+	promiseControllerCacheMode	OBJECT-TYPE
+			 SYNTAX	DisplayString 
+			 ACCESS	read-only
+     	     STATUS	mandatory
+             DESCRIPTION "The type of the Cache Mode: Write Back, Write Through, Auto Switch"
+             ::= { toplevelFSC 14 }
+
+	promiseDriverVersion	OBJECT-TYPE
+			 SYNTAX	DisplayString
+    	     ACCESS	read-only
+     	     STATUS	mandatory
+             DESCRIPTION "Is the driver version currently installed in the system"
+             ::= { toplevelFSC 15 }
+
+	promiseBatteryTable OBJECT-TYPE
+			SYNTAX SEQUENCE OF PromiseBatteryEntry
+			ACCESS not-accessible
+			STATUS mandatory
+			DESCRIPTION "A table containing Battery Information."
+			::= { toplevelFSC 11 }
+
+		promiseBatteryEntry OBJECT-TYPE
+			SYNTAX PromiseBatteryEntry
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Battery Entry"
+			INDEX { batteryControllerId }
+			::= { promiseBatteryTable 1 }
+
+		PromiseBatteryEntry ::= SEQUENCE
+			{       
+					batteryControllerId INTEGER,
+					batteryStatus INTEGER,
+					batteryTemperature DisplayString,
+					batteryVoltage DisplayString
+			}
+			
+		batteryControllerId OBJECT-TYPE
+			SYNTAX INTEGER (0..1)
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Unique Identifier for Array"
+			::= { promiseBatteryEntry 1 }
+
+		batteryStatus	OBJECT-TYPE
+             SYNTAX  INTEGER {
+             	not-supported(-1),
+             	battery-not-installed(0),
+				battery-normal(1),
+				battery-temperature-out-of-range(2),
+				battery-temperature-unstable(3),
+				battery-voltage-out-of-range(4),
+				battery-voltage-unstable(5),
+				battery-communication-error(6)
+			     }
+             ACCESS  read-write
+             STATUS  mandatory
+             DESCRIPTION "A code that show if the battery status is OK"
+			::= { promiseBatteryEntry 2 }
+
+
+		batteryTemperature OBJECT-TYPE
+			SYNTAX DisplayString
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Battery's temperature"
+			::= { promiseBatteryEntry 3 }
+			
+		batteryVoltage OBJECT-TYPE
+			SYNTAX DisplayString
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Battery's voltage"
+			::= { promiseBatteryEntry 4 }
+
+		promiseArrayTable OBJECT-TYPE
+			SYNTAX SEQUENCE OF PromiseArrayEntry
+			ACCESS not-accessible
+			STATUS mandatory
+			DESCRIPTION "A table containing RAID Arrays Information."
+			::= { toplevelFSC 4 }
+
+		promiseArrayEntry OBJECT-TYPE
+			SYNTAX PromiseArrayEntry
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Individual Array Entry"
+			INDEX { arrayId }
+			::= { promiseArrayTable 1 }
+
+		PromiseArrayEntry ::= SEQUENCE
+			{
+						arrayId
+					INTEGER,
+						arrayName
+					DisplayString,
+						arrayRaidMode
+					INTEGER,
+						arrayActivityStatus
+					INTEGER,
+						arrayFunctionalStatus
+					INTEGER,
+						arrayArraySize
+					INTEGER,
+						arrayStripeBlockSize
+					INTEGER,
+						arrayPercentDone
+					INTEGER
+						
+			}
+		arrayId OBJECT-TYPE
+			SYNTAX INTEGER (1..8)
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Unique Identifier for Array"
+			::= { promiseArrayEntry 1 }
+
+		arrayName OBJECT-TYPE
+			SYNTAX DisplayString
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Description string for Array"
+			::= { promiseArrayEntry 2 }
+
+		arrayRaidMode OBJECT-TYPE
+             SYNTAX  INTEGER {
+			    unknown(-1),
+				stripe(0),
+				mirror(1),
+				stripe-mirror(2),
+				span(3),
+				parity-dedicated(4),
+				parity-distributed(5)
+			 }
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "RAID Mode, eg. stripe mirror etc"
+			::= { promiseArrayEntry 3 }
+
+		arrayActivityStatus OBJECT-TYPE
+             SYNTAX  INTEGER {
+			    unknown(-1),
+				idle(0),
+				manual-rebuild(1),
+				engine-rebuild(2),
+				synchronize(3),
+				expanding(4)
+			 }
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Activity status, eg. idle, under maintenance etc."
+			::= { promiseArrayEntry 4 }
+
+		arrayFunctionalStatus OBJECT-TYPE
+             SYNTAX  INTEGER {
+			    unknown(-1),
+				functional(0),
+				critical(1),
+				offline(2)
+			 }
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Functional status, under maintenance, performance is degraded"
+			::= { promiseArrayEntry 5 }
+
+		arrayArraySize OBJECT-TYPE
+			 SYNTAX INTEGER
+             ACCESS  read-only
+             STATUS  mandatory
+             DESCRIPTION
+                     "Size of Array, in MB"
+             ::= { promiseArrayEntry 6 }
+
+		arrayStripeBlockSize OBJECT-TYPE
+			 SYNTAX INTEGER
+             ACCESS  read-only
+             STATUS  mandatory
+             DESCRIPTION
+                     "Stripe Block Size for striping and parity striping in KB"
+             ::= { promiseArrayEntry 7 }
+
+		arrayPercentDone OBJECT-TYPE
+			 SYNTAX INTEGER
+             ACCESS  read-only
+             STATUS  mandatory
+             DESCRIPTION
+                     "Percent completed for rebuild or synchronize"
+             ::= { promiseArrayEntry 8 }
+
+		promiseDiskTable OBJECT-TYPE
+			SYNTAX SEQUENCE OF PromiseDiskEntry
+			ACCESS not-accessible
+			STATUS current
+			DESCRIPTION
+				"A table containing one entry for every disk attached to the FastTrak Controller"
+			::= { toplevelFSC 5 }
+
+		promiseDiskEntry OBJECT-TYPE
+			SYNTAX PromiseDiskEntry
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION
+					"A conceptual row of the fasttrakDiskTable"
+			INDEX { diskId }
+			::= { promiseDiskTable 1 }
+
+		PromiseDiskEntry ::=
+			SEQUENCE {
+					diskId
+				INTEGER,
+					diskChannel 
+				INTEGER,
+					diskMasSlaveId
+				INTEGER,
+					diskName
+				DisplayString,
+					diskSMARTStatus
+				INTEGER,
+					diskSize
+				INTEGER,
+					diskAssigned
+				INTEGER,
+					diskTiming
+				INTEGER,
+					diskMaintenance
+				INTEGER,
+					diskFunctional
+				INTEGER, 
+					diskCylinders
+				INTEGER,
+					diskHeads
+				INTEGER,
+					diskSectors
+				INTEGER,  
+					diskNum
+				INTEGER,				     
+				    diskArrayID
+				INTEGER ,
+					diskControllerID
+				INTEGER
+			}
+
+		diskId OBJECT-TYPE
+			SYNTAX INTEGER(0..7)
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "ID of disk, 0=pri mas, thru 3=sec slave"
+			::= { promiseDiskEntry 1 }
+
+		diskChannel OBJECT-TYPE
+			SYNTAX INTEGER(0..1)
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Channel Number 0=pri, 1=sec"
+			::= { promiseDiskEntry 2 }
+
+		diskMasSlaveId OBJECT-TYPE
+			SYNTAX INTEGER(0..1)
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "ID of disk, 0=mas, 1=slave"
+			::= { promiseDiskEntry 3 }
+
+		diskName OBJECT-TYPE
+			SYNTAX DisplayString
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Disk Model, Identify information from Disk"
+			::= { promiseDiskEntry 4 }
+
+		diskSMARTStatus OBJECT-TYPE
+			SYNTAX INTEGER {
+				unknown(-1),
+				sMARTFail(0),
+				sMARTOK(1),
+				sMARTNotSupported(2),
+				sMARTNotAvailable(3)
+			}
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Disk S.M.A.R.T Status (Self Monitoring Status)"
+			::= { promiseDiskEntry 5 }
+
+		diskSize OBJECT-TYPE
+			SYNTAX INTEGER
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Disk Size, in MB"
+			::= { promiseDiskEntry 6}
+
+		diskAssigned OBJECT-TYPE
+			SYNTAX INTEGER {
+				unknown(-1),
+				free(0),
+				assigned(1)
+			}
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Whether or not disk is assigned to an RAID Array"
+			::= { promiseDiskEntry 7}
+
+		diskTiming OBJECT-TYPE
+			SYNTAX INTEGER {
+				unknown(-1),
+				udma4(0),
+				udma3(1),
+				udma2(2),
+				udma1(3),
+				udma0(4),
+				dma2(5),
+				dma1(6),
+				dma0(7),
+				udma5(8),
+				udma6(9)
+			}
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "DMA or UDMA mode of Disk"
+			::= { promiseDiskEntry 8}
+
+		diskMaintenance OBJECT-TYPE
+			SYNTAX INTEGER {
+				unknown(-1),
+				idle(0),
+				rebuilding(1),
+				synchronizing(2)
+			}
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Whether Disk is idle or under maintenance activity"
+			::= { promiseDiskEntry 9}
+
+		diskFunctional OBJECT-TYPE
+			SYNTAX INTEGER {
+				unknown(-1),
+				functional(0),
+				offline(1),
+				functionalneedsrebuild(2)
+			}
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Functional Status of Disk"
+			::= { promiseDiskEntry 10} 
+			
+		diskCylinders OBJECT-TYPE
+			SYNTAX INTEGER 
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Cylinder number of Disk"
+			::= { promiseDiskEntry 11}  
+
+		diskHeads OBJECT-TYPE
+			SYNTAX INTEGER 
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Heads number of Disk"
+			::= { promiseDiskEntry 12}   
+
+		diskSectors OBJECT-TYPE
+			SYNTAX INTEGER 
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Sector number of Disk"
+			::= { promiseDiskEntry 13}
+
+		diskNum OBJECT-TYPE
+			SYNTAX INTEGER 
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "show how many disks in this fasttrak INTEGER"
+			::= { promiseDiskEntry 14}  			
+			   
+			
+		diskArrayID OBJECT-TYPE
+			SYNTAX INTEGER 
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "show which array is this disk belong to, -1 is unassigned "
+			::= { promiseDiskEntry 15}
+			
+		diskControllerID OBJECT-TYPE
+			SYNTAX INTEGER
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "Associates the physical controller with the disk"
+			::= { promiseDiskEntry 16}
+			
+	promiseControllerTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF PromiseControllerEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"A table containing one entry for each FastTrak Controller"
+	::= { toplevelFSC 6 }
+
+	promiseControllerEntry OBJECT-TYPE
+		SYNTAX PromiseControllerEntry
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION	"A conceptual row of the FastTrak controller"
+		INDEX { controllerId }
+	::= { promiseControllerTable 1 }
+
+	PromiseControllerEntry ::=
+		SEQUENCE {
+			controllerId	INTEGER,
+			controllerModel DisplayString,
+			controllerIRQ   INTEGER,
+			controllerPCIBus	INTEGER,
+			controllerPCIDev	INTEGER,
+			controllerPCIFunc	INTEGER,
+			controllerBIOSAddress	DisplayString,
+			controllerBaseAddress   DisplayString,
+			controllerMemorySize	DisplayString,
+			controllerBatteryStatus	INTEGER    
+	}
+
+	controllerId OBJECT-TYPE
+			SYNTAX INTEGER(0..1)
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "ID of the controller in the system"
+	::= { promiseControllerEntry 1 }
+	
+	controllerModel OBJECT-TYPE
+             SYNTAX  DisplayString
+             ACCESS  read-only
+             STATUS  mandatory
+             DESCRIPTION
+                     "The name of the Promise product model. For instance,
+                      FastTrak100"
+    ::= { promiseControllerEntry 2 }
+
+	controllerIRQ OBJECT-TYPE
+			SYNTAX INTEGER
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "IRQ assigned to this specific controller"
+	::= { promiseControllerEntry 3 }
+			
+	controllerPCIBus OBJECT-TYPE
+			SYNTAX INTEGER
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "PCI Bus assigned to this controller"
+	::= { promiseControllerEntry 4 }
+
+	controllerPCIDev OBJECT-TYPE
+			SYNTAX INTEGER
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "PCI Dev assigned to this controller"
+	::= { promiseControllerEntry 5 }
+	
+	controllerPCIFunc OBJECT-TYPE
+			SYNTAX INTEGER
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "PCI Func assigned to this controller"
+	::= { promiseControllerEntry 6 }
+			
+	controllerBIOSAddress OBJECT-TYPE
+			SYNTAX  DisplayString
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "The BIOS ROM Start address for this specific controller"
+	::= { promiseControllerEntry 7 }
+			
+	controllerBaseAddress OBJECT-TYPE
+			SYNTAX DisplayString
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "The controller base address"
+	::= { promiseControllerEntry 8 }
+
+	controllerMemorySize OBJECT-TYPE
+			SYNTAX DisplayString
+			ACCESS read-only
+			STATUS mandatory
+			DESCRIPTION "The controller memory size, it's only for SX4"
+	::= { promiseControllerEntry 9 }
+
+	controllerBatteryStatus	OBJECT-TYPE
+             SYNTAX  INTEGER {
+             	not-supported(-1),
+             	battery-not-installed(0),
+				battery-normal(1),
+				battery-temperature-out-of-range(2),
+				battery-temperature-unstable(3),
+				battery-voltage-out-of-range(4),
+				battery-voltage-unstable(5),
+				battery-communication-error(6)
+			     }
+             ACCESS  read-write
+             STATUS  mandatory
+             DESCRIPTION
+                     "A code that show if the battery status is OK"
+	::= { promiseControllerEntry 10 }
+
+
+	promiseOperations OBJECT IDENTIFIER ::= { toplevelFSC 7 }
+
+	toCreateArray OBJECT-TYPE
+			SYNTAX DisplayString
+			ACCESS read-write
+			STATUS mandatory
+			DESCRIPTION "Create a new array.
+				     Write Parameter:
+				     raidmode:disknum:diskid:..:diskid:stripesize:[arrayname]
+
+				     raidmode: RAID mode. 0: (RAID0) 1: (RAID1)
+
+                                     disknum: total disk number 
+
+				     diskid: disk id. 0 - 15 
+
+				     stripesize: RAID stripe size. 16, 32, 64
+
+				     arrayname: Array Name (optional)
+
+					 Example: 1:2:0:2:64:Promise-Array1
+				"
+	::= { promiseOperations 3}
+
+	toDeleteArray OBJECT-TYPE
+			SYNTAX INTEGER
+			ACCESS read-write
+			STATUS mandatory
+			DESCRIPTION "Delete a certain array.
+				     Write Parameter:
+				     arrayid
+	
+				     arrayid: the id of array to be deleted. 0 - 3
+				"
+
+	::= { promiseOperations 4}
+
+	toRebuildArray  OBJECT-TYPE
+			SYNTAX DisplayString 
+			ACCESS read-write
+			STATUS mandatory
+			DESCRIPTION "Rebuild a certain array
+				     Write Parameter:
+				     arrayid:[diskid]:[operation]
+
+				     arrayid: the id of array to be rebuilded. 0 - 3
+				     diskid: (optional) The disk id in that array. 0 - 15
+				     operation: (optional) operation that will perform on that array. 0: start rebuild, 1: stop rebuild.
+					 Example: start-rebuild 0:0:2:0
+"
+	::= { promiseOperations 5}
+
+					
+	toSyncArray  OBJECT-TYPE
+		SYNTAX DisplayString 
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION "Synchronize a certain array
+				     Write Parameter:
+				     arrayid:[operation]
+
+				     arrayid: Array to be synchronized. 1 - 4
+				     operation: (optional) operation that will perform on that array. 0: start sync, 1: pause sync.
+"
+	::= { promiseOperations 6}	
+			
+	promiseTraps OBJECT IDENTIFIER ::= { toplevelFSC 12 }
+
+	trapType OBJECT-TYPE
+		SYNTAX INTEGER
+		{
+			e-disk-down(1),
+			e-disk-plugin(2),
+			e-disk-media-error(3),
+			e-disk-SMART-error(4),
+			e-disk-retry(5),
+			e-ecc-error(6),
+			e-disk-timeout(7),
+			e-bad-sector(8),
+			e-array-media-error(9),
+			e-array-offline(10),
+			e-array-critical(11),
+			e-array-create(12),
+			e-array-delete(13),
+			e-rebuild-start(14),
+			e-autorebuild-start(15),
+			e-rebuild-aborted(16),
+			e-rebuild-paused(17),
+			e-rebuild-resumed(18),
+			e-rebuild-completed(19),
+			e-rebuild-failed(20),
+			e-synchronize-start(21),
+			e-synchronize-aborted(22),
+			e-synchronize-paused(23),
+			e-synchronize-resumed(24),
+			e-synchronize-completed(25),
+			e-synchronize-failed(26),
+			e-sync-compare-error(27),
+			e-swap-enclosure-over-temp(28),
+			e-swap-enclosure-fan-stopped(29),
+			e-swap-enclosure-5v-outofrange(30),
+			e-swap-enclosure-12v-outofrange(31),
+			e-swap-enclosure-powerup(32),
+			e-swap-enclosure-powerdown(33),
+			e-unknown(34),
+			battery-temp-outofrange(35),
+			battery-temp-unstable(36),
+			battery-volt-outofrange(37),
+			battery-volt-unstable(38),
+			battery-comm-error(39),
+			battery-becomes-normal(40),
+			write-mode-switch(41),
+			disk-error-fixed(42),
+			media-patrol-started(43),
+			media-patrol-stopped(44),
+			media-patrol-aborted(45),
+			media-patrol-completed(46),
+			media-patrol-paused(47),
+			media-patrol-resumed(48)
+		}
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION "Value which indicate the nature of the event causing the Trap"
+	::= { promiseTraps 1 }
+
+	trapTextDescription OBJECT-TYPE
+		SYNTAX DisplayString
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION "Specific textual description of trap event."
+	::= { promiseTraps 2 }
+		
+	trapDescription OBJECT-TYPE
+		SYNTAX INTEGER{ 
+			disk-down(1),
+			disk-plugin(2),
+			disk-mediaerror(3),
+			disk-smart-error(4),
+			disk-retry(5),
+			disk-ecc-error(6),
+			disk-timeout(7),
+			disk-badsector(8),
+			array-media-error(9),
+			array-offline(10),
+			array-critical(11),
+			array-create(12),
+			array-delete(13),		
+			rebuild-start(14),
+			autorebuild-start(15),
+			rebuild-aborted(16),
+			rebuild-paused(17),
+			rebuild-resumed(18),
+			rebuild-complete(19),
+			rebuild-failed(20),
+			synchronize-start(21),
+			synchronize-aborted(22),
+			synchronize-paused(23),
+			synchronize-resumed(24),
+			synchronize-completed(25),
+			synchronize-failed(26),
+			synchronize-compare-error(27), 
+			swap-enclosure-over-temp(28),
+			swap-enclosure-fan-stopped(29),
+			swap-enclosure-5v-outofrange(30),
+			swap-enclosure-12v-outofrange(31),
+			swap-enclosure-powerup(32),
+			swap-enclosure-powerdown(33),
+			unknown(34),
+			battery-temp-outofrange(35),
+			battery-temp-unstable(36),
+			battery-volt-outofrange(37),
+			battery-volt-unstable(38),
+			battery-comm-error(39),
+			battery-becomes-normal(40),
+			write-mode-switch(41),
+			disk-error-fixed(42),
+			media-patrol-started(43),
+			media-patrol-stopped(44),
+			media-patrol-aborted(45),
+			media-patrol-completed(46),
+			media-patrol-paused(47),
+			media-patrol-resumed(48)
+		}
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION "Description of Error, with parameters
+		  			
+		  			disk-down(1) is the disk offline error event.
+					disk-plugin(2) is the disk plugged in event.
+					disk-mediaerror(3) is the disk media error event.							  			
+		  			disk-smart-error(4) is the SMART disk error event.
+					disk-retry(5) is the disk retry event.
+					disk-ecc-error(6) is the disk ECC Error error event.
+					disk-timeout(7) is the disk timeout error event.
+					disk-badsector(8) is the bad sector on disk error event.
+					
+					array-media-error(9) is the array media error event.
+					array-offline(10) is the array offline error event.
+					array-critical(11) is the array critical error event.
+					array-create(12) is the array creation notification event.
+					array-delete(13) is the array deletion notification event.  
+					  
+					rebuild-start(14) is the rebuild start event.
+					autorebuild-start(15) is the autorebuild notification event.
+					rebuild-aborted(16) is the rebuild aborted error event.
+					rebuild-paused(17) is the rebuild notification event.  
+					rebuild-resumed(18) is the rebuild resume notification event. 
+					rebuild-complete(19) is the rebuild complete event.
+					rebuild-failed(20) is the rebuild error event. 
+					  
+					synchronize-start(21) is the sync start event.
+					synchronize-aborted(22) is the sync aborted error event.
+					synchronize-paused(23)is the sync pause notification event.
+					synchronize-resumed(24) is the sync resume notification event.
+					synchronize-complete(25) is the sync complete event.
+					synchronize-failed(26) is the sync failed error event. 
+					synchronize-compare-error(27) is the sync comparison error event.
+					
+					swap-enclosure-over-temp(28)is the over temperature error event. 
+					swap-enclosure-fan-stopped(29) is the swap fan stop error event.
+					swap-enclosure-5v-outofrange(30) is the out of range 5 volts error event.
+					swap-enclosure-12v-outofrange(31) is the out of range 12 volts error event.
+					swap-enclosure-powerup(32) is the swap power up event.
+					swap-enclosure-powerdown(33) is the swap power down event.
+					 
+					unknown(34) is for any error event condition not covered.
+
+					battery-temp-outofrange(35) is the over temperature error in battery.
+					battery-temp-unstable(36) is the unstable temperature error in battery.
+					battery-volt-outofrange(37) is the over voltage error in battery.
+					battery-volt-unstable(38) is the unstable voltage error in battery.
+					battery-comm-error(39) is the communication error in battery.
+					battery-becomes-normal(40) is the message that battery becomes normal from the previous error.
+
+					write-mode-switch(41) is the event that the driver changed the write mode.
+					disk-error-fixed(42) is the event that the driver fixed disk error.
+
+					media-patrol-started(43) is the media patrol started at a specific channel event.
+					media-patrol-stopped(44) is the media patrol stopped at a specific channel event.
+					media-patrol-aborted(45) is the media patrol aborted at a specific channel event.
+					media-patrol-completed(46) is the media patrol completed at a specific channel event.
+					media-patrol-paused(47) is the media patrol paused at a specific channel event.
+					media-patrol-resumed(48) is the media patrol resumed at a specific channel event."
+	::= { promiseTraps 3 }
+
+	trpDiskOffline			TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}						
+			DESCRIPTION "Disk marked offline"
+				--NMS Trap annotation
+ 				--#TYPE		"Disk offline"																
+				--#SUMMARY  "Disk Offline: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY CRITICAL
+	::= 1
+
+	trpDiskPlugin			TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}						
+			DESCRIPTION "Disk has been attached"
+				--NMS Trap annotation
+ 				--#TYPE		"New disk plugged in"																
+				--#SUMMARY  "New Disk Plugged In: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 2
+		
+	trpDiskMediaError		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}						
+			DESCRIPTION "A media error occurred on disk <disk>"
+				--NMS Trap annotation
+ 				--#TYPE		"Media error on disk"																
+				--#SUMMARY  "Disk Media Error: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 3
+
+	trpDiskSMARTFail 		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}						
+			DESCRIPTION "S.M.A.R.T. error reported on disk"
+				--NMS Trap annotation
+ 				--#TYPE		"SMART error on disk"																
+				--#SUMMARY  "Disk SMART Fail: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 4
+
+	trpDiskAccessRetry		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}						
+			DESCRIPTION "Retry disk access on disk"
+				--NMS Trap annotation 
+ 				--#TYPE		"Disk retry"																
+				--#SUMMARY  "Retry Disk Access: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 5
+
+	trpDiskECCError			TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}						
+			DESCRIPTION "Disk ECC error"
+				--NMS Trap annotation 
+ 				--#TYPE		"Disk ECC Error"																
+				--#SUMMARY  "ECC Error on Disk: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 6
+
+	trpDiskTimeOut			TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}						
+			DESCRIPTION "Disk time out"
+				--NMS Trap annotation
+ 				--#TYPE		"Disk timed out"																
+				--#SUMMARY  "Disk Time Out: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 7
+
+	trpDiskBadSector 		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{    
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Bad sector on array"
+				--NMS Trap annotation
+				 --#TYPE	"Bad sector on array"												
+				--#SUMMARY  "Bad sector encountered on array:%s"
+				--#ARGUMENTS {0}
+				--#SEVERITY CRITICAL
+	::= 8
+
+	trpArrayMediaError		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{       
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Disk has a read/write error"
+				--NMS Trap annotation
+ 				--#TYPE		"Array Media Error"																
+				--#SUMMARY  "Array has a read/write error: %s" 
+				--#ARGUMENTS {0}
+				--#SEVERITY CRITICAL
+	::= 9
+
+	trpArrayOffline			TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Array offline"
+				--NMS Trap annotation
+ 				--#TYPE		"Array offline"																
+				--#SUMMARY  "Array offline: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY CRITICAL
+	::= 10
+
+	trpArrayCritical 		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION	 "Array critical"
+				--NMS Trap annotation
+ 				--#TYPE		"Array critical"																
+				--#SUMMARY  "Array critical: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 11
+
+	trpArrayCreate			TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Array creation"
+				--NMS Trap annotation
+ 				--#TYPE		"Array creation"																
+				--#SUMMARY  "Create array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 12
+
+	trpArrayDelete			TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Array deletion"
+				--NMS Trap annotation
+ 				--#TYPE		"Array deletion"												
+				--#SUMMARY  "Delete array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 13
+
+	trpArrayRebuildStart 	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{  
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Rebuilding started on disk"
+				--NMS Trap annotation
+ 				--#TYPE		"Rebuild started"												
+				--#SUMMARY  "Rebuild started on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 14
+
+	trpArrayAutoRebuildStart TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{   
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Automatic rebuilding started"
+				--NMS Trap annotation
+ 				--#TYPE		"Automatic rebuild started"												
+				--#SUMMARY  "Automatic Rebuild started on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 15
+
+	trpArrayRebuildAborted	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{ 
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Rebuild aborted on array"
+				--NMS Trap annotation
+ 				--#TYPE		"Rebuild aborted on array"												
+				--#SUMMARY  "Rebuild aborted on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 16
+
+	trpArrayRebuildPaused	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Rebuild paused on array"
+				--NMS Trap annotation
+ 				--#TYPE		"Rebuild paused on array"												
+				--#SUMMARY  "Rebuild paused on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 17
+
+	trpArrayRebuildResumed	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Rebuild resumed on array"
+				--NMS Trap annotation
+ 				--#TYPE		"Rebuild resumed on array"								
+				--#SUMMARY  "Rebuild resumed on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 18
+
+	trpArrayRebuildCompleted TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Rebuild successfully completed"
+				--NMS Trap annotation
+ 				--#TYPE		"Rebuild successfully completed"								
+				--#SUMMARY  "Rebuild completed on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 19
+
+	trpArrayRebuildFailed	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Rebuild failed"
+				--NMS Trap annotation
+				--#TYPE		"Rebuild failed"								
+				--#SUMMARY  "Rebuild failed on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 20
+
+	trpArraySyncStarted		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Synchronization started on array"
+				--NMS Trap annotation
+				--#TYPE		"Synchronization started on array"								
+				--#SUMMARY  "Synchronization started on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 21
+
+	trpArraySyncAborted		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Synchronization aborted on array"
+				--NMS Trap annotation
+				--#TYPE		"Synchronization aborted on array"								
+				--#SUMMARY  "Synchronization aborted on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 22
+
+	trpArraySyncPaused		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Synchronization paused on array"
+				--NMS Trap annotation 
+				--#TYPE		"Synchronization paused on array"								
+				--#SUMMARY  "Synchronization paused on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 23
+
+	trpArraySyncResumed		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Synchronization resumed on array"
+				--NMS Trap annotation
+				--#TYPE		"Synchronization resumed on array"				
+				--#SUMMARY  "Synchronization resumed on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 24
+
+	trpArraySyncCompleted	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Synchronization successfully completed on array"
+				--NMS Trap annotation
+				--#TYPE		"Synchronization successfully completed on array"
+				--#SUMMARY  "Synchronization completed on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 25
+
+	trpArraySyncFailed		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Synchronization failed on array"
+				--NMS Trap annotation
+				--TYPE		"Synchronization failed on array"
+				--#SUMMARY  "Synchronization failed on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY CRITICAL
+	::= 26
+
+	trpSyncComparisonError	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+				trapTextDescription
+    		}			
+			DESCRIPTION "Synchronization comparison error on array"
+				--NMS Trap annotation
+				--TYPE		"Synchronization comparison error on array"							
+				--#SUMMARY  "Synchronization comparison error on array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY CRITICAL
+	::= 27
+
+	trpSwapBoxOverTemp		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{       		    
+				trapTextDescription
+    		}			
+			DESCRIPTION "Temperature is too high for enclosure."
+				--NMS Trap annotation
+				--TYPE		"Temperature is too high for enclosure"			
+				--#SUMMARY  "Swap Box Over Temp on enclosure: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 28
+
+	trpSwapBoxFanStop		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{ 
+    		    trapTextDescription
+    		}			
+			DESCRIPTION "Fan stopped for enclosure"
+				--NMS Trap annotation
+				--#TYPE 	"Fan stopped for enclosure"				
+				--#SUMMARY  "Swap Box Fan Stop: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 29
+
+	trpSwapBox5VOutOfRange	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+				trapTextDescription    			   		
+    		}			
+			DESCRIPTION "5V over/under threshold for enclosure. The voltage is <volts>"
+				--NMS Trap annotation
+				--#TYPE 	"5V over/under threshold for enclosure"				
+				--#SUMMARY  "5V Out of Range for array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 30
+		
+	trpSwapBox12VOutOfRange	TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+				trapTextDescription			   		
+    		}			
+			DESCRIPTION "12V over/under threshold for enclosure. The voltage is <volts>"
+				--NMS Trap annotation
+				--#TYPE     "12V over/under threshold for enclosure" 
+				--#SUMMARY  "12V Out of Range for array: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY MAJOR
+	::= 31
+
+	trpSwapBoxPowerUp		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription 
+    		}
+			DESCRIPTION "Enclosure power on"
+				--NMS Trap annotation
+				--#TYPE     "Enclosure power on" 				
+				--#SUMMARY  "Swap Box Power On: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 32
+
+	trpSwapBoxPowerDown		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Enclosure power off"
+				--NMS Trap annotation
+				--#TYPE     "Enclosure power off" 				
+				--#SUMMARY  "Swap Box Power Off: %s"
+				--#ARGUMENTS {0}
+				--#SEVERITY INFORMATIONAL
+	::= 33
+
+	trpUnknown				TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			DESCRIPTION "Unknown - possibly new driver error code"
+				--NMS Trap annotation
+				--#TYPE     "Unknown - possibly new driver error code" 
+				--#SUMMARY  "Unknown"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 34
+
+	trpBatteryTempOutOfRange		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "The battery's temperature is out of range"
+				--NMS Trap annotation
+				--#TYPE     "Battery Temperature Out of Range" 				
+				--#SUMMARY  "The battery's temperature is out of range"
+				--#ARGUMENTS { }
+				--#SEVERITY MAJOR
+	::= 35
+
+	trpBatteryUnstableTemp		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "The battery's temperature is unstable"
+				--NMS Trap annotation
+				--#TYPE     "Battery Temperature Unstable" 				
+				--#SUMMARY  "The battery's temperature is unstable"
+				--#ARGUMENTS { }
+				--#SEVERITY MAJOR
+	::= 36
+
+	trpBatteryVoltOfRange		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "The battery's voltage is out of range "
+				--NMS Trap annotation
+				--#TYPE     "Battery Voltage Out of Range" 				
+				--#SUMMARY  "The battery's voltage is out of range"
+				--#ARGUMENTS { }
+				--#SEVERITY MAJOR
+	::= 37
+
+	trpBatteryUnstableVolt		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "The battery's voltage is unstable"
+				--NMS Trap annotation
+				--#TYPE     "Battery Voltage Unstable" 				
+				--#SUMMARY  "The battery's voltage is unstable"
+				--#ARGUMENTS { }
+				--#SEVERITY MAJOR
+	::= 38
+
+	trpBatteryCommError		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "There is a communication error in the battery"
+				--NMS Trap annotation
+				--#TYPE     "Battery Communication Error" 				
+				--#SUMMARY  "There is a communication error in the battery"
+				--#ARGUMENTS { }
+				--#SEVERITY MAJOR
+	::= 39
+
+	trpBatteryBecomeNormal		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "The battery status becomes normal"
+				--NMS Trap annotation
+				--#TYPE     "Battery Communication Error" 				
+				--#SUMMARY  "The battery status becomes normal"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 40
+	
+	trpWriteModeChange		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Write Mode has been changed from a previous state"
+				--NMS Trap annotation
+				--#TYPE     "Write Mode Change/Toggle" 				
+				--#SUMMARY  "Write Mode state changed"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 41
+	
+	trpDiskErrorFix		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Disk error fixed by entity(driver)"
+				--NMS Trap annotation
+				--#TYPE     "Disk error fixed" 			
+				--#SUMMARY  "Disk error fixed by entity"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 42
+	
+	trpMediaPatrolStart		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Media patrol started"
+				--NMS Trap annotation
+				--#TYPE     "Media Patrol" 			
+				--#SUMMARY  "Media patrol started"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 43
+
+	trpMediaPatrolStop		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Media patrol stopped"
+				--NMS Trap annotation
+				--#TYPE     "Media Patrol" 			
+				--#SUMMARY  "Media patrol stopped"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 44
+	
+	trpMediaPatrolAbort		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Media patrol aborted"
+				--NMS Trap annotation
+				--#TYPE     "Media Patrol" 			
+				--#SUMMARY  "Media patrol aborted"
+				--#ARGUMENTS { }
+				--#SEVERITY CRITICAL
+	::= 45
+	
+	trpMediaPatrolComplete		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Media patrol completed"
+				--NMS Trap annotation
+				--#TYPE     "Media Patrol" 			
+				--#SUMMARY  "Media patrol completed"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 46
+	
+	trpMediaPatrolPause		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Media patrol paused"
+				--NMS Trap annotation
+				--#TYPE     "Media Patrol" 			
+				--#SUMMARY  "Media patrol paused"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 47
+	
+	trpMediaPatrolResume		TRAP-TYPE
+			ENTERPRISE	promiseTraps
+			VARIABLES
+    		{
+    			trapTextDescription
+    		}			
+			DESCRIPTION "Media patrol resumed"
+				--NMS Trap annotation
+				--#TYPE     "Media Patrol" 			
+				--#SUMMARY  "Media patrol resumed"
+				--#ARGUMENTS { }
+				--#SEVERITY INFORMATIONAL
+	::= 48
+
+    END

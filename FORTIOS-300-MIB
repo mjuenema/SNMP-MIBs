@@ -1,0 +1,3555 @@
+--
+-- MODULE-IDENTITY
+--  OrgName
+--     Fortinet Technologies, Inc.
+--  ContactInfo
+--     Technical Support
+--     e-mail: support@fortinet.com
+--     http://www.fortinet.com
+--
+
+FORTIOS-300-MIB DEFINITIONS ::= BEGIN
+	IMPORTS
+		TEXTUAL-CONVENTION, DisplayString
+			FROM SNMPv2-TC
+		ifIndex, ifEntry
+			FROM IF-MIB
+		MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, enterprises,
+		Integer32, Gauge32, IpAddress, Counter32, Counter64, TimeTicks
+			FROM SNMPv2-SMI
+		sysName
+			FROM SNMPv2-MIB
+		InetPortNumber
+			FROM INET-ADDRESS-MIB
+		OBJECT-GROUP, NOTIFICATION-GROUP, MODULE-COMPLIANCE
+			FROM SNMPv2-CONF;
+
+	fortinet MODULE-IDENTITY
+		LAST-UPDATED "200806190000Z" -- Jun. 19, 2008
+		ORGANIZATION "Fortinet Technologies, Inc."
+		CONTACT-INFO
+			"
+			      Technical Support
+			      email: support@fortinet.com
+			      http://www.fortinet.com
+			"
+		DESCRIPTION
+			"MIB module for Fortinet network devices."
+
+		REVISION "200806190000Z" -- Jun. 19, 2008
+		DESCRIPTION "Renamed to less ambiguous FORTIOS-300-MIB."
+
+		REVISION "200806160000Z" -- Jun. 16, 2008
+		DESCRIPTION "Spelling corrections.
+			Added fnVpnDialupInOctets and fnVpnDialupOutOctets."
+
+		REVISION "200804140000Z" -- Apr. 14, 2008
+		DESCRIPTION "Added fnTrapPowerSupplyFailure (106) trap."
+
+		REVISION "200804090000Z" -- Apr. 9, 2008
+		DESCRIPTION "Added fnTrapTest (999) trap.
+			Added new platforms: FG-30B, FG-5001A, FG-310B."
+		
+		REVISION "200801100000Z" -- Jan. 10, 2008
+		DESCRIPTION "Improved descriptions."
+		
+		REVISION "200801020000Z" -- Jan. 2, 2008
+		DESCRIPTION "Added spam counts to SMTP, POP3, and IMAP stats."
+		
+		REVISION "200712050000Z" -- Dec. 5, 2007
+		DESCRIPTION "Corrected description of fnHaStatsNetUsage to Kbps.
+			Added new per-vdom/per-protocol P2P statistics table."
+
+		REVISION "200711270000Z" -- Nov. 27, 2007
+		DESCRIPTION "Added fnIntfEntry as an augmentation of MIB-2 ifEntry.
+			Added vdom indexes to admin and user tables.
+			Removed unused OIDs.
+			Updated ACCESS for some trap parameters."
+
+		REVISION "200711050000Z" -- Nov. 5, 2007
+		DESCRIPTION "Removed unused OID for per-vdom session count.
+			Added missing model identifiers."
+
+		REVISION "200709120000Z" -- Sept. 12, 2007
+		DESCRIPTION "Refreshed for release, file formatting changes."
+
+		REVISION "200708090000Z" -- Aug. 9, 2007
+		DESCRIPTION "New statistics tables for applications such
+			as proxies, VoIP and P2P. New stats for per vdom
+			session counter and per policy byte counter."
+
+		REVISION "200706060000Z" -- Jun. 6, 2007
+		DESCRIPTION "New traps, model definitions, and 
+			extended vdom specific information for proxies
+			and anti-virus.
+			File formatting and cleanup.
+			Intended for use with FortiOS 3.00 MR5 and newer."
+
+		REVISION "200611230000Z" -- Nov. 23, 2006
+		DESCRIPTION "Added new trap for internal use.
+			Trap is to indicate completion of config
+			deployment to the managing FortiManager."
+
+		REVISION "200608030000Z" -- Aug. 3, 2006
+		DESCRIPTION "Added new OIDs for non-dial-up VPN tunnels.
+			Added new table and traps for hardware sensors."
+
+		REVISION "200607310000Z" -- Jul. 31, 2006
+		DESCRIPTION "Added new HA trap for heartbeat failure.
+			Changed variables to use InetPortNumber as type,
+			where appropriate.
+			Added value range information to % fields.
+			Added 1000A-LENC platform id."
+
+		REVISION "200607280000Z" -- Jul. 28, 2006
+		DESCRIPTION "Added new platforms to platform list."
+
+		REVISION "200606210000Z" -- Jun. 21, 2006
+		DESCRIPTION "Expanded traps to include sysName (hostname).
+			Added new traps for other AV events, including
+			oversize file blocking, file pattern matching, and
+			fragmented file blocking.
+			Renamed main AV trap to show actual usage."
+
+		REVISION "200604260000Z" -- Apr. 26, 2006
+		DESCRIPTION "Expanded vpn up/down traps and added
+			OID's for local and remote gateway parameters.
+			Updated Wifi platforms."
+
+		REVISION "200601090000Z" -- Jan. 9, 2006
+		DESCRIPTION "Added OID's for hdd usage and capacity.
+			Added 5004 platform."
+
+		REVISION "200512070000Z" -- Dec. 7, 2005
+		DESCRIPTION "Added missing OID's for several traps used in
+			communication between FortiGate and FortiManager.
+			Also added some missing models.
+			Moved fnIps group to correct OID."
+
+		REVISION "200509200000Z" -- Sept. 20, 2005
+		DESCRIPTION "Initial creation of unified MIB for products
+			based on FortiOS >=3.00"
+
+		::= { enterprises 12356 }
+
+	--
+	-- Textual conventions
+	--
+
+	FnBoolState ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "Boolean data type representing enabled/disabled"
+		SYNTAX INTEGER {
+			disabled ( 1 ),
+			enabled  ( 2 )
+		}
+
+	FnIndex ::= TEXTUAL-CONVENTION
+		DISPLAY-HINT "d"
+		STATUS current
+		DESCRIPTION "data type for table index values"
+		SYNTAX Integer32 ( 0 .. 2147483647 )
+
+	FnVdIndex ::= TEXTUAL-CONVENTION
+		DISPLAY-HINT "d"
+		STATUS current
+		DESCRIPTION "data type for virtual-domain indexes"
+		SYNTAX Integer32 ( 1 .. 2147483647 )
+
+	FnOpMode ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "enumerated type for device operation modes"
+		SYNTAX INTEGER {
+			nat         ( 1 ),
+			transparent ( 2 )
+		}
+
+	FnHaMode ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "enumerated type for HA cluster modes"
+		SYNTAX INTEGER {
+			standalone     ( 1 ),
+			activeActive   ( 2 ),
+			activePassive  ( 3 )
+		}
+
+	FnHaLBSchedule ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "enumerated type for HA load-balancing schedules"
+		SYNTAX INTEGER {
+			none                 ( 1 ),
+			hub                  ( 2 ),
+			leastConnections     ( 3 ),
+			roundRobin           ( 4 ),
+			weightedRoundRobin   ( 5 ),
+			random               ( 6 ),
+			ipBased              ( 7 ),
+			ipPortBased          ( 8 )
+		}
+
+	FnAdminPermLevel ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "enumerated type for administrative permissions"
+		SYNTAX INTEGER {
+			readAdmin   ( 0 ),
+			writeAdmin  ( 1 ),
+			domainAdmin ( 15 ),
+			superAdmin  ( 255 )
+		}
+
+	FnUserAuthType ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "enumerated type for user authentication types"
+		SYNTAX INTEGER {
+			local           ( 1 ),
+			radiusSingle    ( 2 ),
+			radiusMultiple  ( 3 ),
+			ldap            ( 4 )
+		}
+
+	FnLanguage ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "enumerated type for user interface languages"
+		SYNTAX INTEGER {
+			english            ( 1 ),
+			simplifiedChinese  ( 2 ),
+			japanese           ( 3 ),
+			korean             ( 4 ),
+			spanish            ( 5 ),
+			traditionalChinese ( 6 ),
+			french             ( 7 ),
+			undefined          ( 255 )
+		}
+
+	FnSessProto ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "data type for session protocols"
+		SYNTAX INTEGER  {
+			ip   ( 0 ),
+			icmp ( 1 ),
+			igmp ( 2 ),
+			ipip ( 4 ),
+			tcp  ( 6 ),
+			egp  ( 8 ),
+			pup  ( 12 ),
+			udp  ( 17 ),
+			idp  ( 22 ),
+			ipv6 ( 41 ),
+			rsvp ( 46 ),
+			gre  ( 47 ),
+			esp  ( 50 ),
+			ah   ( 51 ),
+			ospf ( 89 ),
+			pim  ( 103 ),
+			comp ( 108 ),
+			raw  ( 255 )
+		}
+
+	FnModel ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "enumerated type for Fortinet product models"
+		SYNTAX INTEGER  {
+			unknown       ( 0 ),
+			fgt30B        ( 302 ),
+			fgt50A        ( 500 ),
+			fgt50AM       ( 501 ),
+			fgt50B        ( 502 ),
+			fwf50B        ( 510 ),
+			fgt60         ( 600 ),
+			fgt60M        ( 601 ),
+			fgt60ADSL     ( 602 ),
+			fgt60B        ( 603 ),
+			fwf60         ( 610 ),
+			fwf60A        ( 611 ),
+			fwf60AM       ( 612 ),
+			fwf60B        ( 613 ),
+			fgt100        ( 1000 ),
+			fgt100A       ( 1001 ),
+			fgt200        ( 2000 ),
+			fgt200A       ( 2001 ),
+			fgt300        ( 3000 ),
+			fgt300A       ( 3001 ),
+			fgt310B       ( 3002 ),
+			fgt400        ( 4000 ),
+			fgt400A       ( 4001 ),
+			fgt500        ( 5000 ),
+			fgt500A       ( 5001 ),
+			fgt800        ( 8000 ),
+			fgt800F       ( 8001 ),
+			fgt1000       ( 10000 ),
+			fgt1000A      ( 10001 ),
+			fgt1000AFA2   ( 10002 ),
+			fgt1000ALENC  ( 10003 ),
+			fgt2000       ( 20000 ),
+			fgt3000       ( 30000 ),
+			fgt3016B      ( 30160 ),
+			fgt3600       ( 36000 ),
+			fgt3600A      ( 36003 ),
+			fgt3810A      ( 38100 ),
+			fgt4000       ( 40000 ),
+			fgt5000       ( 50000 ),
+			fgt5002FB2    ( 50001 ),
+			fgt5001A      ( 50011 ),
+			fgt5002A      ( 50021 ),
+			fgt5004       ( 50040 ),
+			fgt5005       ( 50050 ),
+			fgt5005FA2    ( 50051 )
+		}
+
+	FnP2PProto ::= TEXTUAL-CONVENTION
+		STATUS current
+		DESCRIPTION "data type for session protocols"
+		SYNTAX INTEGER  {
+			bitTorrent ( 0 ),
+			eDonkey    ( 1 ),
+			gnutella   ( 2 ),
+			kaZaa      ( 3 ),
+			skype      ( 4 ),
+			winNY      ( 5 )
+		}
+
+
+-- basic tree layout:
+--  fortinet         : enterprises.12356
+--    fnTraps        : fortinet.0
+--    fnSystem       : fortinet.1
+--    fnDomains      : fortinet.2
+--    fnIntf         : fortinet.3
+--    fnIp           : fortinet.4
+--    fnVpn          : fortinet.9
+--    fnBridge       : fortinet.15
+--    fnIps          : fortinet.16
+--    fnApplications : fortinet.17
+
+--	fortinet          OBJECT IDENTIFIER ::=  { enterprises  12356 }
+	fnTraps           OBJECT IDENTIFIER ::=  { fortinet  0 }
+	fnSystem          OBJECT IDENTIFIER ::=  { fortinet  1 }
+	fnDomains         OBJECT IDENTIFIER ::=  { fortinet  2 }
+	fnIntf            OBJECT IDENTIFIER ::=  { fortinet  3 }
+	fnIp              OBJECT IDENTIFIER ::=  { fortinet  4 }
+--	fnDhcp            OBJECT IDENTIFIER ::=  { fortinet  5 }
+--	fnSnmp            OBJECT IDENTIFIER ::=  { fortinet  6 }
+--	fnDns             OBJECT IDENTIFIER ::=  { fortinet  7 }
+	fnFirewall        OBJECT IDENTIFIER ::=  { fortinet  8 }
+	fnVpn             OBJECT IDENTIFIER ::=  { fortinet  9 }
+	fnManagement      OBJECT IDENTIFIER ::=  { fortinet  10 }
+	fnAntivirus       OBJECT IDENTIFIER ::=  { fortinet  11 }
+--	fnVip             OBJECT IDENTIFIER ::=  { fortinet  12 }
+	fnWebfilter       OBJECT IDENTIFIER ::=  { fortinet  13 }
+--	fnAntispam        OBJECT IDENTIFIER ::=  { fortinet  14 }
+--	fnBridge          OBJECT IDENTIFIER ::=  { fortinet  15 }
+	fnIps             OBJECT IDENTIFIER ::=  { fortinet  16 }
+	fnApplications    OBJECT IDENTIFIER ::=  { fortinet  17 }
+	fnMIBConformance  OBJECT IDENTIFIER ::=  { fortinet  99 }
+
+--
+-- fortinet.fnSystem.
+--
+	fnSysModel              OBJECT-TYPE
+		SYNTAX          FnModel
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Product model designation of the device"
+		::= { fnSystem  1 }
+
+	fnSysSerial             OBJECT-TYPE
+		SYNTAX          DisplayString  ( SIZE ( 0 .. 32  ) )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Serial number of the device"
+		::= { fnSystem  2 }
+
+	fnSysVersion            OBJECT-TYPE
+		SYNTAX          DisplayString  ( SIZE ( 0 .. 128 ) )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Firmware version of the device"
+		::= { fnSystem  3 }
+
+	fnSysVersionAv          OBJECT-TYPE
+		SYNTAX          DisplayString  ( SIZE ( 0 .. 128 ) )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Virus signature database version installed on the device"
+		::= { fnSystem  4 }
+
+	fnSysVersionNids        OBJECT-TYPE
+		SYNTAX          DisplayString  ( SIZE ( 0 .. 128 ) )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "IPS signature database version installed on the device"
+		::= { fnSystem  5 }
+
+	fnSysHaMode             OBJECT-TYPE
+		SYNTAX          FnHaMode
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "High-availability mode (Standalone, A-A or A-P)"
+		::= { fnSystem  6 }
+
+	fnSysOpMode             OBJECT-TYPE
+		SYNTAX          FnOpMode
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Operational mode (Transparent or Nat) of the management virtual domain"
+		::= { fnSystem  7 }
+
+	fnSysCpuUsage           OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Current CPU usage (percentage)"
+		::= { fnSystem  8 }
+
+	fnSysMemUsage           OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Current memory utilization (percentage)"
+		::= { fnSystem  9 }
+
+	fnSysSesCount           OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of active sessions on the device"
+		::= { fnSystem  10 }
+
+	fnSysDiskCapacity       OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Total hard disk capacity (MB), if disk is present"
+		::= { fnSystem  11 }
+
+	fnSysDiskUsage          OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Current hard disk usage (MB), if disk is present"
+		::= { fnSystem  12 }
+
+	fnSysMemCapacity        OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Total physical memory (RAM) installed (KB)"
+		::= { fnSystem  13 }
+
+	fnHa            OBJECT IDENTIFIER ::=  { fnSystem 100 }
+	fnAdmin         OBJECT IDENTIFIER ::=  { fnSystem 101 }
+	fnUsers         OBJECT IDENTIFIER ::=  { fnSystem 102 }
+	fnOptions       OBJECT IDENTIFIER ::=  { fnSystem 103 }
+--	fnLogging       OBJECT IDENTIFIER ::=  { fnSystem 104 }
+--	fnMessages      OBJECT IDENTIFIER ::=  { fnSystem 105 }
+	fnHwSensors     OBJECT IDENTIFIER ::=  { fnSystem 110 }
+
+--
+-- fortinet.fnSystem.fnHa.
+--
+
+	fnHaGroupId             OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "HA cluster group ID device is configured for"
+		::= { fnHa      1 }
+
+	fnHaPriority            OBJECT-TYPE
+		SYNTAX          Integer32 (0 .. 255)
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "HA clustering priority of the device (default = 127)"
+		::= { fnHa      2 }
+
+	fnHaOverride            OBJECT-TYPE
+		SYNTAX          FnBoolState
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Status of a master override flag"
+		::= { fnHa      3 }
+
+	fnHaAutoSync            OBJECT-TYPE
+		SYNTAX          FnBoolState
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Configuration of an automatic configuration
+		                 synchronization (enabled or disabled)"
+		::= { fnHa      4 }
+
+	fnHaSchedule            OBJECT-TYPE
+		SYNTAX          FnHaLBSchedule
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Load-balancing schedule of cluster (in A-A mode)"
+		::= { fnHa      5 }
+
+--      fnHaStatusTable ==  fnHa.6, see below
+
+	fnHaGroupName           OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "HA cluster group name"
+		::= { fnHa      7 }
+
+	fnHaTrapMemberSerial    OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Serial number of an HA cluster member. Used to identify the origin of a trap when a cluster is configured."
+		::= { fnHa      8 }
+
+--
+-- fortinet.fnSystem.fnHa.fnHaStatusTable.
+--
+
+	fnHaStatsTable          OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnHaStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Some useful statistics for all members of a cluster. This table is also available in standalone mode."
+		::= { fnHa      6 }
+
+	fnHaStatsEntry          OBJECT-TYPE
+		SYNTAX          FnHaStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Statistics for a particular HA cluster's unit"
+		INDEX           { fnHaStatsIndex }
+		::= { fnHaStatsTable 1 }
+
+	FnHaStatsEntry ::= SEQUENCE {
+		    fnHaStatsIndex        FnIndex,
+		    fnHaStatsSerial       DisplayString,
+		    fnHaStatsCpuUsage     Gauge32,
+		    fnHaStatsMemUsage     Gauge32,
+		    fnHaStatsNetUsage     Gauge32,
+		    fnHaStatsSesCount     Gauge32,
+		    fnHaStatsPktCount     Counter32,
+		    fnHaStatsByteCount    Counter32,
+		    fnHaStatsIdsCount     Counter32,
+		    fnHaStatsAvCount      Counter32,
+		    fnHaStatsHostname     DisplayString
+	}
+
+	fnHaStatsIndex          OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An index value that uniquely identifies an
+		                 unit in the HA Cluster"
+		::= { fnHaStatsEntry 1 }
+
+	fnHaStatsSerial         OBJECT-TYPE
+		SYNTAX          DisplayString  ( SIZE ( 0 .. 32  ) )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Serial number of the HA cluster member for this row"
+		::= { fnHaStatsEntry 2 }
+
+	fnHaStatsCpuUsage       OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "CPU usage of the specified cluster member (percentage)"
+		::= { fnHaStatsEntry 3 }
+
+	fnHaStatsMemUsage       OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Memory usage of the specified cluster member (percentage)"
+		::= { fnHaStatsEntry 4 }
+
+	fnHaStatsNetUsage       OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Network bandwidth usage of specified cluster member (kbps)"
+		::= { fnHaStatsEntry 5 }
+
+	fnHaStatsSesCount       OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Current session count of specified cluster member"
+		::= { fnHaStatsEntry 6 }
+
+	fnHaStatsPktCount       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of packets processed by the specified cluster member since start-up"
+		::= { fnHaStatsEntry 7 }
+
+	fnHaStatsByteCount      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of bytes processed by the specified cluster member since start-up"
+		::= { fnHaStatsEntry 8 }
+
+	fnHaStatsIdsCount       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of IDS/IPS events triggered on the specified cluster member since start-up"
+		::= { fnHaStatsEntry 9 }
+
+	fnHaStatsAvCount        OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of anti-virus events triggered on the specified cluster member since start-up"
+		::= { fnHaStatsEntry 10 }
+
+	fnHaStatsHostname       OBJECT-TYPE
+		SYNTAX          DisplayString  ( SIZE ( 0 .. 255  ) )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Hostname of the specified cluster member"
+		::= { fnHaStatsEntry 11 }
+
+--
+-- fortinet.fnSystem.fnAdmin.
+--
+
+	fnAdminNumber           OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The number of admin accounts in fnAdminTable"
+		::= { fnAdmin   1 }
+
+	fnAdminTable            OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnAdminEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of administrator accounts on the device"
+		::= { fnAdmin   2 }
+
+	fnAdminEntry            OBJECT-TYPE
+		SYNTAX          FnAdminEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An entry containing information applicable
+		                 to a particular admin account"
+		INDEX           { fnAdminIndex }
+		::= { fnAdminTable 1 }
+
+	FnAdminEntry ::= SEQUENCE {
+		fnAdminIndex    FnIndex,
+		fnAdminName     DisplayString,
+		fnAdminAddr     IpAddress,
+		fnAdminMask     IpAddress,
+		fnAdminVdom     FnVdIndex
+	}
+
+	fnAdminIndex            OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An index uniquely defining an administrator account within the fnAdminTable"
+		::= { fnAdminEntry 1 }
+
+	fnAdminName             OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The user-name of the specified administrator account"
+		::= { fnAdminEntry 2 }
+
+	fnAdminAddr             OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The address prefix identifying where the administrator account can be used from"
+		::= { fnAdminEntry 3 }
+
+	fnAdminMask             OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The address mask applied to the fnAdminAddr to determine the subnet or host the administrator can access the device from"
+		::= { fnAdminEntry 4 }
+
+	fnAdminVdom             OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The virtual domain the administrator belongs to"
+		::= { fnAdminEntry 5 }
+
+
+--
+-- fortinet.fnSystem.fnUsers.
+--
+
+	fnUserNumber            OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The number of user accounts in fnUserTable"
+		::= { fnUsers   1 }
+
+	fnUserTable             OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnUserEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A list of local and proxied (Radius server)
+		                 user accounts for use with firewall user authentication"
+		::= { fnUsers   2 }
+
+	fnUserEntry             OBJECT-TYPE
+		SYNTAX          FnUserEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An entry containing information applicable
+				 to a particular user account"
+		INDEX           { fnUserIndex }
+		::= { fnUserTable 1 }
+
+	FnUserEntry ::= SEQUENCE {
+		fnUserIndex     FnIndex,
+		fnUserName      DisplayString,
+		fnUserAuth      FnUserAuthType,
+		fnUserState     FnBoolState,
+		fnUserVdom      FnVdIndex
+	}
+
+	fnUserIndex             OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An index for uniquely identifying the users in fnUserTable"
+		::= { fnUserEntry 1 }
+
+	fnUserName              OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "User-name of the specified account"
+		::= { fnUserEntry 2 }
+
+	fnUserAuth              OBJECT-TYPE
+		SYNTAX          FnUserAuthType
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Type of authentication the account uses (local, RADIUS, LDAP, etc.)"
+		::= { fnUserEntry 3 }
+
+	fnUserState             OBJECT-TYPE
+		SYNTAX          FnBoolState
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Status of the user account (enable/disable)"
+		::= { fnUserEntry 4 }
+
+	fnUserVdom              OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Virtual domain the user account exists in. This index corresponds to the index used in fnVdTable."
+		::= { fnUserEntry 5 }
+
+--
+-- fortinet.fnSystem.fnOptions.
+--
+
+	fnOptIdleTimeout        OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Idle period after which an administrator
+		                 is automatically logged out of the system"
+		::= { fnOptions 1 }
+
+	fnOptAuthTimeout        OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Idle period after which a firewall-authentication user's session
+		                 is automatically expired"
+		::= { fnOptions 2 }
+
+	fnOptLanguage           OBJECT-TYPE
+		SYNTAX          FnLanguage
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Language used for user interfaces"
+		::= { fnOptions 3 }
+
+	fnOptLcdProtection      OBJECT-TYPE
+		SYNTAX          FnBoolState
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Status of the LCD protection (enabled/disabled)"
+		::= { fnOptions 4 }
+
+--
+-- fortinet.fnSystem.fnHwSensors.
+--
+	fnHwSensorCount         OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The number of entries in fnHwSensorTable"
+		::= { fnHwSensors 1 }
+
+	fnHwSensorTable         OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnHwSensorEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A list of device specific hardware sensors and values. Because different devices have different hardware sensor capabilities, this table may or may not contain any values."
+		::= { fnHwSensors 2 }
+
+	fnHwSensorEntry         OBJECT-TYPE
+		SYNTAX          FnHwSensorEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An entry containing the name, value, and alarm status of a given hardware sensor"
+		INDEX           { fnHwSensorEntIndex }
+		::= { fnHwSensorTable 1 }
+
+	FnHwSensorEntry ::= SEQUENCE {
+		fnHwSensorEntIndex       FnIndex,
+		fnHwSensorEntName        DisplayString,
+		fnHwSensorEntValue       DisplayString,
+		fnHwSensorEntAlarmStatus INTEGER
+	}
+
+	fnHwSensorEntIndex      OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A unique identifier within the fnHwSensorTable"
+		::= { fnHwSensorEntry 1 }
+
+	fnHwSensorEntName       OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "A string identifying the sensor by name"
+		::= { fnHwSensorEntry 2 }
+
+	fnHwSensorEntValue      OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "A string representation of the value of the sensor. Because sensors can present data in different formats, string representation is most general format. Interpretation of the value (units of measure, for example) is dependent on the individual sensor."
+		::= { fnHwSensorEntry 3 }
+
+	fnHwSensorEntAlarmStatus OBJECT-TYPE
+		SYNTAX          INTEGER { false(0), true(1) }
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "If the sensor has an alarm threshold and has exceeded it, this will indicate its status. Not all sensors have alarms."
+		::= { fnHwSensorEntry 4 }
+
+
+--
+-- fortinet.fnDomains.
+--
+
+	fnVdNumber              OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The number of virtual domains in vdTable"
+		::= { fnDomains 1 }
+
+	fnVdTable               OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnVdEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of virtual domains configured on the device"
+		::= { fnDomains 2 }
+
+	fnVdEntry               OBJECT-TYPE
+		SYNTAX          FnVdEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An entry containing information applicable
+		                 to a particular virtual domain"
+		INDEX           { fnVdEntIndex }
+		::= { fnVdTable 1 }
+
+	FnVdEntry ::= SEQUENCE  {
+		fnVdEntIndex       FnVdIndex,
+		fnVdEntName        DisplayString,
+		fnVdEntOpMode      FnOpMode
+	}
+
+	fnVdEntIndex            OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Internal virtual domain index used to uniquely identify rows in this table. This index is also used by other tables referencing a virtual domain."
+		::= { fnVdEntry 1 }
+
+	fnVdEntName             OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The name of the virtual domain"
+		::= { fnVdEntry 2 }
+
+	fnVdEntOpMode           OBJECT-TYPE
+		SYNTAX          FnOpMode
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Operation mode of the virtual domain (NAT or Transparent)"
+		::= { fnVdEntry 3 }
+
+	fnVdMaxVdoms            OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The maximum number of virtual domains allowed on the device as allowed by hardware and/or licensing"
+		::= { fnDomains 3 }
+
+	fnVdEnabled             OBJECT-TYPE
+		SYNTAX          FnBoolState
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Whether virtual domains are enabled on this device"
+		::= { fnDomains 4 }
+
+--
+-- fortinet.fnIntf
+--
+
+--
+-- fortinet.fnIntf.fnIntfTable
+--
+
+	fnIntfTable             OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnIntfEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Fortinet specific extensions to MIB-2 ifTable"
+		::= { fnIntf    1 }
+
+	fnIntfEntry           OBJECT-TYPE
+		SYNTAX          FnIntfEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Fortinet specific information about an ifEntry. This table augments the standard ifTable, so the same indexing is used."
+		AUGMENTS        { ifEntry }
+		::= { fnIntfTable 1 }
+
+	FnIntfEntry ::= SEQUENCE {
+		fnIntfEntVdom   FnVdIndex
+	}
+
+	fnIntfEntVdom           OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "The virtual domain the interface belongs to"
+		::= { fnIntfEntry 1 }
+
+--
+-- fortinet.fnIp.
+--
+
+--
+-- fortinet.fnIp.fnIpSessTable
+--
+
+	fnIpSessTable           OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnIpSessEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Information on the IP sessions active on the device"
+		::= { fnIp      2 }
+
+	fnIpSessEntry           OBJECT-TYPE
+		SYNTAX          FnIpSessEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Information on a specific session, including source and destination"
+		INDEX           { fnIpSessIndex }
+		::= { fnIpSessTable 1 }
+
+	FnIpSessEntry ::= SEQUENCE {
+		fnIpSessIndex    FnIndex,
+		fnIpSessProto    FnSessProto,
+		fnIpSessFromAddr IpAddress,
+		fnIpSessFromPort InetPortNumber,
+		fnIpSessToAddr   IpAddress,
+		fnIpSessToPort   InetPortNumber,
+		fnIpSessExp      Counter32,
+		fnIpSessVdom     FnVdIndex
+	}
+
+	fnIpSessIndex           OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An index value that uniquely identifies
+		                 an IP session within the fnIpSessTable"
+		::= { fnIpSessEntry 1 }
+
+	fnIpSessProto           OBJECT-TYPE
+		SYNTAX          FnSessProto
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The protocol the session is using (IP, TCP, UDP, etc.)"
+		::= { fnIpSessEntry 2 }
+
+	fnIpSessFromAddr        OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Source IP address (IPv4 only) of the session"
+		::= { fnIpSessEntry 3 }
+
+	fnIpSessFromPort        OBJECT-TYPE
+		SYNTAX          InetPortNumber
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Source port number (UDP and TCP only) of the session"
+		::= { fnIpSessEntry 4 }
+
+	fnIpSessToAddr          OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Destination IP address (IPv4 only) of the session"
+		::= { fnIpSessEntry 5 }
+
+	fnIpSessToPort          OBJECT-TYPE
+		SYNTAX          InetPortNumber
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Destination Port number (UDP and TCP only) of the session"
+		::= { fnIpSessEntry 6 }
+
+	fnIpSessExp             OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of seconds remaining before the session expires (if idle)"
+		::= { fnIpSessEntry 7 }
+
+	fnIpSessVdom            OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Virtual domain the session is part of. Corresponds to the index in fnVdTable."
+		::= { fnIpSessEntry 8 }
+
+--
+-- fortinet.fnIp.fnIpSessStatsTable
+--
+
+	fnIpSessStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnIpSessStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "IP session statistics table"
+		::= { fnIp      3 }
+
+	fnIpSessStatsEntry      OBJECT-TYPE
+		SYNTAX          FnIpSessStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "IP session statistics on a virtual domain"
+		INDEX           { fnIpSessStatsVdomIndex }
+		::= { fnIpSessStatsTable 1 }
+
+	FnIpSessStatsEntry ::= SEQUENCE {
+		fnIpSessStatsVdomIndex  FnVdIndex,
+		fnIpSessNumber          Counter32
+	}
+
+	fnIpSessStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This is the same index as used by fnVdTable."
+		::= { fnIpSessStatsEntry 1 }
+
+	fnIpSessNumber          OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Current number of sessions on the virtual domain"
+		::= { fnIpSessStatsEntry 2 }
+
+--
+-- fortinet.fnFirewall.
+--
+
+	fnFwPolicyStatsTable    OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnFwPolicyStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Firewall policy statistics table"
+		::= { fnFirewall 1 }
+
+	fnFwPolicyStatsEntry    OBJECT-TYPE
+		SYNTAX          FnFwPolicyStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Firewall policy statistics on a virtual domain"
+		INDEX           { fnFwPolicyStatsVdomIndex, fnFwPolicyID }
+		::= { fnFwPolicyStatsTable 1 }
+
+	FnFwPolicyStatsEntry ::= SEQUENCE {
+		fnFwPolicyStatsVdomIndex    FnVdIndex,
+		fnFwPolicyID                FnIndex,
+		fnFwPolicyPktCount          Counter32,
+		fnFwPolicyByteCount         Counter32
+	}
+
+	fnFwPolicyStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This is the same index as used by fnVdTable."
+		::= { fnFwPolicyStatsEntry 1 }
+
+	fnFwPolicyID            OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Firewall policy ID. Only enabled policies are present in this table. Policy ID's are only unique within a virtual domain."
+		::= { fnFwPolicyStatsEntry 2 }
+
+	fnFwPolicyPktCount      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of packets matched to policy (passed or blocked, depending on policy action). Count is from the time the policy became active."
+		::= { fnFwPolicyStatsEntry 3 }
+
+	fnFwPolicyByteCount     OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of bytes in packets matching the policy. See fnFwPolicyPktCount."
+		::= { fnFwPolicyStatsEntry 4 }
+
+--
+-- fortinet.fnVpn.
+--
+
+	fnVpnDialupTable        OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnVpnDialupEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Dial-up VPN peers information"
+		::= { fnVpn     1 }
+
+	fnVpnDialupEntry        OBJECT-TYPE
+		SYNTAX          FnVpnDialupEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Dial-up VPN peer info"
+		INDEX           { fnVpnDialupIndex }
+		::= { fnVpnDialupTable 1 }
+
+	FnVpnDialupEntry ::= SEQUENCE {
+		fnVpnDialupIndex        FnIndex,
+		fnVpnDialupGateway      IpAddress,
+		fnVpnDialupLifetime     Integer32,
+		fnVpnDialupTimeout      Integer32,
+		fnVpnDialupSrcBegin     IpAddress,
+		fnVpnDialupSrcEnd       IpAddress,
+		fnVpnDialupDstAddr      IpAddress,
+		fnVpnDialupVdom         FnVdIndex,
+		fnVpnDialupInOctets     Counter64,
+		fnVpnDialupOutOctets    Counter64
+	}
+
+	fnVpnDialupIndex        OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An index value that uniquely identifies
+				 an VPN dial-up peer within the fnVpnDialupTable"
+		::=  { fnVpnDialupEntry  1 }
+
+	fnVpnDialupGateway      OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Remote gateway IP address of the tunnel"
+		::=  { fnVpnDialupEntry  2 }
+
+	fnVpnDialupLifetime     OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Tunnel life time (seconds) of the tunnel"
+		::=  { fnVpnDialupEntry  3 }
+
+	fnVpnDialupTimeout      OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Time before the next key exchange (seconds) of the tunnel"
+		::=  { fnVpnDialupEntry  4 }
+
+	fnVpnDialupSrcBegin     OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Remote subnet address of the tunnel"
+		::=  { fnVpnDialupEntry  5 }
+
+	fnVpnDialupSrcEnd       OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Remote subnet mask of the tunnel"
+		::=  { fnVpnDialupEntry  6 }
+
+	fnVpnDialupDstAddr      OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Local subnet address of the tunnel"
+		::=  { fnVpnDialupEntry  7 }
+
+	fnVpnDialupVdom         OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Virtual domain tunnel is part of. This index corresponds to the index in fnVdTable."
+		::=  { fnVpnDialupEntry  8 }
+
+	fnVpnDialupInOctets     OBJECT-TYPE
+		SYNTAX          Counter64
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of bytes received."
+		::=  { fnVpnDialupEntry  9 }
+
+	fnVpnDialupOutOctets    OBJECT-TYPE
+		SYNTAX          Counter64
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of bytes transmitted."
+		::=  { fnVpnDialupEntry  10 }
+
+	fnVpnTrapLocalGateway   OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Local gateway IP address. Used in VPN related traps."
+		::= { fnVpn     2 }
+
+	fnVpnTrapRemoteGateway  OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Remote gateway IP address. Used in VPN related traps."
+		::= { fnVpn     3 }
+
+	fnVpnTunTable           OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnVpnTunnelEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Table of non-dial-up VPN tunnels"
+		::= { fnVpn        4 }
+
+	fnVpnTunEntry           OBJECT-TYPE
+		SYNTAX          FnVpnTunnelEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Tunnel VPN peer info"
+		INDEX           { fnVpnTunEntIndex }
+		::= { fnVpnTunTable 1 }
+
+	FnVpnTunnelEntry ::= SEQUENCE {
+		fnVpnTunEntIndex               FnIndex,
+		fnVpnTunEntPhase1Name          DisplayString,
+		fnVpnTunEntPhase2Name          DisplayString,
+		fnVpnTunEntRemGwyIp            IpAddress,
+		fnVpnTunEntRemGwyPort          InetPortNumber,
+		fnVpnTunEntLocGwyIp            IpAddress,
+		fnVpnTunEntLocGwyPort          InetPortNumber,
+		fnVpnTunEntSelectorSrcBeginIp  IpAddress,
+		fnVpnTunEntSelectorSrcEndIp    IpAddress,
+		fnVpnTunEntSelectorSrcPort     InetPortNumber,
+		fnVpnTunEntSelectorDstBeginIp  IpAddress,
+		fnVpnTunEntSelectorDstEndIp    IpAddress,
+		fnVpnTunEntSelectorDstPort     InetPortNumber,
+		fnVpnTunEntSelectorProto       Integer32,
+		fnVpnTunEntLifeSecs            Gauge32,
+		fnVpnTunEntLifeBytes           Gauge32,
+		fnVpnTunEntTimeout             Gauge32,
+		fnVpnTunEntInOctets            Counter64,
+		fnVpnTunEntOutOctets           Counter64,
+		fnVpnTunEntStatus              INTEGER, --1 = down, 2 = up
+		fnVpnTunEntVdom                FnVdIndex
+	}
+
+	fnVpnTunEntIndex        OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An index value that uniquely identifies
+				 a VPN tunnel within the fnVpnTunTable"
+		::=  { fnVpnTunEntry  1 }
+
+	fnVpnTunEntPhase1Name   OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Descriptive name of phase1 configuration for the tunnel"
+		::=  { fnVpnTunEntry 2 }
+
+	fnVpnTunEntPhase2Name   OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Descriptive name of phase2 configuration for the tunnel"
+		::=  { fnVpnTunEntry 3 }
+
+	fnVpnTunEntRemGwyIp     OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "IP of remote gateway used by the tunnel"
+		::=  { fnVpnTunEntry 4 }
+
+	fnVpnTunEntRemGwyPort   OBJECT-TYPE
+		SYNTAX          InetPortNumber
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "port of remote gateway used by tunnel, if UDP"
+		::=  { fnVpnTunEntry 5 }
+
+	fnVpnTunEntLocGwyIp     OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "IP of local gateway used by the tunnel"
+		::=  { fnVpnTunEntry 6 }
+
+	fnVpnTunEntLocGwyPort   OBJECT-TYPE
+		SYNTAX          InetPortNumber
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "port of local gateway used by tunnel, if UDP"
+		::=  { fnVpnTunEntry 7 }
+
+	fnVpnTunEntSelectorSrcBeginIp OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Beginning of address range of source selector"
+		::=  { fnVpnTunEntry 8 }
+
+	fnVpnTunEntSelectorSrcEndIp OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "End of address range of source selector"
+		::=  { fnVpnTunEntry 9 }
+
+	fnVpnTunEntSelectorSrcPort OBJECT-TYPE
+		SYNTAX          InetPortNumber
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Source selector port"
+		::=  { fnVpnTunEntry 10 }
+
+	fnVpnTunEntSelectorDstBeginIp OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Beginning of address range of destination
+				 selector"
+		::=  { fnVpnTunEntry 11 }
+
+	fnVpnTunEntSelectorDstEndIp OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "End of address range of destination selector"
+		::=  { fnVpnTunEntry 12 }
+
+	fnVpnTunEntSelectorDstPort OBJECT-TYPE
+		SYNTAX          InetPortNumber
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Destination selector port"
+		::=  { fnVpnTunEntry 13 }
+
+	fnVpnTunEntSelectorProto OBJECT-TYPE
+		SYNTAX          Integer32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Protocol number for selector"
+		::=  { fnVpnTunEntry 14 }
+
+	fnVpnTunEntLifeSecs     OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Lifetime of tunnel in seconds, if time based lifetime used"
+		::=  { fnVpnTunEntry 15 }
+
+	fnVpnTunEntLifeBytes    OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Lifetime of tunnel in bytes, if byte transfer based lifetime used"
+		::=  { fnVpnTunEntry 16 }
+
+	fnVpnTunEntTimeout      OBJECT-TYPE
+		SYNTAX          Gauge32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Timeout of tunnel in seconds"
+		::=  { fnVpnTunEntry 17 }
+
+	fnVpnTunEntInOctets     OBJECT-TYPE
+		SYNTAX          Counter64
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of bytes received on tunnel"
+		::=  { fnVpnTunEntry 18 }
+
+	fnVpnTunEntOutOctets    OBJECT-TYPE
+		SYNTAX          Counter64
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of bytes sent out on tunnel"
+		::=  { fnVpnTunEntry 19 }
+
+	fnVpnTunEntStatus       OBJECT-TYPE
+		SYNTAX          INTEGER { down(1), up(2) }
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Current status of tunnel (up or down)"
+		::=  { fnVpnTunEntry 20 }
+
+	fnVpnTunEntVdom         OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Vdom the tunnel is part of. This index corresponds to the index used in fnVdTable."
+		::=  { fnVpnTunEntry 21 }
+
+--
+-- fortinet.fnVpn.fnVpnSslStatsTable
+--
+	fnVpnSslStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnVpnSslStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "SSL VPN statistics table"
+		::= { fnVpn     5 }
+
+	fnVpnSslStatsEntry      OBJECT-TYPE
+		SYNTAX          FnVpnSslStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "SSL VPN statistics for a given virtual domain"
+		INDEX           { fnVpnSslStatsVdomIndex }
+		::= { fnVpnSslStatsTable 1 }
+
+	FnVpnSslStatsEntry ::= SEQUENCE {
+		fnVpnSslStatsVdomIndex          FnVdIndex,
+		fnVpnSslState                   FnBoolState,
+		fnVpnSslStatsLoginUsers         Counter32,
+		fnVpnSslStatsMaxUsers           Counter32,
+		fnVpnSslStatsActiveWebSessions  Counter32,
+		fnVpnSslStatsMaxWebSessions     Counter32,
+		fnVpnSslStatsActiveTunnels      Counter32,
+		fnVpnSslStatsMaxTunnels         Counter32
+	}
+
+	fnVpnSslStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the particular virtual domain the statistics are for. This index corresponds to the index used in fnVdTable."
+		::=  { fnVpnSslStatsEntry  1 }
+
+	fnVpnSslState           OBJECT-TYPE
+		SYNTAX          FnBoolState
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Whether SSL-VPN is enabled on this virtual domain"
+		::=  { fnVpnSslStatsEntry 2 }
+
+	fnVpnSslStatsLoginUsers	OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The current number of users logged in through SSL-VPN tunnels in the virtual domain"
+		::=  { fnVpnSslStatsEntry 3 }
+
+	fnVpnSslStatsMaxUsers   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The maximum number of total users that can be logged in
+		                 at any one time on the virtual domain"
+		::=  { fnVpnSslStatsEntry 4 }
+
+	fnVpnSslStatsActiveWebSessions  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The current number of active SSL web sessions in the virtual domain"
+		::=  { fnVpnSslStatsEntry 5 }
+
+	fnVpnSslStatsMaxWebSessions  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The maximum number of active SSL web sessions
+		                 at any one time within the virtual domain"
+		::=  { fnVpnSslStatsEntry 6 }
+
+	fnVpnSslStatsActiveTunnels  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The current number of active SSL tunnels in the virtual domain"
+		::=  { fnVpnSslStatsEntry 7 }
+
+	fnVpnSslStatsMaxTunnels OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The maximum number of active SSL tunnels
+		                 at any one time in the virtual domain"
+		::=  { fnVpnSslStatsEntry 8 }
+--
+-- fortinet.fnVpn.fnVpnSslTunnelTable
+--
+	fnVpnSslTunnelTable     OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnVpnSslTunnelEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A list of active SSL VPN tunnel entries"
+		::= { fnVpn     6 }
+
+	fnVpnSslTunnelEntry     OBJECT-TYPE
+		SYNTAX          FnVpnSslTunnelEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An SSL VPN tunnel entry containing connection information
+		                 and traffic statistics"
+		INDEX           { fnVpnSslTunnelIndex }
+		::= { fnVpnSslTunnelTable 1 }
+
+	FnVpnSslTunnelEntry ::= SEQUENCE {
+		fnVpnSslTunnelIndex              FnIndex,
+		fnVpnSslTunnelVdom               FnVdIndex,
+		fnVpnSslTunnelUserName           DisplayString,
+		fnVpnSslTunnelSrcIp              IpAddress,
+		fnVpnSslTunnelIp                 IpAddress,
+		fnVpnSslTunnelUpTime             Counter32,
+		fnVpnSslTunnelBytesIn            Counter64,
+		fnVpnSslTunnelBytesOut           Counter64
+	}
+
+	fnVpnSslTunnelIndex     OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "An index value that uniquely identifies
+				 an active SSL vpn tunnel within the fnVpnSslTunnelTable"
+		::=  { fnVpnSslTunnelEntry  1 }
+
+	fnVpnSslTunnelVdom	OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The index of the virtual domain (vdom) this tunnel belongs to. This index corresponds to the index used by fnVdTable."
+		::=  { fnVpnSslTunnelEntry 2 }
+
+	fnVpnSslTunnelUserName	OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The user name used to authenticate the tunnel"
+		::=  { fnVpnSslTunnelEntry 3 }
+
+	fnVpnSslTunnelSrcIp	OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The source IP address of this tunnel"
+		::=  { fnVpnSslTunnelEntry 4 }
+
+	fnVpnSslTunnelIp	OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The connection IP address of this tunnel"
+		::=  { fnVpnSslTunnelEntry 5 }
+
+	fnVpnSslTunnelUpTime	OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The up-time of this tunnel in seconds"
+		::=  { fnVpnSslTunnelEntry 6 }
+
+	fnVpnSslTunnelBytesIn	OBJECT-TYPE
+		SYNTAX          Counter64
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The number of incoming bytes of L2 traffic through this tunnel since it was established"
+		::=  { fnVpnSslTunnelEntry 7 }
+
+	fnVpnSslTunnelBytesOut	OBJECT-TYPE
+		SYNTAX          Counter64
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The number of outgoing bytes of L2 traffic through this tunnel since it was established"
+		::=  { fnVpnSslTunnelEntry 8 }
+
+--
+-- fortinet.fnManagement.
+--
+
+	fnManSysSerial          OBJECT-TYPE
+		SYNTAX          DisplayString  ( SIZE ( 0 .. 32  ) )
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Serial number of FortiGate the trap is for"
+		::= { fnManagement 1 }
+
+	fnManIfName             OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Name of interface as used in configuration"
+		::= { fnManagement 2 }
+
+	fnManIfIp               OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "IP address of the interface listed in the trap"
+		::= { fnManagement 3 }
+
+	fnManIfMask             OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Mask of subnet the interface belongs to"
+		::= { fnManagement 4 }
+
+
+--
+-- fortinet.fnAntivirus.
+--
+
+	fnAvTrapVirName         OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Virus name that triggered event"
+		::= { fnAntivirus 1 }
+
+	fnAvStatsTable          OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnAvStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of Anti-virus statistics per vdom"
+		::= { fnAntivirus 2 }
+
+	fnAvStatsEntry          OBJECT-TYPE
+		SYNTAX          FnAvStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Anti-virus statistics for a particular virtual domain"
+		INDEX           { fnAvStatsVdomIndex }
+		::= { fnAvStatsTable 1 }
+
+	FnAvStatsEntry ::= SEQUENCE {
+		fnAvStatsVdomIndex    FnVdIndex,
+		fnAvVirusDetected     Counter32,
+		fnAvVirusBlocked      Counter32,
+		fnAvHTTPVirusDetected Counter32,
+		fnAvHTTPVirusBlocked  Counter32,
+		fnAvSMTPVirusDetected Counter32,
+		fnAvSMTPVirusBlocked  Counter32,
+		fnAvPOP3VirusDetected Counter32,
+		fnAvPOP3VirusBlocked  Counter32,
+		fnAvIMAPVirusDetected Counter32,
+		fnAvIMAPVirusBlocked  Counter32,
+		fnAvFTPVirusDetected  Counter32,
+		fnAvFTPVirusBlocked   Counter32,
+		fnAvIMVirusDetected   Counter32,
+		fnAvIMVirusBlocked    Counter32,
+		fnAvNNTPVirusDetected Counter32,
+		fnAvNNTPVirusBlocked  Counter32,
+		fnAvOversizedDetected Counter32,
+		fnAvOversizedBlocked  Counter32
+	}
+
+	fnAvStatsVdomIndex      OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index value that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnAvStatsEntry 1 }
+
+	fnAvVirusDetected       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 2 }
+
+	fnAvVirusBlocked        OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 3 }
+
+	fnAvHTTPVirusDetected   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over HTTP detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 4 }
+
+	fnAvHTTPVirusBlocked    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over HTTP blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 5 }
+
+	fnAvSMTPVirusDetected   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over SMTP detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 6 }
+
+	fnAvSMTPVirusBlocked    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over SMTP blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 7 }
+
+	fnAvPOP3VirusDetected   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over POP3 detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 8 }
+
+	fnAvPOP3VirusBlocked    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over POP3 blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 9 }
+
+	fnAvIMAPVirusDetected   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over IMAP detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 10 }
+
+	fnAvIMAPVirusBlocked    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over IMAP blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 11 }
+
+	fnAvFTPVirusDetected    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over FTP detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 12 }
+
+	fnAvFTPVirusBlocked     OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over FTP blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 13 }
+
+	fnAvIMVirusDetected     OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over IM protocols detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 14 }
+
+	fnAvIMVirusBlocked      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over IM protocols blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 15 }
+
+	fnAvNNTPVirusDetected   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over NNTP detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 16 }
+
+	fnAvNNTPVirusBlocked    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of virus transmissions over NNTP blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 17 }
+
+	fnAvOversizedDetected   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of over-sized file transmissions detected in the virtual domain since start-up"
+		::= { fnAvStatsEntry 18 }
+
+	fnAvOversizedBlocked    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of over-sized file transmissions blocked in the virtual domain since start-up"
+		::= { fnAvStatsEntry 19 }
+
+--
+-- fortinet.fnWebfilter.
+--
+
+-- fortinet.fnWebfilter.fnWebfilterStatsTable
+	fnWebfilterStatsTable   OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnWebfilterStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of Web-filter statistics per vdom"
+		::= { fnWebfilter 1 }
+
+	fnWebfilterStatsEntry   OBJECT-TYPE
+		SYNTAX          FnWebfilterStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Web-filter statistics for a particular virtual domain"
+		INDEX           { fnWfStatsVdomIndex }
+		::= { fnWebfilterStatsTable 1 }
+
+	FnWebfilterStatsEntry ::= SEQUENCE {
+		fnWfStatsVdomIndex     FnVdIndex,
+		fnWfHTTPBlocked        Counter32,
+		fnWfHTTPSBlocked       Counter32,
+		fnWfHTTPURLBlocked     Counter32,
+		fnWfHTTPSURLBlocked    Counter32,
+		fnWfActiveXBlocked     Counter32,
+		fnWfCookieBlocked      Counter32,
+		fnWfAppletBlocked      Counter32
+	}
+
+	fnWfStatsVdomIndex      OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index value that identifies the virtual domain. This index corresponds to the index in fnVdTable."
+		::= { fnWebfilterStatsEntry 1 }
+
+	fnWfHTTPBlocked         OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP sessions blocked by Web-filter since start-up"
+		::= { fnWebfilterStatsEntry 2 }
+
+	fnWfHTTPSBlocked        OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTPS sessions blocked by Web-filter since start-up"
+		::= { fnWebfilterStatsEntry 3 }
+
+	fnWfHTTPURLBlocked      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP URLs blocked by Web-filter since start-up"
+		::= { fnWebfilterStatsEntry 4 }
+
+	fnWfHTTPSURLBlocked     OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTPS URLs blocked by Web-filter since start-up"
+		::= { fnWebfilterStatsEntry 5 }
+
+	fnWfActiveXBlocked      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of ActiveX downloads blocked by Web-filter since start-up"
+		::= { fnWebfilterStatsEntry 6 }
+
+	fnWfCookieBlocked       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP Cookies blocked by Web-filter since start-up"
+		::= { fnWebfilterStatsEntry 7 }
+
+	fnWfAppletBlocked       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of Applets blocked by Web-filter since start-up"
+		::= { fnWebfilterStatsEntry 8 }
+
+-- fortinet.fnWebfilter.fnFortiGuardStatsTable
+	fnFortiGuardStatsTable  OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnFortiGuardStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of FortiGuard statistics per vdom"
+		::= { fnWebfilter 2 }
+
+	fnFortiGuardStatsEntry  OBJECT-TYPE
+		SYNTAX          FnFortiGuardStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "FortiGuard statistics for a particular virtual domain"
+		INDEX           { fnFgWfStatsVdomIndex }
+		::= { fnFortiGuardStatsTable 1 }
+
+	FnFortiGuardStatsEntry ::= SEQUENCE {
+		fnFgWfStatsVdomIndex   FnVdIndex,
+		fnFgWfHTTPExamined     Counter32,
+		fnFgWfHTTPSExamined    Counter32,
+		fnFgWfHTTPAllowed      Counter32,
+		fnFgWfHTTPSAllowed     Counter32,
+		fnFgWfHTTPBlocked      Counter32,
+		fnFgWfHTTPSBlocked     Counter32,
+		fnFgWfHTTPLogged       Counter32,
+		fnFgWfHTTPSLogged      Counter32,
+		fnFgWfHTTPOverridden   Counter32,
+		fnFgWfHTTPSOverridden  Counter32
+	}
+
+	fnFgWfStatsVdomIndex    OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index value that identifies the virtual domain. This index corresponds to the index used by fnVdTable."
+		::= { fnFortiGuardStatsEntry 1 }
+
+	fnFgWfHTTPExamined      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP requests examined using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 2 }
+
+	fnFgWfHTTPSExamined     OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTPS requests examined using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 3 }
+
+	fnFgWfHTTPAllowed       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP requests allowed to proceed using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 4 }
+
+	fnFgWfHTTPSAllowed      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTPS requests allowed to proceed using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 5 }
+
+	fnFgWfHTTPBlocked       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP requests blocked using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 6 }
+
+	fnFgWfHTTPSBlocked      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTPS requests blocked using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 7 }
+
+	fnFgWfHTTPLogged        OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP requests logged using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 8 }
+
+	fnFgWfHTTPSLogged       OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTPS requests logged using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 9 }
+
+	fnFgWfHTTPOverridden    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP requests overridden using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 10 }
+
+	fnFgWfHTTPSOverridden   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTPS requests overridden using FortiGuard since start-up"
+		::= { fnFortiGuardStatsEntry 11 }
+
+--
+-- fortinet.fnIps.
+--
+
+	fnIpsTrapSigId          OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "ID of IPS signature identified in trap"
+		::= { fnIps     1 }
+
+	fnIpsTrapSrcIp          OBJECT-TYPE
+		SYNTAX          IpAddress
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Source IP Address of the IPS signature trigger"
+		::= { fnIps     2 }
+
+	fnIpsTrapSigMsg         OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Message associated with IPS event"
+		::= { fnIps     3 }
+
+	fnIpsStatsTable         OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnIpsStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of IPS/IDS statistics per vdom"
+		::= { fnIps     4 }
+
+	fnIpsStatsEntry         OBJECT-TYPE
+		SYNTAX          FnIpsStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "IPS/IDS statistics for a particular virtual domain"
+		INDEX           { fnIpsStatsVdomIndex }
+		::= { fnIpsStatsTable 1 }
+
+	FnIpsStatsEntry ::= SEQUENCE {
+		fnIpsStatsVdomIndex      FnVdIndex,
+		fnIpsIntrusionsDetected  Counter32,
+		fnIpsIntrusionsBlocked   Counter32,
+		fnIpsCritSevDetections   Counter32,
+		fnIpsHighSevDetections   Counter32,
+		fnIpsMedSevDetections    Counter32,
+		fnIpsLowSevDetections    Counter32,
+		fnIpsInfoSevDetections   Counter32,
+		fnIpsSignatureDetections Counter32,
+		fnIpsAnomalyDetections   Counter32
+	}
+
+	fnIpsStatsVdomIndex     OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain"
+		::= { fnIpsStatsEntry 1 }
+
+	fnIpsIntrusionsDetected OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of intrusions detected since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 2 }
+
+	fnIpsIntrusionsBlocked  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of intrusions blocked since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 3 }
+
+	fnIpsCritSevDetections  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of critical severity intrusions
+		                 detected since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 4 }
+
+	fnIpsHighSevDetections  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of high severity intrusions 
+		                 detected since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 5 }
+
+	fnIpsMedSevDetections   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of medium severity intrusions
+		                 detected since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 6 }
+
+	fnIpsLowSevDetections   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of low severity intrusions 
+		                 detected since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 7 }
+
+	fnIpsInfoSevDetections  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of informational severity intrusions
+		                 detected since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 8 }
+
+	fnIpsSignatureDetections OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of intrusions detected by signature
+		                 since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 9 }
+
+	fnIpsAnomalyDetections  OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of intrusions detected as anomalies 
+		                 since start-up in this virtual domain"
+		::= { fnIpsStatsEntry 10 }
+
+--
+-- fortinet.fnApplications.
+--
+
+	fnAppProxyHTTP  OBJECT IDENTIFIER ::=  { fnApplications 100 }
+	fnAppProxySMTP  OBJECT IDENTIFIER ::=  { fnApplications 101 }
+	fnAppProxyPOP3  OBJECT IDENTIFIER ::=  { fnApplications 102 }
+	fnAppProxyIMAP  OBJECT IDENTIFIER ::=  { fnApplications 103 }
+	fnAppProxyNNTP  OBJECT IDENTIFIER ::=  { fnApplications 104 }
+	fnAppProxyIM    OBJECT IDENTIFIER ::=  { fnApplications 105 }
+	fnAppProxySIP   OBJECT IDENTIFIER ::=  { fnApplications 106 }
+	fnAppScanUnit   OBJECT IDENTIFIER ::=  { fnApplications 107 }
+	fnAppVoIP       OBJECT IDENTIFIER ::=  { fnApplications 108 }
+	fnAppP2P        OBJECT IDENTIFIER ::=  { fnApplications 109 }
+	fnAppIM         OBJECT IDENTIFIER ::=  { fnApplications 110 }
+	fnAppProxyFTP   OBJECT IDENTIFIER ::=  { fnApplications 111 }
+
+--
+-- fortinet.fnApplications.fnAppProxyHTTP
+--
+
+	fnApHTTPUpTime          OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "HTTP proxy up-time (in seconds)"
+		::= { fnAppProxyHTTP 1 }
+
+	fnApHTTPMemUsage        OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "HTTP proxy memory usage (percentage of system total)"
+		::= { fnAppProxyHTTP  2 }
+
+	fnApHTTPStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApHTTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of HTTP Proxy statistics per virtual domain"
+		::= { fnAppProxyHTTP 3 }
+
+	fnApHTTPStatsEntry OBJECT-TYPE
+		SYNTAX          FnApHTTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "HTTP Proxy statistics for a particular virtual domain"
+		INDEX           { fnApHTTPStatsVdomIndex }
+		::= { fnApHTTPStatsTable 1 }
+
+	FnApHTTPStatsEntry ::= SEQUENCE {
+		fnApHTTPStatsVdomIndex      FnVdIndex,
+		fnApHTTPReqProcessed        Counter32
+	}
+
+	fnApHTTPStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnApHTTPStatsEntry 1 }
+
+	fnApHTTPReqProcessed    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of HTTP requests in this virtual domain processed by the HTTP proxy since start-up"
+		::= { fnApHTTPStatsEntry 2 }
+
+--
+-- fortinet.fnApplications.fnAppProxySMTP
+--
+	fnApSMTPUpTime          OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "SMTP Proxy up-time, in seconds"
+		::= { fnAppProxySMTP 1 }
+
+	fnApSMTPMemUsage        OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "SMTP Proxy memory utilization (percentage of system total)"
+		::= { fnAppProxySMTP 2 }
+
+	fnApSMTPStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApSMTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of SMTP proxy statistics per virtual domain"
+		::= { fnAppProxySMTP 3 }
+
+	fnApSMTPStatsEntry OBJECT-TYPE
+		SYNTAX          FnApSMTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "SMTP Proxy statistics for a particular virtual domain"
+		INDEX           { fnApSMTPStatsVdomIndex }
+		::= { fnApSMTPStatsTable 1 }
+
+	FnApSMTPStatsEntry ::= SEQUENCE {
+		fnApSMTPStatsVdomIndex      FnVdIndex,
+		fnApSMTPReqProcessed        Counter32,
+		fnApSMTPSpamDetected        Counter32
+	}
+
+	fnApSMTPStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used by fnVdTable."
+		::= { fnApSMTPStatsEntry 1 }
+
+	fnApSMTPReqProcessed    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of requests in this virtual domain processed by the SMTP proxy since start-up"
+		::= { fnApSMTPStatsEntry 2 }
+
+	fnApSMTPSpamDetected    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of spam detected in this virtual domain by the SMTP proxy since start-up"
+		::= { fnApSMTPStatsEntry 3 }
+
+--
+-- fortinet.fnApplications.fnAppProxyPOP3
+--
+
+	fnApPOP3UpTime          OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Up-time of the POP3 proxy, in seconds"
+		::= { fnAppProxyPOP3 1 }
+
+	fnApPOP3MemUsage        OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Memory usage of the POP3 Proxy (percentage of system total)"
+		::= { fnAppProxyPOP3 2 }
+
+	fnApPOP3StatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApPOP3StatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of POP3 proxy statistics per virtual domain"
+		::= { fnAppProxyPOP3 3 }
+
+	fnApPOP3StatsEntry OBJECT-TYPE
+		SYNTAX          FnApPOP3StatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Proxy pop3 statistics for a particular virtual domain"
+		INDEX           { fnApPOP3StatsVdomIndex }
+		::= { fnApPOP3StatsTable 1 }
+
+	FnApPOP3StatsEntry ::= SEQUENCE {
+		fnApPOP3StatsVdomIndex      FnVdIndex,
+		fnApPOP3ReqProcessed        Counter32,
+		fnApPOP3SpamDetected        Counter32
+	}
+
+	fnApPOP3StatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnApPOP3StatsEntry 1 }
+
+	fnApPOP3ReqProcessed    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of requests in this virtual domain processed by the POP3 proxy since start-up"
+		::= { fnApPOP3StatsEntry 2 }
+
+	fnApPOP3SpamDetected    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of spam detected in this virtual domain by the POP3 Proxy since start-up"
+		::= { fnApPOP3StatsEntry 3 }
+--
+-- fortinet.fnApplications.fnAppProxyIMAP
+--
+
+	fnApIMAPUpTime          OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Up-time of the IMAP proxy, in seconds"
+		::= { fnAppProxyIMAP 1 }
+
+	fnApIMAPMemUsage        OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Memory utilization of the IMAP Proxy (as a percentage of the system total)"
+		::= { fnAppProxyIMAP 2 }
+
+	fnApIMAPStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApIMAPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of IMAP proxy statistics per virtual domain"
+		::= { fnAppProxyIMAP 3 }
+
+	fnApIMAPStatsEntry OBJECT-TYPE
+		SYNTAX          FnApIMAPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "IMAP Proxy statistics for a particular virtual domain"
+		INDEX           { fnApIMAPStatsVdomIndex }
+		::= { fnApIMAPStatsTable 1 }
+
+	FnApIMAPStatsEntry ::= SEQUENCE {
+		fnApIMAPStatsVdomIndex      FnVdIndex,
+		fnApIMAPReqProcessed        Counter32,
+		fnApIMAPSpamDetected        Counter32
+	}
+
+	fnApIMAPStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnApIMAPStatsEntry 1 }
+
+	fnApIMAPReqProcessed    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of requests in this virtual domain processed by the IMAP proxy since start-up"
+		::= { fnApIMAPStatsEntry 2 }
+
+	fnApIMAPSpamDetected    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of spam detected in this virtual domain by the IMAP proxy since start-up"
+		::= { fnApIMAPStatsEntry 3 }
+
+--
+-- fortinet.fnApplications.fnAppProxyNNTP
+--
+
+	fnApNNTPUpTime          OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Up-time of the NNTP proxy, in seconds"
+		::= { fnAppProxyNNTP 1 }
+
+	fnApNNTPMemUsage        OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Memory utilization of the NNTP proxy, as a percentage of the system total"
+		::= { fnAppProxyNNTP  2 }
+
+	fnApNNTPStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApNNTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of NNTP proxy statistics per virtual domain"
+		::= { fnAppProxyNNTP 3 }
+
+	fnApNNTPStatsEntry OBJECT-TYPE
+		SYNTAX          FnApNNTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "NNTP Proxy statistics for a particular virtual domain"
+		INDEX           { fnApNNTPStatsVdomIndex }
+		::= { fnApNNTPStatsTable 1 }
+
+	FnApNNTPStatsEntry ::= SEQUENCE {
+		fnApNNTPStatsVdomIndex      FnVdIndex,
+		fnApNNTPReqProcessed        Counter32
+	}
+
+	fnApNNTPStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnApNNTPStatsEntry 1 }
+
+	fnApNNTPReqProcessed    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of requests in the virtual domain processed by the NNTP proxy since start-up"
+		::= { fnApNNTPStatsEntry 2 }
+
+--
+-- fortinet.fnApplications.fnAppProxyIM
+--
+
+	fnApIMUpTime            OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Up-time of the IM proxy, in seconds"
+		::= { fnAppProxyIM 1 }
+
+	fnApIMMemUsage          OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "IM Proxy memory usage, as a percentage of the system total"
+		::= { fnAppProxyIM 2 }
+
+	fnApIMStatsTable        OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApIMStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of IM proxy statistics per virtual domain"
+		::= { fnAppProxyIM 3 }
+
+	fnApIMStatsEntry OBJECT-TYPE
+		SYNTAX          FnApIMStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "IM Proxy statistics for a particular virtual domain"
+		INDEX           { fnApIMStatsVdomIndex }
+		::= { fnApIMStatsTable 1 }
+
+	FnApIMStatsEntry ::= SEQUENCE {
+		fnApIMStatsVdomIndex      FnVdIndex,
+		fnApIMReqProcessed        Counter32
+	}
+
+	fnApIMStatsVdomIndex    OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnApIMStatsEntry 1 }
+
+	fnApIMReqProcessed      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of requests in this virtual domain processed by the IM proxy since start-up"
+		::= { fnApIMStatsEntry 2 }
+
+--
+-- fortinet.fnApplications.fnAppProxySIP
+--
+
+	fnApSIPUpTime           OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Up-time of the SIP Proxy, in seconds"
+		::= { fnAppProxySIP 1 }
+
+	fnApSIPMemUsage         OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "SIP Proxy memory utilization, as a percentage of the system total"
+		::= { fnAppProxySIP  2 }
+
+	fnApSIPStatsTable       OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApSIPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of SIP proxy statistics per virtual domain"
+		::= { fnAppProxySIP 3 }
+
+	fnApSIPStatsEntry OBJECT-TYPE
+		SYNTAX          FnApSIPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "SIP Proxy statistics for a particular virtual domain"
+		INDEX           { fnApSIPStatsVdomIndex }
+		::= { fnApSIPStatsTable 1 }
+
+	FnApSIPStatsEntry ::= SEQUENCE {
+		fnApSIPStatsVdomIndex      FnVdIndex,
+		fnApSIPClientReg           Counter32,
+		fnApSIPCallHandling        Counter32,
+		fnApSIPServices            Counter32,
+		fnApSIPOtherReq            Counter32
+	}
+
+	fnApSIPStatsVdomIndex   OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnApSIPStatsEntry 1 }
+
+	fnApSIPClientReg        OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of client registration requests (Register and Options) in this virutal domain
+		                 processed by the SIP proxy since start-up"
+		::= { fnApSIPStatsEntry 2 }
+
+	fnApSIPCallHandling     OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of call handling requests (Invite, Ack, Bye, Cancel and Refer) in this virtual domain
+		                 processed by the SIP proxy since start-up"
+		::= { fnApSIPStatsEntry 3 }
+
+	fnApSIPServices         OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of service requests (Subscribe, notify and Message) in this virtual domain
+		                 processed by the SIP proxy since start-up"
+		::= { fnApSIPStatsEntry 4 }
+
+	fnApSIPOtherReq         OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of other sip requests in this virtual domain processed by the SIP proxy since start-up"
+		::= { fnApSIPStatsEntry 5 }
+
+--
+-- fortinet.fnApplications.fnAppProxyFTP
+--
+	fnApFTPUpTime          OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Up-time of the FTP proxy, in seconds"
+		::= { fnAppProxyFTP 1 }
+
+	fnApFTPMemUsage        OBJECT-TYPE
+		SYNTAX          Gauge32 ( 0 .. 100 )
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "FTP Proxy memory utilization, as a percentage of the system total"
+		::= { fnAppProxyFTP 2 }
+
+	fnApFTPStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnApFTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of FTP proxy statistics per virtual domain"
+		::= { fnAppProxyFTP 3 }
+
+	fnApFTPStatsEntry OBJECT-TYPE
+		SYNTAX          FnApFTPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "FTP Proxy statistics for a particular virtual domain"
+		INDEX           { fnApFTPStatsVdomIndex }
+		::= { fnApFTPStatsTable 1 }
+
+	FnApFTPStatsEntry ::= SEQUENCE {
+		fnApFTPStatsVdomIndex      FnVdIndex,
+		fnApFTPReqProcessed        Counter32
+	}
+
+	fnApFTPStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used by fnVdTable."
+		::= { fnApFTPStatsEntry 1 }
+
+	fnApFTPReqProcessed    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of requests in this virtual domain processed by the FTP proxy since start-up"
+		::= { fnApFTPStatsEntry 2 }
+
+--
+-- fortinet.fnApplications.fnAppScanUnit
+-- ** not supported in MR6 **
+
+	fnAppSuNumber           OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The number of scan units in the fnAppSuStatsTable"
+		::= { fnAppScanUnit 1 }
+
+	fnAppSuStatsTable       OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnAppSuStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of scan unit statistics"
+		::= { fnAppScanUnit 2 }
+
+	fnAppSuStatsEntry OBJECT-TYPE
+		SYNTAX          FnAppSuStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Statistics entry for a particular scan unit"
+		INDEX           { fnAppSuIndex }
+		::= { fnAppSuStatsTable 1 }
+
+	FnAppSuStatsEntry ::= SEQUENCE {
+		fnAppSuIndex               FnIndex,
+		fnAppSuFileScanned         Counter32
+	}
+
+	fnAppSuIndex            OBJECT-TYPE
+		SYNTAX          FnIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that uniquely identifies a scan unit in the fnAppSuStatsTable"
+		::= { fnAppSuStatsEntry 1 }
+
+	fnAppSuFileScanned      OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of files scanned by this scan unit"
+		::= { fnAppSuStatsEntry 2 }
+
+--
+-- fortinet.fnApplications.fnAppVoIP
+--
+
+	fnAppVoIPStatsTable     OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnAppVoIPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of VoIP related statistics per virtual domain"
+		::= { fnAppVoIP 1 }
+
+	fnAppVoIPStatsEntry     OBJECT-TYPE
+		SYNTAX          FnAppVoIPStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "VoIP statistics for a particular virtual domain"
+		INDEX           { fnAppVoIPStatsVdomIndex }
+		::= { fnAppVoIPStatsTable 1 }
+
+	FnAppVoIPStatsEntry ::= SEQUENCE {
+		fnAppVoIPStatsVdomIndex    FnVdIndex,
+		fnAppVoIPConn              Counter32,
+		fnAppVoIPCallBlocked       Counter32
+	}
+
+	fnAppVoIPStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnAppVoIPStatsEntry 1 }
+
+	fnAppVoIPConn           OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "The current number of VoIP connections on the virtual domain"
+		::= { fnAppVoIPStatsEntry 2 }
+
+	fnAppVoIPCallBlocked    OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of VoIP calls blocked (SIP Invites blocked and
+		                 SCCP calls blocked) in this virtual domain"
+		::= { fnAppVoIPStatsEntry 3 }
+
+--
+-- fortinet.fnApplications.fnAppP2P
+--
+
+	fnAppP2PStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnAppP2PStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of P2P protocol related statistics per virtual domain"
+		::= { fnAppP2P 1 }
+
+	fnAppP2PStatsEntry      OBJECT-TYPE
+		SYNTAX          FnAppP2PStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "P2P statistics for a particular virtual domain"
+		INDEX           { fnAppP2PStatsVdomIndex }
+		::= { fnAppP2PStatsTable 1 }
+
+	FnAppP2PStatsEntry ::= SEQUENCE {
+		fnAppP2PStatsVdomIndex     FnVdIndex,
+		fnAppP2PConnBlocked        Counter32
+	}
+
+	fnAppP2PStatsVdomIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnAppP2PStatsEntry 1 }
+
+	fnAppP2PConnBlocked     OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of P2P connections blocked in this virtual domain"
+		::= { fnAppP2PStatsEntry 2 }
+
+	fnAppP2PProtoTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnAppP2PProtoEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of peer to peer statistics per virtual domain per protocol"
+		::= { fnAppP2P 2 }
+
+	fnAppP2PProtoEntry      OBJECT-TYPE
+		SYNTAX          FnAppP2PProtoEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "P2P statistics for a particular virtual domain and protocol"
+		INDEX           { fnAppP2PProtEntVdIndex, fnAppP2PProtEntProto }
+		::= { fnAppP2PProtoTable 1 }
+
+	FnAppP2PProtoEntry ::= SEQUENCE {
+		fnAppP2PProtEntVdIndex     FnVdIndex,
+		fnAppP2PProtEntProto       FnP2PProto,
+		fnAppP2PProtEntBytes       Counter64,
+		fnAppP2PProtoEntLastReset  TimeTicks
+	}
+
+	fnAppP2PProtEntVdIndex  OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used by fnVdTable."
+		::= { fnAppP2PProtoEntry 1 }
+
+	fnAppP2PProtEntProto    OBJECT-TYPE
+		SYNTAX          FnP2PProto
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "P2P protocol this row of statistics is for, within the specified virtual domain"
+		::= { fnAppP2PProtoEntry 2 }
+
+	fnAppP2PProtEntBytes    OBJECT-TYPE
+		SYNTAX          Counter64
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of bytes transferred through this virtual domain on this P2P protocol since last reset"
+		::= { fnAppP2PProtoEntry 3 }
+
+	fnAppP2PProtoEntLastReset OBJECT-TYPE
+		SYNTAX          TimeTicks
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Time elapsed since the corresponding fnAppP2PProtEntBytes was
+				 last reset to 0."
+		::= { fnAppP2PProtoEntry 4 }
+
+--
+-- fortinet.fnApplications.fnAppIM
+--
+
+	fnAppIMStatsTable      OBJECT-TYPE
+		SYNTAX          SEQUENCE OF FnAppIMStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "A table of instant messaging statistics per virtual domain"
+		::= { fnAppIM 1 }
+
+	fnAppIMStatsEntry       OBJECT-TYPE
+		SYNTAX          FnAppIMStatsEntry
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "IM statistics for a particular virtual domain"
+		INDEX           { fnAppIMStatsVdomIndex }
+		::= { fnAppIMStatsTable 1 }
+
+	FnAppIMStatsEntry ::= SEQUENCE {
+		fnAppIMStatsVdomIndex      FnVdIndex,
+		fnAppIMMessages            Counter32,
+		fnAppIMFileTransfered      Counter32,
+		fnAppIMFileTxBlocked       Counter32,
+		fnAppIMConnBlocked         Counter32
+	}
+
+	fnAppIMStatsVdomIndex   OBJECT-TYPE
+		SYNTAX          FnVdIndex
+		MAX-ACCESS      not-accessible
+		STATUS          current
+		DESCRIPTION     "Index that identifies the virtual domain. This index corresponds to the index used in fnVdTable."
+		::= { fnAppIMStatsEntry 1 }
+
+	fnAppIMMessages         OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Total number of IM messages processed in this virtual domain"
+		::= { fnAppIMStatsEntry 2 }
+
+	fnAppIMFileTransfered   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of files transferred through this virtual domain"
+		::= { fnAppIMStatsEntry 3 }
+
+	fnAppIMFileTxBlocked   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of blocked file transfers in this virtual domain"
+		::= { fnAppIMStatsEntry 4 }
+
+	fnAppIMConnBlocked   OBJECT-TYPE
+		SYNTAX          Counter32
+		MAX-ACCESS      read-only
+		STATUS          current
+		DESCRIPTION     "Number of connections blocked in this virtual domain"
+		::= { fnAppIMStatsEntry 5 }
+
+--
+-- NOTIFICATIONS-TYPES / traps
+--
+--
+
+--
+-- fortinet.fnTraps.
+--
+
+	fnTrapObjects          OBJECT IDENTIFIER ::= { fnTraps 1 }
+
+-- Sent from FortiOS to FortiManager only
+	fnFMTrapIfChange        NOTIFICATION-TYPE
+		OBJECTS         { fnManSysSerial, fnManIfName, fnManIfIp, fnManIfMask }
+		STATUS          current
+		DESCRIPTION     "Trap is sent to the managing FortiManager if an interface IP is changed"
+		::=  { fnTraps  100  }
+
+	fnTrapCpuHigh           NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "Indicates that the CPU usage has exceeded the configured threshold"
+		::=  { fnTraps  101  }
+
+	fnTrapMemLow            NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "Indicates memory usage has exceeded the configured threshold"
+		::=  { fnTraps  102  }
+
+	fnTrapLogFull           NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "Log disk usage has exceeded the configured threshold"
+		::=  { fnTraps  103  }
+
+	fnTrapTempHigh          NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "A temperature sensor on the device has exceeded its threshold. Not available on all models."
+		::=  { fnTraps  104  }
+
+	fnTrapVoltageOutOfRange NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "Power levels have fluctuated outside of normal levels. Not available on all models."
+		::=  { fnTraps  105  }
+
+	fnTrapPowerSupplyFailure NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "Power supply failure detected. Not available on all models."
+		::=  { fnTraps  106  }
+
+
+-- Sent from FortiOS to FortiManager only
+	fnFMTrapConfChange      NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial }
+		STATUS          current
+		DESCRIPTION     "The device configuration has been changed by something other than the managing FortiManager device."
+		::= { fnTraps   150  }
+--
+
+-- FortiOS and FortiManager
+	fnTrapIpChange          NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName, ifIndex }
+		STATUS          current
+		DESCRIPTION     "Indicates that the IP address of
+				 the specified interface has been
+				 changed"
+		::= { fnTraps   201  }
+--
+
+-- Sent from FortiOS to FortiManager only
+	fnFMTrapDeployComplete  NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial }
+		STATUS          current
+		DESCRIPTION     "Indicates when deployment of a new configuration has been completed. Used for verification by FortiManager."
+		::= { fnTraps   202  }
+
+	fnFMTrapDeployInProgress NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial }
+		STATUS          current
+		DESCRIPTION     "Indicates that a configuration change was not immediate and that the change is currently in progress. Used for verification by FortiManager."
+		::= { fnTraps   203  }
+--
+
+	fnTrapVpnTunUp          NOTIFICATION-TYPE
+		OBJECTS         {
+				fnSysSerial,
+				sysName,
+				fnVpnTrapLocalGateway,
+				fnVpnTrapRemoteGateway
+		}
+		STATUS          current
+		DESCRIPTION     "Indicates that the specified VPN tunnel has been brought up."
+		::= { fnTraps   301  }
+
+	fnTrapVpnTunDown       NOTIFICATION-TYPE
+		OBJECTS        {
+				fnSysSerial,
+				sysName,
+				fnVpnTrapLocalGateway,
+				fnVpnTrapRemoteGateway
+			       }
+		STATUS         current
+		DESCRIPTION    "The specified VPN tunnel has been brought down."
+		::=  { fnTraps 302  }
+
+--
+
+	fnTrapHaSwitch          NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "The specified cluster member has transitioned from a slave role to a master role."
+		::=  { fnTraps  401  }
+
+-- unused in FortiOS 3.0
+	fnTrapHaStateChange    NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial }
+		STATUS         obsolete
+		DESCRIPTION    "Trap being sent when the HA cluster
+		                member changes its state"
+		::=  { fnTraps 402  }
+
+	fnTrapHaHBFail        NOTIFICATION-TYPE
+		OBJECTS       { fnSysSerial }
+		STATUS        current
+		DESCRIPTION   "The heartbeat device failure count has exceeded the configured threshold."
+		::=  { fnTraps 403  }
+
+	fnTrapHaMemberDown    NOTIFICATION-TYPE
+		OBJECTS       { fnSysSerial }
+		STATUS        current
+		DESCRIPTION   "The specified device (by serial number) is moving to a down state."
+		::=  { fnTraps 404  }
+
+	fnTrapHaMemberUp      NOTIFICATION-TYPE
+		OBJECTS       { fnSysSerial }
+		STATUS        current
+		DESCRIPTION   "A new cluster member has joined the cluster."
+		::=  { fnTraps 405  }
+
+--
+
+-- unused in FortiOS 3.0
+	fnTrapIdsSynFlood      NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial }
+		STATUS         obsolete
+		DESCRIPTION    "Trap being sent when SYN flood attack
+		                is detected"
+		::=  { fnTraps 501  }
+
+-- unused in FortiOS 3.0
+	fnTrapIdsPortScan      NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial }
+		STATUS         obsolete
+		DESCRIPTION    "Trap being sent when port scan attack
+		                is detected"
+		::=  { fnTraps 502  }
+
+	fnTrapIpsSignature     NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName, fnIpsTrapSigId, fnIpsTrapSrcIp }
+		STATUS         current
+		DESCRIPTION    "An IPS signature has been triggered"
+		::=  { fnTraps 503  }
+
+	fnTrapIpsAnomaly       NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName, fnIpsTrapSigId, fnIpsTrapSrcIp }
+		STATUS         current
+		DESCRIPTION    "An IPS anomaly has been detected"
+		::=  { fnTraps 504  }
+
+	fnTrapIpsPkgUpdate     NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "The IPS signature database has been updated"
+		::=  { fnTraps 505  }
+
+--
+
+	fnTrapAvVirus          NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName, fnAvTrapVirName }
+		STATUS         current
+		DESCRIPTION    "A virus has been detected by the anti-virus engine"
+		::=  { fnTraps 601 }
+
+	fnTrapAvOversize       NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "An over-sized file has been detected by the anti-virus engine"
+		::=  { fnTraps 602 }
+
+	fnTrapAvPattern        NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "The anti-virus engine has blocked a file because it matched a configured pattern"
+		::=  { fnTraps 603 }
+
+	fnTrapAvFragmented     NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "The anti-virus engine has detected a fragmented file"
+		::=  { fnTraps 604 }
+
+	fnTrapAvEnterConserve  NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "The anti-virus engine has entered conservation mode due to low memory conditions"
+		::=  { fnTraps 605 }
+
+	fnTrapAvBypass         NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "The anti-virus engine has been bypassed due to conservation mode"
+		::=  { fnTraps 606 }
+
+	fnTrapAvOversizePass   NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "An over-sized file has been detected,
+		                but has been passed due to configuration"
+		::=  { fnTraps 607 }
+
+	fnTrapAvOversizeBlock  NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "An over-sized file has been detected
+		                and has been blocked"
+		::=  { fnTraps 608 }
+
+
+--
+
+	fnTrapBridge           NOTIFICATION-TYPE
+		OBJECTS        { fnSysSerial, sysName }
+		STATUS         current
+		DESCRIPTION    "Trap being sent by FortiBridge when
+		                detecting a FortiGate failure"
+		::=  { fnTraps 701  }
+
+--
+
+-- UNUSED
+	fnTrapImTableFull       NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial }
+		STATUS          current
+		DESCRIPTION     "Trap sent when Instant Message
+				 white/black list table is full"
+		::=  {  fnTraps 801  }
+
+
+-- FortiLog
+	fnTrapFlgEventCount     NOTIFICATION-TYPE
+		OBJECTS         { fnGenTrapMsg  }
+		STATUS          current
+		DESCRIPTION     "Trap sent when FortiLog event parameter
+				 exceeds configured limit. Event description
+				 included in trap."
+		::=  {  fnTraps 901  }
+
+-- Generic
+	fnTrapTest              NOTIFICATION-TYPE
+		OBJECTS         { fnSysSerial, sysName }
+		STATUS          current
+		DESCRIPTION     "Trap sent for diagnostic purposes."
+		::=  {  fnTraps 999  }
+
+
+--
+-- fortinet.fnTraps.fnTrapObjects.
+--
+
+	fnGenTrapMsg            OBJECT-TYPE
+		SYNTAX          DisplayString
+		MAX-ACCESS      accessible-for-notify
+		STATUS          current
+		DESCRIPTION     "Generic message associated with an event. The content will depend on the nature of the trap."
+		::= { fnTrapObjects 1 }
+
+
+--
+-- compliance/conformance groups
+-- These are mainly for "correctness"
+--
+
+	fnSystemComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnSysModel,
+			fnSysSerial,
+			fnSysVersion,
+			fnSysVersionAv,
+			fnSysVersionNids,
+			fnSysHaMode,
+			fnSysOpMode,
+			fnSysCpuUsage,
+			fnSysMemUsage,
+			fnSysDiskCapacity,
+			fnSysDiskUsage,
+			fnSysMemCapacity,
+			fnSysSesCount,
+			fnOptIdleTimeout,
+			fnOptAuthTimeout,
+			fnOptLanguage,
+			fnOptLcdProtection,
+			fnVdNumber,
+			fnVdEntName,
+			fnVdEntOpMode,
+			fnVdMaxVdoms,
+			fnVdEnabled
+		}
+		STATUS current
+		DESCRIPTION "System related instrumentation"
+		::= { fnMIBConformance 1 }
+
+	fnHaComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnHaGroupId,
+			fnHaPriority,
+			fnHaOverride,
+			fnHaAutoSync,
+			fnHaSchedule,
+			fnHaGroupName,
+			fnHaStatsSerial,
+			fnHaStatsCpuUsage,
+			fnHaStatsMemUsage,
+			fnHaStatsNetUsage,
+			fnHaStatsSesCount,
+			fnHaStatsPktCount,
+			fnHaStatsByteCount,
+			fnHaStatsIdsCount,
+			fnHaStatsAvCount,
+			fnHaStatsHostname
+		}
+		STATUS current
+		DESCRIPTION "HA cluster related instrumentation"
+		::= { fnMIBConformance 2 }
+
+	fnAuthComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnAdminNumber,
+			fnAdminName,
+			fnAdminAddr,
+			fnAdminMask,
+			fnAdminVdom,
+			fnUserNumber,
+			fnUserName,
+			fnUserAuth,
+			fnUserState,
+			fnUserVdom
+		}
+		STATUS current
+		DESCRIPTION "Authentication related information"
+		::= { fnMIBConformance 3 }
+
+	fnSessionComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnIpSessProto,
+			fnIpSessFromAddr,
+			fnIpSessFromPort,
+			fnIpSessToAddr,
+			fnIpSessToPort,
+			fnIpSessExp,
+			fnIpSessVdom,
+			fnIpSessNumber
+		}
+		STATUS current
+		DESCRIPTION "Session related instrumentation"
+		::= { fnMIBConformance 4 }
+
+	fnVPNComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnVpnDialupGateway,
+			fnVpnDialupLifetime,
+			fnVpnDialupTimeout,
+			fnVpnDialupSrcBegin,
+			fnVpnDialupSrcEnd,
+			fnVpnDialupDstAddr,
+			fnVpnDialupVdom,
+			fnVpnDialupInOctets,
+			fnVpnDialupOutOctets,
+			fnVpnTunEntPhase1Name,
+			fnVpnTunEntPhase2Name,
+			fnVpnTunEntRemGwyIp,
+			fnVpnTunEntRemGwyPort,
+			fnVpnTunEntLocGwyIp,
+			fnVpnTunEntLocGwyPort,
+			fnVpnTunEntSelectorSrcBeginIp,
+			fnVpnTunEntSelectorSrcEndIp,
+			fnVpnTunEntSelectorSrcPort,
+			fnVpnTunEntSelectorDstBeginIp,
+			fnVpnTunEntSelectorDstEndIp,
+			fnVpnTunEntSelectorDstPort,
+			fnVpnTunEntSelectorProto,
+			fnVpnTunEntLifeSecs,
+			fnVpnTunEntLifeBytes,
+			fnVpnTunEntTimeout,
+			fnVpnTunEntInOctets,
+			fnVpnTunEntOutOctets,
+			fnVpnTunEntStatus,
+			fnVpnTunEntVdom,
+			fnVpnSslState,
+			fnVpnSslStatsLoginUsers,
+			fnVpnSslStatsMaxUsers,
+			fnVpnSslStatsActiveWebSessions,
+			fnVpnSslStatsMaxWebSessions,
+			fnVpnSslStatsActiveTunnels,
+			fnVpnSslStatsMaxTunnels,
+			fnVpnSslTunnelVdom,
+			fnVpnSslTunnelUserName,
+			fnVpnSslTunnelSrcIp,
+			fnVpnSslTunnelIp,
+			fnVpnSslTunnelUpTime,
+			fnVpnSslTunnelBytesIn,
+			fnVpnSslTunnelBytesOut
+		}
+		STATUS current
+		DESCRIPTION "Session related instrumentation"
+		::= { fnMIBConformance 5 }
+
+	fnTrapsComplianceGroup NOTIFICATION-GROUP
+		NOTIFICATIONS {
+			fnTrapCpuHigh,
+			fnTrapMemLow,
+			fnTrapLogFull,
+			fnTrapTempHigh,
+			fnTrapVoltageOutOfRange,
+			fnTrapPowerSupplyFailure,
+			fnTrapIpChange,
+			fnFMTrapDeployComplete,
+			fnFMTrapDeployInProgress,
+			fnTrapVpnTunUp,
+			fnTrapVpnTunDown,
+			fnTrapHaSwitch,
+			fnTrapHaHBFail,
+			fnTrapHaMemberDown,
+			fnTrapHaMemberUp,
+			fnTrapIpsSignature,
+			fnTrapIpsAnomaly,
+			fnTrapIpsPkgUpdate,
+			fnTrapAvVirus,
+			fnTrapAvOversize,
+			fnTrapAvPattern,
+			fnTrapAvFragmented,
+			fnTrapAvEnterConserve,
+			fnTrapAvBypass,
+			fnTrapAvOversizePass,
+			fnTrapAvOversizeBlock,
+			fnTrapImTableFull,
+			fnTrapFlgEventCount,
+			fnTrapBridge,
+			fnFMTrapConfChange,
+			fnFMTrapIfChange,
+			fnTrapTest
+		}
+		STATUS current
+		DESCRIPTION "Event notifications"
+		::= { fnMIBConformance 6 }
+
+	fnTrapsComplianceGroupOld NOTIFICATION-GROUP
+		NOTIFICATIONS {
+			fnTrapHaStateChange,
+			fnTrapIdsSynFlood,
+			fnTrapIdsPortScan
+		}
+		STATUS obsolete
+		DESCRIPTION "Unused notifications"
+		::= { fnMIBConformance 7 }
+
+	fnManagementComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnManSysSerial,
+			fnManIfName,
+			fnManIfIp,
+			fnManIfMask
+		}
+		STATUS current
+		DESCRIPTION "Used for communication with FortiManager"
+		::= { fnMIBConformance 9 }
+
+	fnHwSensorsComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnHwSensorCount,
+			fnHwSensorEntName,
+			fnHwSensorEntValue,
+			fnHwSensorEntAlarmStatus
+		}
+		STATUS current
+		DESCRIPTION "Hardware sensor related information"
+		::= { fnMIBConformance 10 }
+
+	fnNotificationObjectsComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnAvTrapVirName,
+			fnIpsTrapSigId,
+			fnIpsTrapSrcIp,
+			fnIpsTrapSigMsg,
+			fnVpnTrapLocalGateway,
+			fnVpnTrapRemoteGateway,
+			fnHaTrapMemberSerial,
+			fnGenTrapMsg
+		}
+		STATUS current
+		DESCRIPTION "Object identifiers used in notifications"
+		::= { fnMIBConformance 11 }
+
+	fnAntivirusComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnAvVirusDetected,
+			fnAvVirusBlocked,
+			fnAvHTTPVirusDetected,
+			fnAvHTTPVirusBlocked,
+			fnAvSMTPVirusDetected,
+			fnAvSMTPVirusBlocked,
+			fnAvPOP3VirusDetected,
+			fnAvPOP3VirusBlocked,
+			fnAvIMAPVirusDetected,
+			fnAvIMAPVirusBlocked,
+			fnAvFTPVirusDetected,
+			fnAvFTPVirusBlocked,
+			fnAvIMVirusDetected,
+			fnAvIMVirusBlocked,
+			fnAvNNTPVirusDetected,
+			fnAvNNTPVirusBlocked,
+			fnAvOversizedDetected,
+			fnAvOversizedBlocked
+		}
+		STATUS current
+		DESCRIPTION "Anti-virus statistical information"
+		::= { fnMIBConformance 12 }
+
+
+	fnIpsComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnIpsIntrusionsDetected,
+			fnIpsIntrusionsBlocked,
+			fnIpsCritSevDetections,
+			fnIpsHighSevDetections,
+			fnIpsMedSevDetections,
+			fnIpsLowSevDetections,
+			fnIpsInfoSevDetections,
+			fnIpsSignatureDetections,
+			fnIpsAnomalyDetections
+		}
+		STATUS current
+		DESCRIPTION "Intrusion detection/prevention statistics"
+		::= { fnMIBConformance 13 }
+
+	fnWebFilterComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnWfHTTPBlocked,
+			fnWfHTTPSBlocked,
+			fnWfHTTPURLBlocked,
+			fnWfHTTPSURLBlocked,
+			fnWfActiveXBlocked,
+			fnWfCookieBlocked,
+			fnWfAppletBlocked,
+			fnFgWfHTTPExamined,
+			fnFgWfHTTPSExamined,
+			fnFgWfHTTPAllowed,
+			fnFgWfHTTPSAllowed,
+			fnFgWfHTTPBlocked,
+			fnFgWfHTTPSBlocked,
+			fnFgWfHTTPLogged,
+			fnFgWfHTTPSLogged,
+			fnFgWfHTTPOverridden,
+			fnFgWfHTTPSOverridden
+		}
+		STATUS current
+		DESCRIPTION "Web-filter and FortiGuard statistics"
+		::= { fnMIBConformance 14 }
+
+	fnFirewallComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnFwPolicyPktCount,
+			fnFwPolicyByteCount
+		}
+		STATUS current
+		DESCRIPTION "Firewall related instrumentation"
+		::= { fnMIBConformance 15 }
+
+	fnApplicationComplianceGroup OBJECT-GROUP
+		OBJECTS {
+			fnApHTTPUpTime,
+			fnApHTTPMemUsage,
+			fnApHTTPReqProcessed,
+			fnApSMTPUpTime,
+			fnApSMTPMemUsage,
+			fnApSMTPReqProcessed,
+			fnApSMTPSpamDetected,
+			fnApPOP3UpTime,
+			fnApPOP3MemUsage,
+			fnApPOP3ReqProcessed,
+			fnApPOP3SpamDetected,
+			fnApIMAPUpTime,
+			fnApIMAPMemUsage,
+			fnApIMAPReqProcessed,
+			fnApIMAPSpamDetected,
+			fnApNNTPUpTime,
+			fnApNNTPMemUsage,
+			fnApNNTPReqProcessed,
+			fnApIMUpTime,
+			fnApIMMemUsage,
+			fnApIMReqProcessed,
+			fnApSIPUpTime,
+			fnApSIPMemUsage,
+			fnApSIPClientReg,
+			fnApSIPCallHandling,
+			fnApSIPServices,
+			fnApSIPOtherReq,
+			fnAppSuNumber,
+			fnAppSuFileScanned,
+			fnAppVoIPConn,
+			fnAppVoIPCallBlocked,
+			fnAppP2PConnBlocked,
+			fnAppP2PProtEntBytes,
+			fnAppP2PProtoEntLastReset,
+			fnAppIMMessages,
+			fnAppIMFileTransfered,
+			fnAppIMFileTxBlocked,
+			fnAppIMConnBlocked,
+			fnApFTPUpTime,
+			fnApFTPMemUsage,
+			fnApFTPReqProcessed
+		}
+		STATUS current
+		DESCRIPTION "Application related instrumentation"
+		::= { fnMIBConformance 16 }
+
+	fnMIBCompliance MODULE-COMPLIANCE
+		STATUS current
+		DESCRIPTION "The compliance statement for the application MIB."
+		MODULE
+
+		GROUP fnSystemComplianceGroup
+		DESCRIPTION "System related instrumentation"
+
+		GROUP fnHaComplianceGroup
+		DESCRIPTION "HA cluster related instrumentation"
+
+		GROUP fnAuthComplianceGroup
+		DESCRIPTION "Authentication related information"
+
+		GROUP fnSessionComplianceGroup
+		DESCRIPTION "Session related instrumentation"
+
+		GROUP fnFirewallComplianceGroup
+		DESCRIPTION "Firewall policy statistics"
+
+		GROUP fnVPNComplianceGroup
+		DESCRIPTION "Session related instrumentation"
+
+		GROUP fnHwSensorsComplianceGroup
+		DESCRIPTION "Hardware sensor instrumentation"
+
+		GROUP fnAntivirusComplianceGroup
+		DESCRIPTION "Anti-virus statistical information"
+
+		GROUP fnWebFilterComplianceGroup
+		DESCRIPTION "Web-filter and FortiGuard statistics"
+
+		GROUP fnIpsComplianceGroup
+		DESCRIPTION "IPS statistical information"
+
+		GROUP fnApplicationComplianceGroup
+		DESCRIPTION "Application related statistics and states"
+
+		GROUP fnManagementComplianceGroup
+		DESCRIPTION "FortiManager communications"
+
+		GROUP fnTrapsComplianceGroup
+		DESCRIPTION "Miscellaneous instrumentation"
+
+		GROUP fnNotificationObjectsComplianceGroup
+		DESCRIPTION "Object identifiers used in notifications"
+
+		::= { fnMIBConformance 100 }
+
+END

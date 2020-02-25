@@ -1,0 +1,1356 @@
+-- natMib.mib  - Snmp v1/v2 agent nat mib definition 
+
+-- Copyright 2000-2004 Wind River Systems, Inc
+
+-- modification history
+
+RAISECOM-NAT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, IpAddress
+		FROM SNMPv2-SMI
+	TEXTUAL-CONVENTION, TimeStamp, DisplayString, RowStatus
+		FROM SNMPv2-TC
+	optSysMgmt
+		FROM RAISECOM-BASE-MIB;
+
+	-- a truth value
+	Boolean ::=   INTEGER { true(1), false(2) }
+		
+	-- Implementation of the NAT group is deprecated for
+	-- all systems.
+		
+	-- groups in NAT MIB
+        
+raisecomNatMIB MODULE-IDENTITY
+	LAST-UPDATED "200801251500Z" 
+	ORGANIZATION "Optical Working Group"
+	CONTACT-INFO
+		"  
+		 www.raisecom.com
+		"
+	DESCRIPTION
+		"The MIB module to describe NAT objects."        
+	REVISION	"1210190000Z"
+	DESCRIPTION
+		"
+		1¡¢add the NAT global ip address
+		2¡¢
+		"   
+		        
+		::= { optSysMgmt 1 }      
+
+	natDesc	OBJECT IDENTIFIER ::= { raisecomNatMIB 1 }
+
+	natBind	OBJECT IDENTIFIER ::= { raisecomNatMIB 2 }
+
+	natSession OBJECT IDENTIFIER ::= { raisecomNatMIB 3 }       
+	
+	natInterface OBJECT IDENTIFIER ::= { raisecomNatMIB 4 }
+
+
+	-- the NAT descriptor group
+ 
+	-- Implementation of the NAT descriptor group is deprecated for all
+	-- systems which implement the NAT.
+ 
+          natNumber OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The number of NAT instances (regardless of
+                      their current state) present on this system."
+	      	  DEFVAL { 1 }
+              ::= { natDesc 1 }
+
+          natSessionNumber OBJECT-TYPE
+              SYNTAX    INTEGER
+              MAX-ACCESS    read-only
+              STATUS    deprecated
+              DESCRIPTION
+		      "The number of NAT sessions present on this system."
+              ::= { natDesc 2 }
+
+          natSwVersion OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "A textual string describing the NAT software 
+		      version in use."
+              ::= { natDesc 3 }
+ 
+          natPrRealmType OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "A textual string containing information about the
+                      private realm this nat is bridging. Common value will be IPv4."
+              ::= { natDesc 4 }
+
+          natExtRealmType OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "A textual string containing information about the
+                      external realm this nat is bridging. Common value will be IPv4."
+              ::= { natDesc 5 }
+
+          natTable OBJECT-TYPE
+              SYNTAX  SEQUENCE OF NatEntry
+              MAX-ACCESS  not-accessible
+              STATUS  deprecated
+              DESCRIPTION
+                      "A list of NAT descriptor entries.  The number of
+                      entries is given by the value of natNumber."
+              ::= { natDesc 6 }
+ 
+          natEntry OBJECT-TYPE
+              SYNTAX  NatEntry
+              MAX-ACCESS  not-accessible
+              STATUS  deprecated
+              DESCRIPTION
+                      "A NAT entry contains all the relevant objects
+		      describing a particular NAT instance."
+              INDEX   { natIndex }
+              ::= { natTable 1 }
+
+          NatEntry ::=
+              SEQUENCE {
+                  natIndex
+                      INTEGER,
+                  natTypeMask
+                      INTEGER,
+                  natType
+                      INTEGER,
+                  natTotalBinds
+                      INTEGER,
+                  natMaxStaticBinds
+                      INTEGER,
+                  natCurrStaticBinds
+                      INTEGER,
+                  natCurrDynamicBinds
+                      INTEGER,
+                  natMaxStaticIpBinds
+                      INTEGER,
+                  natCurrStaticIpBinds
+                      INTEGER,
+                  natCurrDynamicIpBinds
+                      INTEGER,
+                  natMaxStaticTcpBinds
+                      INTEGER,
+                  natCurrStaticTcpBinds
+                      INTEGER,
+                  natCurrDynamicTcpBinds
+                      INTEGER,
+                  natMaxStaticUdpBinds
+                      INTEGER,
+                  natCurrStaticUdpBinds
+                      INTEGER,
+                  natCurrDynamicUdpBinds
+                      INTEGER,
+                  natSessionMaxIdleTime
+                      INTEGER,
+                  natUdpSessionMaxIdleTime
+                      INTEGER,
+                  natIcmpSessionMaxIdleTime
+                      INTEGER,
+                  natTcpUpSessionMaxIdleTime
+                      INTEGER,
+                  natTcpDiscSessionMaxIdleTime
+                      INTEGER,
+                  natTcpClosingSessionMaxIdleTime
+                      INTEGER,
+                  natTcpSyncSessionMaxIdleTime
+                      INTEGER,
+                  natLogMask
+                      INTEGER,
+                  natEnable
+                      Boolean,
+                  natDefXEnable
+                      Boolean,
+                  natGlobalAddrFilter
+                      Boolean,
+                  natStaticBindEnable
+                      Boolean,
+                  natAdminCmd
+                      INTEGER                  		
+              }
+
+          natIndex OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "A unique value for each NAT instance.  Its value
+                      ranges between 1 and the value of natNumber.  The
+                      value for each NAT instance must remain constant at
+                      least from one re-initialization of the entity's
+                      network management system to the next re-
+                      initialization."
+              ::= { natEntry 1 }
+
+          natTypeMask OBJECT-TYPE
+              SYNTAX  INTEGER (0..'7FFFFFFF'h)
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "A Bit Mask documenting the NAT types as defined in 
+		      RFC 2663 this NAT instance supports.
+ 
+		      Its value may be any combination of the options below:
+		      Basic-NAT(Bit 0)    
+		      NAPT(Bit 1)    
+		      Bi-directional-NAT(Bit 2)    
+		      Twice-NAT(Bit 3)    
+		      RSA-IP-Server(Bit 4)    
+		      RSAP-IP-Server(Bit 5)
+
+		      Bit 0, if set, indicates that Basic-NAT is supported.
+		      Bit 1, if set, indicates that NAPT is supported.
+		      Bit 2, if set, indicates that Bi-directional-NAT is supported.
+		      Bit 3, if set, indicates that Twice-NAT is supported.
+		      Bit 4, if set, indicates that RSA-IP-Server is supported.
+		      Bit 5, if set, indicates that RSAP-IP-Server is supported.
+		      "
+	     REFERENCE
+		      "RFC 2663"
+	     DEFVAL { 3 }
+              ::= { natEntry 2 }
+
+          natType OBJECT-TYPE
+              SYNTAX  INTEGER (0..'7FFFFFFF'h)
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "A Bit Mask documenting the NAT device's actual 
+		      configuration according to natTypeMask above.
+ 
+		      Its value may be one and only one of the options below:
+		      Basic-NAT(Bit 0)    
+		      NAPT(Bit 1)    
+		      Bi-directional-NAT(Bit 2)    
+		      Twice-NAT(Bit 3)    
+		      RSA-IP-Server(Bit 4)    
+		      RSAP-IP-Server(Bit 5)
+
+		      Bit 0, if set, indicates that Basic-NAT is configured.
+		      Bit 1, if set, indicates that NAPT is configured.
+		      Bit 2, if set, indicates that Bi-directional-NAT is configured.
+		      Bit 3, if set, indicates that Twice-NAT is configured.
+		      Bit 4, if set, indicates that RSA-IP-Server is configured.
+		      Bit 5, if set, indicates that RSAP-IP-Server is configured."
+	     REFERENCE
+		      "RFC 2663"
+	     DEFVAL { 2 }
+              ::= { natEntry 3 }
+
+          natTotalBinds OBJECT-TYPE
+              SYNTAX    INTEGER
+              MAX-ACCESS    read-only
+              STATUS    deprecated
+              DESCRIPTION
+                        "The number of NAT bind entries present on this system."
+              ::= { natEntry 4 }
+
+          natMaxStaticBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The maximum number of static bind entries this NAT 
+		      device supports."
+	      DEFVAL { 30 }
+              ::= { natEntry 5 }
+
+          natCurrStaticBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of static bind entries on this NAT 
+		      device."
+              ::= { natEntry 6 }
+
+          natCurrDynamicBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of dynamic bind entries on this NAT 
+		      device."
+              ::= { natEntry 7 }
+
+          natMaxStaticIpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The maximum number of static IP bind entries this NAT 
+		      device supports."
+	      DEFVAL { 30 }
+              ::= { natEntry 8 }
+
+          natCurrStaticIpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of static IP bind entries this NAT 
+		      device supports."
+              ::= { natEntry 9 }
+
+          natCurrDynamicIpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of dynamic IP bind entries on this NAT 
+		      device."
+              ::= { natEntry 10 }
+
+          natMaxStaticTcpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The maximum number of static TCP bind entries this NAT 
+		      device supports. This only applies if the NAT device
+		      is configured in NAPT mode."
+	      DEFVAL { 30 }
+              ::= { natEntry 11 }
+
+          natCurrStaticTcpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of static TCP bind entries this NAT 
+		      device supports. This only applies if the NAT device
+		      is configured in NAPT mode."
+              ::= { natEntry 12 }
+
+          natCurrDynamicTcpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of dynamic TCP bind entries on 
+		      this NAT device."
+              ::= { natEntry 13 }
+
+          natMaxStaticUdpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The maximum number of static UDP bind entries this NAT 
+		      device supports. This only applies if the NAT device
+		      is configured in NAPT mode."
+	      DEFVAL { 30 }
+              ::= { natEntry 14 }
+
+          natCurrStaticUdpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of static UDP bind entries this NAT 
+		      device supports. This only applies if the NAT device
+		      is configured in NAPT mode."
+              ::= { natEntry 15 }
+
+          natCurrDynamicUdpBinds OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The current number of dynamic UDP bind entries on this NAT 
+		      device."
+              ::= { natEntry 16 }
+
+          natSessionMaxIdleTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-write
+              STATUS  deprecated
+              DESCRIPTION
+		      "All sessions are associated with a session-idle timeout.  
+		      When this timeout expires, if the session is idle, 
+		      the corresponding entry in the session table is deleted.
+
+			  This parameter defines the value in seconds for the
+		      IP session-idle timeout loaded when the session itself
+		      is detected on the NAT device. Changing this parameter only 
+			  affects IP sessions detected at a later time.
+
+		      This parameter is only significant when the device
+		      operates in Basic-NAT mode."
+	      DEFVAL { 120 }
+              ::= { natEntry 17 }
+
+          natUdpSessionMaxIdleTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "All sessions are associated with a session-idle timeout.
+		      When this timeout expires if the session is idle, 
+		      the corresponding entry in the session table is deleted.
+
+			  This parameter defines the value in seconds for the
+		      UDP session-idle timeout loaded when the session itself
+		      is detected on the NAT device.
+
+		      Changing this parameter only affects UDP sessions 
+		      detected at a later time.
+		      
+		      This parameter is only significant when the device
+		      operates in NAPT mode."
+              ::= { natEntry 18 }
+
+          natIcmpSessionMaxIdleTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "All sessions are associated with a session-idle timeout.
+		      When this timeout expires if the session is idle, 
+		      the corresponding entry in the session table is deleted.
+
+			  This parameter defines the value in seconds for the
+		      ICMP session-idle timeout loaded when the session itself
+		      is detected on the NAT device.
+
+		      Changing this parameter only affects ICMP sessions 
+		      detected at a later time.
+		      
+		      This parameter is only significant when the device
+		      operates in NAPT mode."
+              ::= { natEntry 19 }
+
+          natTcpUpSessionMaxIdleTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "All sessions are associated with a session-idle timeout.
+		      When this timeout expires if the session is idle, 
+		      the corresponding entry in the session table is deleted.
+
+		      TCP sessions define different timeouts for different
+		      states (with reference to the TCP state machine).
+
+			  This parameter defines the value in seconds for the
+		      session-idle timeout loaded when a TCP session in
+		      established state is detected on the NAT device.
+
+		      Changing this parameter only affects sessions detected
+		      at a later time."
+              ::= { natEntry 20 }
+
+          natTcpDiscSessionMaxIdleTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "All sessions are associated with a session-idle timeout.
+		      When this timeout expires if the session is idle, 
+		      the corresponding entry in the session table is deleted.
+
+		      TCP sessions define different timeouts for different
+		      states (with reference to the TCP state machine).
+
+			  This parameter defines the value in seconds for the
+		      session-idle timeout loaded when the NAT device
+		      detects a TCP session is being disconnected."
+              ::= { natEntry 21 }
+
+          natTcpClosingSessionMaxIdleTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "All sessions are associated with a session-idle timeout.
+		      When this timeout expires if the session is idle, 
+		      the corresponding entry in the session table is deleted.
+
+		      TCP sessions define different timeouts for different
+		      states (with reference to the TCP state machine).
+
+			  This parameter defines the value in seconds for the
+		      session-idle timeout loaded when the NAT device
+		      detects a TCP session is being closed."
+              ::= { natEntry 22 }
+
+          natTcpSyncSessionMaxIdleTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "All sessions are associated with a session-idle timeout.
+		      When this timeout expires if the session is idle, 
+		      the corresponding entry in the session table is deleted.
+
+		      TCP sessions define different timeouts for different
+		      states (with reference to the TCP state machine).
+
+			  This parameter defines the value in seconds for the
+		      session-idle timeout loaded when the NAT device
+		      detects a TCP session in the synch state."
+              ::= { natEntry 23 }
+
+          natLogMask OBJECT-TYPE
+              SYNTAX  INTEGER (0..'7FFFFFFF'h)
+              MAX-ACCESS  read-write
+              STATUS  deprecated
+              DESCRIPTION
+		      "A Bit Mask documenting the NAT instance's 
+		      logging option behaviour.
+ 
+		      Bit 0, if set, indicates that console output is enabled.
+ 
+		      Bit 1, if set, indicates that the system will write
+		      initialization sequence output to the console.
+
+		      Bit 2, if set, indicates that the system will write
+		      data output to the console.
+
+		      Bit 3, if set, indicates that the system will write
+		      trace output to the console.
+
+		      Bit 4, if set, indicates that the system will write
+		      information about error events to the console."
+	     REFERENCE
+		      "WindNet NAT User's Guide, 6.5 Console 
+		      Print-Related Configuration Parameters."
+	     DEFVAL { 19 }
+              ::= { natEntry 24 }
+
+          natEnable OBJECT-TYPE
+              SYNTAX  Boolean
+              MAX-ACCESS  read-write
+              STATUS  deprecated
+              DESCRIPTION
+              "A boolean flag to enable or disable the NAT device.
+		      
+		      The device needs to be re-initialized before a 
+		      change to this flag may take effect."
+              ::= { natEntry 25 }
+
+          natDefXEnable OBJECT-TYPE
+              SYNTAX  Boolean
+              MAX-ACCESS  read-write
+              STATUS  deprecated
+              DESCRIPTION
+               "Normally the NAT device translates incoming packets'
+		       IP addresses and transport ports according to 
+		       its translation tables.
+		       
+		       However, the user may want to change this default 
+		       behaviour, for instance to allow for RSIP hosts
+		       within the local network to operate properly.
+		       In such cases, this flag should be set to false."
+              ::= { natEntry 26 }
+
+          natGlobalAddrFilter OBJECT-TYPE
+              SYNTAX  Boolean
+              MAX-ACCESS  read-write
+              STATUS  deprecated
+              DESCRIPTION
+              "This boolean flag is only meaningful if 
+		      natDefXEnable is set to false. If so, and if 
+		      natGlobalAddrFilter is set to false, then the
+		      NAT device will route packets received on the 
+		      global port to the local network, without
+		      translating them.
+		      
+		      This enables RSIP hosts within the local network.
+		      
+		      Conversely, if this flag is set to true, then 
+		      packets received on the global port will be
+		      filtered according to their destination IP address."
+              ::= { natEntry 27 }
+
+          natStaticBindEnable OBJECT-TYPE
+              SYNTAX  Boolean
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+              "A boolean flag to enable or disable static bind 
+		      entries on the NAT device."
+              ::= { natEntry 28 }   
+              
+           natAdminCmd OBJECT-TYPE
+              SYNTAX    INTEGER    
+              {
+              	ready(1),
+              	clearrules(2)
+              }
+              MAX-ACCESS    read-write
+              STATUS    deprecated
+              DESCRIPTION
+                        "NAT Command."
+              ::= { natEntry 29 }
+ 
+--------------------------------------------------------------------------
+--  raisecomIpNatTable
+--------------------------------------------------------------------------
+					
+raisecomIpNatTable OBJECT-TYPE
+	    SYNTAX     SEQUENCE OF RaisecomIpNatEntry
+	    MAX-ACCESS not-accessible
+	    STATUS     current
+	    DESCRIPTION
+	            "This table is used to configure nat global ip address."
+	    ::= { natDesc 7 }           
+	    
+--------------------------  rcIpNatEntry------------------------------
+raisecomIpNatEntry OBJECT-TYPE
+	    SYNTAX     RaisecomIpNatEntry
+	    MAX-ACCESS not-accessible
+	    STATUS     current
+	    DESCRIPTION
+	        	"Define the global IP address information."
+	    INDEX { raisecomIpNatAddress }
+	    ::= { raisecomIpNatTable 1 }
+
+RaisecomIpNatEntry ::= SEQUENCE {
+	    raisecomIpNatAddress                IpAddress,
+	    raisecomIpNatAddressRowStatus       RowStatus
+	    } 
+
+	    
+raisecomIpNatAddress  OBJECT-TYPE
+	    SYNTAX     IpAddress
+	    MAX-ACCESS read-write
+	    STATUS     current
+	    DESCRIPTION 
+	       	 	"The IP address to which this entry's addressing 
+         		information pertains."
+	    ::= { raisecomIpNatEntry 1 } 
+	    	    
+raisecomIpNatAddressRowStatus  OBJECT-TYPE
+	    SYNTAX     RowStatus
+	    MAX-ACCESS read-create
+	    STATUS     current
+	    DESCRIPTION 
+	       	 	"The row status is used to manage creation and deletion of rows
+                in this table."
+	    ::= { raisecomIpNatEntry 2 }	 
+--------------------------------------------------------------------------
+          -- the NAT bind group
+ 
+          -- Implementation of the NAT bind group is deprecated for all
+          -- systems which implement the NAT.
+ 
+          -- the NAT Bind table
+--------------------------------------------------------------------------
+          natBindTable OBJECT-TYPE
+              SYNTAX  SEQUENCE OF NatBindEntry
+              MAX-ACCESS  not-accessible
+              STATUS  current
+              DESCRIPTION
+              "A table containing NAT bind-specific
+              information."
+              ::= { natBind 8 }
+ 
+          natBindEntry OBJECT-TYPE
+              SYNTAX  NatBindEntry
+              MAX-ACCESS  not-accessible
+              STATUS  current
+              DESCRIPTION
+                      "Information about a particular current NAT
+                      bind."
+              INDEX   { natBindLocalAddress,
+                        natBindLocalPort,
+                        natBindRemAddress,
+                        natBindRemPort }
+              ::= { natBindTable 1 }
+ 
+          NatBindEntry ::=
+              SEQUENCE {
+                  natBindStatic
+                      Boolean,
+                  natBindType
+                      INTEGER,
+                  natBindLocalAddress
+                      IpAddress,
+                  natBindLocalPort
+                      INTEGER (0..65535),
+                  natBindRemAddress
+                      IpAddress,
+                  natBindRemPort
+                      INTEGER (0..65535),
+                  natBindMaxLeaseTime
+                      INTEGER,
+                  natBindLeaseLeft
+                      INTEGER,
+                  natBindMaxIdle
+                      INTEGER,
+                  natBindCurrIdle
+                      INTEGER,
+                  natBindDirection 
+                      INTEGER,
+                  natBindLocalIfNumber
+                      INTEGER,
+                  natBindExtIfNumber
+                      INTEGER,
+                  natBindLocalIfName
+                      DisplayString,
+                  natBindExtIfName
+                      DisplayString,
+                  natBindProto
+                      INTEGER,
+                  natBindAction
+                      RowStatus,
+                  natBindContrAgent 
+                      INTEGER
+              }
+
+          natBindStatic OBJECT-TYPE
+              SYNTAX  Boolean
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "This flag indicates whether this bind is static or 
+		      dynamic.
+
+		      A value of true(1) indicates this bind is static.
+
+		      A value of false(2) indicates this bind is dynamic."
+              ::= { natBindEntry 1 }
+
+          natBindType OBJECT-TYPE
+              SYNTAX  INTEGER {
+                          address(1),
+                          transport(2)
+                      }
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "This field indicates whether this bind is between 
+		      a pair of IP-addresses, or between a pair of 
+		      (IP-address, Transport-Id) tuples.
+
+		      A value of 1 indicates this bind is based on
+		      a pair of IP-adresses.
+
+		      A value of 2 indicates this bind is based on the
+		      (IP-address, Transport-Id) tuple."
+              ::= { natBindEntry 2 }
+
+          natBindLocalAddress OBJECT-TYPE
+              SYNTAX  IpAddress
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The local IP address for this NAT bind, as 
+		      seen in the first packet that triggered this
+		      bind instance."
+              ::= { natBindEntry 3 }
+ 
+          natBindLocalPort OBJECT-TYPE
+              SYNTAX  INTEGER (0..65535)
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The local port number for this NAT bind.
+
+		      For TCP binds, this is the local TCP port number, or 0 if no TCP port is associated with it yet.
+
+		      For UDP binds, this is the local UDP port number, or 0 if no UDP port is associated with it yet.
+
+		      For ICMP binds, this is the ICMP-identifier.
+
+			  For IP binds, the value of 65535 indicates that port is not applicable."
+              ::= { natBindEntry 4 }
+ 
+          natBindRemAddress OBJECT-TYPE
+              SYNTAX  IpAddress
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The remote IP address for the transport bind, as 
+		      seen in the first packet that triggered this
+		      bind instance.  The value of 0.0.0.0 means there is no 
+			  remote address associated with this bind yet.  The value 
+			  of 255.255.255.255 means the bind is for a broadcast 
+			  message.
+			  
+			  For address binds, the remote address shown is actually the 
+			  global address of the local host.  NAT doesn't keep track 
+			  of the remote address in address binds."
+              ::= { natBindEntry 5 }
+ 
+          natBindRemPort OBJECT-TYPE
+              SYNTAX  INTEGER (0..65535)
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The remote port number for this NAT bind.
+		      
+		      For TCP binds, this is the remote TCP port number, 
+			  or zero, if no TCP port is associated with it yet.
+
+		      For UDP binds, this is the remote UDP port number,
+		      or zero, if no UDP port is associated with it yet.
+
+		      For ICMP binds, this is the ICMP-identifier.
+
+			  For IP (or address) binds, the port is shown as 65535 to indicate that 
+			  port is not applicable."
+
+              ::= { natBindEntry 6 }
+ 
+          natBindMaxLeaseTime OBJECT-TYPE
+              SYNTAX  INTEGER
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "The validity of a bind may be limited by the 
+		      duration of lease time it is allowed. Unless 
+		      the lease time is renewed, a bind will not be 
+		      valid past the lease time. As a special case, 
+		      a value of 0 may be assumed to indicate no 
+		      lease time limit. A value of -1 means that it is 
+			  not supported by this NAT instance.  Typically, this attribute is 
+		      of relevance only in conjunction with 
+		      Realm-Specific-IP(RSIP) operation."
+	      DEFVAL { 0 }
+              ::= { natBindEntry 7 }
+
+          natBindLeaseLeft OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter is of relevance only when Maximum 
+		      lease time is a non-zero value. At any given instance 
+		      of time, this parameter indicates the real-time 
+		      left for a bind to remain valid. A value of -1 means 
+			  that it is not supported by this NAT instance.
+		      Typically, this attribute is of relevance only 
+		      in conjunction with Realm-Specific-IP(RSIP) operation."
+              ::= { natBindEntry 8 }
+
+          natBindMaxIdle OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter indicates the maximum amount of time 
+		      this bind is allowed to remain valid, even if 
+		      there is no activity. 
+
+		      This parameter is ony valid for dynamic binds.
+
+		      External agents could also control this parameter.
+
+		      Static binds and lease time limited binds
+		      are not effected by this parameter."
+              ::= { natBindEntry 9 }
+
+          natBindCurrIdle OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter is of relevance only when 
+		      natBindMaxIdle time is set to a non-zero value. 
+		      At any given instance of time, this parameter 
+		      indicates the time left for the entry to be 
+		      removed from the list."
+              ::= { natBindEntry 10 }
+
+          natBindDirection OBJECT-TYPE
+              SYNTAX  INTEGER {
+			unidirectional(1),
+			bidirectional(2)
+			}
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "Direction of the bind may be uni-directional,
+		      or bi-directional."
+              ::= { natBindEntry 11 }
+
+          natBindLocalIfNumber OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter indicates the local network's 
+		      physical interface number (ifIndex) for this bind."
+	      DEFVAL { 0 }
+              ::= { natBindEntry 12 }
+
+          natBindExtIfNumber OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter indicates the external network's 
+		      physical interface number (ifIndex) for this bind."
+	      DEFVAL { 1 }
+              ::= { natBindEntry 13 }
+
+          natBindLocalIfName OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter indicates the local network's 
+		      physical interface name for this bind, for instance
+		      'fei'."
+              ::= { natBindEntry 14 }
+
+          natBindExtIfName OBJECT-TYPE
+              SYNTAX  DisplayString (SIZE (0..255))
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter indicates the external network's 
+		      physical interface name for this bind, for instance
+		      'fei'."
+              ::= { natBindEntry 15 }
+
+          natBindProto OBJECT-TYPE
+              SYNTAX  INTEGER {
+                          tcp(1),
+                          udp(2),
+                          icmp(3),
+                          ip(4)
+                      }
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The IP protocol for this NAT bind entry."
+              ::= { natBindEntry 16 }
+
+          natBindAction OBJECT-TYPE
+              SYNTAX  RowStatus
+              MAX-ACCESS  read-write
+              STATUS  deprecated
+              DESCRIPTION
+		      "A new static bind may be created or an existing one may
+		      be deleted by setting the multiple variable bindings of natBindProto 
+			  and natBindAction. For example, to create a new static TCP bind of 
+			  local host 192.168.10.10, local port 23, and global port 23, create 
+			  a new oid natBindProto.192.168.10.23.0.0.0.0.23 and set it to 'tcp', 
+			  and natBindAction.192.168.10.23.0.0.0.0.23 and set it to 'create and go'. 
+			  Similarly, to delete the static bind, set natBindProto.23.0.0.0.0.23 
+			  to 'tcp' and natBindAction.192.168.10.23.0.0.0.0.23 to 'destroy'. 
+			  To do this, your mib browser must be able to support multiple
+			  variable bindings access.
+			   
+		      Note that you can create and delete only TCP and UDP static entries  
+			  which apply only in NAPT mode."
+              ::= { natBindEntry 17 }
+
+          natBindContrAgent OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This indicates the last external Agent who has 
+		      tried to control parameters for this bind. 
+		      A value of 0 indicates that native NAT is the 
+		      responsible agent."
+              ::= { natBindEntry 18 }
+          -- the NAT session group
+ 
+          -- Implementation of the NAT session group is deprecated for all
+          -- systems which implement the NAT.
+ 
+
+          -- the NAT Session table
+ 
+          -- The NAT Session table contains information about this
+          -- entity's existing NAT sessions.
+ 
+          natSessionTable OBJECT-TYPE
+              SYNTAX  SEQUENCE OF NatSessionEntry
+              MAX-ACCESS  not-accessible
+              STATUS  deprecated
+              DESCRIPTION
+                      "A table containing NAT session-specific
+                      information."
+              ::= { natSession 1 }
+ 
+          natSessionEntry OBJECT-TYPE
+              SYNTAX  NatSessionEntry
+              MAX-ACCESS  not-accessible
+              STATUS  deprecated
+              DESCRIPTION
+                      "Information about a particular current NAT
+                      session."
+
+              INDEX   { natSessionLocalAddress,
+                        natSessionLocalPort,
+                        natSessionRemAddress,
+                        natSessionRemPort }
+              ::= { natSessionTable 1 }
+ 
+          NatSessionEntry ::=
+              SEQUENCE {
+                  natSessionProto
+                      INTEGER,
+                  natSessionLocalAddress
+                      IpAddress,
+                  natSessionLocalPort
+                      INTEGER (0..65535),
+                  natSessionRemAddress
+                      IpAddress,
+                  natSessionRemPort
+                      INTEGER (0..65535),
+                  natXSessionLocalAddress
+                      IpAddress,
+                  natXSessionLocalPort
+                      INTEGER (0..65535),
+                  natXSessionRemAddress
+                      IpAddress,
+                  natXSessionRemPort
+                      INTEGER (0..65535),
+                  natSessionEnd
+                      INTEGER,
+                  natSessionIdleTimeLeft
+                      INTEGER,
+				  natSessionContrAgent 
+		                      INTEGER,
+				  natSessionDirection 
+		                      INTEGER,
+				  natSessionPacketModifier 
+		                      INTEGER
+              }
+
+          natSessionProto OBJECT-TYPE
+              SYNTAX  INTEGER {
+                          tcp(1),
+                          udp(2),
+                          icmp(3),
+			  			  ip(4)
+                      }
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The IP protocol for this NAT session."
+              ::= { natSessionEntry 1 }
+
+          natSessionLocalAddress OBJECT-TYPE
+              SYNTAX  IpAddress
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The local IP address for this NAT session, as 
+		      seen in the first packet that triggered this
+		      session instance."
+              ::= { natSessionEntry 2 }
+ 
+          natSessionLocalPort OBJECT-TYPE
+              SYNTAX  INTEGER (0..65535)
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The local port number for this NAT sessions.  
+		      The sessions may be of one of the type described in 
+		      natSessionProto. 
+
+		      For TCP sessions, this is the local TCP port number, 
+			  or 0 if no TCP port is associated with it yet.
+
+		      For UDP sessions, this is the local UDP port number,
+		      or 0 if no UDP port is associated with it yet.
+
+		      For ICMP sessions, this is the ICMP-identifier.
+
+			  For IP sessions, the value of 65535 indicates that port is not applicable."
+              ::= { natSessionEntry 3 }
+ 
+          natSessionRemAddress OBJECT-TYPE
+              SYNTAX  IpAddress
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The remote IP address for this NAT session, as 
+		      seen in the first packet that triggered this
+		      session instance.
+			  
+			  For address binds, the remote address shown is actually the 
+			  global address of the local host.  NAT doesn't keep track 
+			  of the remote address in IP binds."
+              ::= { natSessionEntry 4 }
+ 
+          natSessionRemPort OBJECT-TYPE
+              SYNTAX  INTEGER (0..65535)
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The remote port number for this NAT sessions.  
+		      The sessions may be of one of the types described in 
+		      natSessionType. 
+
+		      For TCP sessions, this is the remote TCP port number,
+			  or 0 if no TCP port is associated with it yet.
+
+		      For UDP sessions, this is the remote UDP port number,
+		      or 0 if no UDP port is associated with it yet.
+
+		      For ICMP sessions, this is the ICMP-identifier.
+			  
+			  For IP sessions, the value 65535 indicates that port is not applicable."
+
+              ::= { natSessionEntry 5 }
+ 
+          -- the NAT Translated Session parameters
+ 
+          -- The NAT Translated Session parameters contain information 
+	  -- about this entity's existing NAT sessions after the NAT 
+	  -- translation has occurred.
+ 
+          natXSessionLocalAddress OBJECT-TYPE
+              SYNTAX  IpAddress
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The local IP address for this NAT session, after 
+		      the NAT translation has occurred."
+              ::= { natSessionEntry 6 }
+ 
+          natXSessionLocalPort OBJECT-TYPE
+              SYNTAX  INTEGER (0..65535)
+              MAX-ACCESS  read-only
+              STATUS  current
+              DESCRIPTION
+                      "The local port number for this NAT session after 
+		      the NAPT translation has occurred.  The session may be of 
+			  one of the types described in natSessionProto. 
+
+		      For TCP sessions, this is the local TCP port number
+		      after the NAPT translation has occurred, 
+			  or 0, if no TCP port is associated with this 
+			  session yet.
+
+		      For UDP sessions, this is the local UDP port number,
+		      after the NAPT translation has occurred,
+		      or 0, if no UDP port is associated with this
+		      session yet.
+
+		      For ICMP sessions, this is the ICMP-identifier,
+		      after the NAPT translation has occurred.
+
+			  For IP sessions, the value of 65535 indicates that port is not applicable."
+              ::= { natSessionEntry 7 }
+ 
+          natXSessionRemAddress OBJECT-TYPE
+              SYNTAX  IpAddress
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The remote IP address for this NAT session, after 
+		      the NAT translation has occurred.
+
+		      This is only relevant for NAT devices supporting
+		      twice-NAT."
+		      
+              ::= { natSessionEntry 8 }
+ 
+          natXSessionRemPort OBJECT-TYPE
+              SYNTAX  INTEGER (0..65535)
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The remote port number for this NAT sessions after 
+		      the NAPT translation has occurred.  This is only relevant 
+			  for NAT devices supporting twice-NAT.
+
+		      For TCP sessions, this is the remote TCP Port number
+		      after the NAPT translation has occurred.
+
+		      For UDP sessions, this is the remote UDP Port number,
+		      after the NAPT translation has occurred,
+		      or zero, if no UDP port is associated with this
+		      session.
+
+		      For ICMP sessions, this is the ICMP-identifier,
+		      after the NAPT translation has occurred."
+              ::= { natSessionEntry 9 }
+ 
+          natSessionEnd OBJECT-TYPE
+              SYNTAX  INTEGER {
+                          other(1),
+                          noheuristic(2),
+                          idletime(3),
+			  extagent(4)
+                      }
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+                      "The heuristic means used to terminate this NAT session.
+		      
+		      A value of noheuristic in this field means the NAT
+		      device is not using any heuristic to terminate this
+		      session.
+		      
+		      A value of idletime in this field means the NAT
+		      device is using idle time information to terminate this
+		      session.
+		      
+		      A value of extagent in this field means an external
+		      agent is responsible for terminating this session.
+		      
+		      A value of other in this field simply means none
+		      of the above."
+	      DEFVAL { 3 }
+              ::= { natSessionEntry 10 }
+
+          natSessionIdleTimeLeft OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This parameter represents a real-time measure
+		      of the time in seconds this session is allowed 
+		      to remain valid, even when there is no activity. 
+
+		      This parameter is of relevance only when session 
+		      termination heuristic is set to session-idle-time."
+              ::= { natSessionEntry 11 }
+
+          natSessionPacketModifier OBJECT-TYPE
+              SYNTAX  INTEGER {
+			noModifier(1),
+			ipModifier(2)
+			}
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "Typically, NAT modifies IP header and sometimes 
+		      the transport header. External agents may choose 
+		      to assume responsibility for payload modification 
+		      alone, or the entire packet modification. In the 
+		      case an external agent assumes responsibility for 
+		      the entire packet modification, NAT will simply 
+		      redirect the original packet as is to external 
+		      translation agent. Otherwise, NAT will perform 
+		      its share of translation (i.e., IP and transport 
+		      header translation) and direct the translated 
+		      packet to external agent."
+              ::= { natSessionEntry 13 }
+
+          natSessionDirection OBJECT-TYPE
+              SYNTAX  INTEGER {
+			outbound(1),
+			inbound(2)
+			}
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "Direction of first packet of the session, with 
+		      reference to the private realm.  This information 
+			  is not available for address binds."
+              ::= { natSessionEntry 14 }
+
+          natSessionContrAgent OBJECT-TYPE
+              SYNTAX  INTEGER 
+              MAX-ACCESS  read-only
+              STATUS  deprecated
+              DESCRIPTION
+		      "This indicates the last external Agent  who has 
+		      tried to control parameters for this session. 
+		      A value of 0 indicates that native NAT is the 
+		      responsible agent."
+              ::= { natSessionEntry 15 }
+
+          -- 2012-10-29 add
+          --the NAT interface group
+ 
+          -- Implementation of the NAT interface group is deprecated for all
+          -- systems which implement the NAT.
+ 
+
+          -- the NAT Interface table
+ 
+          -- The NAT Interface table contains information about this
+          -- entity's existing NAT interfaces.
+ 
+          natInterfaceTable OBJECT-TYPE
+              SYNTAX  SEQUENCE OF NatInterfaceEntry
+              MAX-ACCESS  not-accessible
+              STATUS  deprecated
+              DESCRIPTION
+                      "A table containing NAT interface
+                      information."
+              ::= { natInterface 1 }
+ 
+          natInterfaceEntry OBJECT-TYPE
+              SYNTAX  NatInterfaceEntry
+              MAX-ACCESS  not-accessible
+              STATUS  deprecated
+              DESCRIPTION
+                      "Information about a particular current NAT
+                      interface."
+
+              INDEX   { 
+                        natInterfaceName
+                      }
+              ::= { natInterfaceTable 1 }
+ 
+          NatInterfaceEntry ::=
+              SEQUENCE {
+                  natInterfaceName 
+                  	  DisplayString,
+                  natInterfaceRealm
+                      INTEGER ,   
+                  natInterfaceRawStatus
+                  	  RowStatus
+           }
+
+			natInterfaceName OBJECT-TYPE
+			   SYNTAX      DisplayString (SIZE(0..64))
+			   MAX-ACCESS not-accessible
+			   STATUS     deprecated
+			   DESCRIPTION
+	                 "The name of a interface for NAT .The first ocet is the length of the string."
+	              ::= { natInterfaceEntry 1 }
+ 
+          natInterfaceRealm OBJECT-TYPE
+			  SYNTAX     INTEGER {
+	                   private (1),
+	                   public (2)  
+                }
+              MAX-ACCESS  read-create
+              STATUS  deprecated
+              DESCRIPTION
+	           "This object identifies whether this interface is
+	             connected to the private or the public realm."
+
+              ::= { natInterfaceEntry 2 }
+ 
+			natInterfaceRawStatus OBJECT-TYPE
+			    SYNTAX      RowStatus
+			    MAX-ACCESS  read-create
+			    STATUS      deprecated
+			    DESCRIPTION
+			            "The status of this conceptual row.
+			
+			             Until instances of all corresponding columns are
+			             appropriately configured, the value of the
+			             corresponding instance of the natInterfaceRowStatus
+			             column is 'notReady'.
+			
+			
+			             In particular, a newly created row cannot be made
+			             active until the corresponding instance of
+			             natInterfaceServiceType has been set.
+			
+			             None of the objects in this row may be modified
+			             while the value of this object is active(1)."
+			    REFERENCE
+			            "Textual Conventions for SMIv2, Section 2."
+			    ::= { natInterfaceEntry 3 } 
+
+          END
+

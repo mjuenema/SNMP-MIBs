@@ -1,0 +1,527 @@
+
+
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+            -- MIB privada de Teldat
+
+            -- Interfaces Ethernet
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.1  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+    -- 1.0  01/07/04    J. Molina       Archivo procedente de Ethernet.mib
+
+    -- Historial de Ethernet.mib:
+            -- 05-10-01  M. Meseguer    Traduccin a inglâs
+            -- 01-12-00  M.A. Pastor    Modificaciones para que pueda ser
+            --                          compilada utilizando compiladores
+            --                          distintos del de Teldat
+            -- 22-09-00  M.A. Pastor    Modificacin del dise±o inicial para
+            --                          incluir todos los parﬂmetros que se
+            --                          muestran en consola
+            -- 19-10-99  M.A. Pastor    Implementacin inicial
+    --------------------------------------------------------------------------
+TELDAT-MON-INTERF-ETHER-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            Counter
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            DisplayString, PhysAddress
+        FROM RFC1213-MIB
+            telProdNpMonInterfRouter
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    -- telProdNpMonInterfEthernet group
+
+    telProdNpMonInterfEthernet OBJECT IDENTIFIER ::= { telProdNpMonInterfRouter 6 }
+
+
+
+    -- Tabla de parﬂmetros globales del interfaz Ethernet. Utiliza un çndice
+    -- para recorrer la tabla e identificar la entrada en la misma, que es el
+    -- nîmero de interfaz, teniendo en cuenta que puesto que empiezan a
+    -- numerarse desde 1 y no desde 0, el nîmero de interfaz serﬂ una unidad
+    -- mayor que el nîmero que se le asigna en consola. Ademﬂs del çndice, en
+    -- cada entrada se incluyen la direccin MAC fçsica usada en el interfaz,
+    -- la direccin MAC suministrada por el fabricante (PROM address) y
+    -- la versin del microcdigo que se encuentra funcionando en el procesador
+    -- de comunicaciones Ethernet.
+
+    telProdNpMonInterfEtherGlobalTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfEtherGlobalEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Table of global parameters of the Ethernet interface. The table
+            index is the interface number, considering that, since they begin to
+            number itself from 1 and not from 0, the interface number will be a
+            unit greater than the number assigned to it in console. In addition
+            to the index, each entry consists of physical MAC address used
+            in the interface, MAC address provided by the manufacturer
+            (PROM address) and the version of the microcode which is running on
+            the processor of Ethernet communications."
+        ::= { telProdNpMonInterfEthernet 1 }
+
+    telProdNpMonInterfEtherGlobalEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfEtherGlobalEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of the number of Ethernet interface (index of
+            the table), physical MAC address used in the interface, MAC address
+            provided by the manufacturer (PROM address) and the version
+            of the microcode which is running on the processor of Ethernet
+            communications."
+        INDEX { telProdNpMonInterfEtherGloIndex }
+        ::= { telProdNpMonInterfEtherGlobalTable 1 }
+
+    TelProdNpMonInterfEtherGlobalEntry ::=
+        SEQUENCE{
+            telProdNpMonInterfEtherGloIndex
+                INTEGER,
+            telProdNpMonInterfEtherGloPhysMAC
+                PhysAddress,
+            telProdNpMonInterfEtherGloLogMAC
+                PhysAddress,
+            telProdNpMonInterfEtherGloCodVer
+                DisplayString
+            }
+
+    telProdNpMonInterfEtherGloIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of Ethernet interface of the device. It indicates the
+            corresponding entry of the table (it indexes it). It is determined
+            by its hardware configuration. Number 1 is associated to first
+            of them (if there is more than one), and not the 0 like in console."
+        ::= { telProdNpMonInterfEtherGlobalEntry 1 }
+
+    telProdNpMonInterfEtherGloPhysMAC OBJECT-TYPE
+        SYNTAX PhysAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Physical MAC address used in the Ethernet interface."
+        ::= { telProdNpMonInterfEtherGlobalEntry 2 }
+
+    telProdNpMonInterfEtherGloLogMAC OBJECT-TYPE
+        SYNTAX PhysAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "PROM address: MAC address provided by the manufacturer for Ethernet
+            interface."
+        ::= { telProdNpMonInterfEtherGlobalEntry 3 }
+
+    telProdNpMonInterfEtherGloCodVer OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Version of the microcode which is running on the processor
+            of Ethernet communications."
+        ::= { telProdNpMonInterfEtherGlobalEntry 4 }
+
+    -- Tabla de los estadçsticos (de entrada y de salida) de cada interfaz
+    -- Ethernet.
+    -- Habrﬂ una entrada en la tabla por cada uno, y en ellas se incluyen los
+    -- datos que dan informacin acerca del nîmero de tramas recibidas con
+    -- longitud mayor que la mﬂxima, nîmero de tramas recibidas con error CRC,
+    -- nîmero de tramas recibidas con error de alineamiento, nîmero de FIFO
+    -- overruns, nîmero de errores de recepcin no debidos a colisiones
+    -- excesivas o a deteccin de portadora, nîmero de paquetes perdidos por
+    -- encontrarse el buffer local lleno, nîmero de veces que se ha postpuesto
+    -- una transmisin por detectarse actividad en la lçnea, nîmero de tramas
+    -- que han sufrido una colisin antes de transmitirse con âxito, nîmero de
+    -- tramas que han sufrido colisiones mîltiples antes de ser transmitidas
+    -- con âxito, nîmero total de colisiones, nîmero de tramas cuya transmisin
+    -- fracas debido a que sufrieron 16 o mﬂs colisiones sucesivas, nîmero de
+    -- FIFO underruns, nîmero de veces que una trama colisiona por estar
+    -- deshabilitado el detector de portadora, nîmero de SQE test errors,
+    -- nîmero de tramas que sufren una colisin cuando ya se han transmitido
+    -- al menos 512 bits, nîmero de errores de transmisin que no son
+    -- colisiones tardças, excesivas o de deteccin de portadora, y por îltimo
+    -- una variable que controla el borrado de los estadçsticos correspondientes
+    -- al interfaz que indica el çndice.
+
+    telProdNpMonInterfEtherStatTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfEtherStatEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Table of the statistics of the input and the output of the Ethernet
+            interfaces. The entry number is given by the interface value, and
+            each one consists of the information about the number of frames
+            received with length greater than the maximum, number of frames
+            received with CRC error, number of frames received with alignment
+            error, number of FIFO overruns, number of reception errors nondue
+            to excessive collisions or carrier detection, number of lost packets
+            because of the local buffer is full, number of times a transmission
+            has been postponed because of detecting activity in the line, number
+            of frames which have undergone a collision before being transmitted
+            successfully, number of frames which have undergone multiple
+            collisions before being transmitted successfully, total number of
+            collisions, number of frames whose transmission failed because they
+            underwent 16 or more successive collisions, number of errors by
+            FIFO underruns, number of times that a frame collides because
+            carrier detector is disabled, number of SQE test errors, number of
+            frames which undergo a collision when 512 bits have been transmitted
+            already at least, number of transmission errors that are not
+            delayed, excessive collisions or of carrier detection, and finally a
+            variable that controls the erasure of the statistics corresponding
+            to the interface that the index indicates."
+        ::= { telProdNpMonInterfEthernet 2 }
+
+    telProdNpMonInterfEtherStatEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfEtherStatEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry contains the number of Ethernet interface of the device,
+            which will be the index with which the table is crossed, and
+            a set of variables which inform about the number of frames received
+            with length greater than the maximum, number of frames received
+            with CRC error, number of frames received with alignment error,
+            number of FIFO overruns, number of reception errors nondue to
+            excessive collisions or carrier detection, number of lost packets
+            because of the local buffer is full, number of times a transmission
+            has been postponed because of detecting activity in the line, number
+            of frames which have undergone a collision before being transmitted
+            successfully, number of frames which have undergone multiple
+            collisions before being transmitted successfully, total number of
+            collisions, number of frames whose transmission failed because
+            they underwent 16 or more successive collisions, number of errors
+            by FIFO underruns, number of times that a frame collides because
+            carrier detector is disabled, number of SQE test errors, number of
+            frames which undergo a collision when 512 bits have been transmitted
+            already at least, number of transmission errors that are not
+            delayed, excessive collisions or of carrier detection, and finally
+            a variable that controls the erasure of the statistics corresponding
+            to the interface that the index indicates."
+        INDEX { telProdNpMonInterfEtherStatIndex }
+        ::= { telProdNpMonInterfEtherStatTable 1 }
+
+    TelProdNpMonInterfEtherStatEntry ::=
+        SEQUENCE{
+            telProdNpMonInterfEtherStatIndex
+                INTEGER,
+            telProdNpMonInterfEtherStatInTooLong
+                Counter,
+            telProdNpMonInterfEtherStatInFCSError
+                Counter,
+            telProdNpMonInterfEtherStatInAlignError
+                Counter,
+            telProdNpMonInterfEtherStatInOvFIFO
+                Counter,
+            telProdNpMonInterfEtherStatInMACRcvErr
+                Counter,
+            telProdNpMonInterfEtherStatInPackMissed
+                Counter,
+            telProdNpMonInterfEtherStatOutDefTx
+                Counter,
+            telProdNpMonInterfEtherStatOutSingleColl
+                Counter,
+            telProdNpMonInterfEtherStatOutMultColl
+                INTEGER,
+            telProdNpMonInterfEtherStatOutTotColl
+                INTEGER,
+            telProdNpMonInterfEtherStatOutExcColl
+                Counter,
+            telProdNpMonInterfEtherStatOutUndFIFO
+                Counter,
+            telProdNpMonInterfEtherStatOutCarrSens
+                Counter,
+            telProdNpMonInterfEtherStatOutSQEErr
+                Counter,
+            telProdNpMonInterfEtherStatOutLateColl
+                Counter,
+            telProdNpMonInterfEtherStatOutMACTxErr
+                Counter,
+            telProdNpMonInterfEtherStatResetStat
+                INTEGER
+            }
+
+    telProdNpMonInterfEtherStatIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of Ethernet interface of the device. It indicates the
+            corresponding entry of the table (it indexes it). It is determined
+            by its hardware configuration. Number 1 is associated to first
+            of them (if there is more than one), and not the 0 like in console."
+        ::= { telProdNpMonInterfEtherStatEntry 1 }
+
+    telProdNpMonInterfEtherStatInTooLong OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of frames received by the interface indicated by the index
+            whose length exceeded the maximum allowed for an Ethernet frame:
+            1518 bytes."
+        ::= { telProdNpMonInterfEtherStatEntry 2 }
+
+    telProdNpMonInterfEtherStatInFCSError OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of frames received by that interface with a CRC error."
+        ::= { telProdNpMonInterfEtherStatEntry 3 }
+
+    telProdNpMonInterfEtherStatInAlignError OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of frames received by that interface with an alignment
+            error: its length in bits is not multiple of 8."
+        ::= { telProdNpMonInterfEtherStatEntry 4 }
+
+    telProdNpMonInterfEtherStatInOvFIFO OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of FIFO overruns in the interface input: the Ethernet chip
+            of the device isn't able to store bytes in the local buffer of
+            packets as fast as they leave the thread."
+        ::= { telProdNpMonInterfEtherStatEntry 5 }
+
+    telProdNpMonInterfEtherStatInMACRcvErr OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of reception errors nondue to excessive collisions or
+            carrier detection."
+        ::= { telProdNpMonInterfEtherStatEntry 6 }
+
+    telProdNpMonInterfEtherStatInPackMissed OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of lost packets because of the local buffer is full.
+            This error indicates that the network has more traffic than
+            the one than the interface can handle."
+        ::= { telProdNpMonInterfEtherStatEntry 7 }
+
+    telProdNpMonInterfEtherStatOutDefTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of times that the interface has postponed the transmission
+            because the mechanism of carrier detection has detected activity in
+            the line."
+        ::= { telProdNpMonInterfEtherStatEntry 8 }
+
+    telProdNpMonInterfEtherStatOutSingleColl OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of frames which have undergone a collision in the first
+            attempt of transmission and have been sent successfully in
+            the second attempt."
+        ::= { telProdNpMonInterfEtherStatEntry 9 }
+
+    telProdNpMonInterfEtherStatOutMultColl OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Counter which is increased when a plot undergoes a multiple
+            collision before being transmitted successfully."
+        ::= { telProdNpMonInterfEtherStatEntry 10 }
+
+    telProdNpMonInterfEtherStatOutTotColl OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Counter of the total number of collisions of a frame."
+        ::= { telProdNpMonInterfEtherStatEntry 11 }
+
+    telProdNpMonInterfEtherStatOutExcColl OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of frames whose transmission failed because they underwent
+            16 or more successive collisions. This error indicates a high volume
+            of traffic in the network, or hardware problems in the network."
+        ::= { telProdNpMonInterfEtherStatEntry 12 }
+
+    telProdNpMonInterfEtherStatOutUndFIFO OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of errors by FIFO underruns: The transmission of a frame
+            fails because the interface is not able to retrieve frames from
+            the local buffer of frames with the sufficient speed to transmit
+            them into the network."
+        ::= { telProdNpMonInterfEtherStatEntry 13 }
+
+    telProdNpMonInterfEtherStatOutCarrSens OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of times that a frame collides because carrier detector is
+            disabled. This error indicates a problem between the interface and
+            its Ethernet transreceiver."
+        ::= { telProdNpMonInterfEtherStatEntry 14 }
+
+    telProdNpMonInterfEtherStatOutSQEErr OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of times that the interface sent a frame but detected
+            absence of heartbeat in the Ethernet transreceiver. It is supposed
+            that the transmission of the packet has been carried out
+            successfully since some transreceivers do not generate heartbeats."
+        ::= { telProdNpMonInterfEtherStatEntry 15 }
+
+    telProdNpMonInterfEtherStatOutLateColl OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of frames which have undergone a collision after to have
+            transmitted 512 bytes at least. This error shows that an interface
+            in the network did not postpone the transmission, or that
+            the network has too many stations."
+        ::= { telProdNpMonInterfEtherStatEntry 16 }
+
+    telProdNpMonInterfEtherStatOutMACTxErr OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of transmission errors that are not delayed, excessive
+            collisions or of carrier detection."
+        ::= { telProdNpMonInterfEtherStatEntry 17 }
+
+    telProdNpMonInterfEtherStatResetStat OBJECT-TYPE
+        SYNTAX INTEGER{
+            reset-all(1),
+            ok(2),
+            error(3),
+            running(4),
+            indefinite(5)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Variable which indicates the result of the last erasure operation
+            of statistics in a get operation: its value is 2 if the operation
+            took place with normality, 3 if an error took place, 4 if the
+            command is running and 5 if an erasure operation has not been still
+            carried out. In set operations this variable only admits value 1,
+            which causes the erasure operation to begin."
+        ::= { telProdNpMonInterfEtherStatEntry 18 }
+
+    -- Tabla de colisiones: muestra los contadores de tramas en transmisin que
+    -- incurren en colisin antes de que se complete con âxito la transmisin de
+    -- las mismas. Los contadores registran el nîmero de tramas enviadas con
+    -- âxito despuâs de un nîmero especificado de colisiones (en un rango
+    -- de 1 a 15 colisiones).
+
+    telProdNpMonInterfEtherCollTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfEtherCollEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Collisions table: it shows for each Ethernet interface
+            the counters of frames in transmission that incur collision before
+            its transmission is completed successfully. The counters register
+            the number of frames sent successfully after a specified number of
+            collisions (from 1 to 15 collisions).
+            The table is crossed with two indexes: The first is the interface
+            number (Ethernet type), and the second is the number of collisions
+            that the frame must suffer before reaching its destination."
+        ::= { telProdNpMonInterfEthernet 3 }
+
+    telProdNpMonInterfEtherCollEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfEtherCollEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of the number of Ethernet interface of the
+            device, which will be the first table index, the counter of
+            the frames sent successfully after a certain number of collisions
+            (there will be 15 counters, to write down the frames that suffer
+            from 1 collision to 15 collisions before being sent successfully),
+            which is the second table index, and finally the number of frames
+            which undergo a certain number of collisions, that is to say,
+            the value of the corresponding counter of the interface at issue."
+        INDEX { telProdNpMonInterfEtherCollInterfIndex, telProdNpMonInterfEtherCollCountIndex }
+        ::= { telProdNpMonInterfEtherCollTable 1 }
+
+    TelProdNpMonInterfEtherCollEntry ::=
+        SEQUENCE{
+            telProdNpMonInterfEtherCollInterfIndex
+                INTEGER,
+            telProdNpMonInterfEtherCollCountIndex
+                INTEGER,
+            telProdNpMonInterfEtherCollFrequencies
+                Counter
+            }
+
+    telProdNpMonInterfEtherCollInterfIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of Ethernet interface of the device that indexes the table
+            (it is the first index). It is determined by the hardware
+            configuration of the interface."
+        ::= { telProdNpMonInterfEtherCollEntry 1 }
+
+    telProdNpMonInterfEtherCollCountIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of collisions that frames must suffer before
+            its transmission to be completed successfully to register them
+            in the corresponding counter. It is the second table index."
+        ::= { telProdNpMonInterfEtherCollEntry 2 }
+
+    telProdNpMonInterfEtherCollFrequencies OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of frames which reach its destination successfully after
+            a specific number of collisions."
+        ::= { telProdNpMonInterfEtherCollEntry 3 }
+
+END

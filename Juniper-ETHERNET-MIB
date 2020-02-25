@@ -6,7 +6,7 @@
 --   Ethernet MIB
 --
 -- Copyright (c) 2000, 2002 Unisphere Networks, Inc.
--- Copyright (c) 2002-2006 Juniper Networks, Inc.
+-- Copyright (c) 2002, 2003 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -27,7 +27,7 @@ IMPORTS
         FROM Juniper-TC;
 
 juniEthernetMIB  MODULE-IDENTITY
-    LAST-UPDATED "200601112116Z"  -- 11-Jan-06 04:16 PM EST
+    LAST-UPDATED "200412141514Z"  -- 14-Dec-04 10:14 AM EST
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -42,12 +42,6 @@ juniEthernetMIB  MODULE-IDENTITY
         IF-MIB.ifTable.  It also contains managed objects for creation of
         Ethernet subInterfaces."
     -- Revision History
-    REVISION    "200601112116Z"  -- 11-Jan-06 04:16 PM EST  - JUNOSe 7.3
-    DESCRIPTION
-        "Added juniLagIfLayer."
-    REVISION    "200509142008Z"  -- 14-Sep-05 03:08 PM EST  - JUNOSe 7.2
-    DESCRIPTION
-        "Added juniVlanSubIfVlanAdvisoryRx/TxSpeed."
     REVISION    "200412141514Z"  -- 14-Dec-04 10:14 AM EST  - JUNOSe 7.0
     DESCRIPTION
         "Added XFP mau types.
@@ -158,7 +152,6 @@ juniEthernetSubIfLayer OBJECT IDENTIFIER ::= { juniEthernetObjects 2 }
 juniVlanMajorIfLayer   OBJECT IDENTIFIER ::= { juniEthernetObjects 3 }
 juniVlanSubIfLayer     OBJECT IDENTIFIER ::= { juniEthernetObjects 4 }
 juniEthernetIfStats    OBJECT IDENTIFIER ::= { juniEthernetObjects 5 }
-juniLagIfLayer         OBJECT IDENTIFIER ::= { juniEthernetObjects 6 }
 
 -- /////////////////////////////////////////////////////////////////////////////
 --
@@ -604,12 +597,10 @@ JuniVlanSubIfEntry ::= SEQUENCE {
     juniVlanSubIfIndex               InterfaceIndex,
     juniVlanSubIfVlanId              Integer32,
     juniVlanSubIfVlanUntagged        TruthValue,
-    juniVlanSubIfLowerIfIndex        InterfaceIndexOrZero,
-    juniVlanSubIfRowStatus           RowStatus,
     juniVlanSubIfVlanStackId         Integer32,
     juniVlanSubIfVlanStackEthertype  INTEGER,
-    juniVlanSubIfVlanAdvisoryRxSpeed Integer32,
-    juniVlanSubIfVlanAdvisoryTxSpeed Integer32 }
+    juniVlanSubIfLowerIfIndex        InterfaceIndexOrZero,
+    juniVlanSubIfRowStatus           RowStatus }
 
 juniVlanSubIfIndex OBJECT-TYPE
     SYNTAX      InterfaceIndex
@@ -723,39 +714,15 @@ juniVlanSubIfVlanStackId OBJECT-TYPE
 juniVlanSubIfVlanStackEthertype OBJECT-TYPE
     SYNTAX      INTEGER {
                     etherType8100h(33024),
-                    etherType88a8h(34984),
-                    etherType9100h(37120) }
+                    etherType9100h(37120),
+                    etherType9200h(37376) }
     MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
         "The ethertype is used to recognize and demultiplex traffic for this
-        S-VLAN.  Must be either 0x8100, 0x88a8, or 0x9100."
+        S-VLAN.  Must be either 0x8100, 0x9100 or 0x9200."
     DEFVAL    { etherType9100h }
     ::= { juniVlanSubIfEntry 7 }
-
-juniVlanSubIfVlanAdvisoryRxSpeed OBJECT-TYPE
-    SYNTAX      Integer32 (0..2147483647)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Advisory receive speed, in kilobits per second (kbps),
-        of this subinterface. This object has no impact on
-        forwarding performance but may be used as a hint for
-        underlying circuit receive speed."
-    DEFVAL    { 0 }
-       ::= { juniVlanSubIfEntry 8 }
-
-juniVlanSubIfVlanAdvisoryTxSpeed OBJECT-TYPE
-    SYNTAX      Integer32 (0..2147483647)
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Advisory transmit speed, in kilobits per second (kbps),
-        of this subinterface. This object has no impact on
-        forwarding performance but may be used as a hint for
-        underlying circuit transmit speed."
-    DEFVAL    { 0 }
-       ::= { juniVlanSubIfEntry 9 }
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -811,32 +778,6 @@ juniEthernetIfEgressLineUtilization OBJECT-TYPE
         "The egress line utilization statistic for this ethernet interface."
     ::= { juniEthernetIfStatsEntry 3 }
 
-
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
--- LAG Interface Creation
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
---
--- IfIndex selection for creating new LAG Interfaces
---
-juniLagNextIfIndex OBJECT-TYPE
-    SYNTAX      JuniNextIfIndex
-    MAX-ACCESS  read-only
-    STATUS      current
-    DESCRIPTION
-        "Coordinate ifIndex value allocation for entries in
-        juniLagIfTable.
-
-        A GET of this object returns the next available ifIndex value to be used
-        to create an entry in the associated interface table; or zero, if no
-        valid ifIndex value is available.  This object also returns a value of
-        zero when it is the lexicographic successor of a varbind presented in an
-        SNMP GETNEXT or GETBULK request, for which circumstance it is assumed
-        that ifIndex allocation is unintended.
-
-        Successive GETs will typically return different values, thus avoiding
-        collisions among cooperating management clients seeking to create table
-        entries simultaneously.  "
-    ::= { juniLagIfLayer 1 }
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Notifications
@@ -933,27 +874,6 @@ juniEthernetCompliance4  MODULE-COMPLIANCE
     ::= { juniEthernetCompliances 4 }                              -- JUNOSe 4.1
 
 juniEthernetCompliance5  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper
-        Ethernet MIB."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniEthernetGroup2,
-            juniEthernetSubIfGroup,
-            juniEthernetIfStatsGroup }
-        GROUP       juniVlanGroup
-            DESCRIPTION
-                "The juniVlanGroup is mandatory only for entities that support
-                VLAN interfaces."
-        GROUP       juniVlanSubIfGroup2
-            DESCRIPTION
-                "This group is mandatory only for entities that support a
-                subinterface to major interface layer model for VLAN
-                interfaces."
-    ::= { juniEthernetCompliances 5 }                              -- JUNOSe 5.2
-
-juniEthernetCompliance6  MODULE-COMPLIANCE
     STATUS      current
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper
@@ -972,11 +892,7 @@ juniEthernetCompliance6  MODULE-COMPLIANCE
                 "This group is mandatory only for entities that support a
                 subinterface to major interface layer model for VLAN
                 interfaces."
-        GROUP       juniLagIfGroup
-            DESCRIPTION
-                "The juniLagIfGroup is mandatory only for entities that support
-                LAG interfaces."
-    ::= { juniEthernetCompliances 6 }                              -- JUNOSe 7.0
+    ::= { juniEthernetCompliances 5 }                              -- JUNOSe 5.2
 
 
 --
@@ -1038,11 +954,9 @@ juniVlanSubIfGroup2  OBJECT-GROUP
         juniVlanSubIfVlanId,
         juniVlanSubIfVlanUntagged,
         juniVlanSubIfVlanStackId,
-        juniVlanSubIfLowerIfIndex,
-        juniVlanSubIfRowStatus,
         juniVlanSubIfVlanStackEthertype,
-        juniVlanSubIfVlanAdvisoryRxSpeed,
-        juniVlanSubIfVlanAdvisoryTxSpeed }
+        juniVlanSubIfLowerIfIndex,
+        juniVlanSubIfRowStatus }
     STATUS      current
     DESCRIPTION
         "A collection of objects providing management of VLAN SubInterfaces in a
@@ -1074,14 +988,5 @@ juniEthernetIfStatsGroup  OBJECT-GROUP
         "A collection of objects providing Ethernet interface statistics in
         a Juniper product."
     ::= { juniEthernetGroups 7 }                                   -- JUNOSe 5.2
-
-juniLagIfGroup  OBJECT-GROUP
-    OBJECTS {
-        juniLagNextIfIndex }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of LAG interfaces in
-        a Juniper product."
-    ::= { juniEthernetGroups 8 }                                   -- JUNOSe 7.0
 
 END

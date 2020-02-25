@@ -1,0 +1,2202 @@
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+            -- MIB privada de Teldat
+
+            -- MIB privada de monitorizacin de los interfaces Frame Relay
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.3  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+    -- 1.2  13/11/08    P. Nogueira     Tablas de llamadas obsoletas
+    -- 1.1  25/11/04    M.A. Pastor     La introduccin del HSSI provoca que
+    --                                  las lçneas puedan alcanzar velocidades
+    --                                  de 50 Mbps
+    -- 1.0  01/07/04    J. Molina       Archivo procedente de FR.MIB
+
+
+    -- Historial de FR.MIB:
+    -- 01-10-01  N.Villase±or           Traduccin a inglâs
+    -- 01-12-00  M.A. Pastor            Modificaciones para que pueda ser
+    --                                  compilada utilizando compiladores
+    --                                  distintos del de Teldat
+    -- 27-01-00  M.A. Pastor            Implementacion inicial
+--------------------------------------------------------------------------------
+TELDAT-MON-INTERF-FR-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            IpAddress, Counter
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            DisplayString
+        FROM RFC1213-MIB
+            telProdNpMonInterfRouter
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    telProdNpMonInterfFR    OBJECT IDENTIFIER ::= { telProdNpMonInterfRouter 9 }
+
+
+-- Grupo telProdNpMonInterfFR
+
+-- Incluye los parﬂmetros referentes a los interfaces Frame Relay sobre linea
+-- serie, a los FR-Dial y al encapsulado FR de los interfaces Frame Relay
+-- sobre RDSI.
+
+-- Tabla de datos generales de los interfaces Frame Relay. Esta tabla no aparece
+-- en el caso de interfaces FR sobre RDSI ni FR-Dial: slo estﬂ disponible en el
+-- caso de FR sobre lçnea serie.
+-- Habrﬂ una entrada en la tabla por cada interfaz, y en cada entrada se
+-- muestran los datos que dan informacin sobre el tipo de interfaz sobre el que
+-- corre FR (DCE o DTE), la velocidad de lçnea y cuﬂndo se realiz el îltimo
+-- reset del puerto.
+
+    telProdNpMonInterfFRGlobalTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRGlobalEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of general information about interfaces Frame Relay.
+        This information is not available for FR-Dial or FR over RDSI
+        interfaces. The entry number is determined by the interface
+        value."
+        ::= { telProdNpMonInterfFR 1 }
+
+    telProdNpMonInterfFRGlobalEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRGlobalEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the interface number of the node, that is
+        the table index, the interface type or physical driver (DTE o DCE)
+        used by Frame Relay, the line speed and the time the last port reset
+        was performed."
+        INDEX { telProdNpMonInterfFRGloIndex }
+
+        ::= { telProdNpMonInterfFRGlobalTable 1 }
+
+    TelProdNpMonInterfFRGlobalEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRGloIndex
+                INTEGER,
+            telProdNpMonInterfFRGloDriverType
+                DisplayString,
+            telProdNpMonInterfFRGloLineSpeed
+                INTEGER,
+            telProdNpMonInterfFRGloLastResetWeek
+                INTEGER,
+            telProdNpMonInterfFRGloLastResetDay
+                INTEGER,
+            telProdNpMonInterfFRGloLastResetHour
+                INTEGER,
+            telProdNpMonInterfFRGloLastResetMin
+                INTEGER,
+            telProdNpMonInterfFRGloLastResetSec
+                INTEGER
+            }
+
+    telProdNpMonInterfFRGloIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Node interface number, that indicates the table entry (table index)."
+        ::= { telProdNpMonInterfFRGlobalEntry 1 }
+
+    telProdNpMonInterfFRGloDriverType OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "FR interface type: (1) DCE,  (2) DTE."
+        ::= { telProdNpMonInterfFRGlobalEntry 2 }
+
+    telProdNpMonInterfFRGloLineSpeed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Line data rate, expressed in bits per second. The value 0 indicates
+        unknown speed."
+        ::= { telProdNpMonInterfFRGlobalEntry 3 }
+
+    telProdNpMonInterfFRGloLastResetWeek OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Weeks passed since the last port reset."
+        ::= { telProdNpMonInterfFRGlobalEntry 4 }
+
+    telProdNpMonInterfFRGloLastResetDay OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Days passed since the last port reset: spare days after counting weeks,
+        that do not form a complete week, that means the variable value will be
+        always lower than 7."
+        ::= { telProdNpMonInterfFRGlobalEntry 5 }
+
+    telProdNpMonInterfFRGloLastResetHour OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Hours passed since the last port reset. If more than a week has passed,
+        this variable indicates the number hours to add to the number of weeks
+        and days, and its value will be lower than 24 so a complete day can≥t be
+        formed."
+        ::= { telProdNpMonInterfFRGlobalEntry 6 }
+
+    telProdNpMonInterfFRGloLastResetMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Minutes passed since the last port reset. This variable indicates the
+        number of minutes since the last hour was added to the hour counter."
+        ::= { telProdNpMonInterfFRGlobalEntry 7 }
+
+    telProdNpMonInterfFRGloLastResetSec OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Seconds passed since the last port reset. The total time passed will be
+        the addition of weeks, days, hours, minutes and seconds since
+        the last reset."
+        ::= { telProdNpMonInterfFRGlobalEntry 8 }
+
+-- Tabla de los circuitos RS232. Esta tabla da informacin acerca de si
+-- las se±ales RTS, CTS, DSR, DTR, DCD, RI y LL estﬂn activas o no. No estﬂ
+-- presente en el caso de interfaces FR-Dial o FR sobre RDSI.
+
+    telProdNpMonInterfFRRS232Table OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRRS232Entry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of RS232 signals or circuits. It shows if the corresponding
+        signal is active. This table does not exist for FR-Dial or FR over ISDN
+        interfaces. The entry number is determined by the interface value."
+        ::= { telProdNpMonInterfFR 2 }
+
+    telProdNpMonInterfFRRS232Entry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRRS232Entry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the node interface number, that is
+        the table index, the order number of the circuit in that interface
+        (second index), that goes between 1 and a maximum number that depends on
+        the connector type (maximum 7), the circuit number (105, 106, 107, 108,
+        109, 125, 141), its name (RTS, CTS, DSR, DTR, DCD, RI, LL) and
+        if it is active or not."
+        INDEX { telProdNpMonInterfFRRS232Index, telProdNpMonInterfFRRS232CircIndex }
+        ::= { telProdNpMonInterfFRRS232Table 1 }
+
+    TelProdNpMonInterfFRRS232Entry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRRS232Index
+                INTEGER,
+            telProdNpMonInterfFRRS232CircIndex
+                INTEGER,
+            telProdNpMonInterfFRRS232Circuit
+                INTEGER,
+            telProdNpMonInterfFRRS232Nickname
+                DisplayString,
+            telProdNpMonInterfFRRS232State
+                DisplayString
+            }
+
+    telProdNpMonInterfFRRS232Index OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Node interface number. It is the first table index."
+        ::= { telProdNpMonInterfFRRS232Entry 1 }
+
+    telProdNpMonInterfFRRS232CircIndex OBJECT-TYPE
+        SYNTAX INTEGER(1..7)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Second table index. It is a number that goes between 1 and the maximum
+        number of this type of circuits, that varies with the connector."
+        ::= { telProdNpMonInterfFRRS232Entry 2 }
+
+    telProdNpMonInterfFRRS232Circuit OBJECT-TYPE
+        SYNTAX INTEGER(105..141)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "RS232 circuit number."
+        ::= { telProdNpMonInterfFRRS232Entry 3 }
+
+    telProdNpMonInterfFRRS232Nickname OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Circuit name."
+        ::= { telProdNpMonInterfFRRS232Entry 4 }
+
+    telProdNpMonInterfFRRS232State OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Signal (of the circuits) status: on, off or unknown."
+        ::= { telProdNpMonInterfFRRS232Entry 5 }
+
+-- Tabla de los contadores de las tramas de salida y de errores en las tramas
+-- de entrada. Esta informacin no estﬂ disponible si se trata de interfaces
+-- FR-Dial o FR sobre RDSI.
+
+    telProdNpMonInterfFRFramesTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRFramesEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of counters of output frames and errors on input frames.
+        This information is not available for FR-Dial or FR over ISDN
+        interfaces. The entry number is determined by the interface
+        (table index)."
+        ::= { telProdNpMonInterfFR 3 }
+
+    telProdNpMonInterfFRFramesEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRFramesEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the node interface number, which is
+        the table index, a variable that shows the output of the last
+        table delete attempt (get operation) or performs the delete operation
+        (set operation), CRC errors in incoming frames, alignment errors,
+        lost incoming frames due to overrun, too long frames, aborted frames,
+        number of errors due to DMA/FIFO overrun, number of DMA/FIFO underrun
+        in outgoing frames and aborted outputs sent."
+        INDEX { telProdNpMonInterfFRFramesIndex }
+        ::= { telProdNpMonInterfFRFramesTable 1 }
+
+    TelProdNpMonInterfFRFramesEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRFramesIndex
+                INTEGER,
+            telProdNpMonInterfFRFramesClear
+                INTEGER,
+            telProdNpMonInterfFRFramesCRCError
+                Counter,
+            telProdNpMonInterfFRFramesMissed
+                Counter,
+            telProdNpMonInterfFRFramesAborted
+                Counter,
+            telProdNpMonInterfFRFramesAlignment
+                Counter,
+            telProdNpMonInterfFRFramesTooLong
+                Counter,
+            telProdNpMonInterfFRFramesOverrun
+                Counter,
+            telProdNpMonInterfFRFramesUnderrun
+                Counter,
+            telProdNpMonInterfFRFramesTxAbort
+                Counter
+            }
+
+    telProdNpMonInterfFRFramesIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Node interface number, which shows the corresponding table entry (it is
+        the table index)."
+        ::= { telProdNpMonInterfFRFramesEntry 1 }
+
+    telProdNpMonInterfFRFramesClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is read shows the output from the last
+        table delete attempt: the value is 2 if the deletion was performed
+        succesfully, 3 if an error ocurred and 4 for an undefined result, that
+        means that nobody has tried to delete the table yet. In set operations,
+        the value 1 (it is the only value that can be assigned by a writing
+        operation) causes a table deletion: frame counters are set to 0."
+        ::= { telProdNpMonInterfFRFramesEntry 2 }
+
+    telProdNpMonInterfFRFramesCRCError OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames with CRC errors."
+        ::= { telProdNpMonInterfFRFramesEntry 3 }
+
+    telProdNpMonInterfFRFramesMissed OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of incoming frames lost due to overrun."
+        ::= { telProdNpMonInterfFRFramesEntry 4 }
+
+    telProdNpMonInterfFRFramesAborted OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of incoming frames aborted."
+        ::= { telProdNpMonInterfFRFramesEntry 5 }
+
+    telProdNpMonInterfFRFramesAlignment OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of incoming frames with alignment errors."
+        ::= { telProdNpMonInterfFRFramesEntry 6 }
+
+    telProdNpMonInterfFRFramesTooLong OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of too long incoming frames."
+        ::= { telProdNpMonInterfFRFramesEntry 7 }
+
+    telProdNpMonInterfFRFramesOverrun OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of DMA/FIFO overrun."
+        ::= { telProdNpMonInterfFRFramesEntry 8 }
+
+    telProdNpMonInterfFRFramesUnderrun OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of DMA/FIFO overrun."
+        ::= { telProdNpMonInterfFRFramesEntry 9 }
+
+    telProdNpMonInterfFRFramesTxAbort OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of aborted outputs sent."
+        ::= { telProdNpMonInterfFRFramesEntry 10 }
+
+-- Grupo de compresin. Aquç se incluyen todas las variables que dan informacin
+-- sobre la compresin, organizadas en tres tablas: la tabla de los estadçsticos
+-- de compresin, la tabla del comienzo de cuenta de estos estadçsticos y el
+-- grupo de la versin de compresin.
+
+    telProdNpMonInterfFRCompGroup   OBJECT IDENTIFIER ::= { telProdNpMonInterfFR 4 }
+
+-- La primera de las tablas dentro del grupo de compresin es la tabla de los
+-- estadçsticos, que contiene informacin sobre el nîmero de interfaz de que se
+-- trata y el nîmero de dlci para el que se sacan los estadçsticos de compresin
+-- (son los dos çndices con que se recorre esta tabla), una variable para
+-- indicar el borrado de estadçsticos, y los contadores de bytes y tramas
+-- gestionados/as, procesados/as, no procesados/as, tramas errneas y tramas
+-- fuera de secuencia, y esto tanto en compresin como en descompresin. No
+-- aparece si es un interfaz FR-Dial (no estﬂ hecha la monitorizacin de este
+-- tipo de interfaces en el Nucleox-Plus).
+
+    telProdNpMonInterfFRCompStatTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRCompStatEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains compression statistics of Frame Relay, FR-Dial and
+        FR over ISDN interfaces. The entry number is determined by the interface
+        value (first table index) and the dlci number whose statistics
+        want to be got (second table index)."
+        ::= { telProdNpMonInterfFRCompGroup 1 }
+
+    telProdNpMonInterfFRCompStatEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRCompStatEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the interface number, which is
+        the first table index, the dlci number whose statistics are of interest
+        (second index), a variable that shows the output of the last
+        table delete attempt (get operation) or performs the delete operation
+        (set operation), and the current output from managed, processed and non
+        processed bytes and frames counters, error frames counters and out of
+        sequence in compression and decompression frames counter."
+        INDEX { telProdNpMonInterfFRCStatIfcIndex, telProdNpMonInterfFRCStatDlciIndex }
+        ::= { telProdNpMonInterfFRCompStatTable 1 }
+
+    TelProdNpMonInterfFRCompStatEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRCStatIfcIndex
+                INTEGER,
+            telProdNpMonInterfFRCStatDlciIndex
+                INTEGER,
+            telProdNpMonInterfFRCStatClear
+                INTEGER,
+            telProdNpMonInterfFRCStatManFrComp
+                Counter,
+            telProdNpMonInterfFRCStatManByComp
+                Counter,
+            telProdNpMonInterfFRCStatProcFrComp
+                Counter,
+            telProdNpMonInterfFRCStatProcByComp
+                Counter,
+            telProdNpMonInterfFRCStatNotProcFrComp
+                Counter,
+            telProdNpMonInterfFRCStatNotProcByComp
+                Counter,
+            telProdNpMonInterfFRCStatErrorFrComp
+                Counter,
+            telProdNpMonInterfFRCStatOutSeqFrComp
+                Counter,
+            telProdNpMonInterfFRCStatManFrDecomp
+                Counter,
+            telProdNpMonInterfFRCStatManByDecomp
+                Counter,
+            telProdNpMonInterfFRCStatProcFrDecomp
+                Counter,
+            telProdNpMonInterfFRCStatProcByDecomp
+                Counter,
+            telProdNpMonInterfFRCStatNotProcFrDecomp
+                Counter,
+            telProdNpMonInterfFRCStatNotProcByDecomp
+                Counter,
+            telProdNpMonInterfFRCStatErrorFrDecomp
+                Counter,
+            telProdNpMonInterfFRCStatOutSeqFrDecomp
+                Counter
+            }
+
+    telProdNpMonInterfFRCStatIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Node interface number. It is the first table index."
+        ::= { telProdNpMonInterfFRCompStatEntry 1 }
+
+    telProdNpMonInterfFRCStatDlciIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Dlci number in the interface. It is the second table index."
+        ::= { telProdNpMonInterfFRCompStatEntry 2 }
+
+    telProdNpMonInterfFRCStatClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is read shows the output from the last
+        table delete attempt: the value is 2 if the deletion was performed
+        succesfully, 3 if an error ocurred and 4 for an undefined result,
+        that means that nobody has tried to delete the table yet. In set
+        operations, the value 1 (it is the only value that can be assigned by a
+        writing operation) causes a table deletion: frame counters are set to 0."
+        ::= { telProdNpMonInterfFRCompStatEntry 3 }
+
+    telProdNpMonInterfFRCStatManFrComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames managed in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 4 }
+
+    telProdNpMonInterfFRCStatManByComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes managed in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 5 }
+
+    telProdNpMonInterfFRCStatProcFrComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames processed in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 6 }
+
+    telProdNpMonInterfFRCStatProcByComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes processed in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 7 }
+
+    telProdNpMonInterfFRCStatNotProcFrComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames not processed in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 8 }
+
+    telProdNpMonInterfFRCStatNotProcByComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes not processed in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 9 }
+
+    telProdNpMonInterfFRCStatErrorFrComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames with errors in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 10 }
+
+    telProdNpMonInterfFRCStatOutSeqFrComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames out of sequence in compression."
+        ::= { telProdNpMonInterfFRCompStatEntry 11 }
+
+    telProdNpMonInterfFRCStatManFrDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames managed in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 12 }
+
+    telProdNpMonInterfFRCStatManByDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes managed in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 13 }
+
+    telProdNpMonInterfFRCStatProcFrDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames processed in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 14 }
+
+    telProdNpMonInterfFRCStatProcByDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes processed in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 15 }
+
+    telProdNpMonInterfFRCStatNotProcFrDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames not processed in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 16 }
+
+    telProdNpMonInterfFRCStatNotProcByDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes not processed in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 17 }
+
+    telProdNpMonInterfFRCStatErrorFrDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames with errors in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 18 }
+
+    telProdNpMonInterfFRCStatOutSeqFrDecomp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames out of sequence in decompression."
+        ::= { telProdNpMonInterfFRCompStatEntry 19 }
+
+-- Tabla de informacin del comienzo de cuenta de los estadçsticos de
+-- compresin. Las variables en ella contenidas indican los componentes de
+-- la fecha y hora en que comenz la cuenta de estadçsticos. No aparece si el
+-- interfaz es un FR-Dial.
+
+    telProdNpMonInterfFRCStatBeginTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRCStatBeginEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains compression statistics of Frame Relay, FR-Dial and
+        FR over ISDN interfaces. The entry number is determined by the interface
+        value (table index)."
+        ::= { telProdNpMonInterfFRCompGroup 2 }
+
+    telProdNpMonInterfFRCStatBeginEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRCStatBeginEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the node interface number, that is the table
+        index, and a variable for each component of the time and date when
+        the statistic counting began."
+        INDEX { telProdNpMonInterfFRCStatBeginInterfIndex }
+        ::= { telProdNpMonInterfFRCStatBeginTable 1 }
+
+    TelProdNpMonInterfFRCStatBeginEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRCStatBeginInterfIndex
+                INTEGER,
+            telProdNpMonInterfFRCStatBeginDay
+                INTEGER,
+            telProdNpMonInterfFRCStatBeginMonth
+                INTEGER,
+            telProdNpMonInterfFRCStatBeginYear
+                INTEGER,
+            telProdNpMonInterfFRCStatBeginHour
+                INTEGER,
+            telProdNpMonInterfFRCStatBeginMin
+                INTEGER,
+            telProdNpMonInterfFRCStatBeginSec
+                INTEGER
+            }
+
+    telProdNpMonInterfFRCStatBeginInterfIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Node interface number, that indicates the table entry (table index)."
+        ::= { telProdNpMonInterfFRCStatBeginEntry 1 }
+
+    telProdNpMonInterfFRCStatBeginDay OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Beginning day of the counting of compression statistics."
+        ::= { telProdNpMonInterfFRCStatBeginEntry 2 }
+
+    telProdNpMonInterfFRCStatBeginMonth OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Beginning month of the counting of compression statistics."
+        ::= { telProdNpMonInterfFRCStatBeginEntry 3 }
+
+    telProdNpMonInterfFRCStatBeginYear OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Beginning year of the counting of compression statistics."
+        ::= { telProdNpMonInterfFRCStatBeginEntry 4 }
+
+    telProdNpMonInterfFRCStatBeginHour OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Beginning hour of the counting of compression statistics."
+        ::= { telProdNpMonInterfFRCStatBeginEntry 5 }
+
+    telProdNpMonInterfFRCStatBeginMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Beginning minute of the counting of compression statistics."
+        ::= { telProdNpMonInterfFRCStatBeginEntry 6 }
+
+    telProdNpMonInterfFRCStatBeginSec OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Beginning second of the counting of compression statistics."
+        ::= { telProdNpMonInterfFRCStatBeginEntry 7 }
+
+-- Grupo de la versin de compresin. Es comîn para todos los interfaces
+-- Frame Relay y Frame Relay sobre RDSI (no aparece si es Frame Relay Dial).
+
+    telProdNpMonInterfFRCompVersGroup OBJECT IDENTIFIER
+    ::= { telProdNpMonInterfFRCompGroup 3 }
+
+    telProdNpMonInterfFRCompVersRevision OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Revision."
+        ::= { telProdNpMonInterfFRCompVersGroup 1 }
+
+    telProdNpMonInterfFRCompVersCard OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Card."
+        ::= { telProdNpMonInterfFRCompVersGroup 2 }
+
+    telProdNpMonInterfFRCompVersInterruptMode OBJECT-TYPE
+        SYNTAX INTEGER{
+            active(1),
+            inactive(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It indicates if the Interruption Mode is active (1) or inactive (2)."
+        ::= { telProdNpMonInterfFRCompVersGroup 3 }
+
+-- Tabla de los estadçsticos de compresin CRTP. Incluye, para un dlci de un
+-- interfaz Frame Relay o FR sobre RDSI, una variable que indica el resultado de
+-- la îltima operacin de borrado si se accede a ella con un get, y mediante
+-- un set de esta variable se procede al borrado de los estadçsticos de
+-- esta tabla, y tambiân contadores de paquetes RTP salientes detectados,
+-- paquetes RTP salientes comprimidos, nîmero de bîsquedas del estado de la
+-- conexin, nîmero de veces que no se encontr el estado de la conexin,
+-- nîmero de paquetes RTP entrantes no comprimidos, nîmero de paquetes RTP
+-- entrantes comprimidos, nîmero de paquetes RTP entrantes desconocidos y
+-- nîmero de paquetes RTP tipo Context State.
+
+    telProdNpMonInterfFRCrtpTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRCrtpEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of statistics of CRTP compression of Frame Relay, FR-Dial and
+        FR over RDSI interfaces. The entry number is determined by
+        the interface value (first table index) and the dlci number for
+        the interface of which we want to obtain the statistics (second index)."
+        ::= { telProdNpMonInterfFR 5 }
+
+    telProdNpMonInterfFRCrtpEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRCrtpEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the node interface number, which is
+        the table index, the dlci number for the interface of which we want
+        to obtain the statistics (second index),a variable that shows
+        the output of the last table delete attempt (get operation) or performs
+        the delete operation (set operation), and the current output from
+        the counters of outgoing detected RTP packets, outgoing compressed
+        RTP packets, number of searchs of the connection status, number of times
+        the connection status was not found, number of incoming non compressed
+        RTP packets, number of incoming compressed RTP packets, number of
+        incoming unknown RTP packets and number of Context State RTP packets."
+        INDEX { telProdNpMonInterfFRCrtpIfcIndex, telProdNpMonInterfFRCrtpDlciIndex }
+        ::= { telProdNpMonInterfFRCrtpTable 1 }
+
+    TelProdNpMonInterfFRCrtpEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRCrtpIfcIndex
+                INTEGER,
+            telProdNpMonInterfFRCrtpDlciIndex
+                INTEGER,
+            telProdNpMonInterfFRCrtpClear
+                INTEGER,
+            telProdNpMonInterfFRCrtpOutRTPPack
+                Counter,
+            telProdNpMonInterfFRCrtpOutRTPComp
+                Counter,
+            telProdNpMonInterfFRCrtpSearchConn
+                Counter,
+            telProdNpMonInterfFRCrtpNoFindConn
+                Counter,
+            telProdNpMonInterfFRCrtpInRTPunCom
+                Counter,
+            telProdNpMonInterfFRCrtpInRTPComp
+                Counter,
+            telProdNpMonInterfFRCrtpInUnknownType
+                Counter,
+            telProdNpMonInterfFRCrtpContexStatePack
+                Counter
+            }
+
+    telProdNpMonInterfFRCrtpIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Node interface number. It is the first table index."
+        ::= { telProdNpMonInterfFRCrtpEntry 1 }
+
+    telProdNpMonInterfFRCrtpDlciIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Dlci number of the interface. It is the second table index."
+        ::= { telProdNpMonInterfFRCrtpEntry 2 }
+
+    telProdNpMonInterfFRCrtpClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is read shows the output from the last table delete
+        attempt: the value is 2 if the deletion was performed succesfully,
+        3 if an error ocurred and 4 for an undefined result, that means
+        that nobody has tried to delete the table yet. In set operations,
+        the value 1 (it is the only value that can be assigned by a
+        writing operation) causes a table deletion: frame counters are set to 0."
+        ::= { telProdNpMonInterfFRCrtpEntry 3 }
+
+    telProdNpMonInterfFRCrtpOutRTPPack OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of detected outgoing RTP packets."
+        ::= { telProdNpMonInterfFRCrtpEntry 4 }
+
+    telProdNpMonInterfFRCrtpOutRTPComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of compressed outgoing RTP packets"
+        ::= { telProdNpMonInterfFRCrtpEntry 5 }
+
+    telProdNpMonInterfFRCrtpSearchConn OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of searchs of the connection status."
+        ::= { telProdNpMonInterfFRCrtpEntry 6 }
+
+    telProdNpMonInterfFRCrtpNoFindConn OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times the connection status was not found."
+        ::= { telProdNpMonInterfFRCrtpEntry 7 }
+
+    telProdNpMonInterfFRCrtpInRTPunCom OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of non compressed incoming RTP packets."
+        ::= { telProdNpMonInterfFRCrtpEntry 8 }
+
+    telProdNpMonInterfFRCrtpInRTPComp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of compressed incoming RTP packets."
+        ::= { telProdNpMonInterfFRCrtpEntry 9 }
+
+    telProdNpMonInterfFRCrtpInUnknownType OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of unknown incoming RTP packets."
+        ::= { telProdNpMonInterfFRCrtpEntry 10 }
+
+    telProdNpMonInterfFRCrtpContexStatePack OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Context State RTP packets."
+        ::= { telProdNpMonInterfFRCrtpEntry 11 }
+
+-- Tabla de LMI (Local Management). La informacin en ella incluida slo aparece
+-- en el caso de interfaces Frame Relay o Frame Relay sobre RDSI.
+
+    telProdNpMonInterfFRLmiTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRLmiEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "LMI table. The entry number is determined by the interface value."
+        ::= { telProdNpMonInterfFR 6 }
+
+    telProdNpMonInterfFRLmiEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRLmiEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the node interface number, that is
+        the table index, a variable that shows the output from
+        the last statistics delete attempt, another variable shows if
+        the LMI management is enabled, the dlci associated to that management,
+        the LMI type, if orphan circuits are allowed, the LMI sequence interval
+        (in seconds), line access rate (bps), the Interface MTU (Maximum
+        Transmission Unit) (in bytes), CIR monitor adjustment, Timer T1
+        (in seconds), counter N1 increments, LMI N2 error threshold,
+        LMI N3 error window, IR percentage increment, IR percentage decrement,
+        point to point line enabled or not and the point to point DLCI used
+        in this case, protocol broadcast enabled or not, emulate multicast
+        enabled or not for the active PVCs, congestion monitoring enabled
+        or not, CIR monitoring that limits the router transmission speed
+        active or inactive, a variable used to enable the inmediate return of
+        Frame Relay back-up that only allows set operations, number of
+        received sequence, number of transmitted sequence, total number of link
+        status requests and responses to these requests, total number
+        of sequence requests and number of responses to sequence requests."
+        INDEX { telProdNpMonInterfFRLmiIndex }
+        ::= { telProdNpMonInterfFRLmiTable 1 }
+
+    TelProdNpMonInterfFRLmiEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRLmiIndex
+                INTEGER,
+            telProdNpMonInterfFRLmiClearStat
+                INTEGER,
+            telProdNpMonInterfFRLmiHab
+                INTEGER,
+            telProdNpMonInterfFRLmiDlci
+                INTEGER,
+            telProdNpMonInterfFRLmiType
+                INTEGER,
+            telProdNpMonInterfFRLmiOrphans
+                INTEGER,
+            telProdNpMonInterfFRLmiSecInterv
+                INTEGER,
+            telProdNpMonInterfFRLmiLineAccRate
+                INTEGER,
+            telProdNpMonInterfFRLmiMTU
+                INTEGER,
+            telProdNpMonInterfFRLmiCIRAdjust
+                INTEGER,
+            telProdNpMonInterfFRLmiT1
+                INTEGER,
+            telProdNpMonInterfFRLmiN1
+                INTEGER,
+            telProdNpMonInterfFRLmiN2
+                INTEGER,
+            telProdNpMonInterfFRLmiN3
+                INTEGER,
+            telProdNpMonInterfFRLmiIRIncr
+                INTEGER,
+            telProdNpMonInterfFRLmiIRDecr
+                INTEGER,
+            telProdNpMonInterfFRLmiIRMin
+                INTEGER,
+            telProdNpMonInterfFRLmiPTPLine
+                INTEGER,
+            telProdNpMonInterfFRLmiPTPDlci
+                INTEGER,
+            telProdNpMonInterfFRLmiProtBroad
+                INTEGER,
+            telProdNpMonInterfFRLmiEmuMulticast
+                INTEGER,
+            telProdNpMonInterfFRLmiCongMonit
+                INTEGER,
+            telProdNpMonInterfFRLmiCIRMonit
+                INTEGER,
+            telProdNpMonInterfFRLmiEnabPVCBkupRetTime
+                INTEGER,
+            telProdNpMonInterfFRLmiCurrentRcvSeq
+                INTEGER,
+            telProdNpMonInterfFRLmiCurrentTxSeq
+                INTEGER,
+            telProdNpMonInterfFRLmiTotStatusEnq
+                Counter,
+            telProdNpMonInterfFRLmiTotStatusResp
+                Counter,
+            telProdNpMonInterfFRLmiTotSeqReq
+                Counter,
+            telProdNpMonInterfFRLmiTotSeqResp
+                Counter
+            }
+
+    telProdNpMonInterfFRLmiIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Node interface number, that shows the corresponding table entry
+        (table index)."
+        ::= { telProdNpMonInterfFRLmiEntry 1 }
+
+    telProdNpMonInterfFRLmiClearStat OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is read shows the output from the last table delete
+        attempt: the value is 2 if the deletion was performed succesfully,
+        3 if an error ocurred and 4 for an undefined result, that means
+        that nobody has tried to delete the table yet. In set operations,
+        the value 1 (it is the only value that can be assigned by a writing
+        operation) causes a table deletion: frame counters are set to 0."
+        ::= { telProdNpMonInterfFRLmiEntry 2 }
+
+    telProdNpMonInterfFRLmiHab OBJECT-TYPE
+        SYNTAX INTEGER{
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "LMI enabled or disabled: it shows if Frame Relay management
+        is active (1) or inactive (2)."
+        ::= { telProdNpMonInterfFRLmiEntry 3 }
+
+    telProdNpMonInterfFRLmiDlci OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "LMI DLCI: Management circuit number. It will be 0(ANSI, CCITT)
+        or 1023(LMI)."
+        ::= { telProdNpMonInterfFRLmiEntry 4 }
+
+    telProdNpMonInterfFRLmiType OBJECT-TYPE
+        SYNTAX INTEGER{
+            disabled_lmi(0),
+            ccitt(1),
+            ansi(2),
+            lmi(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "LMI Type: (1) CCITT, (2) ANSI T.1 617 Annex D, (3) LMI Rev.1.
+        If LMI is not enabled this variable takes the value 0 (disabled_lmi)."
+        ::= { telProdNpMonInterfFRLmiEntry 5 }
+
+    telProdNpMonInterfFRLmiOrphans OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Indicates if all non configured circuits made known by management
+        are available for use, yes or no."
+        ::= { telProdNpMonInterfFRLmiEntry 6 }
+
+    telProdNpMonInterfFRLmiSecInterv OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Indicates the sequence interval that LMI management uses (in seconds)."
+        ::= { telProdNpMonInterfFRLmiEntry 7 }
+
+    telProdNpMonInterfFRLmiLineAccRate OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Physical data rate of the Frame Relay interface in bits per second."
+        ::= { telProdNpMonInterfFRLmiEntry 8 }
+
+    telProdNpMonInterfFRLmiMTU OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "MTU (maximum transmission unit) of the Frame Relay interface in bytes."
+        ::= { telProdNpMonInterfFRLmiEntry 9 }
+
+    telProdNpMonInterfFRLmiCIRAdjust OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "CIR monitor adjustment."
+        ::= { telProdNpMonInterfFRLmiEntry 10 }
+
+    telProdNpMonInterfFRLmiT1 OBJECT-TYPE
+        SYNTAX INTEGER(5..30)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Timer T1, in seconds."
+        ::= { telProdNpMonInterfFRLmiEntry 11 }
+
+    telProdNpMonInterfFRLmiN1 OBJECT-TYPE
+        SYNTAX INTEGER(1..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Counter N1 increments."
+        ::= { telProdNpMonInterfFRLmiEntry 12 }
+
+    telProdNpMonInterfFRLmiN2 OBJECT-TYPE
+        SYNTAX INTEGER(1..10)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Allowable errors N2."
+        ::= { telProdNpMonInterfFRLmiEntry 13 }
+
+    telProdNpMonInterfFRLmiN3 OBJECT-TYPE
+        SYNTAX INTEGER(1..10)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Error window N3."
+        ::= { telProdNpMonInterfFRLmiEntry 14 }
+
+    telProdNpMonInterfFRLmiIRIncr OBJECT-TYPE
+        SYNTAX INTEGER(1..100)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "IR adjustment percentage increment."
+        DEFVAL{ 12 }
+        ::= { telProdNpMonInterfFRLmiEntry 15 }
+
+    telProdNpMonInterfFRLmiIRDecr OBJECT-TYPE
+        SYNTAX INTEGER(1..100)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "IR adjustment percentage decrement."
+        DEFVAL{ 25 }
+        ::= { telProdNpMonInterfFRLmiEntry 16 }
+
+    telProdNpMonInterfFRLmiIRMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "Minimum IR as CIR percentage."
+        DEFVAL{ 25 }
+        ::= { telProdNpMonInterfFRLmiEntry 17 }
+
+    telProdNpMonInterfFRLmiPTPLine OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Point to point line enabled (1) or not (2)."
+        ::= { telProdNpMonInterfFRLmiEntry 18 }
+
+    telProdNpMonInterfFRLmiPTPDlci OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Point to point dlci: used when the net is configured as
+        point to point."
+        ::= { telProdNpMonInterfFRLmiEntry 19 }
+
+    telProdNpMonInterfFRLmiProtBroad OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Broadcast Protocol : Yes (1) or No (2)."
+        ::= { telProdNpMonInterfFRLmiEntry 20 }
+
+    telProdNpMonInterfFRLmiEmuMulticast OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Emulate Multicast: it shows if multicast emulation
+        is enabled on each active PVC, yes (1) or no(2)."
+        ::= { telProdNpMonInterfFRLmiEntry 21 }
+
+    telProdNpMonInterfFRLmiCongMonit OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "Congestion Monitoring: congestion monitoring feature. The variable
+        value may be (1) if it is enabled congestion monitoring or (2) if not."
+        ::= { telProdNpMonInterfFRLmiEntry 22 }
+
+    telProdNpMonInterfFRLmiCIRMonit OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "FR CIR monitoring: indicates whether the circuit monitoring feature
+        that enforces the transmission rate is enabled, yes (1) or no (2)."
+        ::= { telProdNpMonInterfFRLmiEntry 23 }
+
+    telProdNpMonInterfFRLmiEnabPVCBkupRetTime OBJECT-TYPE
+        SYNTAX INTEGER{
+            enable-prompt-return-from-PVC-back-up(1),
+            ok(2)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "Enable the prompt return from the PVC back-up. This variable only
+        makes sense in a set operation (value 1). It can be enabled, but not
+        disabled. In a read operation we will get the value 2 (ok)."
+        ::= { telProdNpMonInterfFRLmiEntry 24 }
+
+    telProdNpMonInterfFRLmiCurrentRcvSeq OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Sequence number received."
+        ::= { telProdNpMonInterfFRLmiEntry 25 }
+
+    telProdNpMonInterfFRLmiCurrentTxSeq OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Sequence number transmitted."
+        ::= { telProdNpMonInterfFRLmiEntry 26 }
+
+    telProdNpMonInterfFRLmiTotStatusEnq OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of link status inquiries."
+        ::= { telProdNpMonInterfFRLmiEntry 27 }
+
+    telProdNpMonInterfFRLmiTotStatusResp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of link status responses."
+        ::= { telProdNpMonInterfFRLmiEntry 28 }
+
+    telProdNpMonInterfFRLmiTotSeqReq OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of sequence requests."
+        ::= { telProdNpMonInterfFRLmiEntry 29 }
+
+    telProdNpMonInterfFRLmiTotSeqResp OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of sequence responses."
+        ::= { telProdNpMonInterfFRLmiEntry 30 }
+
+-- Tabla de informacin sobre los PVCs (PVC Status). Contiene el nîmero de PVCs
+-- permitidos, configurados, activos, congestionados, incorporados (join net)
+-- y dejados (left net). Esta tabla slo aparece si se trata de un interfaz
+-- Frame Relay o Frame Relay sobre RDSI.
+
+    telProdNpMonInterfFRPvcStatusTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRPvcStatusEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of PVC Status. The entry is determined by the interface number.
+        It gives information about the number of allowable PVCs, configured PVCs,
+        active PVCs, congested PVCs, PVCs that have joined the network and
+        PVCs that are no longer on the network."
+        ::= { telProdNpMonInterfFR 7 }
+
+    telProdNpMonInterfFRPvcStatusEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRPvcStatusEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the number of the node interface that is
+        the table index, a variable to delete the table (in get operations shows
+        the output from the last attempt for deleting counters of congested
+        circuits, joined and left, and the set operation begins to delete
+        counters), and the number of allowed PVCs, configured PVCs, active PVCs,
+        congested PVCs, left PVCs (left net) and joined PVCs (join net)."
+        INDEX { telProdNpMonInterfFRPvcStaIfcIndex }
+        ::= { telProdNpMonInterfFRPvcStatusTable 1 }
+
+    TelProdNpMonInterfFRPvcStatusEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRPvcStaIfcIndex
+                INTEGER,
+            telProdNpMonInterfFRPvcStaClear
+                INTEGER,
+            telProdNpMonInterfFRPvcStaTotAllow
+                INTEGER,
+            telProdNpMonInterfFRPvcStaTotConfig
+                INTEGER,
+            telProdNpMonInterfFRPvcStaTotActiv
+                INTEGER,
+            telProdNpMonInterfFRPvcStaTotCong
+                INTEGER,
+            telProdNpMonInterfFRPvcStaTotLeftNet
+                INTEGER,
+            telProdNpMonInterfFRPvcStaTotJoinNet
+                INTEGER
+            }
+
+    telProdNpMonInterfFRPvcStaIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the node interface, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 1 }
+
+    telProdNpMonInterfFRPvcStaClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is read shows the output from the last table delete
+        attempt: the value is 2 if the deletion was performed succesfully,
+        3 if an error ocurred and 4 for an undefined result, that means
+        that nobody has tried to delete the table yet. When we perform
+        a set operation with value 1, the counters of the congested, joined and
+        left circuits are deleted."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 2 }
+
+    telProdNpMonInterfFRPvcStaTotAllow OBJECT-TYPE
+        SYNTAX INTEGER(0..992)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of allowable PVCs."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 3 }
+
+    telProdNpMonInterfFRPvcStaTotConfig OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of currently configured PVCs."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 4 }
+
+    telProdNpMonInterfFRPvcStaTotActiv OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of active PVCs."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 5 }
+
+    telProdNpMonInterfFRPvcStaTotCong OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of congested PVCs."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 6 }
+
+    telProdNpMonInterfFRPvcStaTotLeftNet OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of left PVCs (left net)."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 7 }
+
+    telProdNpMonInterfFRPvcStaTotJoinNet OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total number of joined PVCs (join net)."
+        ::= { telProdNpMonInterfFRPvcStatusEntry 8 }
+
+-- Tabla de los PVCs. Contiene informacin sobre el estado del circuito (activo,
+-- inactivo, congestionado o eliminado), el tipo de circuito (permanente,
+-- conmutado o multicast), si es huârfano, si los datos por âl transmitidos
+-- estﬂn cifrados o no, nîmero de tramas y bytes transmitidos y recibidos,
+-- tramas transmitidas perdidas por desbordamiento de la cola, tramas perdidas
+-- por overrun en la entrada, total de FECNs, total de BECNs, nîmero de veces
+-- que el circuito se congestion, nîmero de veces que estuvo inactivo, CIR,
+-- VIR, Bc y Be del circuito. No estarﬂ disponible esta informacin si el
+-- interfaz en cuestin no es Frame Relay o Frame Relay sobre RDSI.
+
+    telProdNpMonInterfFRPvcTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRPvcEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of PVCs. The entry is determined by the interface number and
+        the circuit number (dlci), that are the table index. It contains
+        information about the circuit status (active, inactive, congested
+        or removed), the type of circuit (permanent, switched or multicast),
+        if the circuit is orphan, if transmitted data are encoded, number
+        of frames and bytes transmitted and received, transmitted frames lost
+        due to queue oveflow, frames lost due to input overrun, total number
+        of FECNs, total number of BECNs, number of times the circuit congested,
+        number of times the circuit was inactive, and circuit CIR, VIR, Bc
+        and Be."
+        ::= { telProdNpMonInterfFR 8 }
+
+    telProdNpMonInterfFRPvcEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRPvcEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the number of node interface (first table index),
+        the circuit number (dlci) (second index), a variable to delete the table
+        (in get operations shows the output from the last attempt for deleting
+        statistics, and the set operation begins to delete statistics),
+        the circuit status (active, inactive, congested or removed),
+        if the circuit is orphan, if transmitted data are encoded or not,
+        number of frames and bytes transmitted and received, transmitted
+        frames lost due to queue oveflow, frames lost due to input overrun,
+        total number of FECNs, total number of BECNs, number of times
+        the circuit congested, number of times the circuit was inactive,
+        and circuit CIR, VIR, Bc and Be."
+        INDEX { telProdNpMonInterfFRPvcIfcIndex, telProdNpMonInterfFRPvcDlciIndex }
+        ::= { telProdNpMonInterfFRPvcTable 1 }
+
+    TelProdNpMonInterfFRPvcEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRPvcIfcIndex
+                INTEGER,
+            telProdNpMonInterfFRPvcDlciIndex
+                INTEGER,
+            telProdNpMonInterfFRPvcClearStatistics
+                INTEGER,
+            telProdNpMonInterfFRPvcName
+                DisplayString,
+            telProdNpMonInterfFRPvcCircStatus
+                INTEGER,
+            telProdNpMonInterfFRPvcCircType
+                INTEGER,
+            telProdNpMonInterfFRPvcOrphan
+                INTEGER,
+            telProdNpMonInterfFRPvcEncrypt
+                INTEGER,
+            telProdNpMonInterfFRPvcTxFrames
+                INTEGER,
+            telProdNpMonInterfFRPvcTxBytes
+                INTEGER,
+            telProdNpMonInterfFRPvcRcvFrames
+                INTEGER,
+            telProdNpMonInterfFRPvcRcvBytes
+                INTEGER,
+            telProdNpMonInterfFRPvcQueueOverf
+                INTEGER,
+            telProdNpMonInterfFRPvcOverrun
+                INTEGER,
+            telProdNpMonInterfFRPvcTotFECNs
+                INTEGER,
+            telProdNpMonInterfFRPvcTotBECNs
+                INTEGER,
+            telProdNpMonInterfFRPvcTimesCong
+                INTEGER,
+            telProdNpMonInterfFRPvcTimesInact
+                INTEGER,
+            telProdNpMonInterfFRPvcCIR
+                INTEGER,
+            telProdNpMonInterfFRPvcVIR
+                INTEGER,
+            telProdNpMonInterfFRPvcBc
+                INTEGER,
+            telProdNpMonInterfFRPvcBe
+                INTEGER
+            }
+
+    telProdNpMonInterfFRPvcIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the node interface (it is the first table index)."
+        ::= { telProdNpMonInterfFRPvcEntry 1 }
+
+    telProdNpMonInterfFRPvcDlciIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Circuit number (dlci) for that interface (second table index)."
+        ::= { telProdNpMonInterfFRPvcEntry 2 }
+
+    telProdNpMonInterfFRPvcClearStatistics OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is read shows the output from the last table delete
+        attempt: the value is 2 if the deletion was performed succesfully,
+        3 if an error ocurred and 4 for an undefined result, that means
+        that nobody has tried to delete the table yet. When we perform
+        a set operation with value 1, the counters of PVCs statistics included
+        in the table are deleted."
+        ::= { telProdNpMonInterfFRPvcEntry 3 }
+
+    telProdNpMonInterfFRPvcName OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Circuit name."
+        ::= { telProdNpMonInterfFRPvcEntry 4 }
+
+    telProdNpMonInterfFRPvcCircStatus OBJECT-TYPE
+        SYNTAX INTEGER{
+            inactive(1),
+            active(2),
+            congested(3),
+            removed(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "Circuit state: (1) inactive (waiting in LMI), (2) active,
+        (3) congested, (4) removed.  If this field stores a value different from
+        the previous ones (active, congested or removed), the circuit
+        is considered inactive."
+        ::= { telProdNpMonInterfFRPvcEntry 5 }
+
+    telProdNpMonInterfFRPvcCircType OBJECT-TYPE
+        SYNTAX INTEGER{
+            unknown(0),
+            permanent(1),
+            switched(2),
+            multicast(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Type of circuit: (0) unknown, (1) permanent, (2) switched,
+        (3) multicast."
+        ::= { telProdNpMonInterfFRPvcEntry 6 }
+
+    telProdNpMonInterfFRPvcOrphan OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if the circuit is orphan, yes (1) or no (2)."
+        ::= { telProdNpMonInterfFRPvcEntry 7 }
+
+    telProdNpMonInterfFRPvcEncrypt OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if data are encoded, yes (1) or no (2)."
+        ::= { telProdNpMonInterfFRPvcEntry 8 }
+
+    telProdNpMonInterfFRPvcTxFrames OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Transmitted frames."
+        ::= { telProdNpMonInterfFRPvcEntry 9 }
+
+    telProdNpMonInterfFRPvcTxBytes OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Transmitted bytes."
+        ::= { telProdNpMonInterfFRPvcEntry 10 }
+
+    telProdNpMonInterfFRPvcRcvFrames OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Received frames."
+        ::= { telProdNpMonInterfFRPvcEntry 11 }
+
+    telProdNpMonInterfFRPvcRcvBytes OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Received bytes."
+        ::= { telProdNpMonInterfFRPvcEntry 12 }
+
+    telProdNpMonInterfFRPvcQueueOverf OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Transmitted frames lost due to queue overflow."
+        ::= { telProdNpMonInterfFRPvcEntry 13 }
+
+    telProdNpMonInterfFRPvcOverrun OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Frames lost due to input overrun. This variable only makes sense
+        if the interface is not FR over ISDN or FR-DIAL, or FR over ISDN
+        is not enabled. In the previous cases, tha variable will take the
+        value 0."
+        ::= { telProdNpMonInterfFRPvcEntry 14 }
+
+    telProdNpMonInterfFRPvcTotFECNs OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total FECNs: number of times inbound congestion was notified."
+        ::= { telProdNpMonInterfFRPvcEntry 15 }
+
+    telProdNpMonInterfFRPvcTotBECNs OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Total BECNs: number of times outbound congestion was notified."
+        ::= { telProdNpMonInterfFRPvcEntry 16 }
+
+    telProdNpMonInterfFRPvcTimesCong OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times the circuit became congested."
+        ::= { telProdNpMonInterfFRPvcEntry 17 }
+
+    telProdNpMonInterfFRPvcTimesInact OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of times this circuit was inoperable."
+        ::= { telProdNpMonInterfFRPvcEntry 18 }
+
+    telProdNpMonInterfFRPvcCIR OBJECT-TYPE
+        SYNTAX INTEGER(300..52428800)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "CIR (Committed Information Rate), en bps."
+        ::= { telProdNpMonInterfFRPvcEntry 19 }
+
+    telProdNpMonInterfFRPvcVIR OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "VIR (Current Information Rate)."
+        ::= { telProdNpMonInterfFRPvcEntry 20 }
+
+    telProdNpMonInterfFRPvcBc OBJECT-TYPE
+        SYNTAX INTEGER(300..52428800)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "Bc (Commited Burst Size), en bits."
+        ::= { telProdNpMonInterfFRPvcEntry 21 }
+
+    telProdNpMonInterfFRPvcBe OBJECT-TYPE
+        SYNTAX INTEGER(0..52428800)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "Be (Excess Burst Size)."
+        ::= { telProdNpMonInterfFRPvcEntry 22 }
+
+-- Tabla de las direcciones de protocolo. Puesto que puede haber varias
+-- direcciones por protocolo e interfaz, serﬂn necesarios tres çndices:
+-- el nîmero de interfaz, el tipo de protocolo y el nîmero de orden de
+-- la direccin. Ademﬂs de estas variables, aparecen la direccin de protocolo
+-- y el dlci asociado a esa direccin. Esta informacin no estarﬂ disponible si
+-- el interfaz no es Frame Relay o Frame Relay sobre RDSI.
+
+    telProdNpMonInterfFRProtAddTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRProtAddEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of protocol addresses. It contains information about the protocol
+        type, the protocol address (it is possible to have several per protocol
+        and interface) and the circuit number (dlci) associated to that address."
+        ::= { telProdNpMonInterfFR 9 }
+
+    telProdNpMonInterfFRProtAddEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRProtAddEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry consists of the number of the interface (first table index),
+        the protocol type (second index), the address order number (third index:
+        it is necessary because it is possible to have several addresses
+        associated to each protocol and interface), the protocol address and
+        the dlci associated to that address."
+        INDEX { telProdNpMonInterfFRProtAddIfcIndex,
+                telProdNpMonInterfFRProtAddProtocIndex,
+                telProdNpMonInterfFRProtAddOrdenIndex }
+        ::= { telProdNpMonInterfFRProtAddTable 1 }
+
+    TelProdNpMonInterfFRProtAddEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRProtAddIfcIndex
+                INTEGER,
+            telProdNpMonInterfFRProtAddProtocIndex
+                INTEGER,
+            telProdNpMonInterfFRProtAddOrdenIndex
+                INTEGER,
+            telProdNpMonInterfFRProtAddAddress
+                IpAddress,
+            telProdNpMonInterfFRProtAddDlci
+                INTEGER
+            }
+
+    telProdNpMonInterfFRProtAddIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the interface (first table index)."
+        ::= { telProdNpMonInterfFRProtAddEntry 1 }
+
+    telProdNpMonInterfFRProtAddProtocIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Protocol type (second table index)."
+        ::= { telProdNpMonInterfFRProtAddEntry 2 }
+
+    telProdNpMonInterfFRProtAddOrdenIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Address order number (it is possible to have several addresses
+        associated to each protocol and interface). It is the third index."
+        ::= { telProdNpMonInterfFRProtAddEntry 3 }
+
+    telProdNpMonInterfFRProtAddAddress OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Protocol address."
+        ::= { telProdNpMonInterfFRProtAddEntry 4 }
+
+    telProdNpMonInterfFRProtAddDlci OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Dlci associated to that address."
+        ::= { telProdNpMonInterfFRProtAddEntry 5 }
+
+-- Tabla de las llamadas activas. La tabla se recorre con ayuda de dos çndices:
+-- el nîmero del interfaz y la posicin u orden de la llamada en la tabla.
+-- Contiene informacin acerca del nombre y nîmero de dlci del circuito sobre el
+-- que se ha establecido la llamada, los nîmeros llamado y llamante,
+-- la referencia de la llamada y la hora, minuto y segundo en que dio comienzo
+-- la misma. Esta tabla no existe si no se trata de un interfaz Frame Relay
+-- o Frame Relay sobre RDSI.
+
+    telProdNpMonInterfFRActCallsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRActCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of active calls. It contains information about the name and
+        number (dlci) of the circuit through which the call is established,
+        called and calling number, call reference and the hour, minute and
+        second of the call beginning."
+        ::= { telProdNpMonInterfFR 10 }
+
+    telProdNpMonInterfFRActCallsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRActCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the number of the node interface (first index),
+        the order number of the call in the table (second index), name and dlci
+        of the circuit through which the call is established, called and calling
+        number, call reference and the hour, minute and second of
+        the call beginning."
+        INDEX { telProdNpMonInterfFRActCallsIfcIndex, telProdNpMonInterfFRActCallsOrdenIndex }
+        ::= { telProdNpMonInterfFRActCallsTable 1 }
+
+    TelProdNpMonInterfFRActCallsEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRActCallsIfcIndex
+                INTEGER,
+            telProdNpMonInterfFRActCallsOrdenIndex
+                INTEGER,
+            telProdNpMonInterfFRActCallsCircuitName
+                DisplayString,
+            telProdNpMonInterfFRActCallsDlci
+                INTEGER,
+            telProdNpMonInterfFRActCallsCalledNum
+                DisplayString,
+            telProdNpMonInterfFRActCallsCallingNum
+                DisplayString,
+            telProdNpMonInterfFRActCallsRef
+                INTEGER,
+            telProdNpMonInterfFRActCallsStartHour
+                INTEGER,
+            telProdNpMonInterfFRActCallsStartMin
+                INTEGER,
+            telProdNpMonInterfFRActCallsStartSec
+                INTEGER
+            }
+
+    telProdNpMonInterfFRActCallsIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of the interface (first table index)."
+        ::= { telProdNpMonInterfFRActCallsEntry 1 }
+
+    telProdNpMonInterfFRActCallsOrdenIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Call order or position in the table (second index)."
+        ::= { telProdNpMonInterfFRActCallsEntry 2 }
+
+    telProdNpMonInterfFRActCallsCircuitName OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Circuit name."
+        ::= { telProdNpMonInterfFRActCallsEntry 3 }
+
+    telProdNpMonInterfFRActCallsDlci OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Dlci Number of the circuit through which the call is established."
+        ::= { telProdNpMonInterfFRActCallsEntry 4 }
+
+    telProdNpMonInterfFRActCallsCalledNum OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..15))
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Called number"
+        ::= { telProdNpMonInterfFRActCallsEntry 5 }
+
+    telProdNpMonInterfFRActCallsCallingNum OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..15))
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Calling number."
+        ::= { telProdNpMonInterfFRActCallsEntry 6 }
+
+    telProdNpMonInterfFRActCallsRef OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Call reference."
+        ::= { telProdNpMonInterfFRActCallsEntry 7 }
+
+    telProdNpMonInterfFRActCallsStartHour OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the hour the call was initialized."
+        ::= { telProdNpMonInterfFRActCallsEntry 8 }
+
+    telProdNpMonInterfFRActCallsStartMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the minute the call was initialized."
+        ::= { telProdNpMonInterfFRActCallsEntry 9 }
+
+    telProdNpMonInterfFRActCallsStartSec OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the second the call was initialized."
+        ::= { telProdNpMonInterfFRActCallsEntry 10 }
+
+-- Tabla de las llamadas liberadas. La tabla se recorre con ayuda de
+-- dos çndices: el nîmero del interfaz y la posicin u orden de la llamada en
+-- la tabla. Contiene informacin acerca del nombre y nîmero de dlci del
+-- circuito sobre el que se ha establecido la llamada, los nîmeros llamado y
+-- llamante, la causa de la liberacin y el diagnstico de liberacin, la hora,
+-- minuto y segundo en que dio comienzo la llamada y la hora minuto y segundo
+-- en que finaliz. Esta informacin no estarﬂ disponible si el interfaz no es
+-- Frame Relay o Frame Relay sobre RDSI.
+
+    telProdNpMonInterfFRRelCallsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonInterfFRRelCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of released calls. Contains information about the name and dlci
+        of the circuit through which the call was initialized, called and calling
+        numbers, cause and diagnosis of the release, the hour, minute and
+        second the call finished."
+        ::= { telProdNpMonInterfFR 11 }
+
+    telProdNpMonInterfFRRelCallsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonInterfFRRelCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the number of the node interface (first index),
+        the order number of the call in the table (second index), name and dlci
+        of the circuit through which the call is established, called and calling
+        number, cause and diagnosis of the release, the hour, minute and second
+        the call finished."
+        INDEX { telProdNpMonInterfFRRelCallsIndex, telProdNpMonInterfFRRelCallsOrdenIndex }
+        ::= { telProdNpMonInterfFRRelCallsTable 1 }
+
+    TelProdNpMonInterfFRRelCallsEntry ::=
+        SEQUENCE {
+            telProdNpMonInterfFRRelCallsIndex
+                INTEGER,
+            telProdNpMonInterfFRRelCallsOrdenIndex
+                INTEGER,
+            telProdNpMonInterfFRRelCallsClear
+                INTEGER,
+            telProdNpMonInterfFRRelCallsCircName
+                DisplayString,
+            telProdNpMonInterfFRRelCallsDlci
+                INTEGER,
+            telProdNpMonInterfFRRelCallsCalledNum
+                DisplayString,
+            telProdNpMonInterfFRRelCallsCallingNum
+                DisplayString,
+            telProdNpMonInterfFRRelCallsCL
+                INTEGER,
+            telProdNpMonInterfFRRelCallsDL
+                INTEGER,
+            telProdNpMonInterfFRRelCallsStartHour
+                INTEGER,
+            telProdNpMonInterfFRRelCallsStartMin
+                INTEGER,
+            telProdNpMonInterfFRRelCallsStartSec
+                INTEGER,
+            telProdNpMonInterfFRRelCallsEndHour
+                INTEGER,
+            telProdNpMonInterfFRRelCallsEndMin
+                INTEGER,
+            telProdNpMonInterfFRRelCallsEndSec
+                INTEGER
+            }
+
+    telProdNpMonInterfFRRelCallsIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of interface (first table index)."
+        ::= { telProdNpMonInterfFRRelCallsEntry 1 }
+
+    telProdNpMonInterfFRRelCallsOrdenIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Call order or position in the table (second index)."
+        ::= { telProdNpMonInterfFRRelCallsEntry 2 }
+
+    telProdNpMonInterfFRRelCallsClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS obsolete
+        DESCRIPTION
+        "This variable when is read shows the output from the last table delete
+        attempt: the value is 2 if the deletion was performed succesfully,
+        3 if an error ocurred and 4 for an undefined result, that means
+        that nobody has tried to delete the buffer of released calls yet.
+        When we perform a set operation with value 1, the buffer of
+        released calls is deleted."
+        ::= { telProdNpMonInterfFRRelCallsEntry 3 }
+
+    telProdNpMonInterfFRRelCallsCircName OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Name of the circuit through which the call was established."
+        ::= { telProdNpMonInterfFRRelCallsEntry 4 }
+
+    telProdNpMonInterfFRRelCallsDlci OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Dlci number of the circuit through which the call was established."
+        ::= { telProdNpMonInterfFRRelCallsEntry 5 }
+
+    telProdNpMonInterfFRRelCallsCalledNum OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..15))
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Called number."
+        ::= { telProdNpMonInterfFRRelCallsEntry 6 }
+
+    telProdNpMonInterfFRRelCallsCallingNum OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..15))
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Calling number."
+        ::= { telProdNpMonInterfFRRelCallsEntry 7 }
+
+     telProdNpMonInterfFRRelCallsCL OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "This indicates why the call has been released."
+        ::= { telProdNpMonInterfFRRelCallsEntry 8 }
+
+    telProdNpMonInterfFRRelCallsDL OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the released call diagnosis."
+        ::= { telProdNpMonInterfFRRelCallsEntry 9 }
+
+    telProdNpMonInterfFRRelCallsStartHour OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the hour the call was initialized."
+        ::= { telProdNpMonInterfFRRelCallsEntry 10 }
+
+    telProdNpMonInterfFRRelCallsStartMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the minute the call was initialized."
+        ::= { telProdNpMonInterfFRRelCallsEntry 11 }
+
+    telProdNpMonInterfFRRelCallsStartSec OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the second the call was initialized."
+        ::= { telProdNpMonInterfFRRelCallsEntry 12 }
+
+    telProdNpMonInterfFRRelCallsEndHour OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the hour the call was released."
+        ::= { telProdNpMonInterfFRRelCallsEntry 13 }
+
+    telProdNpMonInterfFRRelCallsEndMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the minute the call was released."
+        ::= { telProdNpMonInterfFRRelCallsEntry 14 }
+
+    telProdNpMonInterfFRRelCallsEndSec OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Indicates the second the call was released."
+        ::= { telProdNpMonInterfFRRelCallsEntry 15 }
+
+END

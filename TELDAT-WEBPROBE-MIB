@@ -1,0 +1,2086 @@
+
+
+
+
+
+
+		-- Teldat, S.A.
+
+		-- Parque Tecnologico de Madrid
+
+		-- 28760, Tres Cantos (Madrid)
+
+		-- Tlf: +34-918076565
+
+		-- Fax: +34-918076521
+
+		-- e-mail: id@teldat.com
+
+
+	-- MIB privada de Teldat
+
+ 	-- MIB que incluye los parametros de configuracion y monitorizacion
+ 	-- de la parte correspondiente a la Sonda Web
+
+
+	-- Historial:
+	-- 1.4  08-07-09  I. Mu±oz      Revisin de todas las MIB para evitar
+    --                M.A. Pastor   warnings y errores de compilacin
+	-- 1.3  18-09-08  P. Nogueira   Correccin de variable
+	-- 1.2  13-09-05  E. Amorena    HIT 1784: reinstauro UPDATE
+	-- 1.1  23-02-05  P. Nogueira   HIT 1577: UDPDATE obsoleto, nîmero mﬂximo
+    --                              de redirecciones en monitorizacin
+	-- 1.0	01-07-04  J. Molina		Cambio de nombre del fichero de WebProbe.mib
+	--                              a TELDAT-WebProbe-MIB.mib.
+	--      03-03-04  P. Nogueira   Variable para configurar el mﬂximo
+	--                              nîmero de redirecciones en las sondas
+	--      11-11-03  P. Nogueira   Tabla de estadçsticos de fallo de
+	--                              conexin del PPP
+	--      22-11-02  P. Nogueira   Nuevas variables para configurar la
+	--                          	periodicidad de envço del evento de
+	--                          	conexin PPP, el tama±o de la ventana
+	--                          	TCP y el tama±o mﬂximo de segmento TCP
+	--                          	(MSS) en las conexiones HTTP
+	-- 		27-06-02  M.A. Pastor    Se limitan los tama±os de los
+	--      	                    identificadores en los tipos enumerados
+	--          	                (mﬂx=59) para que compile en HP OpenView
+	-- 		03-12-01  J. Poyato		Cambia el tama±o de la variable url,
+	--                 		        debido a la nueva version de la Sonda
+	--                      	    Web (con cliente DNS).
+	-- 		29-11-01  M.A. Pastor   Nueva variable para distinguir entre
+    --                          	PPPoE y PPPoA (dentro de la tabla
+    --                          	utilizada para provocar la desconexion
+    --                          	de un PPP)
+	-- 		03-10-01  M.A. Pastor   Se a±ade una tabla para poder provocar
+    --                          	la desconexion de un enlace PPP
+	-- 		04-07-01  P. Nogueira   Se a±ade una nueva variable (tanto en
+    --                          	configuracion como en monitorizacion)
+    --                          	correspondiente al tipo de pﬂgina a
+    --                          	pedir (genârica o especçfica)
+	-- 		07-06-01  M.A. Pastor    Se a±ade una nueva variable (tanto en
+    --                          	configuracion como en monitorizacion)
+    --                          	correspondiente al temporizador de
+    --                          	vencimiento de la sonda
+	-- 		24-05-01  M.A. Pastor   Implementacion inicial
+	--------------------------------------------------------------------------
+
+ TELDAT-WEBPROBE-MIB	DEFINITIONS ::= BEGIN
+
+	IMPORTS
+			Counter
+		FROM RFC1155-SMI
+		    OBJECT-TYPE
+        FROM RFC-1212
+			DisplayString
+		FROM RFC1213-MIB
+ 			telproducts
+	    FROM TELDAT-MIB;
+
+
+	-- Grupos en la MIB de TELDAT
+
+	-- teladmin                 OBJECT IDENTIFIER ::= { teldat 1 }
+	-- telxface                 OBJECT IDENTIFIER ::= { teldat 2 }
+	-- telproto                 OBJECT IDENTIFIER ::= { teldat 3 }
+	-- telProducts              OBJECT IDENTIFIER ::= { teldat 4 }
+ 	-- telDot3ChipSets          OBJECT IDENTIFIER ::= { teldat 5 }
+
+	-- Grupo telproducts
+
+	telProductsWebProbe         OBJECT IDENTIFIER ::= { telproducts 58 }
+
+	-- Grupo telProductsWebProbe
+
+	telProductsWebProbeConfig   OBJECT IDENTIFIER ::= { telProductsWebProbe 1 }
+	telProductsWebProbeMonit    OBJECT IDENTIFIER ::= { telProductsWebProbe 2 }
+
+	-- Grupo telProductsWebProbeConfig (parametros de configuracion)
+
+-- Tabla que recoge las diferentes sondas configuradas, correspondiendose cada
+-- entrada con una de ellas. Cada entrada consta de los parametros esenciales
+-- para definir una sonda: el identificador (indice con que se recorre la
+-- tabla), la URL o pagina Web a la que se accede para medir la velocidad de
+-- trafico downstream, una variable que indica si la sonda a la que se refiere
+-- la entrada esta o no habilitada, el tipo de periodicidad y el valor del
+-- periodo de lanzamiento de la sonda, el valor minimo de la velocidad de acceso
+-- por debajo del cual la medida es contabilizada para la generacion del evento
+-- o TRAP SNMP "Umbral no alcanzado", el numero de medidas consecutivas que
+-- deben producirse con velocidad por debajo del umbral configurado para que se
+-- genere ese evento, una variable que indica si esta o no habilitada la citada
+-- TRAP y otra para efectuar la operacion de borrado de la sonda correspondiente
+-- a la entrada en cuestion.
+-- $1.1 Se a±ade a cada entrada una nueva variable para configurar el valor del
+-- temporizador de vencimiento de la sonda.
+-- $1.2 Se a±ade a cada entrada una nueva variable para indicar el valor del
+-- tipo de pﬂgina a descargar: genârica o especçfica
+
+	telProdWebProbeConfProbeTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdWebProbeConfProbeEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"This table contains all the configured Web probes. Each entry refers to
+		a probe, and consists of the various essential parameters for it: the
+		probe identifier, the address of the page where the probe must be
+		initially connected in order to initiate the speed measuring process,
+        the type of periodicity and the value of the period the probe boots
+        with, the minimum access speed value below which the measurement is
+        taken into account in order to generate an SNMP event (TRAP) 'Threshold
+        not reached', the number of consecutive measurements that must be
+        produced with the speed below the configured threshold so this SNMP TRAP
+        is generated, a variable to indicate if the SNMP TRAP 'Threshold not
+        reached' is enabled, a variable to delete the probe, another variable
+        to indicate the timeout configured for this probe and the kind of page
+        to request. To add or configure a new probe is enough to use the
+        following index to the last existing probe identifier in the
+        corresponding SET operation."
+        ::= { telProductsWebProbeConfig 1 }
+
+   	telProdWebProbeConfProbeEntry OBJECT-TYPE
+		SYNTAX TelProdWebProbeConfProbeEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry refers to a probe, and consists of the various essential
+		parameters for it: the probe identifier, the address of the page where
+		the probe must be initially connected in order to initiate the speed
+		measuring process, the type of periodicity and the value of the period
+		the probe boots with, the minimum access speed value below which the
+		measurement is taken into account in order to generate an SNMP event
+		(TRAP) 'Threshold not reached', the number of consecutive measurements
+		that must be produced with the speed below the configured threshold so
+		this SNMP TRAP is generated, a variable to indicate if the SNMP TRAP
+		'Threshold not reached' is enabled, a variable to delete the probe,
+		another variable to indicate the timeout configured for this probe and
+		the kind of page to request. To add or configure a new probe is enough
+		to use the following index to the last existing probe identifier in the
+		corresponding SET operation, but there is a maximum number of configured
+		probes that must be respected."
+		INDEX { telProdWebProbeConfProbeIndex }
+		::= { telProdWebProbeConfProbeTable 1 }
+
+	TelProdWebProbeConfProbeEntry ::=
+		SEQUENCE{
+			telProdWebProbeConfProbeIndex
+				INTEGER,
+			telProdWebProbeConfProbeUrl
+				DisplayString,
+			telProdWebProbeConfProbeEnable
+				INTEGER,
+			telProdWebProbeConfProbePeriodType
+				INTEGER,
+			telProdWebProbeConfProbePeriodValue
+				INTEGER,
+			telProdWebProbeConfProbeThreshold
+				INTEGER,
+			telProdWebProbeConfProbeNPolls
+				INTEGER,
+		    telProdWebProbeConfProbeEvent
+		        INTEGER,
+			telProdWebProbeConfProbeDelete
+				INTEGER,
+		    telProdWebProbeCfgProbeTimeout
+		        INTEGER,
+		    telProdWebProbeCfgProbePageType
+		        INTEGER
+			}
+
+	telProdWebProbeConfProbeIndex OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: probe identifier."
+		::= { telProdWebProbeConfProbeEntry 1 }
+
+    telProdWebProbeConfProbeUrl OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..99))
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"The address of the Web page where the probe must be initially connected
+		in order to initiate the speed measuring process."
+		DEFVAL {""}
+		::= { telProdWebProbeConfProbeEntry 2 }
+
+    telProdWebProbeConfProbeEnable OBJECT-TYPE
+		SYNTAX INTEGER{
+		    enabled(1),
+		    disabled(2)
+		    }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates if the probe is enabled or
+		disabled, and a SET operation allows to enable/disable the probe whose
+		identifier is specified in the index. This variable can take the values
+		enabled (1) or disabled (2)."
+		DEFVAL {1}
+		::= { telProdWebProbeConfProbeEntry 3 }
+
+    telProdWebProbeConfProbePeriodType OBJECT-TYPE
+		SYNTAX INTEGER{
+		    none(0),
+		    minutes(1),
+		    hours(2),
+		    days(3),
+		    months(4)
+		    }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the type of periodicity: (0) none, (1) minutes,
+		(2) hours, (3) days, (4) months. The value 0 (none) indicates that the
+		probe is not periodic. This is equivalent to disabling the probe.
+	    When the device boots, the probe boots with periodicity configured
+	    through this variable and the next (value of the period)."
+		DEFVAL {0}
+		::= { telProdWebProbeConfProbeEntry 4 }
+
+    telProdWebProbeConfProbePeriodValue OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the value of the period, in minutes, hours,
+		days or months depending on the type of periodicity configured, which is
+		stored in the previous variable. When the device boots, the probe boots
+		with periodicity configured through this variable and the previous
+		(type of periodicity). If the type of periodicity is none (0), the value
+		of this variable has no sense: in GET operations it will be shown as 0
+		and SET operations are no allowed."
+		DEFVAL {1}
+		::= { telProdWebProbeConfProbeEntry 5 }
+
+    telProdWebProbeConfProbeThreshold OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Minimum access speed value (in bits per second) below which the
+		measurement is taken into account in order to generate an SNMP event
+		(TRAP) 'Threshold not reached'."
+		DEFVAL {0}
+		::= { telProdWebProbeConfProbeEntry 6 }
+
+	telProdWebProbeConfProbeNPolls OBJECT-TYPE
+		SYNTAX INTEGER(1..255)
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Number of consecutive measurements that must be produced with the speed
+		below the configured threshold so an SNMP event (TRAP) 'Threshold not
+		reached'. A measurement received above the threshold will restart the
+		counter."
+		DEFVAL {1}
+		::= { telProdWebProbeConfProbeEntry 7 }
+
+	telProdWebProbeConfProbeEvent OBJECT-TYPE
+		SYNTAX INTEGER{
+		    enabled(1),
+		    disabled(2)
+		    }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates if the 'Threshold not reached'
+		TRAP generation is enabled or disabled, and a SET operation allows to
+		enable/disable the sending of this SNMP event for this probe. This
+		variable can take the values enabled (1) or disabled (2)."
+		DEFVAL {1}
+		::= { telProdWebProbeConfProbeEntry 8 }
+
+    telProdWebProbeConfProbeDelete OBJECT-TYPE
+		SYNTAX INTEGER{
+	        delete(1),
+		    ok(2),
+		    error(3),
+            undefined(4)
+            }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"If the value of this variable is set to 1, this entry will be deleted.
+		In GET operations, the value taken by this variable indicates the
+		result of the last operation: ok (2), if the entry was deleted
+		succesfully; error (3), if the operation failed; the value undefined (4)
+		indicates that delete operations have not been made yet."
+		::= { telProdWebProbeConfProbeEntry 9 }
+
+    telProdWebProbeCfgProbeTimeout OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Timeout configured for this probe."
+		::= { telProdWebProbeConfProbeEntry 10 }
+
+    telProdWebProbeCfgProbePageType OBJECT-TYPE
+		SYNTAX INTEGER{
+	        generic(1),
+		    specific(2)
+            }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates if the page to download is
+		 generic(1) or specific(2). If the page is generic, the content of the
+		 response is not parsed. If the page is specific, the probe expects an
+		 specific structure in the response"
+		::= { telProdWebProbeConfProbeEntry 11 }
+
+-- Variable utilizada para poder ejecutar remotamente la operacion UPDATE
+
+    telProdWebProbeConfUpdate OBJECT-TYPE
+		SYNTAX INTEGER{
+	        update(1),
+		    ok(2),
+		    error(3),
+            undefined(4)
+            }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"If the value of this variable is set to 1, the configuration changes
+		made since the system was last re-initialized will take effect.
+		In GET operations, the value taken by this variable indicates the
+		result of the last operation: ok (2), if it was made succesfully;
+		error (3), if the operation failed; the value undefined (4)
+		indicates that operations of this type have not been made yet."
+		::= { telProductsWebProbeConfig 2 }
+
+-- Variable utilizada para configurar la periodicidad de envço del evento de
+-- conexin PPP
+
+    telProdWebProbeConfTTrap OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Configures, in seconds, the periodicity of the PPP connection trap"
+		::= { telProductsWebProbeConfig 3 }
+
+-- Variable utilizada para configurar el tama±o de la ventana TCP en las
+-- conexiones HTTP
+
+    telProdWebProbeConfTCPwindow OBJECT-TYPE
+		SYNTAX INTEGER(1..65535)
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Configures the TCP window size used in the HTTP connections"
+		::= { telProductsWebProbeConfig 4 }
+
+-- Variable utilizada para configurar el tama±o mﬂximo de segmento TCP (MSS) en
+-- las conexiones HTTP
+
+    telProdWebProbeConfTCPmss OBJECT-TYPE
+		SYNTAX INTEGER(1..65535)
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Configures the TCP Maximum Segment Size(MSS) used in the HTTP
+		connections"
+		::= { telProductsWebProbeConfig 5 }
+
+-- Variable utilizada para configurar el mﬂximo nîmero de redirecciones
+-- permitidas en las sondas
+
+    telProdWebProbeConfMaxRedir OBJECT-TYPE
+		SYNTAX INTEGER(1..255)
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Configures the maximum number of redirections allowed in the HTTP
+		requests"
+		::= { telProductsWebProbeConfig 6 }
+
+ 	-- Grupo telProductsWebProbeMonit (parametros de monitorizacion)
+
+-- Tabla que contiene los parametros mas importantes de las sondas periodicas en
+-- ejecucion. Los parametros que se muestran para cada sonda (es decir, para
+-- cada entrada de la tabla) son: identificador de la sonda (que sera el indice
+-- con que se recorre la tabla), estado de la sonda (deshabilitada, esperando,
+-- ejecutandose, completada o pendiente), direccion de la URL a la que se
+-- conecta, tipo de sonda (periodica, inmediata o nada, si todavia esta
+-- esperando), tipo de periodicidad y valor del periodo de lanzamiento de la
+-- sonda, el valor minimo de la velocidad de acceso por debajo del cual la
+-- medida es contabilizada para la generacion del evento o TRAP SNMP "Umbral no
+-- alcanzado", numero de fallos que se han producido en la sonda, es decir,
+-- numero de veces consecutivas que la velocidad medida ha estado por debajo del
+-- umbral configurado, numero de fallos permitidos antes de lanzar el evento
+-- SNMP, una variable que indica si esta o no habilitada la citada TRAP, tipo de
+-- sonda que se lanzo la ultima vez, fecha y hora en que se produjo la ultima
+-- conexion, velocidad, en bits por segundo, medida en la ultima sonda realizada,
+-- fecha y hora en que debe iniciarse la siguiente conexion, una variable que
+-- indica si los posibles cambios en la configuracion han sido actualizados
+-- (mediante un comando 'UPDATE' o salvando y reiniciando), y otra que
+-- especifica dichos cambios en la configuracion que no se han actualizado.
+-- $1.1 Se a±ade a cada entrada una nueva variable para indicar el valor del
+-- temporizador de vencimiento de la sonda.
+-- $1.2 Se a±ade a cada entrada una nueva variable para indicar el valor del
+-- tipo de pﬂgina a descargar: genârica o especçfica
+
+	telProdWebProbeMonProbeTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdWebProbeMonProbeEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"This table contains the most relevant information about the periodic
+		probes being executed. The parameters included in each entry are as
+		follows: the probe identifier (which is the index of the table), the
+		probe status, the address of the URL to which the probe is connected,
+		the type of this probe (periodic, immediate, or none if it is still
+		in waiting state), the type of periodicity and the value of the period
+		the probe boots with, the speed threshold configured for the probe, the
+		number of failures that have been produced in the probe (number of times
+		the measured speed is below the threshold), the number of failures
+		permitted, a variable to indicate if this TRAP 'Threshold not reached'
+		is enabled, the type of the last probe, the date and time of the last
+		connection produced, the value of the speed, in bits per second,
+		measured in the last probe carried out, the	date and time when next
+		connection must be started, a variable which indicates if the possible
+		configuration changes have been updated and other which specifies these
+		changes produced, the variable which indicates the value of the
+		timeout for this probe and the kind of page to request."
+   		::= { telProductsWebProbeMonit 1 }
+
+   	telProdWebProbeMonProbeEntry OBJECT-TYPE
+		SYNTAX TelProdWebProbeMonProbeEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry consists of the following parameters: the probe identifier,
+		the probe status, the address of the URL to which the probe is
+		connected, the type of this probe (periodic, immediate, or none if it
+		is still in waiting state), the type of periodicity and the value of the
+		period the probe boots with, the speed threshold configured for the
+		probe, the number of failures that have been produced in the probe
+		(number of times the measured speed is below the threshold), the number
+		of failures permitted, a variable to indicate if this TRAP 'Threshold
+		not reached' is enabled, the type of the last probe, the date and time
+		of the last connection produced, the value of the speed, in bits per
+		second, measured in the last probe carried out, the date and time when
+		next connection must be started, a variable which indicates if the
+		possible configuration changes have been updated and other which
+		specifies these changes produced, the variable which indicates the
+		value of the timeout for this probe and the kind of page to request."
+		INDEX { telProdWebProbeMonProbeIndex }
+		::= { telProdWebProbeMonProbeTable 1 }
+
+	TelProdWebProbeMonProbeEntry ::=
+		SEQUENCE{
+			telProdWebProbeMonProbeIndex
+				INTEGER,
+		    telProdWebProbeMonProbeStatus
+		        INTEGER,
+			telProdWebProbeMonProbeUrl
+				DisplayString,
+		    telProdWebProbeMonProbeType
+		        INTEGER,
+		    telProdWebProbeMonProbePeriodType
+		        INTEGER,
+		    telProdWebProbeMonProbePeriodValue
+		        INTEGER,
+		    telProdWebProbeMonProbeThreshold
+				INTEGER,
+		    telProdWebProbeMonProbeFailures
+				Counter,
+		    telProdWebProbeMonProbeNPolls
+				INTEGER,
+		    telProdWebProbeMonProbeEvent
+		        INTEGER,
+		    telProdWebProbeMonProbeLastProbe
+			    INTEGER,
+			telProdWebProbeMonProbeInitDate
+				OCTET STRING,
+			telProdWebProbeMonProbeInitTime
+				OCTET STRING,
+			telProdWebProbeMonProbeLastSpeed
+				INTEGER,
+		    telProdWebProbeMonProbeNextDate
+				OCTET STRING,
+			telProdWebProbeMonProbeNextTime
+				OCTET STRING,
+		    telProdWebProbeMonProbeChanUpdated
+		        INTEGER,
+		    telProdWebProbeMonProbeConfChanges
+		        INTEGER,
+		    telProdWebProbeMonProbeTimeout
+		        INTEGER,
+		    telProdWebProbeMonProbePageType
+		        INTEGER
+		    }
+
+    telProdWebProbeMonProbeIndex OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: probe identifier."
+		::= { telProdWebProbeMonProbeEntry 1 }
+
+    telProdWebProbeMonProbeStatus OBJECT-TYPE
+        SYNTAX INTEGER{
+        	disabled(0),
+            waiting(1),
+            pending_execution(2),
+            executing(3),
+            completed_ok(4),
+            completed_with_error(5),
+            request_required(6)
+            }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The probe state. It can be one of the following: waiting(1),
+		pending_execution(2), executing(3), completed_ok(4),
+		completed_with_error (5), request_required(6); if the probe is
+		disabled or its type of periodicity is 0 (none), and it is not an
+		immediate probe, the value of this variable will be 0 (disabled)."
+		::= { telProdWebProbeMonProbeEntry 2 }
+
+    telProdWebProbeMonProbeUrl OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..99))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The address of the Web page or URL to which the probe is connected."
+		::= { telProdWebProbeMonProbeEntry 3 }
+
+    telProdWebProbeMonProbeType OBJECT-TYPE
+        SYNTAX INTEGER{
+            probe_waiting(0),
+		    periodic(1),
+		    immediate(2)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates if this probe is periodic(1) or immediate(2).
+		If the status of probe is waiting(1), the value of this variable is
+		0 (probe_waiting)."
+		::= { telProdWebProbeMonProbeEntry 4 }
+
+    telProdWebProbeMonProbePeriodType OBJECT-TYPE
+        SYNTAX INTEGER{
+		    none(0),
+		    minutes(1),
+		    hours(2),
+		    days(3),
+		    months(4)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the type of periodicity: (0) none, (1) minutes,
+		(2) hours, (3) days, (4) months. The value 0 (none) indicates that the
+		probe is not periodic. This is equivalent to have the probe disabled.
+	    When the device boots, the probe boots with periodicity showed through
+	    this variable and the next (value of the period)."
+		::= { telProdWebProbeMonProbeEntry 5 }
+
+    telProdWebProbeMonProbePeriodValue OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the value of the period, in minutes, hours,
+		days or months depending on the type of periodicity used, which is
+		stored in the previous variable. When the device boots, the probe boots
+		with periodicity showed through this variable and the previous
+		(type of periodicity). If the type of periodicity is none (0), the value
+		of this variable has no sense and it will be shown as 0."
+		::= { telProdWebProbeMonProbeEntry 6 }
+
+    telProdWebProbeMonProbeThreshold OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Speed threshold configured for the probe (in bits per second)."
+		::= { telProdWebProbeMonProbeEntry 7 }
+
+    telProdWebProbeMonProbeFailures OBJECT-TYPE
+        SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of failures that have been produced in the probe, i.e. the
+		number of consecutive times the measured speed has been below the
+		configured threshold. When the number of failures produced is equal to
+		the number of failures permitted, an SNMP event is generated indicating
+		problems in the connection. A measurement received above the threshold
+		will restart the counter."
+		::= { telProdWebProbeMonProbeEntry 8 }
+
+    telProdWebProbeMonProbeNPolls OBJECT-TYPE
+        SYNTAX INTEGER(1..255)
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of failures permitted (number of consecutive times the measured
+		speed can be below the configured threshold). When the number of
+		failures produced is equal to the number of failures permitted, an SNMP
+		event (TRAP) is generated indicating problems in the connection."
+		::= { telProdWebProbeMonProbeEntry 9 }
+
+    telProdWebProbeMonProbeEvent OBJECT-TYPE
+        SYNTAX INTEGER{
+		    enabled(1),
+		    disabled(2)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates if the 'Threshold not reached'
+		TRAP generation is enabled or disabled. This variable can take the
+		values enabled (1) or disabled (2)."
+		::= { telProdWebProbeMonProbeEntry 10 }
+
+	telProdWebProbeMonProbeLastProbe OBJECT-TYPE
+        SYNTAX INTEGER{
+		    no_probe(0),
+		    periodic(1),
+		    immediate(2)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates the type of the last probe:
+		no_probe(0), periodic(1), immediate(2)."
+		::= { telProdWebProbeMonProbeEntry 11 }
+
+    telProdWebProbeMonProbeInitDate OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The date of the last connection produced. If no connection has yet
+		been produced, this is shown as 0, and if the type of the last probe,
+		which is stored in the variable telProdWebProbeMonProbeLastProbe,
+		is no_probe (0), no information will be showed."
+		::= { telProdWebProbeMonProbeEntry 12 }
+
+    telProdWebProbeMonProbeInitTime OBJECT-TYPE
+		SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The time when the last connection was produced. If no connection has
+		yet been produced, this is shown as 0, and if the type of the last
+		probe, which is stored in the variable telProdWebProbeMonProbeLastProbe,
+		is no_probe (0), no information will be showed."
+		::= { telProdWebProbeMonProbeEntry 13 }
+
+    telProdWebProbeMonProbeLastSpeed OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Speed, in bits per second, measured in the last probe carried out. If
+		the variable which indicates the type of the last probe takes the value
+		0 (no_probe), the value of the last mesasured speed is shown as 0."
+		::= { telProdWebProbeMonProbeEntry 14 }
+
+    telProdWebProbeMonProbeNextDate OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The date when next connection must be started. If the probe is
+		disabled or its type of periodicity is 0 (none), or its status is
+		executing (2) or pending_execution(4), no information will be showed."
+		::= { telProdWebProbeMonProbeEntry 15 }
+
+    telProdWebProbeMonProbeNextTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The time when next connection must be started. If the probe is
+		disabled or its type of periodicity is 0 (none), or its status is
+		executing (2) or pending_execution(4), no information will be showed."
+		::= { telProdWebProbeMonProbeEntry 16 }
+
+    telProdWebProbeMonProbeChanUpdated OBJECT-TYPE
+        SYNTAX INTEGER{
+		    no_changes(0),
+		    waiting_for_update(1),
+		    not_updated(2)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates if the configuration changes
+		have been updated. If no changes have produced, this variable will take
+		the value 0 (no_changes); elsewhere, it would take the values
+		waiting_for_update (1) or not_updated (2)."
+		::= { telProdWebProbeMonProbeEntry 17 }
+
+    telProdWebProbeMonProbeConfChanges OBJECT-TYPE
+	    SYNTAX INTEGER{
+	        none(0),
+	        enabled-disabled(1),
+	        url(2),
+	        url_enabled-disabled(3),
+	        period(4),
+	        period_enabled-disabled(5),
+	        period_url(6),
+	        period_url_enabled-disabled(7),
+	        threshold(8),
+	        threshold_enabled-disabled(9),
+	        threshold_url(10),
+	        threshold_url_enabled-disabled(11),
+	        threshold_period(12),
+	        threshold_period_enabled-disabled(13),
+	        threshold_period_url(14),
+	        threshold_period_url_enabled-disabled(15),
+	        npolls(16),
+	        npolls_enabled-disabled(17),
+	        npolls_url(18),
+	        npolls_url_enabled-disabled(19),
+	        npolls_period(20),
+	        npolls_period_enabled-disabled(21),
+	        npolls_period_url(22),
+	        npolls_period_url_enabled-disabled(23),
+	        npolls_threshold(24),
+	        npolls_threshold_enabled-disabled(25),
+	        npolls_threshold_url(26),
+	        npolls_threshold_url_enabled-disabled(27),
+	        npolls_threshold_period(28),
+	        npolls_threshold_period_enabled-disabled(29),
+	        npolls_threshold_period_url(30),
+	        npolls_threshold_period_url_enabled-disabled(31),
+	        event(32),
+	        event_enable-disable(33),
+	        event_url(34),
+	        event_url_enable-disable(35),
+	        event_period(36),
+	        event_period_enable-disable(37),
+	        event_period_url(38),
+	        event_period_url_enable-disable(39),
+	        event_threshold(40),
+	        event_threshold_enable-disable(41),
+	        event_threshold_url(42),
+	        event_threshold_url_enable-disable(43),
+	        event_threshold_period(44),
+	        event_threshold_period_enable-disable(45),
+	        event_threshold_period_url(46),
+	        event_threshold_period_url_enable-disable(47),
+	        event_npolls(48),
+	        event_npolls_enable-disable(49),
+	        event_npolls_url(50),
+	        event_npolls_url_enable-disable(51),
+	        event_npolls_period(52),
+	        event_npolls_period_enable-disable(53),
+	        event_npolls_period_url(54),
+	        event_npolls_period_url_enable-disable(55),
+	        event_npolls_threshold(56),
+	        event_npolls_threshold_enable-disable(57),
+	        event_npolls_threshold_url(58),
+	        event_npolls_threshold_url_enable-disable(59),
+	        event_npolls_threshold_period(60),
+	        event_npolls_threshold_period_enable-disable(61),
+	        event_npolls_threshold_period_url(62),
+	        event_npolls_threshold_period_url_enable-disable(63),
+	        deleted_probe(64),
+	        timeout(128),
+	        timeout_enabled-disabled(129),
+	        timeout_url(130),
+	        timeout_url_enabled-disabled(131),
+	        timeout_period(132),
+	        timeout_period_enabled-disabled(133),
+	        timeout_period_url(134),
+	        timeout_period_url_enabled-disabled(135),
+	        timeout_threshold(136),
+	        timeout_threshold_enabled-disabled(137),
+	        timeout_threshold_url(138),
+	        timeout_threshold_url_enabled-disabled(139),
+	        timeout_threshold_period(140),
+	        timeout_threshold_period_enabled-disabled(141),
+	        timeout_threshold_period_url(142),
+	        timeout_threshold_period_url_enabled-disabled(143),
+	        timeout_npolls(144),
+	        timeout_npolls_enabled-disabled(145),
+	        timeout_npolls_url(146),
+	        timeout_npolls_url_enabled-disabled(147),
+	        timeout_npolls_period(148),
+	        timeout_npolls_period_enabled-disabled(149),
+	        timeout_npolls_period_url(150),
+	        timeout_npolls_period_url_enabled-disabled(151),
+	        timeout_npolls_threshold(152),
+	        timeout_npolls_threshold_enabled-disabled(153),
+	        timeout_npolls_threshold_url(154),
+	        timeout_npolls_threshold_url_enabled-disabled(155),
+	        timeout_npolls_threshold_period(156),
+	        timeout_npolls_threshold_period_enabled-disabled(157),
+	        timeout_npolls_threshold_period_url(158),
+	        timeout_npolls_threshold_period_url_enabled-disabled(159),
+	        timeout_event(160),
+	        timeout_event_enable-disable(161),
+	        timeout_event_url(162),
+	        timeout_event_url_enable-disable(163),
+	        timeout_event_period(164),
+	        timeout_event_period_enable-disable(165),
+	        timeout_event_period_url(166),
+	        timeout_event_period_url_enable-disable(167),
+	        timeout_event_threshold(168),
+	        timeout_event_threshold_enable-disable(169),
+	        timeout_event_threshold_url(170),
+	        timeout_event_threshold_url_enable-disable(171),
+	        timeout_event_threshold_period(172),
+	        timeout_event_threshold_period_enable-disable(173),
+	        timeout_event_threshold_period_url(174),
+	        timeout_event_threshold_period_url_enable-disable(175),
+	        timeout_event_npolls(176),
+	        timeout_event_npolls_enable-disable(177),
+	        timeout_event_npolls_url(178),
+	        timeout_event_npolls_url_enable-disable(179),
+	        timeout_event_npolls_period(180),
+	        timeout_event_npolls_period_enable-disable(181),
+	        timeout_event_npolls_period_url(182),
+	        timeout_event_npolls_period_url_enable-disable(183),
+	        timeout_event_npolls_threshold(184),
+	        timeout_event_npolls_threshold_enable-disable(185),
+	        timeout_event_npolls_threshold_url(186),
+	        timeout_event_npolls_threshold_url_enable-disable(187),
+	        timeout_event_npolls_threshold_period(188),
+	        timeout_event_npolls_threshold_period_enable-disable(189),
+	        timeout_event_npolls_threshold_period_url(190),
+	        timeout_event_npolls_threshold_period_url_enable-disable(191),
+	        pagetype(256),
+	        pagetype_enabled-disabled(257),
+	        pagetype_url(258),
+	        pagetype_url_enabled-disabled(259),
+	        pagetype_period(260),
+	        pagetype_period_enabled-disabled(261),
+	        pagetype_period_url(262),
+	        pagetype_period_url_enabled-disabled(263),
+	        pagetype_threshold(264),
+	        pagetype_threshold_enabled-disabled(265),
+	        pagetype_threshold_url(266),
+	        pagetype_threshold_url_enabled-disabled(267),
+	        pagetype_threshold_period(268),
+	        pagetype_threshold_period_enabled-disabled(269),
+	        pagetype_threshold_period_url(270),
+	        pagetype_threshold_period_url_enabled-disabled(271),
+	        pagetype_npolls(272),
+	        pagetype_npolls_enabled-disabled(273),
+	        pagetype_npolls_url(274),
+	        pagetype_npolls_url_enabled-disabled(275),
+	        pagetype_npolls_period(276),
+	        pagetype_npolls_period_enabled-disabled(277),
+	        pagetype_npolls_period_url(278),
+	        pagetype_npolls_period_url_enabled-disabled(279),
+	        pagetype_npolls_threshold(280),
+	        pagetype_npolls_threshold_enabled-disabled(281),
+	        pagetype_npolls_threshold_url(282),
+	        pagetype_npolls_threshold_url_enabled-disabled(283),
+	        pagetype_npolls_threshold_period(284),
+	        pagetype_npolls_threshold_period_enabled-disabled(285),
+	        pagetype_npolls_threshold_period_url(286),
+	        pagetype_npolls_threshold_period_url_enabled-disabled(287),
+	        pagetype_event(288),
+	        pagetype_event_enable-disable(289),
+	        pagetype_event_url(290),
+	        pagetype_event_url_enable-disable(291),
+	        pagetype_event_period(292),
+	        pagetype_event_period_enable-disable(293),
+	        pagetype_event_period_url(294),
+	        pagetype_event_period_url_enable-disable(295),
+	        pagetype_event_threshold(296),
+	        pagetype_event_threshold_enable-disable(297),
+	        pagetype_event_threshold_url(298),
+	        pagetype_event_threshold_url_enable-disable(299),
+	        pagetype_event_threshold_period(300),
+	        pagetype_event_threshold_period_enable-disable(301),
+	        pagetype_event_threshold_period_url(302),
+	        pagetype_event_threshold_period_url_enable-disable(303),
+	        pagetype_event_npolls(304),
+	        pagetype_event_npolls_enable-disable(305),
+	        pagetype_event_npolls_url(306),
+	        pagetype_event_npolls_url_enable-disable(307),
+	        pagetype_event_npolls_period(308),
+	        pagetype_event_npolls_period_enable-disable(309),
+	        pagetype_event_npolls_period_url(310),
+	        pagetype_event_npolls_period_url_enable-disable(311),
+	        pagetype_event_npolls_threshold(312),
+	        pagetype_event_npolls_threshold_enable-disable(313),
+	        pagetype_event_npolls_threshold_url(314),
+	        pagetype_event_npolls_threshold_url_enable-disable(315),
+	        pagetype_event_npolls_threshold_period(316),
+	        pagetype_event_npolls_threshold_period_enable-disable(317),
+	        pagetype_event_npolls_threshold_period_url(318),
+	        pagetype_event_npolls_threshold_period_url_enable-disable(319),
+	        pagetype_timeout(384),
+	        pagetype_timeout_enabled-disabled(385),
+	        pagetype_timeout_url(386),
+	        pagetype_timeout_url_enabled-disabled(387),
+	        pagetype_timeout_period(388),
+	        pagetype_timeout_period_enabled-disabled(389),
+	        pagetype_timeout_period_url(390),
+	        pagetype_timeout_period_url_enabled-disabled(391),
+	        pagetype_timeout_threshold(392),
+	        pagetype_timeout_threshold_enabled-disabled(393),
+	        pagetype_timeout_threshold_url(394),
+	        pagetype_timeout_threshold_url_enabled-disabled(395),
+	        pagetype_timeout_threshold_period(396),
+	        pagetype_timeout_threshold_period_enabled-disabled(397),
+	        pagetype_timeout_threshold_period_url(398),
+	        pagetype_timeout_threshold_period_url_enabled-disabled(399),
+	        pagetype_timeout_npolls(400),
+	        pagetype_timeout_npolls_enabled-disabled(401),
+	        pagetype_timeout_npolls_url(402),
+	        pagetype_timeout_npolls_url_enabled-disabled(403),
+	        pagetype_timeout_npolls_period(404),
+	        pagetype_timeout_npolls_period_enabled-disabled(405),
+	        pagetype_timeout_npolls_period_url(406),
+	        pagetype_timeout_npolls_period_url_enabled-disabled(407),
+	        pagetype_timeout_npolls_threshold(408),
+	        pagetype_timeout_npolls_threshold_enabled-disabled(409),
+	        pagetype_timeout_npolls_threshold_url(410),
+	        pagetype_timeout_npolls_threshold_url_enabled-disabled(411),
+	        pagetype_timeout_npolls_threshold_period(412),
+	        pagetype_timeout_npolls_threshold_period_enabled-disabled(413),
+	        pagetype_timeout_npolls_threshold_period_url(414),
+	        pagetype_timeout_npolls_threshold_period_url_enabl-disabl(415),
+	        pagetype_timeout_event(416),
+	        pagetype_timeout_event_enable-disable(417),
+	        pagetype_timeout_event_url(418),
+	        pagetype_timeout_event_url_enable-disable(419),
+	        pagetype_timeout_event_period(420),
+	        pagetype_timeout_event_period_enable-disable(421),
+	        pagetype_timeout_event_period_url(422),
+	        pagetype_timeout_event_period_url_enable-disable(423),
+	        pagetype_timeout_event_threshold(424),
+	        pagetype_timeout_event_threshold_enable-disable(425),
+	        pagetype_timeout_event_threshold_url(426),
+	        pagetype_timeout_event_threshold_url_enable-disable(427),
+	        pagetype_timeout_event_threshold_period(428),
+	        pagetype_timeout_event_threshold_period_enable-disable(429),
+	        pagetype_timeout_event_threshold_period_url(430),
+	        pagetype_timeout_event_threshold_period_url_enable-disable(431),
+	        pagetype_timeout_event_npolls(432),
+	        pagetype_timeout_event_npolls_enable-disable(433),
+	        pagetype_timeout_event_npolls_url(434),
+	        pagetype_timeout_event_npolls_url_enable-disable(435),
+	        pagetype_timeout_event_npolls_period(436),
+	        pagetype_timeout_event_npolls_period_enable-disable(437),
+	        pagetype_timeout_event_npolls_period_url(438),
+	        pagetype_timeout_event_npolls_period_url_enable-disable(439),
+	        pagetype_timeout_event_npolls_threshold(440),
+	        pagetype_timeout_event_npolls_threshold_enable-disable(441),
+	        pagetype_timeout_event_npolls_threshold_url(442),
+	        pagetype_timeout_event_npolls_threshold_url_enable-disable(443),
+	        pagetype_timeout_event_npolls_threshold_period(444),
+	        pagetype_timeout_event_npolls_threshold_period_enabl-dsbl(445),
+	        pagetype_timeout_event_npolls_threshold_period_url(446),
+	        pagetype_timeout_event_npolls_thresh_period_url_enabl-dsbl(447),
+	        max-redir(512),
+	        max-redir_enabled-disabled(513),
+	        max-redir_url(514),
+	        max-redir_url_enabled-disabled(515),
+	        max-redir_period(516),
+	        max-redir_period_enabled-disabled(517),
+	        max-redir_period_url(518),
+	        max-redir_period_url_enabled-disabled(519),
+	        max-redir_threshold(520),
+	        max-redir_threshold_enabled-disabled(521),
+	        max-redir_threshold_url(522),
+	        max-redir_threshold_url_enabled-disabled(523),
+	        max-redir_threshold_period(524),
+	        max-redir_threshold_period_enabled-disabled(525),
+	        max-redir_threshold_period_url(526),
+	        max-redir_threshold_period_url_enabled-disabled(527),
+	        max-redir_npolls(528),
+	        max-redir_npolls_enabled-disabled(529),
+	        max-redir_npolls_url(530),
+	        max-redir_npolls_url_enabled-disabled(531),
+	        max-redir_npolls_period(532),
+	        max-redir_npolls_period_enabled-disabled(533),
+	        max-redir_npolls_period_url(534),
+	        max-redir_npolls_period_url_enabled-disabled(535),
+	        max-redir_npolls_threshold(536),
+	        max-redir_npolls_threshold_enabled-disabled(537),
+	        max-redir_npolls_threshold_url(538),
+	        max-redir_npolls_threshold_url_enabled-disabled(539),
+	        max-redir_npolls_threshold_period(540),
+	        max-redir_npolls_threshold_period_enabled-disabled(541),
+	        max-redir_npolls_threshold_period_url(542),
+	        max-redir_npolls_threshold_period_url_enabled-disabled(543),
+	        max-redir_event(544),
+	        max-redir_event_enable-disable(545),
+	        max-redir_event_url(546),
+	        max-redir_event_url_enable-disable(547),
+	        max-redir_event_period(548),
+	        max-redir_event_period_enable-disable(549),
+	        max-redir_event_period_url(550),
+	        max-redir_event_period_url_enable-disable(551),
+	        max-redir_event_threshold(552),
+	        max-redir_event_threshold_enable-disable(553),
+	        max-redir_event_threshold_url(554),
+	        max-redir_event_threshold_url_enable-disable(555),
+	        max-redir_event_threshold_period(556),
+	        max-redir_event_threshold_period_enable-disable(557),
+	        max-redir_event_threshold_period_url(558),
+	        max-redir_event_threshold_period_url_enable-disable(559),
+	        max-redir_event_npolls(560),
+	        max-redir_event_npolls_enable-disable(561),
+	        max-redir_event_npolls_url(562),
+	        max-redir_event_npolls_url_enable-disable(563),
+	        max-redir_event_npolls_period(564),
+	        max-redir_event_npolls_period_enable-disable(565),
+	        max-redir_event_npolls_period_url(566),
+	        max-redir_event_npolls_period_url_enable-disable(567),
+	        max-redir_event_npolls_threshold(568),
+	        max-redir_event_npolls_threshold_enable-disable(569),
+	        max-redir_event_npolls_threshold_url(570),
+	        max-redir_event_npolls_threshold_url_enable-disable(571),
+	        max-redir_event_npolls_threshold_period(572),
+	        max-redir_event_npolls_threshold_period_enable-disable(573),
+	        max-redir_event_npolls_threshold_period_url(574),
+	        max-redir_event_npolls_threshold_period_url_enable-disable(575),
+	        max-redir_timeout(640),
+	        max-redir_timeout_enabled-disabled(641),
+	        max-redir_timeout_url(642),
+	        max-redir_timeout_url_enabled-disabled(643),
+	        max-redir_timeout_period(644),
+	        max-redir_timeout_period_enabled-disabled(645),
+	        max-redir_timeout_period_url(646),
+	        max-redir_timeout_period_url_enabled-disabled(647),
+	        max-redir_timeout_threshold(648),
+	        max-redir_timeout_threshold_enabled-disabled(649),
+	        max-redir_timeout_threshold_url(650),
+	        max-redir_timeout_threshold_url_enabled-disabled(651),
+	        max-redir_timeout_threshold_period(652),
+	        max-redir_timeout_threshold_period_enabled-disabled(653),
+	        max-redir_timeout_threshold_period_url(654),
+	        max-redir_timeout_threshold_period_url_enabled-disabled(655),
+	        max-redir_timeout_npolls(656),
+	        max-redir_timeout_npolls_enabled-disabled(657),
+	        max-redir_timeout_npolls_url(658),
+	        max-redir_timeout_npolls_url_enabled-disabled(659),
+	        max-redir_timeout_npolls_period(660),
+	        max-redir_timeout_npolls_period_enabled-disabled(661),
+	        max-redir_timeout_npolls_period_url(662),
+	        max-redir_timeout_npolls_period_url_enabled-disabled(663),
+	        max-redir_timeout_npolls_threshold(664),
+	        max-redir_timeout_npolls_threshold_enabled-disabled(665),
+	        max-redir_timeout_npolls_threshold_url(666),
+	        max-redir_timeout_npolls_threshold_url_enabled-disabled(667),
+	        max-redir_timeout_npolls_threshold_period(668),
+	        max-redir_timeout_npolls_threshold_period_enabled-disabled(669),
+	        max-redir_timeout_npolls_threshold_period_url(670),
+	        max-redir_timeout_npolls_threshold_period_url_enabl-disabl(671),
+	        max-redir_timeout_event(672),
+	        max-redir_timeout_event_enable-disable(673),
+	        max-redir_timeout_event_url(674),
+	        max-redir_timeout_event_url_enable-disable(675),
+	        max-redir_timeout_event_period(676),
+	        max-redir_timeout_event_period_enable-disable(677),
+	        max-redir_timeout_event_period_url(678),
+	        max-redir_timeout_event_period_url_enable-disable(679),
+	        max-redir_timeout_event_threshold(680),
+	        max-redir_timeout_event_threshold_enable-disable(681),
+	        max-redir_timeout_event_threshold_url(682),
+	        max-redir_timeout_event_threshold_url_enable-disable(683),
+	        max-redir_timeout_event_threshold_period(684),
+	        max-redir_timeout_event_threshold_period_enable-disable(685),
+	        max-redir_timeout_event_threshold_period_url(686),
+	        max-redir_timeout_event_threshold_period_url_enable-disable(687),
+	        max-redir_timeout_event_npolls(688),
+	        max-redir_timeout_event_npolls_enable-disable(689),
+	        max-redir_timeout_event_npolls_url(690),
+	        max-redir_timeout_event_npolls_url_enable-disable(691),
+	        max-redir_timeout_event_npolls_period(692),
+	        max-redir_timeout_event_npolls_period_enable-disable(693),
+	        max-redir_timeout_event_npolls_period_url(694),
+	        max-redir_timeout_event_npolls_period_url_enable-disable(695),
+	        max-redir_timeout_event_npolls_threshold(696),
+	        max-redir_timeout_event_npolls_threshold_enable-disable(697),
+	        max-redir_timeout_event_npolls_threshold_url(698),
+	        max-redir_timeout_event_npolls_threshold_url_enable-disable(699),
+	        max-redir_timeout_event_npolls_threshold_period(700),
+	        max-redir_timeout_event_npolls_threshold_period_enabl-dsbl(701),
+	        max-redir_timeout_event_npolls_threshold_period_url(702),
+	        max-redir_timeout_event_npolls_thresh_period_url_enabl-dsbl(703),
+	        max-redir_pagetype(768),
+	        max-redir_pagetype_enabled-disabled(769),
+	        max-redir_pagetype_url(770),
+	        max-redir_pagetype_url_enabled-disabled(771),
+	        max-redir_pagetype_period(772),
+	        max-redir_pagetype_period_enabled-disabled(773),
+	        max-redir_pagetype_period_url(774),
+	        max-redir_pagetype_period_url_enabled-disabled(775),
+	        max-redir_pagetype_threshold(776),
+	        max-redir_pagetype_threshold_enabled-disabled(777),
+	        max-redir_pagetype_threshold_url(778),
+	        max-redir_pagetype_threshold_url_enabled-disabled(779),
+	        max-redir_pagetype_threshold_period(780),
+	        max-redir_pagetype_threshold_period_enabled-disabled(781),
+	        max-redir_pagetype_threshold_period_url(782),
+	        max-redir_pagetype_threshold_period_url_enabled-disabled(783),
+	        max-redir_pagetype_npolls(784),
+	        max-redir_pagetype_npolls_enabled-disabled(785),
+	        max-redir_pagetype_npolls_url(786),
+	        max-redir_pagetype_npolls_url_enabled-disabled(787),
+	        max-redir_pagetype_npolls_period(788),
+	        max-redir_pagetype_npolls_period_enabled-disabled(789),
+	        max-redir_pagetype_npolls_period_url(790),
+	        max-redir_pagetype_npolls_period_url_enabled-disabled(791),
+	        max-redir_pagetype_npolls_threshold(792),
+	        max-redir_pagetype_npolls_threshold_enabled-disabled(793),
+	        max-redir_pagetype_npolls_threshold_url(794),
+	        max-redir_pagetype_npolls_threshold_url_enabled-disabled(795),
+	        max-redir_pagetype_npolls_threshold_period(796),
+	        max-redir_pagetype_npolls_threshold_period_enabled-disabled(797),
+	        max-redir_pagetype_npolls_threshold_period_url(798),
+	        max-redir_pagetype_npolls_threshold_period_url_enabled-disabled(799),
+	        max-redir_pagetype_event(800),
+	        max-redir_pagetype_event_enable-disable(801),
+	        max-redir_pagetype_event_url(802),
+	        max-redir_pagetype_event_url_enable-disable(803),
+	        max-redir_pagetype_event_period(804),
+	        max-redir_pagetype_event_period_enable-disable(805),
+	        max-redir_pagetype_event_period_url(806),
+	        max-redir_pagetype_event_period_url_enable-disable(807),
+	        max-redir_pagetype_event_threshold(808),
+	        max-redir_pagetype_event_threshold_enable-disable(809),
+	        max-redir_pagetype_event_threshold_url(810),
+	        max-redir_pagetype_event_threshold_url_enable-disable(811),
+	        max-redir_pagetype_event_threshold_period(812),
+	        max-redir_pagetype_event_threshold_period_enable-disable(813),
+	        max-redir_pagetype_event_threshold_period_url(814),
+	        max-redir_pagetype_event_threshold_period_url_enable-disable(815),
+	        max-redir_pagetype_event_npolls(816),
+	        max-redir_pagetype_event_npolls_enable-disable(817),
+	        max-redir_pagetype_event_npolls_url(818),
+	        max-redir_pagetype_event_npolls_url_enable-disable(819),
+	        max-redir_pagetype_event_npolls_period(820),
+	        max-redir_pagetype_event_npolls_period_enable-disable(821),
+	        max-redir_pagetype_event_npolls_period_url(822),
+	        max-redir_pagetype_event_npolls_period_url_enable-disable(823),
+	        max-redir_pagetype_event_npolls_threshold(824),
+	        max-redir_pagetype_event_npolls_threshold_enable-disable(825),
+	        max-redir_pagetype_event_npolls_threshold_url(826),
+	        max-redir_pagetype_event_npolls_threshold_url_enable-disable(827),
+	        max-redir_pagetype_event_npolls_threshold_period(828),
+	        max-redir_pagetype_event_npolls_threshold_period_enable-disable(829),
+	        max-redir_pagetype_event_npolls_threshold_period_url(830),
+	        max-redir_pagetype_event_npolls_threshold_period_url_enable-disable(831),
+	        max-redir_pagetype_timeout(896),
+	        max-redir_pagetype_timeout_enabled-disabled(897),
+	        max-redir_pagetype_timeout_url(898),
+	        max-redir_pagetype_timeout_url_enabled-disabled(899),
+	        max-redir_pagetype_timeout_period(900),
+	        max-redir_pagetype_timeout_period_enabled-disabled(901),
+	        max-redir_pagetype_timeout_period_url(902),
+	        max-redir_pagetype_timeout_period_url_enabled-disabled(903),
+	        max-redir_pagetype_timeout_threshold(904),
+	        max-redir_pagetype_timeout_threshold_enabled-disabled(905),
+	        max-redir_pagetype_timeout_threshold_url(906),
+	        max-redir_pagetype_timeout_threshold_url_enabled-disabled(907),
+	        max-redir_pagetype_timeout_threshold_period(908),
+	        max-redir_pagetype_timeout_threshold_period_enabled-disabled(909),
+	        max-redir_pagetype_timeout_threshold_period_url(910),
+	        max-redir_pagetype_timeout_threshold_period_url_enabled-disabled(911),
+	        max-redir_pagetype_timeout_npolls(912),
+	        max-redir_pagetype_timeout_npolls_enabled-disabled(913),
+	        max-redir_pagetype_timeout_npolls_url(914),
+	        max-redir_pagetype_timeout_npolls_url_enabled-disabled(915),
+	        max-redir_pagetype_timeout_npolls_period(916),
+	        max-redir_pagetype_timeout_npolls_period_enabled-disabled(917),
+	        max-redir_pagetype_timeout_npolls_period_url(918),
+	        max-redir_pagetype_timeout_npolls_period_url_enabled-disabled(919),
+	        max-redir_pagetype_timeout_npolls_threshold(920),
+	        max-redir_pagetype_timeout_npolls_threshold_enabled-disabled(921),
+	        max-redir_pagetype_timeout_npolls_threshold_url(922),
+	        max-redir_pagetype_timeout_npolls_threshold_url_enabled-disabled(923),
+	        max-redir_pagetype_timeout_npolls_threshold_period(924),
+	        max-redir_pagetype_timeout_npolls_threshold_period_enabled-disabled(925),
+	        max-redir_pagetype_timeout_npolls_threshold_period_url(926),
+	        max-redir_pagetype_timeout_npolls_threshold_period_url_enabl-disabl(927),
+	        max-redir_pagetype_timeout_event(928),
+	        max-redir_pagetype_timeout_event_enable-disable(929),
+	        max-redir_pagetype_timeout_event_url(930),
+	        max-redir_pagetype_timeout_event_url_enable-disable(931),
+	        max-redir_pagetype_timeout_event_period(932),
+	        max-redir_pagetype_timeout_event_period_enable-disable(933),
+	        max-redir_pagetype_timeout_event_period_url(934),
+	        max-redir_pagetype_timeout_event_period_url_enable-disable(935),
+	        max-redir_pagetype_timeout_event_threshold(936),
+	        max-redir_pagetype_timeout_event_threshold_enable-disable(937),
+	        max-redir_pagetype_timeout_event_threshold_url(938),
+	        max-redir_pagetype_timeout_event_threshold_url_enable-disable(939),
+	        max-redir_pagetype_timeout_event_threshold_period(940),
+	        max-redir_pagetype_timeout_event_threshold_period_enable-disable(941),
+	        max-redir_pagetype_timeout_event_threshold_period_url(942),
+	        max-redir_pagetype_timeout_event_threshold_period_url_enable-disable(943),
+	        max-redir_pagetype_timeout_event_npolls(944),
+	        max-redir_pagetype_timeout_event_npolls_enable-disable(945),
+	        max-redir_pagetype_timeout_event_npolls_url(946),
+	        max-redir_pagetype_timeout_event_npolls_url_enable-disable(947),
+	        max-redir_pagetype_timeout_event_npolls_period(948),
+	        max-redir_pagetype_timeout_event_npolls_period_enable-disable(949),
+	        max-redir_pagetype_timeout_event_npolls_period_url(950),
+	        max-redir_pagetype_timeout_event_npolls_period_url_enable-disable(951),
+	        max-redir_pagetype_timeout_event_npolls_threshold(952),
+	        max-redir_pagetype_timeout_event_npolls_threshold_enable-disable(953),
+	        max-redir_pagetype_timeout_event_npolls_threshold_url(954),
+	        max-redir_pagetype_timeout_event_npolls_threshold_url_enable-disable(955),
+	        max-redir_pagetype_timeout_event_npolls_threshold_period(956),
+	        max-redir_pagetype_timeout_event_npolls_threshold_period_enabl-dsbl(957),
+	        max-redir_pagetype_timeout_event_npolls_threshold_period_url(958),
+	        max-redir_pagetype_timeout_event_npolls_thresh_period_url_enabl-dsbl(959)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the changes made in configuration which have
+		not been updated yet. The allowed values (possible changes) are:
+		none(0), enabled-disabled(1), url(2), url_enabled-disabled(3),
+		period(4), period_enabled-disabled(5), period_url(6),
+		period_url_enabled-disabled(7), threshold(8),
+		threshold_enabled-disabled(9), threshold_url(10),
+		threshold_url_enabled-disabled(11), threshold_period(12),
+		threshold_period_enabled-disabled(13), threshold_period_url(14),
+		threshold_period_url_enabled-disabled(15), npolls(16),
+		npolls_enabled-disabled(17), npolls_url(18),
+		npolls_url_enabled-disabled(19), npolls_period(20),
+		npolls_period_enabled-disabled(21), npolls_period_url(22),
+		npolls_period_url_enabled-disabled(23), npolls_threshold(24),
+		npolls_threshold_enabled-disabled(25), npolls_threshold_url(26),
+		npolls_threshold_url_enabled-disabled(27), npolls_threshold_period(28),
+		npolls_threshold_period_enabled-disabled(29),
+		npolls_threshold_period_url(30),
+		npolls_threshold_period_url_enabled-disabled(31), event(32),
+		event_enable-disable(33), event_url(34), event_url_enable-disable(35),
+		event_period(36), event_period_enable-disable(37), event_period_url(38),
+		event_period_url_enable-disable(39), event_threshold(40),
+		event_threshold_enable-disable(41), event_threshold_url(42),
+		event_threshold_url_enable-disable(43), event_threshold_period(44),
+		event_threshold_period_enable-disable(45), event_threshold_period_url(46),
+		event_threshold_period_url_enable-disable(47),
+		event_npolls(48), event_npolls_enable-disable(49), event_npolls_url(50),
+		event_npolls_url_enable-disable(51), event_npolls_period(52),
+		event_npolls_period_enable-disable(53), event_npolls_period_url(54),
+		event_npolls_period_url_enable-disable(55), event_npolls_threshold(56),
+		event_npolls_threshold_enable-disable(57), event_npolls_threshold_url(58),
+		event_npolls_threshold_url_enable-disable(59),
+		event_npolls_threshold_period(60),
+		event_npolls_threshold_period_enable-disable(61),
+		event_npolls_threshold_period_url(62),
+		event_npolls_threshold_period_url_enable-disable(63), deleted_probe(64),
+		timeout(128), timeout_enabled-disabled(129), timeout_url(130),
+		timeout_url_enabled-disabled(131), timeout_period(132),
+		timeout_period_enabled-disabled(133), timeout_period_url(134),
+		timeout_period_url_enabled-disabled(135), timeout_threshold(136),
+		timeout_threshold_enabled-disabled(137), timeout_threshold_url(138),
+		timeout_threshold_url_enabled-disabled(139),
+		timeout_threshold_period(140),
+		timeout_threshold_period_enabled-disabled(141),
+		timeout_threshold_period_url(142),
+		timeout_threshold_period_url_enabled-disabled(143), timeout_npolls(144),
+		timeout_npolls_enabled-disabled(145), timeout_npolls_url(146),
+		timeout_npolls_url_enabled-disabled(147), timeout_npolls_period(148),
+		timeout_npolls_period_enabled-disabled(149),
+		timeout_npolls_period_url(150),
+		timeout_npolls_period_url_enabled-disabled(151),
+		timeout_npolls_threshold(152),
+		timeout_npolls_threshold_enabled-disabled(153),
+		timeout_npolls_threshold_url(154),
+		timeout_npolls_threshold_url_enabled-disabled(155),
+		timeout_npolls_threshold_period(156),
+		timeout_npolls_threshold_period_enabled-disabled(157),
+		timeout_npolls_threshold_period_url(158),
+		timeout_npolls_threshold_period_url_enabled-disabled(159),
+		timeout_event(160), timeout_event_enable-disable(161),
+		timeout_event_url(162), timeout_event_url_enable-disable(163),
+		timeout_event_period(164), timeout_event_period_enable-disable(165),
+		timeout_event_period_url(166),
+		timeout_event_period_url_enable-disable(167),
+		timeout_event_threshold(168),
+		timeout_event_threshold_enable-disable(169),
+		timeout_event_threshold_url(170),
+		timeout_event_threshold_url_enable-disable(171),
+		timeout_event_threshold_period(172),
+		timeout_event_threshold_period_enable-disable(173),
+		timeout_event_threshold_period_url(174),
+		timeout_event_threshold_period_url_enable-disable(175),
+		timeout_event_npolls(176), timeout_event_npolls_enable-disable(177),
+		timeout_event_npolls_url(178),
+		timeout_event_npolls_url_enable-disable(179),
+		timeout_event_npolls_period(180),
+		timeout_event_npolls_period_enable-disable(181),
+		timeout_event_npolls_period_url(182),
+		timeout_event_npolls_period_url_enable-disable(183),
+		timeout_event_npolls_threshold(184),
+		timeout_event_npolls_threshold_enable-disable(185),
+		timeout_event_npolls_threshold_url(186),
+		timeout_event_npolls_threshold_url_enable-disable(187),
+		timeout_event_npolls_threshold_period(188),
+		timeout_event_npolls_threshold_period_enable-disable(189),
+		timeout_event_npolls_threshold_period_url(190),
+		timeout_event_npolls_threshold_period_url_enable-disable(191),
+        pagetype(256),
+        pagetype_enabled-disabled(257),
+        pagetype_url(258),
+        pagetype_url_enabled-disabled(259),
+        pagetype_period(260),
+        pagetype_period_enabled-disabled(261),
+        pagetype_period_url(262),
+        pagetype_period_url_enabled-disabled(263),
+        pagetype_threshold(264),
+        pagetype_threshold_enabled-disabled(265),
+        pagetype_threshold_url(266),
+        pagetype_threshold_url_enabled-disabled(267),
+        pagetype_threshold_period(268),
+        pagetype_threshold_period_enabled-disabled(269),
+        pagetype_threshold_period_url(270),
+        pagetype_threshold_period_url_enabled-disabled(271),
+        pagetype_npolls(272),
+        pagetype_npolls_enabled-disabled(273),
+        pagetype_npolls_url(274),
+        pagetype_npolls_url_enabled-disabled(275),
+        pagetype_npolls_period(276),
+        pagetype_npolls_period_enabled-disabled(277),
+        pagetype_npolls_period_url(278),
+        pagetype_npolls_period_url_enabled-disabled(279),
+        pagetype_npolls_threshold(280),
+        pagetype_npolls_threshold_enabled-disabled(281),
+        pagetype_npolls_threshold_url(282),
+        pagetype_npolls_threshold_url_enabled-disabled(283),
+        pagetype_npolls_threshold_period(284),
+        pagetype_npolls_threshold_period_enabled-disabled(285),
+        pagetype_npolls_threshold_period_url(286),
+        pagetype_npolls_threshold_period_url_enabled-disabled(287),
+        pagetype_event(288),
+        pagetype_event_enable-disable(289),
+        pagetype_event_url(290),
+        pagetype_event_url_enable-disable(291),
+        pagetype_event_period(292),
+        pagetype_event_period_enable-disable(293),
+        pagetype_event_period_url(294),
+        pagetype_event_period_url_enable-disable(295),
+        pagetype_event_threshold(296),
+        pagetype_event_threshold_enable-disable(297),
+        pagetype_event_threshold_url(298),
+        pagetype_event_threshold_url_enable-disable(299),
+        pagetype_event_threshold_period(300),
+        pagetype_event_threshold_period_enable-disable(301),
+        pagetype_event_threshold_period_url(302),
+        pagetype_event_threshold_period_url_enable-disable(303),
+        pagetype_event_npolls(304),
+        pagetype_event_npolls_enable-disable(305),
+        pagetype_event_npolls_url(306),
+        pagetype_event_npolls_url_enable-disable(307),
+        pagetype_event_npolls_period(308),
+        pagetype_event_npolls_period_enable-disable(309),
+        pagetype_event_npolls_period_url(310),
+        pagetype_event_npolls_period_url_enable-disable(311),
+        pagetype_event_npolls_threshold(312),
+        pagetype_event_npolls_threshold_enable-disable(313),
+        pagetype_event_npolls_threshold_url(314),
+        pagetype_event_npolls_threshold_url_enable-disable(315),
+        pagetype_event_npolls_threshold_period(316),
+        pagetype_event_npolls_threshold_period_enable-disable(317),
+        pagetype_event_npolls_threshold_period_url(318),
+        pagetype_event_npolls_threshold_period_url_enable-disable(319),
+        pagetype_timeout(384),
+        pagetype_timeout_enabled-disabled(385),
+        pagetype_timeout_url(386),
+        pagetype_timeout_url_enabled-disabled(387),
+        pagetype_timeout_period(388),
+        pagetype_timeout_period_enabled-disabled(389),
+        pagetype_timeout_period_url(390),
+        pagetype_timeout_period_url_enabled-disabled(391),
+        pagetype_timeout_threshold(392),
+        pagetype_timeout_threshold_enabled-disabled(393),
+        pagetype_timeout_threshold_url(394),
+        pagetype_timeout_threshold_url_enabled-disabled(395),
+        pagetype_timeout_threshold_period(396),
+        pagetype_timeout_threshold_period_enabled-disabled(397),
+        pagetype_timeout_threshold_period_url(398),
+        pagetype_timeout_threshold_period_url_enabled-disabled(399),
+        pagetype_timeout_npolls(400),
+        pagetype_timeout_npolls_enabled-disabled(401),
+        pagetype_timeout_npolls_url(402),
+        pagetype_timeout_npolls_url_enabled-disabled(403),
+        pagetype_timeout_npolls_period(404),
+        pagetype_timeout_npolls_period_enabled-disabled(405),
+        pagetype_timeout_npolls_period_url(406),
+        pagetype_timeout_npolls_period_url_enabled-disabled(407),
+        pagetype_timeout_npolls_threshold(408),
+        pagetype_timeout_npolls_threshold_enabled-disabled(409),
+        pagetype_timeout_npolls_threshold_url(410),
+        pagetype_timeout_npolls_threshold_url_enabled-disabled(411),
+        pagetype_timeout_npolls_threshold_period(412),
+        pagetype_timeout_npolls_threshold_period_enabled-disabled(413),
+        pagetype_timeout_npolls_threshold_period_url(414),
+        pagetype_timeout_npolls_threshold_period_url_enabl-disabl(415),
+        pagetype_timeout_event(416),
+        pagetype_timeout_event_enable-disable(417),
+        pagetype_timeout_event_url(418),
+        pagetype_timeout_event_url_enable-disable(419),
+        pagetype_timeout_event_period(420),
+        pagetype_timeout_event_period_enable-disable(421),
+        pagetype_timeout_event_period_url(422),
+        pagetype_timeout_event_period_url_enable-disable(423),
+        pagetype_timeout_event_threshold(424),
+        pagetype_timeout_event_threshold_enable-disable(425),
+        pagetype_timeout_event_threshold_url(426),
+        pagetype_timeout_event_threshold_url_enable-disable(427),
+        pagetype_timeout_event_threshold_period(428),
+        pagetype_timeout_event_threshold_period_enable-disable(429),
+        pagetype_timeout_event_threshold_period_url(430),
+        pagetype_timeout_event_threshold_period_url_enable-disable(431),
+        pagetype_timeout_event_npolls(432),
+        pagetype_timeout_event_npolls_enable-disable(433),
+        pagetype_timeout_event_npolls_url(434),
+        pagetype_timeout_event_npolls_url_enable-disable(435),
+        pagetype_timeout_event_npolls_period(436),
+        pagetype_timeout_event_npolls_period_enable-disable(437),
+        pagetype_timeout_event_npolls_period_url(438),
+        pagetype_timeout_event_npolls_period_url_enable-disable(439),
+        pagetype_timeout_event_npolls_threshold(440),
+        pagetype_timeout_event_npolls_threshold_enable-disable(441),
+        pagetype_timeout_event_npolls_threshold_url(442),
+        pagetype_timeout_event_npolls_threshold_url_enable-disable(443),
+        pagetype_timeout_event_npolls_threshold_period(444),
+        pagetype_timeout_event_npolls_threshold_period_enabl-disabl(445),
+        pagetype_timeout_event_npolls_threshold_period_url(446),
+        pagetype_timeout_event_npolls_thresh_period_url_enabl-dsbl(447),
+        max-redir(512),
+        max-redir_enabled-disabled(513),
+        max-redir_url(514),
+        max-redir_url_enabled-disabled(515),
+        max-redir_period(516),
+        max-redir_period_enabled-disabled(517),
+        max-redir_period_url(518),
+        max-redir_period_url_enabled-disabled(519),
+        max-redir_threshold(520),
+        max-redir_threshold_enabled-disabled(521),
+        max-redir_threshold_url(522),
+        max-redir_threshold_url_enabled-disabled(523),
+        max-redir_threshold_period(524),
+        max-redir_threshold_period_enabled-disabled(525),
+        max-redir_threshold_period_url(526),
+        max-redir_threshold_period_url_enabled-disabled(527),
+        max-redir_npolls(528),
+        max-redir_npolls_enabled-disabled(529),
+        max-redir_npolls_url(530),
+        max-redir_npolls_url_enabled-disabled(531),
+        max-redir_npolls_period(532),
+        max-redir_npolls_period_enabled-disabled(533),
+        max-redir_npolls_period_url(534),
+        max-redir_npolls_period_url_enabled-disabled(535),
+        max-redir_npolls_threshold(536),
+        max-redir_npolls_threshold_enabled-disabled(537),
+        max-redir_npolls_threshold_url(538),
+        max-redir_npolls_threshold_url_enabled-disabled(539),
+        max-redir_npolls_threshold_period(540),
+        max-redir_npolls_threshold_period_enabled-disabled(541),
+        max-redir_npolls_threshold_period_url(542),
+        max-redir_npolls_threshold_period_url_enabled-disabled(543),
+        max-redir_event(544),
+        max-redir_event_enable-disable(545),
+        max-redir_event_url(546),
+        max-redir_event_url_enable-disable(547),
+        max-redir_event_period(548),
+        max-redir_event_period_enable-disable(549),
+        max-redir_event_period_url(550),
+        max-redir_event_period_url_enable-disable(551),
+        max-redir_event_threshold(552),
+        max-redir_event_threshold_enable-disable(553),
+        max-redir_event_threshold_url(554),
+        max-redir_event_threshold_url_enable-disable(555),
+        max-redir_event_threshold_period(556),
+        max-redir_event_threshold_period_enable-disable(557),
+        max-redir_event_threshold_period_url(558),
+        max-redir_event_threshold_period_url_enable-disable(559),
+        max-redir_event_npolls(560),
+        max-redir_event_npolls_enable-disable(561),
+        max-redir_event_npolls_url(562),
+        max-redir_event_npolls_url_enable-disable(563),
+        max-redir_event_npolls_period(564),
+        max-redir_event_npolls_period_enable-disable(565),
+        max-redir_event_npolls_period_url(566),
+        max-redir_event_npolls_period_url_enable-disable(567),
+        max-redir_event_npolls_threshold(568),
+        max-redir_event_npolls_threshold_enable-disable(569),
+        max-redir_event_npolls_threshold_url(570),
+        max-redir_event_npolls_threshold_url_enable-disable(571),
+        max-redir_event_npolls_threshold_period(572),
+        max-redir_event_npolls_threshold_period_enable-disable(573),
+        max-redir_event_npolls_threshold_period_url(574),
+        max-redir_event_npolls_threshold_period_url_enable-disable(575),
+        max-redir_timeout(640),
+        max-redir_timeout_enabled-disabled(641),
+        max-redir_timeout_url(642),
+        max-redir_timeout_url_enabled-disabled(643),
+        max-redir_timeout_period(644),
+        max-redir_timeout_period_enabled-disabled(645),
+        max-redir_timeout_period_url(646),
+        max-redir_timeout_period_url_enabled-disabled(647),
+        max-redir_timeout_threshold(648),
+        max-redir_timeout_threshold_enabled-disabled(649),
+        max-redir_timeout_threshold_url(650),
+        max-redir_timeout_threshold_url_enabled-disabled(651),
+        max-redir_timeout_threshold_period(652),
+        max-redir_timeout_threshold_period_enabled-disabled(653),
+        max-redir_timeout_threshold_period_url(654),
+        max-redir_timeout_threshold_period_url_enabled-disabled(655),
+        max-redir_timeout_npolls(656),
+        max-redir_timeout_npolls_enabled-disabled(657),
+        max-redir_timeout_npolls_url(658),
+        max-redir_timeout_npolls_url_enabled-disabled(659),
+        max-redir_timeout_npolls_period(660),
+        max-redir_timeout_npolls_period_enabled-disabled(661),
+        max-redir_timeout_npolls_period_url(662),
+        max-redir_timeout_npolls_period_url_enabled-disabled(663),
+        max-redir_timeout_npolls_threshold(664),
+        max-redir_timeout_npolls_threshold_enabled-disabled(665),
+        max-redir_timeout_npolls_threshold_url(666),
+        max-redir_timeout_npolls_threshold_url_enabled-disabled(667),
+        max-redir_timeout_npolls_threshold_period(668),
+        max-redir_timeout_npolls_threshold_period_enabled-disabled(669),
+        max-redir_timeout_npolls_threshold_period_url(670),
+        max-redir_timeout_npolls_threshold_period_url_enabl-disabl(671),
+        max-redir_timeout_event(672),
+        max-redir_timeout_event_enable-disable(673),
+        max-redir_timeout_event_url(674),
+        max-redir_timeout_event_url_enable-disable(675),
+        max-redir_timeout_event_period(676),
+        max-redir_timeout_event_period_enable-disable(677),
+        max-redir_timeout_event_period_url(678),
+        max-redir_timeout_event_period_url_enable-disable(679),
+        max-redir_timeout_event_threshold(680),
+        max-redir_timeout_event_threshold_enable-disable(681),
+        max-redir_timeout_event_threshold_url(682),
+        max-redir_timeout_event_threshold_url_enable-disable(683),
+        max-redir_timeout_event_threshold_period(684),
+        max-redir_timeout_event_threshold_period_enable-disable(685),
+        max-redir_timeout_event_threshold_period_url(686),
+        max-redir_timeout_event_threshold_period_url_enable-disable(687),
+        max-redir_timeout_event_npolls(688),
+        max-redir_timeout_event_npolls_enable-disable(689),
+        max-redir_timeout_event_npolls_url(690),
+        max-redir_timeout_event_npolls_url_enable-disable(691),
+        max-redir_timeout_event_npolls_period(692),
+        max-redir_timeout_event_npolls_period_enable-disable(693),
+        max-redir_timeout_event_npolls_period_url(694),
+        max-redir_timeout_event_npolls_period_url_enable-disable(695),
+        max-redir_timeout_event_npolls_threshold(696),
+        max-redir_timeout_event_npolls_threshold_enable-disable(697),
+        max-redir_timeout_event_npolls_threshold_url(698),
+        max-redir_timeout_event_npolls_threshold_url_enable-disable(699),
+        max-redir_timeout_event_npolls_threshold_period(700),
+        max-redir_timeout_event_npolls_threshold_period_enabl-dsbl(701),
+        max-redir_timeout_event_npolls_threshold_period_url(702),
+        max-redir_timeout_event_npolls_thresh_period_url_enabl-dsbl(703),
+        max-redir_pagetype(768),
+        max-redir_pagetype_enabled-disabled(769),
+        max-redir_pagetype_url(770),
+        max-redir_pagetype_url_enabled-disabled(771),
+        max-redir_pagetype_period(772),
+        max-redir_pagetype_period_enabled-disabled(773),
+        max-redir_pagetype_period_url(774),
+        max-redir_pagetype_period_url_enabled-disabled(775),
+        max-redir_pagetype_threshold(776),
+        max-redir_pagetype_threshold_enabled-disabled(777),
+        max-redir_pagetype_threshold_url(778),
+        max-redir_pagetype_threshold_url_enabled-disabled(779),
+        max-redir_pagetype_threshold_period(780),
+        max-redir_pagetype_threshold_period_enabled-disabled(781),
+        max-redir_pagetype_threshold_period_url(782),
+        max-redir_pagetype_threshold_period_url_enabled-disabled(783),
+        max-redir_pagetype_npolls(784),
+        max-redir_pagetype_npolls_enabled-disabled(785),
+        max-redir_pagetype_npolls_url(786),
+        max-redir_pagetype_npolls_url_enabled-disabled(787),
+        max-redir_pagetype_npolls_period(788),
+        max-redir_pagetype_npolls_period_enabled-disabled(789),
+        max-redir_pagetype_npolls_period_url(790),
+        max-redir_pagetype_npolls_period_url_enabled-disabled(791),
+        max-redir_pagetype_npolls_threshold(792),
+        max-redir_pagetype_npolls_threshold_enabled-disabled(793),
+        max-redir_pagetype_npolls_threshold_url(794),
+        max-redir_pagetype_npolls_threshold_url_enabled-disabled(795),
+        max-redir_pagetype_npolls_threshold_period(796),
+        max-redir_pagetype_npolls_threshold_period_enabled-disabled(797),
+        max-redir_pagetype_npolls_threshold_period_url(798),
+        max-redir_pagetype_npolls_threshold_period_url_enabled-disabled(799),
+        max-redir_pagetype_event(800),
+        max-redir_pagetype_event_enable-disable(801),
+        max-redir_pagetype_event_url(802),
+        max-redir_pagetype_event_url_enable-disable(803),
+        max-redir_pagetype_event_period(804),
+        max-redir_pagetype_event_period_enable-disable(805),
+        max-redir_pagetype_event_period_url(806),
+        max-redir_pagetype_event_period_url_enable-disable(807),
+        max-redir_pagetype_event_threshold(808),
+        max-redir_pagetype_event_threshold_enable-disable(809),
+        max-redir_pagetype_event_threshold_url(810),
+        max-redir_pagetype_event_threshold_url_enable-disable(811),
+        max-redir_pagetype_event_threshold_period(812),
+        max-redir_pagetype_event_threshold_period_enable-disable(813),
+        max-redir_pagetype_event_threshold_period_url(814),
+        max-redir_pagetype_event_threshold_period_url_enable-disable(815),
+        max-redir_pagetype_event_npolls(816),
+        max-redir_pagetype_event_npolls_enable-disable(817),
+        max-redir_pagetype_event_npolls_url(818),
+        max-redir_pagetype_event_npolls_url_enable-disable(819),
+        max-redir_pagetype_event_npolls_period(820),
+        max-redir_pagetype_event_npolls_period_enable-disable(821),
+        max-redir_pagetype_event_npolls_period_url(822),
+        max-redir_pagetype_event_npolls_period_url_enable-disable(823),
+        max-redir_pagetype_event_npolls_threshold(824),
+        max-redir_pagetype_event_npolls_threshold_enable-disable(825),
+        max-redir_pagetype_event_npolls_threshold_url(826),
+        max-redir_pagetype_event_npolls_threshold_url_enable-disable(827),
+        max-redir_pagetype_event_npolls_threshold_period(828),
+        max-redir_pagetype_event_npolls_threshold_period_enable-disable(829),
+        max-redir_pagetype_event_npolls_threshold_period_url(830),
+        max-redir_pagetype_event_npolls_threshold_period_url_enable-disable(831),
+        max-redir_pagetype_timeout(896),
+        max-redir_pagetype_timeout_enabled-disabled(897),
+        max-redir_pagetype_timeout_url(898),
+        max-redir_pagetype_timeout_url_enabled-disabled(899),
+        max-redir_pagetype_timeout_period(900),
+        max-redir_pagetype_timeout_period_enabled-disabled(901),
+        max-redir_pagetype_timeout_period_url(902),
+        max-redir_pagetype_timeout_period_url_enabled-disabled(903),
+        max-redir_pagetype_timeout_threshold(904),
+        max-redir_pagetype_timeout_threshold_enabled-disabled(905),
+        max-redir_pagetype_timeout_threshold_url(906),
+        max-redir_pagetype_timeout_threshold_url_enabled-disabled(907),
+        max-redir_pagetype_timeout_threshold_period(908),
+        max-redir_pagetype_timeout_threshold_period_enabled-disabled(909),
+        max-redir_pagetype_timeout_threshold_period_url(910),
+        max-redir_pagetype_timeout_threshold_period_url_enabled-disabled(911),
+        max-redir_pagetype_timeout_npolls(912),
+        max-redir_pagetype_timeout_npolls_enabled-disabled(913),
+        max-redir_pagetype_timeout_npolls_url(914),
+        max-redir_pagetype_timeout_npolls_url_enabled-disabled(915),
+        max-redir_pagetype_timeout_npolls_period(916),
+        max-redir_pagetype_timeout_npolls_period_enabled-disabled(917),
+        max-redir_pagetype_timeout_npolls_period_url(918),
+        max-redir_pagetype_timeout_npolls_period_url_enabled-disabled(919),
+        max-redir_pagetype_timeout_npolls_threshold(920),
+        max-redir_pagetype_timeout_npolls_threshold_enabled-disabled(921),
+        max-redir_pagetype_timeout_npolls_threshold_url(922),
+        max-redir_pagetype_timeout_npolls_threshold_url_enabled-disabled(923),
+        max-redir_pagetype_timeout_npolls_threshold_period(924),
+        max-redir_pagetype_timeout_npolls_threshold_period_enabled-disabled(925),
+        max-redir_pagetype_timeout_npolls_threshold_period_url(926),
+        max-redir_pagetype_timeout_npolls_threshold_period_url_enabl-disabl(927),
+        max-redir_pagetype_timeout_event(928),
+        max-redir_pagetype_timeout_event_enable-disable(929),
+        max-redir_pagetype_timeout_event_url(930),
+        max-redir_pagetype_timeout_event_url_enable-disable(931),
+        max-redir_pagetype_timeout_event_period(932),
+        max-redir_pagetype_timeout_event_period_enable-disable(933),
+        max-redir_pagetype_timeout_event_period_url(934),
+        max-redir_pagetype_timeout_event_period_url_enable-disable(935),
+        max-redir_pagetype_timeout_event_threshold(936),
+        max-redir_pagetype_timeout_event_threshold_enable-disable(937),
+        max-redir_pagetype_timeout_event_threshold_url(938),
+        max-redir_pagetype_timeout_event_threshold_url_enable-disable(939),
+        max-redir_pagetype_timeout_event_threshold_period(940),
+        max-redir_pagetype_timeout_event_threshold_period_enable-disable(941),
+        max-redir_pagetype_timeout_event_threshold_period_url(942),
+        max-redir_pagetype_timeout_event_threshold_period_url_enable-disable(943),
+        max-redir_pagetype_timeout_event_npolls(944),
+        max-redir_pagetype_timeout_event_npolls_enable-disable(945),
+        max-redir_pagetype_timeout_event_npolls_url(946),
+        max-redir_pagetype_timeout_event_npolls_url_enable-disable(947),
+        max-redir_pagetype_timeout_event_npolls_period(948),
+        max-redir_pagetype_timeout_event_npolls_period_enable-disable(949),
+        max-redir_pagetype_timeout_event_npolls_period_url(950),
+        max-redir_pagetype_timeout_event_npolls_period_url_enable-disable(951),
+        max-redir_pagetype_timeout_event_npolls_threshold(952),
+        max-redir_pagetype_timeout_event_npolls_threshold_enable-disable(953),
+        max-redir_pagetype_timeout_event_npolls_threshold_url(954),
+        max-redir_pagetype_timeout_event_npolls_threshold_url_enable-disable(955),
+        max-redir_pagetype_timeout_event_npolls_threshold_period(956),
+        max-redir_pagetype_timeout_event_npolls_threshold_period_enabl-dsbl(957),
+        max-redir_pagetype_timeout_event_npolls_threshold_period_url(958),
+        max-redir_pagetype_timeout_event_npolls_thresh_period_url_enabl-dsbl(959)."
+		::= { telProdWebProbeMonProbeEntry 18 }
+
+	telProdWebProbeMonProbeTimeout OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Value of the timeout for this probe."
+		::= { telProdWebProbeMonProbeEntry 19 }
+
+	telProdWebProbeMonProbePageType OBJECT-TYPE
+        SYNTAX INTEGER{
+		    generic(1),
+		    specific(2)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates if the page to download is
+		 generic(1) or specific(2). If the page is generic, the content of the
+		 response is not parsed. If the page is specific, the probe expects an
+		 specific structure in the response"
+		::= { telProdWebProbeMonProbeEntry 20 }
+
+-- Tabla que permite el lanzamiento o ejecucion dinamica de una determinada
+-- sonda. Cada entrada consta de un indice, que es el identificador de una de
+-- las sondas configuradas, y de una variable que provoca el inicio o puesta en
+-- funcionamiento de la sonda que se indica en el indice cuando se realiza sobre
+-- ella una operacion SET y se le da el valor 1.
+
+    telProdWebProbeMonStartTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdWebProbeMonStartEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"This table allows to start the execution of the probe whose identifier
+		takes the value given by the index. Each entry refers to one of the
+		configured probes, and consists of two variables: the identifier of the
+		probe, which is the index of the table, and a variable which is used to
+		start the execution of the probe when a SET operation to this variable
+		is made (and gives it the value 1)."
+   		::= { telProductsWebProbeMonit 2 }
+
+   	telProdWebProbeMonStartEntry OBJECT-TYPE
+		SYNTAX TelProdWebProbeMonStartEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry refers to one of the configured probes, and consists of two
+		variables: the identifier of the probe, which is the index of the table,
+		and a variable which is used to start the execution of the probe when a
+		SET operation to this variable is made (and gives it the value 1)."
+		INDEX { telProdWebProbeMonStartIndex }
+		::= { telProdWebProbeMonStartTable 1 }
+
+	TelProdWebProbeMonStartEntry ::=
+		SEQUENCE{
+			telProdWebProbeMonStartIndex
+				INTEGER,
+			telProdWebProbeMonStartCommand
+				INTEGER
+			}
+
+	telProdWebProbeMonStartIndex OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: probe identifier."
+		::= { telProdWebProbeMonStartEntry 1 }
+
+    telProdWebProbeMonStartCommand OBJECT-TYPE
+		SYNTAX INTEGER{
+	        start(1),
+		    ok(2),
+		    undefined(3),
+		    not_found_in_SRAM(4),
+		    wrong_identifier(5),
+		    already_started(6)
+            }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"If the value of this variable is set to 1, the execution of the probe
+		whose identifier takes the value given by the index will start.
+		In GET operations, the value taken by this variable indicates the
+		result of the last operation: ok (2), if the last operation was made
+		succesfully; the value undefined (3) indicates that operations of this
+		type have not been made yet. If the operation failed, this variable
+		could take different values depending on the error cause:
+		not_found_in_SRAM (4), if the probe was in memory but not in a SRAM
+		register; wrong_identifier(5) if the probe identifier introduced was not
+		correct; already_started (6) indicates that the probe which was going to
+		be started was started previously and was in execution."
+		::= { telProdWebProbeMonStartEntry 2 }
+
+-- $M1.3
+-- Tabla que permite desconectar un enlace PPP, que sera el establecido sobre el
+-- interfaz cuyo numero viene indicado en el indice. La operacion de desconexion
+-- del PPP se llevara a cabo cuando se reciba una peticion SET sobre la variable
+-- telProdWebProbeMonResetPPPCommand y tratando de asignarle el valor 1.
+-- $M1.4
+-- Dentro de esta tabla se incluye una variable que indique de que tipo es el
+-- PPP que corresponde a cada entrada: PPPoA o PPPoE.
+
+    telProdWebProbeMonResetPPPTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdWebProbeMonResetPPPEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"This table allows to disconnect a PPP connection established through
+		the interface whose number is given by the index. Each entry refers to
+		one of the possible PPP connections or one of the configured PPP
+		interfaces, and consists of two variables: the number of the PPP
+		interface, which is the index of the table, a variable which is used to
+		disconnect the PPP connection when a SET operation to this variable is
+		carried out (and gives it the value 1), and a variable which value
+		indicates the type of the PPP: PPPoA or PPPoE."
+   		::= { telProductsWebProbeMonit 3 }
+
+   	telProdWebProbeMonResetPPPEntry OBJECT-TYPE
+		SYNTAX TelProdWebProbeMonResetPPPEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry refers to one of the the possible PPP connections or one of
+		the configured PPP interfaces, and consists of two variables: the number
+		of the PPP interface, which is the index of the table, a variable which
+		is used to disconnect the PPP connection when a SET operation to this
+		variable is carried out (and gives it the value 1), and a variable
+		which value indicates the type of the PPP: PPPoA or PPPoE."
+		INDEX { telProdWebProbeMonResetPPPIndex }
+		::= { telProdWebProbeMonResetPPPTable 1 }
+
+	TelProdWebProbeMonResetPPPEntry ::=
+		SEQUENCE{
+			telProdWebProbeMonResetPPPIndex
+				INTEGER,
+			telProdWebProbeMonResetPPPCommand
+				INTEGER,
+		    telProdWebProbeMonResetPPPType
+		        INTEGER
+			}
+
+	telProdWebProbeMonResetPPPIndex OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: number of the PPP interface."
+		::= { telProdWebProbeMonResetPPPEntry 1 }
+
+    telProdWebProbeMonResetPPPCommand OBJECT-TYPE
+		SYNTAX INTEGER{
+	        reset(1),
+		    ok(2),
+		    error(3),
+		    undefined(4)
+		    }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"If the value of this variable is set to 1, the PPP connection
+		established through the interface given by the index will be disconnect.
+		In GET operations, the value taken by this variable indicates the
+		result of the last operation: ok (2), if the last operation was made
+		succesfully; error (3), if the the operation failed; the value
+		undefined (4) indicates that operations of this	type have not been made
+		yet."
+		::= { telProdWebProbeMonResetPPPEntry 2 }
+
+    -- $M1.4
+	telProdWebProbeMonResetPPPType OBJECT-TYPE
+		SYNTAX INTEGER{
+	        pppoa(1),
+		    pppoe(2)
+		    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"The value of this variable indicates the type of the PPP interface
+		correspondig to this entry: PPPoA (1) or PPPoE (2)."
+		::= { telProdWebProbeMonResetPPPEntry 3 }
+
+
+-- $M1.8
+-- Tabla con estadçsticos de fallos de conexin de un PPP. Los estadçsticos
+-- almacenados se ponen a cero con una orden de lectura.
+
+    telProdWebProbeMonPPPErrStatsTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdWebProbeMonPPPErrStatsEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"This table stores the conection errors statistics of every PPP
+		connection configured."
+   		::= { telProductsWebProbeMonit 4 }
+
+   	telProdWebProbeMonPPPErrStatsEntry OBJECT-TYPE
+		SYNTAX TelProdWebProbeMonPPPErrStatsEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry refers to one of the the possible PPP connections or one of
+		the configured PPP interfaces, and consists of the following parameters:
+		the number of the PPP interface, which is the index of the table, and
+		a serie of parameters which refer to different errors that caused the
+		failure to establish the PPP connection. These parameters are: the
+		number of remote LCP errors, the number of local LCP errors, the number
+		of remote IPCP errors, the number of local IPCP errors, the number of
+		local authentication failures, the number of remote authentication
+		failures, the number of not supported authentication errors, the number
+		of remote CCP errors, the number of local CCP errors, the number of
+		PADO timeouts in PPPoE connections, the number of PADS timeouts in PPPoE
+		connections, the number of local BCP errors and the number of remote
+		BCP errors."
+		INDEX { telProdWebProbeMonPPPErrStatsIndex }
+		::= { telProdWebProbeMonPPPErrStatsTable 1 }
+
+	TelProdWebProbeMonPPPErrStatsEntry  ::=
+		SEQUENCE{
+			telProdWebProbeMonPPPErrStatsIndex
+				INTEGER,
+			telProdWebProbeMonPPPErrStatsLcpRemote
+				Counter,
+			telProdWebProbeMonPPPErrStatsLcpLocal
+				Counter,
+			telProdWebProbeMonPPPErrStatsIpcpRemote
+				Counter,
+			telProdWebProbeMonPPPErrStatsIpcpLocal
+				Counter,
+			telProdWebProbeMonPPPErrStatsAuthLocal
+				Counter,
+			telProdWebProbeMonPPPErrStatsAuthRemote
+				Counter,
+			telProdWebProbeMonPPPErrStatsAuthNotSupp
+				Counter,
+			telProdWebProbeMonPPPErrStatsCcpRemote
+				Counter,
+			telProdWebProbeMonPPPErrStatsCcpLocal
+				Counter,
+			telProdWebProbeMonPPPErrStatsPPPoENoPados
+				Counter,
+			telProdWebProbeMonPPPErrStatsPPPoENoPadss
+				Counter,
+			telProdWebProbeMonPPPErrStatsBcpRemote
+				Counter,
+			telProdWebProbeMonPPPErrStatsBcpLocal
+				Counter
+			}
+
+	telProdWebProbeMonPPPErrStatsIndex OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: number of the PPP interface."
+		::= { telProdWebProbeMonPPPErrStatsEntry 1 }
+
+    telProdWebProbeMonPPPErrStatsLcpRemote OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of remote LCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 2 }
+
+    telProdWebProbeMonPPPErrStatsLcpLocal OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of local LCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 3 }
+
+    telProdWebProbeMonPPPErrStatsIpcpRemote OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of remote IPCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 4 }
+
+    telProdWebProbeMonPPPErrStatsIpcpLocal OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of local IPCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 5 }
+
+    telProdWebProbeMonPPPErrStatsAuthLocal OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of local authentication errors that caused the failure to
+		establish a PPP connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 6 }
+
+    telProdWebProbeMonPPPErrStatsAuthRemote OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of remote authentication errors that caused the failure to
+		establish a PPP connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 7 }
+
+    telProdWebProbeMonPPPErrStatsAuthNotSupp OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of authentication not supported errors that caused the failure
+		to establish a PPP connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 8 }
+
+    telProdWebProbeMonPPPErrStatsCcpRemote OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of remote CCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 9 }
+
+    telProdWebProbeMonPPPErrStatsCcpLocal OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of local CCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 10 }
+
+    telProdWebProbeMonPPPErrStatsPPPoENoPados OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of PPPoE PADO timeout errors that caused the failure to
+		establish a PPP connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 11 }
+
+    telProdWebProbeMonPPPErrStatsPPPoENoPadss OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of PPPoE PADO timeout errors that caused the failure to
+		establish a PPP connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 12 }
+
+    telProdWebProbeMonPPPErrStatsBcpRemote OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of remote BCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 13 }
+
+    telProdWebProbeMonPPPErrStatsBcpLocal OBJECT-TYPE
+		SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of local BCP errors that caused the failure to establish a PPP
+		connection. The counter is reset when readed."
+		::= { telProdWebProbeMonPPPErrStatsEntry 14 }
+
+END

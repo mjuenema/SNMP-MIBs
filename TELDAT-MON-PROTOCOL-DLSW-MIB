@@ -1,0 +1,3398 @@
+    -- Teldat, S.A.
+
+    -- Parque Tecnolgico de Madrid
+
+    -- 28760, Tres Cantos (Madrid)
+
+    -- Tlf: +34-918076565
+
+    -- Fax: +34-918076521
+
+    -- e-mail: id@teldat.com
+
+
+    -- MIB privada de Teldat
+
+    -- MIB de monitorizacin de DLSw.
+
+
+    -- Historial:
+    --     07/02/14  M.A. Pastor   XH 3523. Errors with HP Openview 9.20
+    -- 1.6 23/05/11  J. Roman      Se implementa cambio de prioridad por
+    --                             porcentaje de conexiones activas
+    -- 1.5 05/10/10  J. Roman      XI 846. Prioridad dinamica y temporizador
+    --                             inactividad
+    -- 1.4 08/07/09  I. Mu±oz      Revisin de todas las MIB para evitar
+    --               M.A. Pastor   warnings y errores de compilacin
+    -- 1.3 07/11/08  P. Nogueira   Se corrigen intervalos y acceso a variables
+    -- 1.2 30/10/08  J. Roman      Se implementa capabilites MAC y NetBIOS List
+    -- 1.1 16/11/06  J. Roman      Se implementa modo pasivo
+    -- 1.0 01/07/04  J. Molina     Fichero procedente del fichero DLSw-MIB.mib
+    --     05-10-01  N. Villase±or Traduccin a inglâs
+    --     01-12-00  M.A. Pastor   Modificaciones para que pueda ser
+    --                             compilada utilizando compiladores
+    --                             distintos del de Teldat
+    --     11-07-00  M.A. Pastor
+    --               J. Alvarez    Implementacion inicial
+    --------------------------------------------------------------------------
+
+TELDAT-MON-PROTOCOL-DLSw-MIB DEFINITIONS ::= BEGIN
+
+-- Tipos importados
+
+        IMPORTS
+            IpAddress, Counter
+                FROM RFC1155-SMI
+
+            OBJECT-TYPE
+                FROM RFC-1212
+
+            DisplayString
+                FROM RFC1213-MIB
+
+            telProdNpMonProtocols
+                FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    telProdNpMonProtDLSw                OBJECT IDENTIFIER ::= { telProdNpMonProtocols 7 }
+
+
+    -- Grupo telProdNpMonProtDLSw
+
+    telProdNpMonProtDLSwGlobalGroup     OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 1 }
+
+
+    -- Grupo que engloba parametros generales.
+
+    telProdNpMonProtDLSwGloParamGroup   OBJECT IDENTIFIER ::= { telProdNpMonProtDLSwGlobalGroup 1 }
+
+    telProdNpMonProtDLSwGloParEnabled OBJECT-TYPE
+        SYNTAX INTEGER {
+            inactive(2),
+            active(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "DLSw protocol status, active (1) or inactive (2)."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwGloParamGroup 1 }
+
+    telProdNpMonProtDLSwGloParLLC2SendDisc OBJECT-TYPE
+        SYNTAX INTEGER {
+            inactive(2),
+            active(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "It represents the router prevention status to finish a LLC2 connection
+            from the TCP connection loss. Possible values: active (1) or inactive (2)."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwGloParamGroup 2 }
+
+    telProdNpMonProtDLSwGloParAutoTCP OBJECT-TYPE
+        SYNTAX INTEGER {
+            passive(3),
+            on-demand(2),
+            always(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Enable/Disable the TCP stations automatic recovery when a session is
+            interrupted, and when the router is being initialized. Possible values:
+            active (1), it means to always connect; inactive (2), it means to
+            connect when it is needed or on demand; passive (3), it means to
+            no try connect."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwGloParamGroup 3 }
+
+    telProdNpMonProtDLSwGloParSRBSegNum OBJECT-TYPE
+        SYNTAX INTEGER (0..4095)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "SRB Segment that identifies to DLSw in the RIF."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGloParamGroup 4 }
+
+    telProdNpMonProtDLSwGloParMapCacheSize OBJECT-TYPE
+        SYNTAX INTEGER (4..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Cache size of association between MAC and IP addresses, to reduce
+            exploration traffic."
+        DEFVAL { 128 }
+        ::={ telProdNpMonProtDLSwGloParamGroup 5 }
+
+    telProdNpMonProtDLSwGloParMaxDLSwSessions OBJECT-TYPE
+        SYNTAX INTEGER (1..60000)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum number of DLSw sessions that router is able to support."
+        DEFVAL { 1000 }
+        ::={ telProdNpMonProtDLSwGloParamGroup 6 }
+
+    telProdNpMonProtDLSwGloParPromisc OBJECT-TYPE
+        SYNTAX INTEGER {
+            disabled(2),
+            enabled(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Enable/Disable Promiscuous mode. This mode permits accept
+            connection form any neighbor. Possible values:
+            enabled (1), it means mode enabled; disabled (2), it means mode disabled."
+        DEFVAL { 2 }
+        ::={ telProdNpMonProtDLSwGloParamGroup 7 }
+
+
+    --Subgrupo del global que informa sobre la memoria.
+
+    telProdNpMonProtDLSwGloMemoryGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSwGlobalGroup 2 }
+
+    telProdNpMonProtDLSwGloMemDLSwGloAllot OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum amount of memory that DLSw has allowed using. The minimum
+            value ir 26624. If a set try to fix this variable to a less value,
+            it will take its minimum value (26624)."
+        DEFVAL { 141312 }
+        ::={ telProdNpMonProtDLSwGloMemoryGroup 1 }
+
+    telProdNpMonProtDLSwGloMemLLCSessAllot OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum amount of memory that DLSw has allowed using in each LLC
+            session. It must be zero or a positive integer."
+        DEFVAL { 8192 }
+        ::={ telProdNpMonProtDLSwGloMemoryGroup 2 }
+
+    telProdNpMonProtDLSwGloMemSDLCSessAllot OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum amount of memory that DLSw has allowed using in each
+            SDLC/QLLC session. It must be zero or a positive integer."
+            DEFVAL { 4096 }
+        ::={ telProdNpMonProtDLSwGloMemoryGroup 3 }
+
+    telProdNpMonProtDLSwGloMemNetBIOSUIFraAllot OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Number of bytes that router assigns as buffer for NetBIOS UI frames. It
+            must be zero or a positive integer."
+        DEFVAL { 40960 }
+        ::={ telProdNpMonProtDLSwGloMemoryGroup 4 }
+
+
+    --Subgrupo del global que informa sobre los temporizadores.
+
+    telProdNpMonProtDLSwGloTimersGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSwGlobalGroup 3 }
+
+    telProdNpMonProtDLSwGloTimDatabaseAge OBJECT-TYPE
+        SYNTAX INTEGER (1..10000)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum amount of time that database entries stay active."
+        DEFVAL { 1200 }
+        ::={ telProdNpMonProtDLSwGloTimersGroup 1 }
+
+    telProdNpMonProtDLSwGloTimMaxICanReach OBJECT-TYPE
+        SYNTAX INTEGER (1..1000)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Wait time for an answer to a CanYouReach before giving up."
+        DEFVAL { 20 }
+        ::={ telProdNpMonProtDLSwGloTimersGroup 2 }
+
+    telProdNpMonProtDLSwGloTimLLCTestResp OBJECT-TYPE
+        SYNTAX INTEGER (1..1000)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum amount of time (in seconds) that router waits for a LLC test
+            answer before relaying a LLC test frame."
+        DEFVAL { 15 }
+        ::={ telProdNpMonProtDLSwGloTimersGroup 3 }
+
+    telProdNpMonProtDLSwGloTimSDLCTestResp OBJECT-TYPE
+        SYNTAX INTEGER (1..1000)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum amount of time (in seconds) that router waits for a SDLC test
+            answer before relaying a SDLC test frame."
+        DEFVAL { 15 }
+        ::={ telProdNpMonProtDLSwGloTimersGroup 4 }
+
+    telProdNpMonProtDLSwGloTimJoinGroupInterv OBJECT-TYPE
+        SYNTAX INTEGER (1..60000)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Time (in seconds) between DLSw group advertisements transmission."
+        DEFVAL { 900 }
+        ::={ telProdNpMonProtDLSwGloTimersGroup 5 }
+
+    telProdNpMonProtDLSwGloTimNeighPriority OBJECT-TYPE
+        SYNTAX INTEGER (10..50)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Wait time (in decimas of second) during the exploration before
+            selecting a neighbor."
+        DEFVAL { 20 }
+        ::={ telProdNpMonProtDLSwGloTimersGroup 6 }
+
+    --Tabla que contiene parﬂmetros relacionados con la Cache.
+
+    telProdNpMonProtDLSwCacheTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwCacheEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "It lists DLSw MAC addresses cache entries. This cache contains a
+            database with the most recent conversions of IP neighbors to
+            MAC addresses."
+        ::={ telProdNpMonProtDLSw 2 }
+
+    telProdNpMonProtDLSwCacheEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwCacheEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "It provides the MAC address, the life time (in seconds) within cache,
+            the neighbor IP address and the greater size of frame, in
+            addition to the index, that is the order number of the entry in
+            the table."
+        INDEX { telProdNpMonProtDLSwCacheIndex }
+        ::={ telProdNpMonProtDLSwCacheTable 1 }
+
+    TelProdNpMonProtDLSwCacheEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwCacheIndex
+                INTEGER,
+            telProdNpMonProtDLSwCacheMACAddress
+                DisplayString,
+            telProdNpMonProtDLSwCacheSecsToLive
+                INTEGER,
+            telProdNpMonProtDLSwCacheIpAddress
+                IpAddress,
+            telProdNpMonProtDLSwCacheLargestFra
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwCacheIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Entry order number. It is the table index."
+        ::={ telProdNpMonProtDLSwCacheEntry 1 }
+
+    telProdNpMonProtDLSwCacheMACAddress OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "MAC Address."
+        ::={ telProdNpMonProtDLSwCacheEntry 2 }
+
+    telProdNpMonProtDLSwCacheSecsToLive OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "LIfe time (in seconds) within cache."
+        ::={ telProdNpMonProtDLSwCacheEntry 3 }
+
+    telProdNpMonProtDLSwCacheIpAddress OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Neighbor IP address."
+        ::={ telProdNpMonProtDLSwCacheEntry 4 }
+
+    telProdNpMonProtDLSwCacheLargestFra OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Frame of greater size."
+        ::={ telProdNpMonProtDLSwCacheEntry 5 }
+
+
+    --Grupo que informa sobre el reparto de memoria.
+
+    telProdNpMonProtDLSwMemoryGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 3 }
+
+
+    --Subgrupo de parﬂmetros globales sobre el uso de memoria.
+
+    telProdNpMonProtDLSwMemGlobalGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSwMemoryGroup 1 }
+
+    telProdNpMonProtDLSwMemGloTotBytesReq OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Total number of requested bytes."
+        DEFVAL { 141312 }
+        ::={ telProdNpMonProtDLSwMemGlobalGroup 1 }
+
+    telProdNpMonProtDLSwMemGloRxPoolGranted OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of bytes assigned to reception global pool."
+        ::={ telProdNpMonProtDLSwMemGlobalGroup 2 }
+
+    telProdNpMonProtDLSwMemGloRxBytesUsed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of bytes received at present."
+        ::={ telProdNpMonProtDLSwMemGlobalGroup 3 }
+
+    telProdNpMonProtDLSwMemGloTxPoolGranted OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of bytes assigned to transmission global pool."
+        ::={ telProdNpMonProtDLSwMemGlobalGroup 4 }
+
+    telProdNpMonProtDLSwMemGloTxBytesUsed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of bytes transmitted at present."
+        ::={ telProdNpMonProtDLSwMemGlobalGroup 5 }
+
+    telProdNpMonProtDLSwMemGloNetBIOSTotPool OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of bytes reserved for NetBIOS UI frames pool. If NetBIOS is
+            disabled, it will be zero by default."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwMemGlobalGroup 6 }
+
+    telProdNpMonProtDLSwMemGloNetBIOSBytesUsed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of bytes of the Netbios UI frames pool in use at present. If
+            NetBIOS is disabled, it will be zero by default."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwMemGlobalGroup 7 }
+
+    --Subgrupo de memoria para las sesiones (es una tabla).
+
+    telProdNpMonProtDLSwMemSessTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwMemSessEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "It lists all the existing DLSw sessions and the amount of memory used
+            by each one."
+        ::={ telProdNpMonProtDLSwMemoryGroup 2 }
+
+    telProdNpMonProtDLSwMemSessEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwMemSessEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of the index with that the table is crossed over,
+            that is the position of the entry in it, the session identifier, MAC and
+            SAP source, MAC and SAP end, assigned initial amount, amount of
+            free memory at the present moment, congestion status and total number
+            of frames glued in sdlcim or sdlc to be transmitted by a specific
+            circuit."
+        INDEX { telProdNpMonProtDLSwMemSessIndex }
+        ::={ telProdNpMonProtDLSwMemSessTable 1 }
+
+    TelProdNpMonProtDLSwMemSessEntry ::=
+        SEQUENCE{
+            telProdNpMonProtDLSwMemSessIndex
+                INTEGER,
+            telProdNpMonProtDLSwMemSessId
+                INTEGER,
+            telProdNpMonProtDLSwMemSessSourMAC
+                DisplayString,
+            telProdNpMonProtDLSwMemSessSourSAP
+                INTEGER,
+            telProdNpMonProtDLSwMemSessDestMAC
+                DisplayString,
+            telProdNpMonProtDLSwMemSessDestSAP
+                INTEGER,
+            telProdNpMonProtDLSwMemSessInitialAlloc
+                INTEGER,
+            telProdNpMonProtDLSwMemSessCurrFree
+                INTEGER,
+            telProdNpMonProtDLSwMemSessCongState
+                INTEGER,
+            telProdNpMonProtDLSwMemSessDLCTxQueu
+                Counter
+        }
+
+    telProdNpMonProtDLSwMemSessIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Order Number of the entry (corresponding to a session) in the table.
+            It is the table index."
+        ::={ telProdNpMonProtDLSwMemSessEntry 1 }
+
+    telProdNpMonProtDLSwMemSessId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Session identifier."
+        ::={ telProdNpMonProtDLSwMemSessEntry 2 }
+
+    telProdNpMonProtDLSwMemSessSourMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Local MAC address. If session is SDLC or QLLC, its value will be 'SDLC'
+            or 'QLLC' respectively."
+        ::={ telProdNpMonProtDLSwMemSessEntry 3 }
+
+    telProdNpMonProtDLSwMemSessSourSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Local SAP number."
+        ::={ telProdNpMonProtDLSwMemSessEntry 4 }
+
+    telProdNpMonProtDLSwMemSessDestMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Remote MAC address."
+        ::={ telProdNpMonProtDLSwMemSessEntry 5 }
+
+    telProdNpMonProtDLSwMemSessDestSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Remote MAC number."
+        ::={ telProdNpMonProtDLSwMemSessEntry 6 }
+
+    telProdNpMonProtDLSwMemSessInitialAlloc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Initial amount of assigned memory. If it were not assigned, the value
+            of this variable will be 0."
+        ::={ telProdNpMonProtDLSwMemSessEntry 7 }
+
+    telProdNpMonProtDLSwMemSessCurrFree OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Amount of free memory at the moment. If it were not assigned
+            initially, the value of this variable will be 0."
+        ::={ telProdNpMonProtDLSwMemSessEntry 8 }
+
+    telProdNpMonProtDLSwMemSessCongState OBJECT-TYPE
+        SYNTAX INTEGER {
+            ses_gbl(4),
+            global(3),
+            session(2),
+            ready(1),
+            none(0)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Session current status. Possible values are: ready(1), session(2),
+            global(3) and ses_gbl(4). If memory were not assigned initially, the
+            value of this variable will be 0 (none)."
+        ::={ telProdNpMonProtDLSwMemSessEntry 9 }
+
+    telProdNpMonProtDLSwMemSessDLCTxQueu OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Total number of frames glued in sdlcim or sdlc to be transmitted by a
+            specific circuit."
+        ::={ telProdNpMonProtDLSwMemSessEntry 10 }
+
+
+    --Grupo de parﬂmetros relacionados con las sesiones activas.
+
+    telProdNpMonProtDLSwSessionsGroup OBJECT IDENTIFIER  ::= { telProdNpMonProtDLSw 4 }
+
+
+    --Tabla de las sesiones activas. Una entrada por sesin.
+
+    telProdNpMonProtDLSwActSessTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwActSessEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "It shows information of active DLS sessions at that moment, including
+            MAC and SAP source, MAC and SAP end, session status, flags, remote IP
+            address, and ID (identifier)."
+        ::={ telProdNpMonProtDLSwSessionsGroup 1 }
+
+    telProdNpMonProtDLSwActSessEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwActSessEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of the index with that the table is crossed over,
+            that is the position of the entry in it, MAC and SAP source, MAC and SAP
+            end, session current status, flags, remote IP address and session
+            identifier."
+        INDEX { telProdNpMonProtDLSwActSessIndex }
+        ::={ telProdNpMonProtDLSwActSessTable 1 }
+
+    TelProdNpMonProtDLSwActSessEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwActSessIndex
+                INTEGER,
+            telProdNpMonProtDLSwActSessLocalMAC
+                DisplayString,
+            telProdNpMonProtDLSwActSessLocalSAP
+                INTEGER,
+            telProdNpMonProtDLSwActSessRemMAC
+                DisplayString,
+            telProdNpMonProtDLSwActSessRemSAP
+                INTEGER,
+            telProdNpMonProtDLSwActSessState
+                INTEGER,
+            telProdNpMonProtDLSwActSessFlags
+                DisplayString,
+            telProdNpMonProtDLSwActSessRemIPAddr
+                IpAddress,
+            telProdNpMonProtDLSwActSessId
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwActSessIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Order Number of the entry (corresponding to an active session) in the
+            table. It is the table index."
+        ::={ telProdNpMonProtDLSwActSessEntry 1 }
+
+    telProdNpMonProtDLSwActSessLocalMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Source MAC address of the session. If session is SDLC or QLLC, its
+            value will be 'SDLC' or 'QLLC' respectively, instead of the MAC address."
+        ::={ telProdNpMonProtDLSwActSessEntry 2 }
+
+    telProdNpMonProtDLSwActSessLocalSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "SAP opened in the source for this session."
+        ::={ telProdNpMonProtDLSwActSessEntry 3 }
+
+    telProdNpMonProtDLSwActSessRemMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Remote MAC address of the session."
+        ::={ telProdNpMonProtDLSwActSessEntry 4 }
+
+    telProdNpMonProtDLSwActSessRemSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "SAP opened in the end for this session."
+        ::={ telProdNpMonProtDLSwActSessEntry 5 }
+
+    telProdNpMonProtDLSwActSessState OBJECT-TYPE
+        SYNTAX INTEGER {
+            hlt_noak(14),
+            circ_strt(13),
+            wait_noack(12),
+            rest_pend(11),
+            halt_pending(10),
+            disc_pend(9),
+            connect_state(8),
+            cont_pend(7),
+            conn_pend(6),
+            cir_rstrt(5),
+            circ_est(4),
+            circ_pend(3),
+            rslv_pend(2),
+            disconnected(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Session current status:
+            DISCONNECTED  - Initial status hasn't a circuit or an established
+                            connection.
+            RSLV_PEND     - The DLSw target is waiting for a SSP_started indication
+                            after a SSP_start request.
+            CIRC_PEND     - The DLSw target is waiting for a SSP_REACHACK answer
+                            to a SSP_ICANREACH message.
+            CIRC_EST      - Circuit has been established end to end.
+            CIR_RSTRT     - The DLSw that originated reset is waiting for the reboot
+            CONN_PEND     - The DLSw source is waiting for a SSP_CONTACTED answer
+                            to a SSP_CONTACT message.
+            CONT_PEND     - The DLSw end is waiting for a SSP_CONTACTED confirmation
+                            to a SSP_CONTACT message.
+            CONNECT_STATE -
+            DISC_PEND     - The DLSw that originated the disconnection is waiting
+                            for a SSP_HALTED answer to a SSP_HALT message.
+            HALT_PENDING  - The DLSw is waiting for a SSP_HALTED indication after a
+                            SSP_HALT request.
+            RESTART_PEND  - The remote DLSw is waiting for a SSP_HALTED indication
+                            after a SSP_HALT request.
+            WAIT_NOACK    -
+            CIRC_STRT     -
+            HLT_NOACK     - "
+        ::={ telProdNpMonProtDLSwActSessEntry 6 }
+
+    telProdNpMonProtDLSwActSessFlags OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(6))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "it is a string of six characters, so that each one that is present
+            indicates one of the following situations:
+            (A) PENDING MSG CONTACT
+            (B) PENDING SAP RESOLUTION
+            (C) AWAITED CONGESTION FINAL
+            (D) OCCUPIED TCP
+            (E) PENDING DISHABILITATION
+            (F) INACTIVE CIRCUIT
+            If the corresponding situation is not occurring, a blank space is
+            introduced in the position where the character would have to appear."
+        ::={ telProdNpMonProtDLSwActSessEntry 7 }
+
+    telProdNpMonProtDLSwActSessRemIPAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "IP address of the remote DLS neighbor. If it is a local connection,
+            or if the status is DISCONNECTED, the IP address will be 0.0.0.0."
+        ::={ telProdNpMonProtDLSwActSessEntry 8 }
+
+    telProdNpMonProtDLSwActSessId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number used for identifying the session."
+        ::={ telProdNpMonProtDLSwActSessEntry 9 }
+
+
+    --Tabla de parﬂmetros de informacin detallada acerca de las sesiones
+    --activas. Es un subgrupo del grupo de sesiones activas.
+
+    telProdNpMonProtDLSwSessDetailTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwSessDetailEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "It shows detailed information about DLS session."
+        ::={ telProdNpMonProtDLSwSessionsGroup 2 }
+
+    telProdNpMonProtDLSwSessDetailEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwSessDetailEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, which is the order number of the entry
+            in the table (each entry is an active session), the session identifier,
+            the function of the router in the connection (if it is a sender or
+            a receiver), transmitted and received XIDs from the remote
+            DLSw neighbor, transmitted and received datagrams, transmitted and
+            received information frames, information included in the RIF of the
+            TEST LLC frame."
+        INDEX { telProdNpMonProtDLSwSessDetIndex }
+        ::={ telProdNpMonProtDLSwSessDetailTable 1 }
+
+    TelProdNpMonProtDLSwSessDetailEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwSessDetIndex
+                INTEGER,
+            telProdNpMonProtDLSwSessDetId
+                INTEGER,
+            telProdNpMonProtDLSwSessDetPersonality
+                INTEGER,
+            telProdNpMonProtDLSwSessDetXIDsSent
+                Counter,
+            telProdNpMonProtDLSwSessDetXIDsRcvd
+                Counter,
+            telProdNpMonProtDLSwSessDetDatagSent
+                Counter,
+            telProdNpMonProtDLSwSessDetDatagRcvd
+                Counter,
+            telProdNpMonProtDLSwSessDetInfoFraSent
+                Counter,
+            telProdNpMonProtDLSwSessDetInfoFraRcvd
+                Counter,
+            telProdNpMonProtDLSwSessDetRIF
+                DisplayString,
+            telProdNpMonProtDLSwSessDetLocalCIDCorr
+                INTEGER,
+            telProdNpMonProtDLSwSessDetLocalCIDPortId
+                INTEGER,
+            telProdNpMonProtDLSwSessDetRemCIDCorr
+                INTEGER,
+            telProdNpMonProtDLSwSessDetRemCIDPortId
+                INTEGER,
+            telProdNpMonProtDLSwSessDetPriority
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwSessDetIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Order number of the entry (corresponding with an active session) in
+            the table. It is the table index."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 1 }
+
+    telProdNpMonProtDLSwSessDetId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number used for identifying the session."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 2 }
+
+    telProdNpMonProtDLSwSessDetPersonality OBJECT-TYPE
+        SYNTAX INTEGER {
+            target(2),
+            originator(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "The ORIGINATOR (sender, 1) or TARGET (receiver, 2) of the connection."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 3 }
+
+    telProdNpMonProtDLSwSessDetXIDsSent OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "XIDs that this DLSw node has sent to its remote DLSw neighbor."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 4 }
+
+    telProdNpMonProtDLSwSessDetXIDsRcvd OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "XIDs that this DLSw node has received from its remote DLSw neighbor."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 5 }
+
+    telProdNpMonProtDLSwSessDetDatagSent OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Datagrams that this DLSw node has sent to its remote DLSw neighbor."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 6 }
+
+    telProdNpMonProtDLSwSessDetDatagRcvd OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Datagrams that this DLSw node has received from its remote
+            DLSw neighbor."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 7 }
+
+    telProdNpMonProtDLSwSessDetInfoFraSent OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Information frames that this DLSw node has sent to its remote DLSw
+            neighbor."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 8 }
+
+    telProdNpMonProtDLSwSessDetInfoFraRcvd OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Information frames that this DLSw node has received from its remote
+            DLSw neighbor."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 9 }
+
+    telProdNpMonProtDLSwSessDetRIF OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..29))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "The information that is included in the RIF of the TEST LLC frame."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 10 }
+
+    telProdNpMonProtDLSwSessDetLocalCIDCorr OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Identifier in the local node for this session: Data link correlator."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 11 }
+
+    telProdNpMonProtDLSwSessDetLocalCIDPortId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Identifier in the local node for this session:
+            Data link port identifier."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 12 }
+
+    telProdNpMonProtDLSwSessDetRemCIDCorr OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Identifier in the remote node for this session:
+            Data link correlator."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 13 }
+
+    telProdNpMonProtDLSwSessDetRemCIDPortId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Identifier in the remote node for this session:
+            Data link port identifier."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 14 }
+
+    telProdNpMonProtDLSwSessDetPriority OBJECT-TYPE
+        SYNTAX INTEGER {
+            high(3),
+            medium(2),
+            low(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "DLSw neighbor priority."
+        ::={ telProdNpMonProtDLSwSessDetailEntry 15 }
+
+    --Tabla utilizada para poder eliminar sesiones.
+
+    telProdNpMonProtDLSwSessDeleteTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwSessDeleteEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "This table is used to delete one active session of the two previous
+            tables (the table of active sessions and the table of parameters of
+            detailed information over the active sessions."
+        ::={ telProdNpMonProtDLSwSessionsGroup 3 }
+
+    telProdNpMonProtDLSwSessDeleteEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwSessDeleteEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index that is used for crossing the table,
+            and that is the order in which the entry corresponding to the session
+            that is wished to delete in the two previous tables (table of active
+            sessions and table of detailed parameters of the active sessions)
+            appears, and of an erasure control variable, that indicates the result
+            of the last erasure operation in reading, and in writing it is useful
+            for initializing the operation when its value is 1 (erase)."
+        INDEX { telProdNpMonProtDLSwSessDeleteIndex }
+        ::={ telProdNpMonProtDLSwSessDeleteTable 1 }
+
+    TelProdNpMonProtDLSwSessDeleteEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwSessDeleteIndex
+                INTEGER,
+            telProdNpMonProtDLSwSessDeleteDo
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwSessDeleteIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index, that will be the order number of entry to previous
+            tables (active session table and detailed parameters of active
+            sessions table), and therefore identifies the session to delete."
+        ::={ telProdNpMonProtDLSwSessDeleteEntry 1 }
+
+    telProdNpMonProtDLSwSessDeleteDo OBJECT-TYPE
+        SYNTAX INTEGER {
+            undefined(4),
+            error(3),
+            ok(2),
+            delete(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "If the variable is set to 1, the session corresponding to the entry
+            of which order number is indicated by the index, and the entries
+            corresponding to it in the previous table disappear (active session
+            table and detailed parameters of active sessions table). In a read
+            operation (get) the value 2 will be get if the last delete attempt
+            succeeded, 3 if an error ocurred and 4 if no sessions delete operation
+            has been performed."
+        ::={ telProdNpMonProtDLSwSessDeleteEntry 2 }
+
+
+    --Grupo que informa sobre prioridades.
+
+    telProdNpMonProtDLSwPriorityGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 5 }
+
+    telProdNpMonProtDLSwPrioritySNA OBJECT-TYPE
+        SYNTAX INTEGER {
+            critical(4),
+            high(3),
+            medium(2),
+            low(1),
+            undefined(0)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Priority for SNA DLSw sessions."
+        ::={ telProdNpMonProtDLSwPriorityGroup 1 }
+
+    telProdNpMonProtDLSwPriorityNetBIOS OBJECT-TYPE
+        SYNTAX INTEGER {
+            critical(4),
+            high(3),
+            medium(2),
+            low(1),
+            undefined(0)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Priority for NetBIOS DLSw sessions."
+        ::={ telProdNpMonProtDLSwPriorityGroup 2 }
+
+    telProdNpMonProtDLSwPriorityCHML OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..4))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Message allocation by priority. These 4 bytes indicate the maximum
+            number of messages transmitted with a certain priority before
+            transmitting messages with the following priority. Here they are shown
+            as a 4 octect string, one per priority, and they correspond to C/H/M/L."
+        ::={ telProdNpMonProtDLSwPriorityGroup 3 }
+
+    telProdNpMonProtDLSwPriorityMaxFraSizNB OBJECT-TYPE
+        SYNTAX INTEGER {
+            very_high (4399),
+            high (2052),
+            medium (1470),
+            low (516)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum NetBIOS frame size. Any value can be assigned to this
+            variable through a set operation, but it will be rounded up to 516 (low)
+            if it is under 516 or between 516 and 1470, to 1470 (medium) if it
+            is between 1470 and 2502, and to 2502 (high) if it is between 2502
+            and 4399, or 4399 (too high) if it is bigger than this value."
+        ::={ telProdNpMonProtDLSwPriorityGroup 4 }
+
+
+    --Tabla para crear y eliminar SAPs.
+
+    telProdNpMonProtDLSwSAPTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwSAPEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Enable the transmitting of data for the specified link SAP
+            by the DLSw protocol. It should be executed on the router
+            which resides on the session initiator side of the
+            connection."
+        ::={ telProdNpMonProtDLSw 6 }
+
+    telProdNpMonProtDLSwSAPEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwSAPEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of two index, the interface number and the order
+            number of the SAP inside the interface, and a variable to open
+            and close SAP."
+        INDEX { telProdNpMonProtDLSwSAPIfcIndex, telProdNpMonProtDLSwSAPNumIndex }
+        ::={ telProdNpMonProtDLSwSAPTable 1 }
+
+    TelProdNpMonProtDLSwSAPEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwSAPIfcIndex
+                INTEGER,
+            telProdNpMonProtDLSwSAPNumIndex
+                INTEGER,
+            telProdNpMonProtDLSwSAPCommand
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwSAPIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Interface number, from 1 to the maximum number of
+            node interfaces (in console begin from 0 and here
+            from 1). It is the first index."
+        ::={ telProdNpMonProtDLSwSAPEntry 1 }
+
+    telProdNpMonProtDLSwSAPNumIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "SAP in decimal. Possible values:
+            - values ranging between 0 and F4 (being even number),
+            - 245 that will open 'SNA', ports  04, 08 and 0C,
+            - 240 that will open 'NB' port, F0 for NetBIOS,
+            - 244 that will open 'LNM' port F4."
+        ::={ telProdNpMonProtDLSwSAPEntry 2 }
+
+    telProdNpMonProtDLSwSAPCommand OBJECT-TYPE
+        SYNTAX INTEGER {
+            not_valid(4),
+            close_sap(3),
+            open_sap(2),
+            valid(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Variable used to open or close SAPs. In a set operation the values
+            2 (open_sap) and 3 (close_sap) are accepted, and in a get operation
+            the value 1 will be get if the open-SAP operation succeede, and 4
+            (invalid) if the open-SAP operation failed."
+        ::={ telProdNpMonProtDLSwSAPEntry 3 }
+
+
+    --Grupo de LLC2
+
+    telProdNpMonProtDLSwLLC2Group OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 7 }
+
+
+    --Tabla que muestra informacin para todos los SAPs abiertos actualmente en
+    --los interfaces entre los pares LLC2.
+
+    telProdNpMonProtDLSwLLC2OpenTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwLLC2OpenEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays information for all currently open SAPs on interfaces between
+            LLC2 peers."
+        ::={ telProdNpMonProtDLSwLLC2Group 1 }
+
+    telProdNpMonProtDLSwLLC2OpenEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwLLC2OpenEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that is the order number of the entry
+            and two variables that display the interface and SAP respectively."
+        INDEX { telProdNpMonProtDLSwLLC2OpenIndex }
+        ::={ telProdNpMonProtDLSwLLC2OpenTable 1 }
+
+    TelProdNpMonProtDLSwLLC2OpenEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwLLC2OpenIndex
+                INTEGER,
+            telProdNpMonProtDLSwLLC2OpenIfc
+                INTEGER,
+            telProdNpMonProtDLSwLLC2OpenSAP
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwLLC2OpenIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Order number of the entry inside the table. It is the table index."
+        ::={ telProdNpMonProtDLSwLLC2OpenEntry 1 }
+
+    telProdNpMonProtDLSwLLC2OpenIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Interface number."
+        ::={ telProdNpMonProtDLSwLLC2OpenEntry 2 }
+
+    telProdNpMonProtDLSwLLC2OpenSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Open SAP."
+        ::={ telProdNpMonProtDLSwLLC2OpenEntry 3 }
+
+
+    --Tabla con informacin de configuracin de los parﬂmetros de SAPs.
+
+    telProdNpMonProtDLSwLLC2SAPTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwLLC2SAPEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays configuration information on the Saps parameters. There is an
+            entry per SAP of which parameters have been modified. As the table
+            index is the order number of the entry inside the table, to add a new
+            entry (change a SAP parameter not previously changed) a set operation
+            is performed to the variable corresponding to the parameter value that
+            is going to be changed, and with a residue larger than the number of
+            existent entries in that moment. It only admits new entries if the SAP
+            number is not already included, in the case of giving a new value to
+            a SAP parameter, the position of the associated entry has to be found
+            and acceded using the order number as index (as residue)."
+        ::={ telProdNpMonProtDLSwLLC2Group 2 }
+
+    telProdNpMonProtDLSwLLC2SAPEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwLLC2SAPEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that is the order number of the entry
+            in the table, the SAP number, and the parameters t1 (Response timer),
+            t2 (Received timer for Acknowledgment), ti (Inactive timer), n2 (Maximum
+            number of retries value), n3 (Number of I frames received before
+            sending Acknowledgment), tw (Transmission window), rw (Receive
+            window), nw (Acknowledgments needed to increase Ww) and access priority
+            (current LLC2 implementation does not use access priority)."
+        INDEX { telProdNpMonProtDLSwLLC2SAPIndex }
+        ::={ telProdNpMonProtDLSwLLC2SAPTable 1 }
+
+    TelProdNpMonProtDLSwLLC2SAPEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwLLC2SAPIndex
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPNumber
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPT1
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPT2
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPTI
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPN2
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPN3
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPTw
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPRw
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPNw
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SAPAcc
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwLLC2SAPIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Order number of the entry in the table. It is the table index."
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 1 }
+
+     telProdNpMonProtDLSwLLC2SAPNumber OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "SAP number."
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 2 }
+
+    telProdNpMonProtDLSwLLC2SAPT1 OBJECT-TYPE
+        SYNTAX INTEGER (1..256)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Reply timer. (In seconds). If the variable is set to 0, it
+            returns to its default value (1)."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 3 }
+
+    telProdNpMonProtDLSwLLC2SAPT2 OBJECT-TYPE
+        SYNTAX INTEGER (1..2560)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Receive Ack timer. (In 100millisec.). If the variable is set to 0, it
+            returns to its default value (1)."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 4 }
+
+    telProdNpMonProtDLSwLLC2SAPTI OBJECT-TYPE
+        SYNTAX INTEGER (1..256)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Inactivity Timer. (In seconds). If the variable is set to 0, it
+            returns to its default value (30)."
+        DEFVAL { 30 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 5 }
+
+    telProdNpMonProtDLSwLLC2SAPN2 OBJECT-TYPE
+        SYNTAX INTEGER (1..255)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum Retry value (retransmissions). If the variable is set to 0, the
+            response is disabled. This is useful in SAP 0: users can disable
+            retransmission of TEST and XID scanning."
+        DEFVAL { 8 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 6 }
+
+    telProdNpMonProtDLSwLLC2SAPN3 OBJECT-TYPE
+        SYNTAX INTEGER (1..255)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Number I-frames received before sending ACK. If the variable is set
+            to 0, it returns to its default value (1)."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 7 }
+
+    telProdNpMonProtDLSwLLC2SAPTw OBJECT-TYPE
+        SYNTAX INTEGER (1..127)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Transmit Window. If the variable is set to 0, it returns to its
+            default value (2)."
+        DEFVAL { 2 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 8 }
+
+    telProdNpMonProtDLSwLLC2SAPRw OBJECT-TYPE
+        SYNTAX INTEGER (1..127)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Receive Window . If the variable is set to 0, it returns to its
+            default value (2)."
+        DEFVAL { 2 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 9 }
+
+    telProdNpMonProtDLSwLLC2SAPNw OBJECT-TYPE
+        SYNTAX INTEGER (1..127)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Acks needed to increment Ww. If the variable is set to 0, it returns
+            to its default value (1)."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 10 }
+
+    telProdNpMonProtDLSwLLC2SAPAcc OBJECT-TYPE
+        SYNTAX INTEGER (0..7)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Current LLC2 implementation does not use access priority. Default 0."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwLLC2SAPEntry 11 }
+
+
+    --Tabla de informacin sobre las sesiones LLC2.
+
+    telProdNpMonProtDLSwLLC2SessionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwLLC2SessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays current information and parameters on all active
+            LLC2 sessions."
+        ::={ telProdNpMonProtDLSwLLC2Group 3 }
+
+    telProdNpMonProtDLSwLLC2SessionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwLLC2SessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that is the entry order number
+            (corresponding to an active LLC2 session) in the table, SAP number,
+            interface number, local and remote MAC addresses, current state of
+            the LLC2 session in correspondence with the entry and information
+            included in the RIF of TEST LLC frame."
+        INDEX { telProdNpMonProtDLSwLLC2SessIndex }
+        ::={ telProdNpMonProtDLSwLLC2SessionsTable 1 }
+
+    TelProdNpMonProtDLSwLLC2SessionsEntry ::=
+        SEQUENCE{
+            telProdNpMonProtDLSwLLC2SessIndex
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SessSAP
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SessInt
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SessRemMAC
+                DisplayString,
+            telProdNpMonProtDLSwLLC2SessLocalMAC
+                DisplayString,
+            telProdNpMonProtDLSwLLC2SessState
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SessFlag
+                INTEGER,
+            telProdNpMonProtDLSwLLC2SessRIF
+                DisplayString
+        }
+
+    telProdNpMonProtDLSwLLC2SessIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Entry order number (corresponding to an active LLC2 session
+            in the table). It is the index."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 1 }
+
+    telProdNpMonProtDLSwLLC2SessSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "SAP number. If the field CCB (Connection Control Block) of
+            the LLC Interface Module (LIM), that supplies the SAP number,
+            is not initialized (NULL), the variable value will be 0."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 2 }
+
+    telProdNpMonProtDLSwLLC2SessInt OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Interface number. If the field CCB (Connection Control Block) of
+            the LLC Interface Module (LIM), that supplies the SAP number,
+            is not initialized (NULL), the variable value will be 0."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 3 }
+
+    telProdNpMonProtDLSwLLC2SessRemMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "The destination MAC address of the session."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 4 }
+
+    telProdNpMonProtDLSwLLC2SessLocalMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "The source MAC address of the session."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 5 }
+
+    telProdNpMonProtDLSwLLC2SessState OBJECT-TYPE
+        SYNTAX INTEGER {
+            disconnect_pending(7),
+            contacted(6),
+            contact_pend(5),
+            connected(4),
+            resolve_pend(3),
+            connect_pend(2),
+            disconnected(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Current state of the session. Possible values are:
+            disconnected (1), connect_pend (2), resolve_pend (3),
+            connected (4), contact_pend (5), disconnect_pending (6),
+            contacted (7)."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 6 }
+
+    telProdNpMonProtDLSwLLC2SessFlag OBJECT-TYPE
+        SYNTAX INTEGER {
+            sap_resolve_pending-start_by_xid-llcbusy-tcpbusy(15),
+            sap_resolve_pending-start_by_xid-tcpbusy(14),
+            sap_resolve_pending-start_by_xid-llcbusy(13),
+            sap_resolve_pending-start_by_xid(12),
+            sap_resolve_pending-llcbusy-tcpbusy(11),
+            sap_resolve_pending-tcpbusy(10),
+            sap_resolve_pending-llcbusy(9),
+            sap_resolve_pending(8),
+            start_by_xid-llcbusy-tcpbusy(7),
+            start_by_xid-tcpbusy(6),
+            start_by_xid-llcbusy(5),
+            start_by_xid(4),
+            llcbusy-tcpbusy(3),
+            tcpbusy(2),
+            llcbusy(1),
+            nothing(0)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "One of the following values:
+            NOTHING (0), LLCBUSY (1), TCPBUSY (2), LLCBUSY+TCPBUSY (3),
+            START_BY_XID (4), START_BY_XID+LLCBUSY (5), START_BY_XID+TCPBUSY (6),
+            START_BY_XID+LLCBUSY+TCPBUSY (7), SAP_RESOLVE_PENDING (8),
+            SAP_RESOLVE_PENDING+LLCBUSY (9), SAP_RESOLVE_PENDING+TCPBUSY (10),
+            SAP_RESOLVE_PENDING+LLCBUSY+TCPBUSY (11),
+            SAP_RESOLVE_PENDING+START_BY_XID (12),
+            SAP_RESOLVE_PENDING+START_BY_XID+LLCBUSY (13),
+            SAP_RESOLVE_PENDING+START_BY_XID+TCPBUSY (14),
+            SAP_RESOLVE_PENDING+START_BY_XID+LLCBUSY+TCPBUSY (15)."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 7 }
+
+    telProdNpMonProtDLSwLLC2SessRIF OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..29))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "The information that is included in the RIF of the LLC TEST frame."
+        ::={ telProdNpMonProtDLSwLLC2SessionsEntry 8 }
+
+
+    --Grupo de parﬂmetros que contienen informacin relativa a las estaciones
+    --o enlaces SDLC definidos en DLSw.
+
+    telProdNpMonProtDLSwSDLCGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 8 }
+
+
+    --Tabla con los parﬂmetros configurados para la Unidad Fçsica (PU) conectada
+    --por SDLC.
+
+    telProdNpMonProtDLSwSDLCConfigTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwSDLCConfigEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays the parameters configured for the PUs (physical unit)
+            connected by SDLC. Open new connections and allows to change table
+            parameters if the concrete connection is disabled."
+        ::={ telProdNpMonProtDLSwSDLCGroup 1 }
+
+    telProdNpMonProtDLSwSDLCConfigEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwSDLCConfigEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of two index: number of the interface configured as
+            SDLC and the SDLC address, variable used to add and delete
+            table entries, link state (active or inactive), device identifier or
+            physical unit to which is connected, physical unit type, MAC address and
+            SAPs local and remote addresses."
+        INDEX { telProdNpMonProtDLSwSDLCConfNetIndex,
+                telProdNpMonProtDLSwSDLCConfAddrIndex }
+        ::={ telProdNpMonProtDLSwSDLCConfigTable 1 }
+
+    TelProdNpMonProtDLSwSDLCConfigEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwSDLCConfNetIndex
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfAddrIndex
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfCommand
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfStatus
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfIdblk
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfIdnum
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfLocalSAP
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfLocalMAC
+                DisplayString,
+            telProdNpMonProtDLSwSDLCConfRemSAP
+                INTEGER,
+            telProdNpMonProtDLSwSDLCConfRemMAC
+                DisplayString
+        }
+
+    telProdNpMonProtDLSwSDLCConfNetIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Interface number, SDLC type. First index."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 1 }
+
+    telProdNpMonProtDLSwSDLCConfAddrIndex OBJECT-TYPE
+        SYNTAX INTEGER (1..254)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+           "Address to use in the SDLC messages.  This is a decimal
+            value between 00 and FF. If 00 is programmed the session
+            will use FF and learn the address from the remote SDLC
+            station. Second index."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 2 }
+
+    telProdNpMonProtDLSwSDLCConfCommand OBJECT-TYPE
+        SYNTAX INTEGER {
+            not_valid(4),
+            delete(3),
+            add(2),
+            valid(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Variable used to open or delete SDLC sessions. In a set operation,
+            possible values are 2 (open) and 3 (delete), and in a read operation
+            (get) the value 1 will be get if the last operation succeeded, and 4
+            if an error ocurred."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 3 }
+
+    telProdNpMonProtDLSwSDLCConfStatus OBJECT-TYPE
+        SYNTAX INTEGER {
+            inactive(2),
+            active(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "Displays the session state."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 4 }
+
+    telProdNpMonProtDLSwSDLCConfIdblk OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "It is a value under 4095 (0xfff) that identifies the device (PU)
+            to which you are connecting. Normally you will use Idblk for PUs
+            on switches lines (as opposed to leased lines). Therefore,
+            this value should match this same parameter in the VTAM
+            Switched Major Node that corresponds to this PU."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 5 }
+
+    telProdNpMonProtDLSwSDLCConfIdnum OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "It is a value under 1048575 (0xffffff) that identifies the specific
+            device type (2.0) that you are connecting. Normally you will use
+            Ibnum for PUs on switched lines (as opposed to leased lines).
+            Therefore, this value should match this same parameter in the
+            VTAM Switched Major Node that corresponds to this PU."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 6 }
+
+    telProdNpMonProtDLSwSDLCConfLocalSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Local SAP number."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 7 }
+
+    telProdNpMonProtDLSwSDLCConfLocalMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Local MAC Address."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 8 }
+
+    telProdNpMonProtDLSwSDLCConfRemSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Remote SAP number."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 9 }
+
+    telProdNpMonProtDLSwSDLCConfRemMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Remote MAC Address."
+        ::={ telProdNpMonProtDLSwSDLCConfigEntry 10 }
+
+
+    --Tabla donde se encuentra la informacin acerca de todas las sesiones DLS
+    --SDLC dentro del router.
+
+    telProdNpMonProtDLSwSDLCSessionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwSDLCSessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays information about every DLS SDLC session inside the router."
+        ::={ telProdNpMonProtDLSwSDLCGroup 2 }
+
+    telProdNpMonProtDLSwSDLCSessionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwSDLCSessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that is the entry order number, the
+            interface number (SDLC type), address to use the in SDLC messages, local
+            and remote MAC addresses, local and remote SAPs, frames pending
+            to be sent to SDLC and SDLC session state."
+        INDEX { telProdNpMonProtDLSwSDLCSessIndex }
+        ::={ telProdNpMonProtDLSwSDLCSessionsTable 1 }
+
+    TelProdNpMonProtDLSwSDLCSessionsEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwSDLCSessIndex
+                INTEGER,
+            telProdNpMonProtDLSwSDLCSessIfc
+                INTEGER,
+            telProdNpMonProtDLSwSDLCSessAddr
+                INTEGER,
+            telProdNpMonProtDLSwSDLCSessLocalSAP
+                INTEGER,
+            telProdNpMonProtDLSwSDLCSessLocalMAC
+                DisplayString,
+            telProdNpMonProtDLSwSDLCSessRemSAP
+                INTEGER,
+            telProdNpMonProtDLSwSDLCSessRemMAC
+                DisplayString,
+            telProdNpMonProtDLSwSDLCSessOutQ
+                Counter,
+            telProdNpMonProtDLSwSDLCSessState
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwSDLCSessIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index. Order number of the entry inside the
+            table (corresponding to a session)."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 1 }
+
+    telProdNpMonProtDLSwSDLCSessIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Interface number (SDLC type)."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 2 }
+
+    telProdNpMonProtDLSwSDLCSessAddr OBJECT-TYPE
+        SYNTAX INTEGER (0..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Address to use in the SDLC messages. Decimal value between
+            00 and FF. If 00 is programmed, the session will use FF and
+            learn the address from the remote SDLC station."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 3 }
+
+    telProdNpMonProtDLSwSDLCSessLocalSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Local SAP number."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 4 }
+
+    telProdNpMonProtDLSwSDLCSessLocalMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Local MAC address."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 5 }
+
+    telProdNpMonProtDLSwSDLCSessRemSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Remote SAP number."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 6 }
+
+    telProdNpMonProtDLSwSDLCSessRemMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Remote MAC address."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 7 }
+
+    telProdNpMonProtDLSwSDLCSessOutQ OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Frames pending to be sent to SDLC."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 8 }
+
+    telProdNpMonProtDLSwSDLCSessState OBJECT-TYPE
+        SYNTAX INTEGER {
+            sec_ctac_pend(17),
+            sec_nxid_pend(16),
+            sec_idle(15),
+            conn_pend2(14),
+            conn_pend(13),
+            cs_pend(12),
+            conn_req_pend(11),
+            xid_pend(10),
+            disc_pend(9),
+            xid_0_pend(8),
+            null_xid_pend(7),
+            contacted(6),
+            connected(5),
+            resolve_pend(4),
+            test_pend(3),
+            disconnected(2),
+            net_down(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Session state."
+        ::={ telProdNpMonProtDLSwSDLCSessionsEntry 9 }
+
+
+    --Grupo de parﬂmetros con informacin relativa a las estaciones QLLC
+    --definidas en el DLSw.
+
+    telProdNpMonProtDLSwQLLCGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 9 }
+
+
+    --Tabla con los parﬂmetros configurados para la unidad fçsica (PU)
+    --conectada por QLLC
+
+    telProdNpMonProtDLSwQLLCConfigTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwQLLCConfigEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays the parameters configured for the PUs connected by QLLC.
+            It opens new connections and allows changing connection parameters
+            whenever it were disabled."
+        ::={ telProdNpMonProtDLSwQLLCGroup 1 }
+
+    telProdNpMonProtDLSwQLLCConfigEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwQLLCConfigEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that is the order number of the entry,
+            a variable to add and delete new entries or QLLC links, local NUA,
+            remote NUA, MAC address, local SAP, remote SAP, alternative
+            X.25 Network number to which the X.25 call is made should the call to
+            the remote NUA fail, address to use in the QLLC messages, and
+            a variable that indicates the QLLC station's availability status
+            (active or inactive)."
+        INDEX { telProdNpMonProtDLSwQLLCConfQLLCIndex }
+        ::={ telProdNpMonProtDLSwQLLCConfigTable 1 }
+
+    TelProdNpMonProtDLSwQLLCConfigEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwQLLCConfQLLCIndex
+                INTEGER,
+            telProdNpMonProtDLSwQLLCConfCommand
+                INTEGER,
+            telProdNpMonProtDLSwQLLCConfRemNUA
+                DisplayString,
+            telProdNpMonProtDLSwQLLCConfLocalNUA
+                DisplayString,
+            telProdNpMonProtDLSwQLLCConfLocalSAP
+                INTEGER,
+            telProdNpMonProtDLSwQLLCConfLocalMAC
+                DisplayString,
+            telProdNpMonProtDLSwQLLCConfRemSAP
+                INTEGER,
+            telProdNpMonProtDLSwQLLCConfRemMAC
+                DisplayString,
+            telProdNpMonProtDLSwQLLCConfRemAltNUA
+                DisplayString,
+            telProdNpMonProtDLSwQLLCConfQLLCAddr
+                INTEGER,
+            telProdNpMonProtDLSwQLLCConfStatus
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwQLLCConfQLLCIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index. Indicates the order number of the entry."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 1 }
+
+    telProdNpMonProtDLSwQLLCConfCommand OBJECT-TYPE
+        SYNTAX INTEGER {
+            not_valid(4),
+            delete(3),
+            add(2),
+            valid(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Variable used to open and delete QLLC sessions. When writting it admits
+            the value 2 (add) and 3 (delete), and when reading it will be got the
+            value 1 (valid) if the last operation succeeded, and 4 (invalid)
+            if failed."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 2 }
+
+    telProdNpMonProtDLSwQLLCConfRemNUA OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..15))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "X.25 network number identifying the remote QLLC station.
+            This number discriminates the incoming calls. Should there
+            be any wildcards ('X') outgoing calls are not permitted
+            from this station."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 3 }
+
+    telProdNpMonProtDLSwQLLCConfLocalNUA OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..15))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "X.25 network number identifying the local station.
+            This number discriminates the outgoing calls.
+            In outgoing calls this is used as NUA calling. Should
+            there be any wildcards ('X') this is not used
+            in outgoing calls."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 4 }
+
+    telProdNpMonProtDLSwQLLCConfLocalSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Local SAP number."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 5 }
+
+    telProdNpMonProtDLSwQLLCConfLocalMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Local MAC address."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 6 }
+
+    telProdNpMonProtDLSwQLLCConfRemSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Remote SAP number."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 7 }
+
+    telProdNpMonProtDLSwQLLCConfRemMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Remote MAC address."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 8 }
+
+    telProdNpMonProtDLSwQLLCConfRemAltNUA OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..15))
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Alternative X.25 Network number to which the X.25
+            call is made should the call to the remote NUA fail.
+            This is optional and may not exist in which case
+            this facility is not enabled."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 9 }
+
+    telProdNpMonProtDLSwQLLCConfQLLCAddr OBJECT-TYPE
+        SYNTAX INTEGER (0..255)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Address to use in the QLLC messages. This is a
+            decimal value between 00 and FF. If 00 is
+            programmed the session will use FF and learn the
+            address from the remote QLLC station. First index."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 10 }
+
+    telProdNpMonProtDLSwQLLCConfStatus OBJECT-TYPE
+        SYNTAX INTEGER {
+            inactive(2),
+            active(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Indicates the QLLC station's availability status (Active 1) or
+            inactivity (Inactive 2) in order to carry out connections."
+        ::={ telProdNpMonProtDLSwQLLCConfigEntry 11 }
+
+
+    --Tabla donde se encuentra la informacin acerca de todas las sesiones QLLC
+    --DLSw dentro del router.
+
+    telProdNpMonProtDLSwQLLCSessionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwQLLCSessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays information about all QLLC DLSw session in the router. "
+        ::={ telProdNpMonProtDLSwQLLCGroup 2 }
+
+    telProdNpMonProtDLSwQLLCSessionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwQLLCSessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an  index, that is the order number of the entry
+            in the table, remote NUA, local MAC address and local SAP, QLLC address,
+            frames pending to be sent to QLLC, QLLC session state, local NUA, remote
+            SAP and remote MAC address."
+        INDEX { telProdNpMonProtDLSwQLLCSessIndex }
+        ::={ telProdNpMonProtDLSwQLLCSessionsTable 1 }
+
+    TelProdNpMonProtDLSwQLLCSessionsEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwQLLCSessIndex
+                INTEGER,
+            telProdNpMonProtDLSwQLLCSessRemNUA
+                DisplayString,
+            telProdNpMonProtDLSwQLLCSessLocalSAP
+                INTEGER,
+            telProdNpMonProtDLSwQLLCSessLocalMAC
+                DisplayString,
+            telProdNpMonProtDLSwQLLCSessAddr
+                INTEGER,
+            telProdNpMonProtDLSwQLLCSessOutQ
+                Counter,
+            telProdNpMonProtDLSwQLLCSessQLLCState
+                INTEGER,
+            telProdNpMonProtDLSwQLLCSessLocalNUA
+                DisplayString,
+            telProdNpMonProtDLSwQLLCSessRemSAP
+                INTEGER,
+            telProdNpMonProtDLSwQLLCSessRemMAC
+                DisplayString
+        }
+
+    telProdNpMonProtDLSwQLLCSessIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: order number of the entry."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 1 }
+
+    telProdNpMonProtDLSwQLLCSessRemNUA OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..15))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "X.25 network number identifying the remote QLLC station.
+            This number discriminates the incoming calls. Should there
+            be any wildcards ('X') outgoing calls are not permitted from
+            this station."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 2 }
+
+    telProdNpMonProtDLSwQLLCSessLocalSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Local SAP number."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 3 }
+
+    telProdNpMonProtDLSwQLLCSessLocalMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Local MAC address."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 4 }
+
+    telProdNpMonProtDLSwQLLCSessAddr OBJECT-TYPE
+        SYNTAX INTEGER (0..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Address to use in the QLLC messages. Decimal value between
+            00 and FF. If 00 is programmed, the session will use FF and
+            learn the address from the remote QLLC station."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 5 }
+
+    telProdNpMonProtDLSwQLLCSessOutQ OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Frames pending to be sent to QLLC."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 6 }
+
+    telProdNpMonProtDLSwQLLCSessQLLCState OBJECT-TYPE
+        SYNTAX INTEGER {
+            sec_ctac_pend(19),
+            sec_nxid_pend(18),
+            sec_idle(17),
+            conn_pend2(16),
+            conn_pend(15),
+            cs_pend(14),
+            conn_req_pend(13),
+            xid_pend(12),
+            disc_pend(11),
+            xid_0_pend(10),
+            null_xid_pend(9),
+            contacted(8),
+            connected(7),
+            resolve_pend(6),
+            test_pend(5),
+            disconnected(4),
+            qllc_cnx_pend(3),
+            qllc_cnx_off(2),
+            net_down(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "QLLC session state.  The possible states are:
+            NET_DOWN      : QLLC interface down.
+            QLLC_CNX_OFF  : X.25 connection disconnected.
+            QLLC_CNX_PEND : X.25 connection pending.
+            DISCONNECTED  : QLLC session disconnected.
+            TEST_PEND     :
+            RESOLVE_PEND  : Pending on finding remote station.
+            CONNECTED     : QLLC session open.
+            CONTACTED     : QLLC session active.
+            NULL_XID_PEND : Waiting for empty XID.
+            XID_0_PEND    :
+            DISC_PEND     : Waiting for QLLC session disconnection.
+            XID_PEND      : Session waiting for XID response.
+            CONN_REQ_PEND : QLLC session pending connection.
+            CS_PEND       :
+            CONN_PEND     :
+            CONN_PEND2    :
+            SEC_IDLE      :
+            SEC_NXID_PEND :
+            SEC_CTAC_PEND :"
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 7 }
+
+    telProdNpMonProtDLSwQLLCSessLocalNUA OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..15))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "X.25 network number identifying the local station.
+            This number discriminates the outgoing calls. In outgoing calls
+            this is used as NUA calling. Should there be any wildcards ('X')
+            this is not used in outgoing calls."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 8 }
+
+    telProdNpMonProtDLSwQLLCSessRemSAP OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Remote SAP number."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 9 }
+
+    telProdNpMonProtDLSwQLLCSessRemMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Remote MAC address."
+        ::={ telProdNpMonProtDLSwQLLCSessionsEntry 10 }
+
+
+    --Grupo de TCP
+
+    telProdNpMonProtDLSwTCPGroup OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 10 }
+
+
+    --Tabla que recoge la informacin recibida de un router asociado, en el
+    --mensaje de intercambio de aptitudes.
+
+    telProdNpMonProtDLSwTCPCapabTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwTCPCapabEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays the information received from an associated router,
+            in the capabilities exchange message."
+        ::={ telProdNpMonProtDLSwTCPGroup 1 }
+
+    telProdNpMonProtDLSwTCPCapabEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwTCPCapabEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that will be the order number of
+            the table entry, DLSw neighbor IP Address, vendor ID, vendor product
+            version, pacing window, supported SAPs, MAC List exclusive and
+            NetBIOS Name List exclusive."
+        INDEX { telProdNpMonProtDLSwTCPCapIndex }
+        ::={ telProdNpMonProtDLSwTCPCapabTable 1 }
+
+    TelProdNpMonProtDLSwTCPCapabEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwTCPCapIndex
+                INTEGER,
+            telProdNpMonProtDLSwTCPCapIpAddr
+                IpAddress,
+            telProdNpMonProtDLSwTCPCapVendorID
+                DisplayString,
+            telProdNpMonProtDLSwTCPCapVenProVers
+                DisplayString,
+            telProdNpMonProtDLSwTCPCapIniPacWind
+                INTEGER,
+            telProdNpMonProtDLSwTCPCapSuppSAPs
+                DisplayString,
+            telProdNpMonProtDLSwTCPCapMacExcl
+                INTEGER,
+            telProdNpMonProtDLSwTCPCapNbExcl
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwTCPCapIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: order number of the table entry."
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 1 }
+
+    telProdNpMonProtDLSwTCPCapIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "DLSw neighbor IP Address "
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 2 }
+
+    telProdNpMonProtDLSwTCPCapVendorID OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Vendor ID."
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 3 }
+
+    telProdNpMonProtDLSwTCPCapVenProVers OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Vendor product version."
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 4 }
+
+    telProdNpMonProtDLSwTCPCapIniPacWind OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Initial pacing window."
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 5 }
+
+    telProdNpMonProtDLSwTCPCapSuppSAPs OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Supported SAPs."
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 6 }
+
+    telProdNpMonProtDLSwTCPCapMacExcl OBJECT-TYPE
+        SYNTAX INTEGER {
+            no_exclusive(0),
+            exclusive(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "MAC Address List exclusivity."
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 7 }
+
+    telProdNpMonProtDLSwTCPCapNbExcl OBJECT-TYPE
+        SYNTAX INTEGER {
+            no_exclusive(0),
+            exclusive(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "NetBIOS Name List exclusivity."
+        ::={ telProdNpMonProtDLSwTCPCapabEntry 8 }
+
+    --Tabla que contiene la informacin referida a todas las sesiones TCP
+    --configuradas.
+
+    telProdNpMonProtDLSwTCPConfigTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwTCPConfigEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays the information in all the configured TCP sessions."
+        ::={ telProdNpMonProtDLSwTCPGroup 2 }
+
+    telProdNpMonProtDLSwTCPConfigEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwTCPConfigEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that will be the order number of
+            the table entry, a variable to add or delete entries, neighbor
+            IP Address, Transmit Buffer size, Receive Buffer size, maximum
+            segment size, variable to activate or not the DLSw neighbor possibility
+            to send keepalive messages, another that indicates the neighbor≥s
+            priority, and neighbor connection mode."
+        INDEX { telProdNpMonProtDLSwTCPConfIndex }
+        ::={ telProdNpMonProtDLSwTCPConfigTable 1 }
+
+    TelProdNpMonProtDLSwTCPConfigEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwTCPConfIndex
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfCommand
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfIpAddr
+                IpAddress,
+            telProdNpMonProtDLSwTCPConfTxBufsize
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfRxBufsize
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfMaxSegsize
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfKeepAlive
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfPriority
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfCnxMode
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfInacTime
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfLowPriMax
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfLowPriMin
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfLowPriRetries
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfLowPriTimeout
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfLowPriMaxPercent
+                INTEGER,
+            telProdNpMonProtDLSwTCPConfLowPriMinPercent
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwTCPConfIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: entry order number."
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 1 }
+
+    telProdNpMonProtDLSwTCPConfCommand OBJECT-TYPE
+        SYNTAX INTEGER {
+            not_valid(4),
+            delete(3),
+            add(2),
+            valid(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Variable used to add and delete new TCP neighbor entries.
+            When writting it admits the value 2 (add) and 3 (delete), and
+            when reading it will be got the value 1 (valid) if the last operation
+            succeeded, and 4 (invalid) if failed."
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 2 }
+
+    telProdNpMonProtDLSwTCPConfIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Neighbor IP Address."
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 3 }
+
+    telProdNpMonProtDLSwTCPConfTxBufsize OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Transmit Buffer size. Possible values are within the interval
+            (1024..65536), and the value will be 0 when it is
+            a local connection-conversion."
+        DEFVAL { 5120 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 4 }
+
+    telProdNpMonProtDLSwTCPConfRxBufsize OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Receive Buffer size. Possible values are within the interval
+            (1024..65536), and the value will be 0 when it is
+            a local connection-conversion."
+        DEFVAL { 5120 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 5 }
+
+    telProdNpMonProtDLSwTCPConfMaxSegsize OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum segment size. Possible values are within the interval
+            (1024..65536), and the value will be 0 when it is
+            a local connection-conversion."
+        DEFVAL { 1024 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 6 }
+
+    telProdNpMonProtDLSwTCPConfKeepAlive OBJECT-TYPE
+        SYNTAX INTEGER {
+            inactive(2),
+            active(1),
+            no_sense(0)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Indicates if we want the DLSw neighbor to send keepalive messages.
+            Option default active. Possible values are: active (1), inactive (2)
+            and no_sense (0), that indicates it is a local connection-conversion."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 7 }
+
+    telProdNpMonProtDLSwTCPConfPriority OBJECT-TYPE
+        SYNTAX INTEGER {
+            high(3),
+            medium(2),
+            low(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying neighbor priority through the values
+            high (3), medium (2), low (1). DLSw protocol uses this
+            parameter to determine which DLSw neighbor to choose
+            when several can reach the destination station."
+        DEFVAL { 2 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 8 }
+
+    telProdNpMonProtDLSwTCPConfCnxMode OBJECT-TYPE
+        SYNTAX INTEGER {
+            promiscuous(5),
+            passive(4),
+            always(3),
+            on_demand(2),
+            default(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying neighbor connection mode through the values
+            promiscuous (5), passive (4), always (3), on demand (2), default (1).
+            DLSw protocol uses this parameter to determine when connections must
+            be connected to neigbors. Default value uses configured global value."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 9 }
+
+    telProdNpMonProtDLSwTCPConfInacTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying neighbor inactivity time without
+            active circuits in order to disconnect the link.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 10 }
+
+    telProdNpMonProtDLSwTCPConfLowPriMax OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum number of active circuits.
+            When the number of active circuits exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 11 }
+
+    telProdNpMonProtDLSwTCPConfLowPriMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying minimum number of active circuits.
+            When the number of active circuits is lower than this parameter,
+            the system will change the priority of this link to configured value."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 12 }
+
+    telProdNpMonProtDLSwTCPConfLowPriRetries OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum number of connection retries.
+            When the number of unsuccessfull circuit connections exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 13 }
+
+    telProdNpMonProtDLSwTCPConfLowPriTimeout OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying time to recover configured priority when
+            the actual priority was fired by excess of number of unsuccessfull
+             circuit connections. (0 = Priority will not changed)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 14 }
+
+    telProdNpMonProtDLSwTCPConfLowPriMaxPercent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum percentage of active circuits.
+            When the percentage of active circuits exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 15 }
+
+    telProdNpMonProtDLSwTCPConfLowPriMinPercent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying minimum percentage of active circuits.
+            When the percentage of active circuits is lower than this parameter,
+            the system will change the priority of this link to configured value."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPConfigEntry 16 }
+
+
+    --Tabla que contiene la versin, el nîmero de sesiones DLSw activas que
+    --utilizan esta sesin TCP, y el nîmero de sesiones que alguna vez han
+    --utilizado esta sesin.
+
+    telProdNpMonProtDLSwTCPSessionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwTCPSessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays version, number of DLSw active sessions used by this
+            TCP session, and the number of sessions that al least once have
+            used this session."
+        ::={ telProdNpMonProtDLSwTCPGroup 3 }
+
+    telProdNpMonProtDLSwTCPSessionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwTCPSessionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that will be the order number of
+            the table entry, the group identifier, IP address of the TCP session,
+            current state of the TCP session, version, number of DLSw sessions
+            currently activated in the TCP session and the number of DLSw sessions
+            used in this TCP session."
+        INDEX { telProdNpMonProtDLSwTCPSessIndex }
+        ::={ telProdNpMonProtDLSwTCPSessionsTable 1 }
+
+    TelProdNpMonProtDLSwTCPSessionsEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwTCPSessIndex
+                INTEGER,
+            telProdNpMonProtDLSwTCPSessRole
+                INTEGER,
+            telProdNpMonProtDLSwTCPSessGroup
+                INTEGER,
+            telProdNpMonProtDLSwTCPSessIpAddr
+                IpAddress,
+            telProdNpMonProtDLSwTCPSessConnState
+                INTEGER,
+            telProdNpMonProtDLSwTCPSessVersion
+                DisplayString,
+            telProdNpMonProtDLSwTCPSessNumActSess
+                INTEGER,
+            telProdNpMonProtDLSwTCPSessNumCreates
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwTCPSessIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: order number of the table entry."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 1 }
+
+     telProdNpMonProtDLSwTCPSessRole OBJECT-TYPE
+        SYNTAX INTEGER {
+            peer-to-peer(3),
+            server(2),
+            client(1),
+            undefined(0)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Group type: 1 for client, 2 for server and 3 for peer-to peer.
+            A server forms a TCP connection with a client."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 2 }
+
+    telProdNpMonProtDLSwTCPSessGroup OBJECT-TYPE
+        SYNTAX INTEGER (0..69)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Group identifier. If it is 0 the router does not belong to any
+            group."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 3 }
+
+    telProdNpMonProtDLSwTCPSessIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "IP address of the TCP session."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 4 }
+
+    telProdNpMonProtDLSwTCPSessConnState OBJECT-TYPE
+        SYNTAX INTEGER {
+            reconnect_wait(9),
+            closing(8),
+            established(7),
+            capex_pending(6),
+            wr_est_rd_pend(5),
+            pending_r_w(4),
+            rd_est_wr_pend(3),
+            down(2),
+            capex_failed(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Current state of the TCP session."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 5 }
+
+    telProdNpMonProtDLSwTCPSessVersion OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Version name."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 6 }
+
+    telProdNpMonProtDLSwTCPSessNumActSess OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of DLSw sessions currently active in the TCP session."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 7 }
+
+    telProdNpMonProtDLSwTCPSessNumCreates OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Number of DLSw sessions in this TCP session."
+        ::={ telProdNpMonProtDLSwTCPSessionsEntry 8 }
+
+
+    --Tabla que recoge los estadçsticos del uso de sesiones TCP
+
+    telProdNpMonProtDLSwTCPStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwTCPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays the use statistics of the TCP sessions."
+        ::={ telProdNpMonProtDLSwTCPGroup 4 }
+
+    telProdNpMonProtDLSwTCPStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwTCPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that will be the order number of
+            the table entry, DLSw neighbor IP Address, number of data messages,
+            number of data bytes, number of Control Messages, number of
+            Can You Reach Messages, number of I Can Reach Messages, number of
+            Name Query messages and Name Recognized transmitted and received."
+        INDEX { telProdNpMonProtDLSwTCPStIndex }
+        ::={ telProdNpMonProtDLSwTCPStatsTable 1 }
+
+    TelProdNpMonProtDLSwTCPStatsEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwTCPStIndex
+                INTEGER,
+            telProdNpMonProtDLSwTCPStIpAddr
+                IpAddress,
+            telProdNpMonProtDLSwTCPStDataMessTx
+                Counter,
+            telProdNpMonProtDLSwTCPStDataMessRx
+                Counter,
+            telProdNpMonProtDLSwTCPStDataBytesTx
+                Counter,
+            telProdNpMonProtDLSwTCPStDataBytesRx
+                Counter,
+            telProdNpMonProtDLSwTCPStContMessTx
+                Counter,
+            telProdNpMonProtDLSwTCPStContMessRx
+                Counter,
+            telProdNpMonProtDLSwTCPStCanYouReachTx
+                Counter,
+            telProdNpMonProtDLSwTCPStCanYouReachRx
+                Counter,
+            telProdNpMonProtDLSwTCPStICanReachTx
+                Counter,
+            telProdNpMonProtDLSwTCPStICanReachRx
+                Counter,
+            telProdNpMonProtDLSwTCPStNameQueryTx
+                Counter,
+            telProdNpMonProtDLSwTCPStNameQueryRx
+                Counter,
+            telProdNpMonProtDLSwTCPStNameRecognTx
+                Counter,
+            telProdNpMonProtDLSwTCPStNameRecognRx
+                Counter
+        }
+
+    telProdNpMonProtDLSwTCPStIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: entry order number, corresponding to a TCP
+            session (of which statistics are displayed)."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 1 }
+
+    telProdNpMonProtDLSwTCPStIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "DLSw neighbor IP Address."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 2 }
+
+    telProdNpMonProtDLSwTCPStDataMessTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Data Messages transmitted."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 3 }
+
+    telProdNpMonProtDLSwTCPStDataMessRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Data Messages received."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 4 }
+
+    telProdNpMonProtDLSwTCPStDataBytesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Data Bytes transmitted."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 5 }
+
+    telProdNpMonProtDLSwTCPStDataBytesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Data Bytes received."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 6 }
+
+    telProdNpMonProtDLSwTCPStContMessTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Control Messages transmitted."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 7 }
+
+    telProdNpMonProtDLSwTCPStContMessRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Control Messages received."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 8 }
+
+    telProdNpMonProtDLSwTCPStCanYouReachTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "CanYouReach Explorer Messages transmitted."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 9 }
+
+    telProdNpMonProtDLSwTCPStCanYouReachRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "CanYouReach Explorer Messages received."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 10 }
+
+    telProdNpMonProtDLSwTCPStICanReachTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "ICanReach Explorer Messages transmitted."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 11 }
+
+    telProdNpMonProtDLSwTCPStICanReachRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "ICanReach Explorer Messages received."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 12 }
+
+    telProdNpMonProtDLSwTCPStNameQueryTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "NameQuery Explorer Messages transmitted."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 13 }
+
+    telProdNpMonProtDLSwTCPStNameQueryRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "NameQuery Explorer Messages received."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 14 }
+
+    telProdNpMonProtDLSwTCPStNameRecognTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "NameRecognized Explorer Messages transmitted."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 15 }
+
+    telProdNpMonProtDLSwTCPStNameRecognRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "NameRecognized Explorer Messages received."
+        ::={ telProdNpMonProtDLSwTCPStatsEntry 16 }
+
+
+    -- Grupo que engloba los parametros por defecto para modo Promiscuo.
+
+    telProdNpMonProtDLSwTCPPromisGroup OBJECT IDENTIFIER
+        ::={ telProdNpMonProtDLSwTCPGroup 5 }
+
+    telProdNpMonProtDLSwTCPPromisTxBufsize OBJECT-TYPE
+        SYNTAX INTEGER(1024..65536)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Transmit Buffer size. Possible values are within the interval
+            (1024..65536)."
+        DEFVAL { 5120 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 1 }
+
+    telProdNpMonProtDLSwTCPPromisRxBufsize OBJECT-TYPE
+        SYNTAX INTEGER(1024..65536)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Receive Buffer size. Possible values are within the interval
+            (1024..65536)."
+        DEFVAL { 5120 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 2 }
+
+    telProdNpMonProtDLSwTCPPromisMaxSegsize OBJECT-TYPE
+        SYNTAX INTEGER(64..16384)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Maximum segment size. Possible values are within the interval
+            (64..16384)."
+        DEFVAL { 1024 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 3 }
+
+    telProdNpMonProtDLSwTCPPromisKeepAlive OBJECT-TYPE
+        SYNTAX INTEGER {
+            inactive(2),
+            active(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Indicates if we want the DLSw neighbor to send keepalive messages.
+            Option default active. Possible values are: active (1) and
+            inactive (2)."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 4 }
+
+    telProdNpMonProtDLSwTCPPromisPriority OBJECT-TYPE
+        SYNTAX INTEGER {
+            high(3),
+            medium(2),
+            low(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying neighbor priority through the values
+            high (3), medium (2), low (1). DLSw protocol uses this
+            parameter to determine which DLSw neighbor to choose
+            when several can reach the destination station."
+        DEFVAL { 2 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 5 }
+
+    telProdNpMonProtDLSwTCPPromisInacTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying neighbor inactivity time without
+            active circuits in order to disconnect the link.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 6 }
+
+    telProdNpMonProtDLSwTCPPromisLowPriMax OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum number of active circuits.
+            When the number of active circuits exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 7 }
+
+    telProdNpMonProtDLSwTCPPromisLowPriMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying minimum number of active circuits.
+            When the number of active circuits is lower than this parameter,
+            the system will change the priority of this link to configured value."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 8 }
+
+    telProdNpMonProtDLSwTCPPromisLowPriRetries OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum number of connection retries.
+            When the number of unsuccessfull circuit connections exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 9 }
+
+    telProdNpMonProtDLSwTCPPromisLowPriTimeout OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying time to recover configured priority when
+            the actual priority was fired by excess of number of unsuccessfull
+             circuit connections. (0 = Priority will not changed)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 10 }
+
+    telProdNpMonProtDLSwTCPPromisLowPriMaxPercent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum percentage of active circuits.
+            When the percentage of active circuits exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 11 }
+
+    telProdNpMonProtDLSwTCPPromisLowPriMinPercent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying minimum percentage of active circuits.
+            When the percentage of active circuits is lower than this parameter,
+            the system will change the priority of this link to configured value."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwTCPPromisGroup 12 }
+
+
+    -- Tabla que engloba las MAC Address List anunciadas.
+
+    telProdNpMonProtDLSwTCPCapMacListTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwTCPCapMacListEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays MAC Address Lists received form neighbors."
+        ::={ telProdNpMonProtDLSwTCPGroup 6 }
+
+    telProdNpMonProtDLSwTCPCapMacListEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwTCPCapMacListEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that will be the order number of
+            the table entry, DLSw neighbor IP Address, MAC address value
+            and MAC address mask received from neighbors."
+        INDEX { telProdNpMonProtDLSwTCPCapMacListIndex }
+        ::={ telProdNpMonProtDLSwTCPCapMacListTable 1 }
+
+    TelProdNpMonProtDLSwTCPCapMacListEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwTCPCapMacListIndex
+                INTEGER,
+
+            telProdNpMonProtDLSwTCPCapMacListIpAddr
+                IpAddress,
+
+            telProdNpMonProtDLSwTCPCapMacListMAC
+                DisplayString,
+
+            telProdNpMonProtDLSwTCPCapMacListMask
+                DisplayString
+        }
+
+    telProdNpMonProtDLSwTCPCapMacListIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: entry order number, corresponding to a TCP
+            session and entry order in list."
+        ::={ telProdNpMonProtDLSwTCPCapMacListEntry 1 }
+
+    telProdNpMonProtDLSwTCPCapMacListIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "DLSw neighbor IP Address."
+        ::={ telProdNpMonProtDLSwTCPCapMacListEntry 2 }
+
+    telProdNpMonProtDLSwTCPCapMacListMAC OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "MAC Address value."
+        ::={ telProdNpMonProtDLSwTCPCapMacListEntry 3 }
+
+    telProdNpMonProtDLSwTCPCapMacListMask OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..17))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "MAC Address mask."
+        ::={ telProdNpMonProtDLSwTCPCapMacListEntry 4 }
+
+
+    -- Tabla que engloba las NetBIOS Name List anunciadas.
+
+    telProdNpMonProtDLSwTCPCapNbListTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwTCPCapNbListEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Displays NetBIOS Name Lists received form neighbors."
+        ::={ telProdNpMonProtDLSwTCPGroup 7 }
+
+    telProdNpMonProtDLSwTCPCapNbListEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwTCPCapNbListEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that will be the order number of
+            the table entry, DLSw neighbor IP Address, NetBIOS Name Type
+            and NetBIOS Name received from neighbors."
+        INDEX { telProdNpMonProtDLSwTCPCapNbListIndex }
+        ::={ telProdNpMonProtDLSwTCPCapNbListTable 1 }
+
+    TelProdNpMonProtDLSwTCPCapNbListEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwTCPCapNbListIndex
+                INTEGER,
+
+            telProdNpMonProtDLSwTCPCapNbListIpAddr
+                IpAddress,
+
+            telProdNpMonProtDLSwTCPCapNbListType
+                INTEGER,
+
+            telProdNpMonProtDLSwTCPCapNbListName
+                DisplayString
+        }
+
+    telProdNpMonProtDLSwTCPCapNbListIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: entry order number, corresponding to a TCP
+            session and entry order in list."
+        ::={ telProdNpMonProtDLSwTCPCapNbListEntry 1 }
+
+    telProdNpMonProtDLSwTCPCapNbListIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "DLSw neighbor IP Address."
+        ::={ telProdNpMonProtDLSwTCPCapNbListEntry 2 }
+
+    telProdNpMonProtDLSwTCPCapNbListType OBJECT-TYPE
+        SYNTAX INTEGER {
+            individual(0),
+            group(1)
+        }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "NetBIOS Name Type. (Individual/Group)"
+        ::={ telProdNpMonProtDLSwTCPCapNbListEntry 3 }
+
+    telProdNpMonProtDLSwTCPCapNbListName OBJECT-TYPE
+        SYNTAX DisplayString (SIZE(0..40))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "NetBIOS Name."
+        ::={ telProdNpMonProtDLSwTCPCapNbListEntry 4 }
+
+
+    --Tabla que contiene los parﬂmetros referentes a todos los grupos
+    --configurados a los que el router pertenezca.
+
+    telProdNpMonProtDLSwGroupsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtDLSwGroupsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Group configuration."
+        ::={ telProdNpMonProtDLSw 11 }
+
+    telProdNpMonProtDLSwGroupsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtDLSwGroupsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+            "Each entry consists of an index, that will be the order number of
+            the table entry, a variable to join a router to a specified group or
+            remove the  router from it, group number, group type (server, client
+            or peer to peer), transmit and receive buffer size, maximum size
+            of the TCP segment, variable that shows whether the DLSw neighbor
+            will send link keepalive messages or not, and another which specifies
+            the neighbor priority."
+        INDEX { telProdNpMonProtDLSwGroupsIndex }
+        ::={ telProdNpMonProtDLSwGroupsTable 1 }
+
+    TelProdNpMonProtDLSwGroupsEntry ::=
+        SEQUENCE {
+            telProdNpMonProtDLSwGroupsIndex
+                INTEGER,
+            telProdNpMonProtDLSwGroupsCommand
+                INTEGER,
+            telProdNpMonProtDLSwGroupsRole
+                INTEGER,
+            telProdNpMonProtDLSwGroupsTxBufsize
+                INTEGER,
+            telProdNpMonProtDLSwGroupsRxBufsize
+                INTEGER,
+            telProdNpMonProtDLSwGroupsMaxSegSize
+                INTEGER,
+            telProdNpMonProtDLSwGroupsKeepAlive
+                INTEGER,
+            telProdNpMonProtDLSwGroupsPriority
+                INTEGER,
+            telProdNpMonProtDLSwGroupsCnxMode
+                INTEGER,
+            telProdNpMonProtDLSwGroupsInacTime
+                INTEGER,
+            telProdNpMonProtDLSwGroupsLowPriMax
+                INTEGER,
+            telProdNpMonProtDLSwGroupsLowPriMin
+                INTEGER,
+            telProdNpMonProtDLSwGroupsLowPriRetries
+                INTEGER,
+            telProdNpMonProtDLSwGroupsLowPriTimeout
+                INTEGER,
+            telProdNpMonProtDLSwGroupsLowPriMaxPercent
+                INTEGER,
+            telProdNpMonProtDLSwGroupsLowPriMinPercent
+                INTEGER
+        }
+
+    telProdNpMonProtDLSwGroupsIndex OBJECT-TYPE
+        SYNTAX INTEGER (0..69)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+            "Table index: group number."
+        ::={ telProdNpMonProtDLSwGroupsEntry 1 }
+
+    telProdNpMonProtDLSwGroupsCommand OBJECT-TYPE
+        SYNTAX INTEGER{
+            error(4),
+            leave_group(3),
+            join_group(2),
+            ok(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Use the JOIN-GROUP command to allow DLSw neighbors to find
+            and to create TCP sessions with each other dynamically. This
+            eliminates the need to define TCP neighbors with the ADD TCP
+            command. In a get operation this variable can be 1 (ok) if
+            the last JOIN-GROUP or LEAVE-GROUP operation succeeded and
+            4 (error) if failed. In a set operation admits 1 (join_group) and 3
+            (leave_group), that initiates the corresponding operations"
+        ::={ telProdNpMonProtDLSwGroupsEntry 2 }
+
+    telProdNpMonProtDLSwGroupsRole OBJECT-TYPE
+        SYNTAX INTEGER {
+            peer-to-peer(3),
+            server(2),
+            client(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "The type of group that you want to join the router: 1 for client,
+            2 for server, and 3 for peer-to-peer. A server forms a TCP
+            connection with a client."
+        ::={ telProdNpMonProtDLSwGroupsEntry 3 }
+
+    telProdNpMonProtDLSwGroupsTxBufsize OBJECT-TYPE
+        SYNTAX INTEGER (1024..65536)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "The size of the packet transmit buffer."
+        DEFVAL { 5120 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 4 }
+
+    telProdNpMonProtDLSwGroupsRxBufsize OBJECT-TYPE
+        SYNTAX INTEGER (1024..65536)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "The size of the packet receive buffer."
+        DEFVAL { 5120 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 5 }
+
+    telProdNpMonProtDLSwGroupsMaxSegSize OBJECT-TYPE
+        SYNTAX INTEGER (64..16384)
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "The maximum size of the TCP segment."
+        DEFVAL { 1024 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 6 }
+
+    telProdNpMonProtDLSwGroupsKeepAlive OBJECT-TYPE
+        SYNTAX INTEGER {
+            inactive(2),
+            active(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Indicates whether you want the DLSw neighbor to send
+            link keepalive messages."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 7 }
+
+    telProdNpMonProtDLSwGroupsPriority OBJECT-TYPE
+        SYNTAX INTEGER {
+            high(3),
+            medium(2),
+            low(1),
+            none(0)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Specifies the neighbor priority as high (3), medium (2) or low (1).
+            It should never be none (0). DLSw uses this parameter to determine
+            which DLSw neighbor to choose when multiple neighbors can reach
+            a target station."
+        DEFVAL { 2 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 8 }
+
+    telProdNpMonProtDLSwGroupsCnxMode OBJECT-TYPE
+        SYNTAX INTEGER {
+            promiscuous(5),
+            passive(4),
+            always(3),
+            on_demand(2),
+            default(1)
+        }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying neighbor connection mode through the values
+            promiscuous (5), passive (4), always (3), on demand (2), default (1).
+            DLSw protocol uses this parameter to determine when connections must
+            be connected to neigbors. Default value uses configured global value."
+        DEFVAL { 1 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 9 }
+
+    telProdNpMonProtDLSwGroupsInacTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying neighbor inactivity time without
+            active circuits in order to disconnect the link.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 10 }
+
+    telProdNpMonProtDLSwGroupsLowPriMax OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum number of active circuits.
+            When the number of active circuits exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 11 }
+
+    telProdNpMonProtDLSwGroupsLowPriMin OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying minimum number of active circuits.
+            When the number of active circuits is lower than this parameter,
+            the system will change the priority of this link to configured value."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 12 }
+
+    telProdNpMonProtDLSwGroupsLowPriRetries OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum number of connection retries.
+            When the number of unsuccessfull circuit connections exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 13 }
+
+    telProdNpMonProtDLSwGroupsLowPriTimeout OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying time to recover configured priority when
+            the actual priority was fired by excess of number of unsuccessfull
+             circuit connections. (0 = Priority will not changed)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 14 }
+
+    telProdNpMonProtDLSwGroupsLowPriMaxPercent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying maximum percentage of active circuits.
+            When the number of active circuits exceeds this parameter,
+            the system will change the priority of this link to low value.
+            (0 = Disable feature)."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 15 }
+
+    telProdNpMonProtDLSwGroupsLowPriMinPercent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+            "Allows specifying minimum percentage of active circuits.
+            When the percentage of active circuits is lower than this parameter,
+            the system will change the priority of this link to configured value."
+        DEFVAL { 0 }
+        ::={ telProdNpMonProtDLSwGroupsEntry 16 }
+
+
+    --Grupo BAN
+
+    telProdNpMonProtDLSwBAN OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 12 }
+
+
+    --Grupo NetBIOS sobre DLSw
+
+    telProdNpMonProtDLSwNetBIOS OBJECT IDENTIFIER ::= { telProdNpMonProtDLSw 13 }
+
+
+END

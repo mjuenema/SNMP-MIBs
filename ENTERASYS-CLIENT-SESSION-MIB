@@ -1,0 +1,1046 @@
+RBTWS-CLIENT-SESSION-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-COMPLIANCE, OBJECT-GROUP
+        FROM SNMPv2-CONF
+    MODULE-IDENTITY, OBJECT-TYPE,
+    IpAddress, Unsigned32, Integer32, Counter64
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, DisplayString, MacAddress, TimeStamp
+        FROM SNMPv2-TC
+    RbtwsAccessType, RbtwsRadioNum, RbtwsApSerialNum, RbtwsRadioRate, RbtwsRssi
+        FROM RBTWS-AP-TC
+    RbtwsClientSessionState, RbtwsClientAuthenProtocolType,
+    RbtwsUserAccessType
+        FROM RBTWS-CLIENT-SESSION-TC
+    rbtwsMibs
+        FROM RBTWS-ROOT-MIB;
+rbtwsApTc MODULE-IDENTITY
+    LAST-UPDATED "200607102335Z"
+    ORGANIZATION "Enterasys Networks"
+    CONTACT-INFO
+        "www.enterasys.com"
+    DESCRIPTION
+        "Textual Conventions used by Enterasys Networks wireless switches.
+
+        AP = Access Point;
+        AC = Access Controller (wireless switch),
+             the device that runs a SNMP Agent using these TCs.
+
+        Copyright 2006 Enterasys Networks, Inc.
+        All rights reserved.
+        This SNMP Management Information Base
+        Specification (Specification) embodies
+        confidential and proprietary intellectual property.
+
+        This Specification is supplied 'AS IS' and Enterasys Networks
+        makes no warranty, either express or implied, as to the use,
+        operation, condition, or performance of the Specification."
+
+    REVISION "200607100015Z"
+    DESCRIPTION "v1.0.1: Disallow illegal RbtwsRadioRate values 1..9
+                         while keeping zero (that means unknown rate)"
+
+    REVISION "200603300014Z"
+    DESCRIPTION "v1.0: Initial version, for 4.1 release"
+
+    ::= { rbtwsMibs 3 }
+
+
+RbtwsAccessType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Describes the access type used by client or an AP.
+        Value 'ap(1)' indicates access point that is
+        directly attached to the switch.
+        Value 'dap(2)' indicates distributed access point
+        with attachment to the switch through the intermediate
+        network.
+        Value 'wired(3)' indicates a client that is directly
+        attached to the switch (no access point is involved)."
+    SYNTAX      INTEGER {
+            ap                  (1),
+            dap                 (2),
+            wired               (3)
+        }
+
+RbtwsApAttachType ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "Type of AP attachment to AC."
+    SYNTAX       INTEGER {
+                     directAttach(1),  -- informally known as "AP"
+                     networkAttach(2)  -- informally known as "DAP"
+                 }
+
+RbtwsApPortOrDapNum ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "AP Port, for directly attached APs, otherwise DAP Number
+        (arbitrary number assigned when configuring the DAP on the AC).
+        A zero value means unknown."
+    SYNTAX       Unsigned32 (0..1000)
+
+RbtwsApState ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "AP State, as seen by the AC."
+    SYNTAX       INTEGER {
+                     cleared         (1),
+                     init            (2),
+                     bootStarted     (3),
+                     imageDownloaded (4),
+                     connectFailed   (5),
+                     configuring     (6),
+                     configured      (7)
+                 }
+
+-- RbtwsApTransition TC used by 'rbtwsApNonOperStatusTrap'
+RbtwsApTransition ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "AP state Transition, as seen by the AC."
+    SYNTAX       INTEGER {
+                     clear            (1),
+                     timeout          (2),
+                     reset            (3),
+                     bootSuccess      (4),
+                     startConfiguring (5),
+                     connectFail      (6)
+                     -- transition to operational state is reported by
+                     -- a different trap: 'rbtwsApOperRadioStatusTrap'
+                 }
+
+RbtwsApFailDetail ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "Detailed failure codes for some of the transitions
+        specified in 'RbtwsApTransition'."
+    SYNTAX       INTEGER {
+                    -- Detail code values for 'configFailed' transition.
+                    -- All 3 below cover 'rbtwsDAPConnectWarningTrap' trap.
+                    secureHandshakeFailure  (2),
+                    fingerprintRequired     (3),
+                    fingerprintMismatch     (4),
+
+                    -- Detail code values for 'timeout' transition.
+                    -- Reports the state of the physical AC port
+                    -- this AP is attached to.
+                    -- For RM, it would cover the information
+                    -- given by the standard "Port Link Up/Down" traps.
+                    portLinkUp              (11),
+                    portLinkDown            (12),
+
+                    failUnknown             (99)
+                 }
+
+RbtwsApConnectSecurityType ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "Security level of the connection between AP and AC:
+        secure(1)   - fingerprint matching;
+        insecure(2) - fingerprint not configured,
+                      or optional and not matching;
+        auto(3)     - Auto-DAP is intrinsically insecure:
+                      could not check fingerprint since
+                      no specific DAP is configured."
+    SYNTAX       INTEGER {
+                    secure          (1),
+                    insecure        (2),
+                    auto            (3)
+                 }
+
+RbtwsApServiceAvailability ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "Level of wireless service availability."
+    SYNTAX       INTEGER {
+                    fullService     (1),
+                    -- All radios operational on the AP.
+                    noService       (2),
+                    -- No radio operational on the AP.
+                    degradedService (3)
+                    -- One radio down, one radio up.
+                 }
+
+RbtwsApBias ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "Bias of AP attachment to this AC.
+        Setting an APs bias on an AC switch to high causes the switch
+        to be preferred over switches with low bias,
+        for booting and managing the AP.
+        Bias applies only to AC switches that are indirectly attached
+        to the AP through an intermediate Layer 2 or Layer 3 network.
+        An AP always attempts to boot on AP port 1 first,
+        and if an AC switch is directly attached on AP port 1,
+        the AP boots from it regardless of the bias settings."
+    SYNTAX       INTEGER {
+                     high(1),
+                     low(2)
+                 }
+
+RbtwsApSerialNum ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "The value is a zero length string if unknown or unavailable.
+        Otherwise the value is a serial number, which consists
+        of printable ASCII characters between 0x21 (!),
+        and 0x7d (}) with no leading, embedded, or trailing space."
+    SYNTAX       OCTET STRING (SIZE (0..32))
+
+RbtwsApFingerprint ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "2x:"
+    STATUS       current
+    DESCRIPTION
+        "Represents a RSA key fingerprint (binary value),
+        which is the MD5 hash of the public key of the RSA key pair.
+        Or a zero length string if not known or unavailable."
+    SYNTAX       OCTET STRING (SIZE (0 | 16))
+
+RbtwsRadioNum ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumeration for multi-radio APs."
+    SYNTAX      INTEGER {
+                    radio-1             (1),
+                    radio-2             (2),
+                    not-applicable      (3)
+                }
+
+RbtwsPowerLevel ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "The current level of transmit power expressed in dbm."
+    SYNTAX      Unsigned32 (1..18)
+
+RbtwsRadioPowerChangeType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumerations for why the power level was changed,
+        which occurs due to auto-tune operation."
+    SYNTAX      INTEGER {
+                    dup-pkts-threshold-exceed            (1),
+                    retransmit-threshold-exceed          (2),
+                    clients-optimal-performance-reached  (3),
+                    def-power-threshold-exceed           (4)
+                }
+
+RbtwsChannelChangeType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumerations for why the channel was changed, which
+        occurs due to auto-tune operation"
+    SYNTAX      INTEGER {
+                    util-index          (1),
+                    rexmit-pkt-offset   (2),
+                    noise-offset        (3),
+                    noise               (4),
+                    utilization         (5),
+                    phy-error-offset    (6),
+                    crc-errors-offset   (7),
+                    radar-detected      (8)
+                }
+                -- contains hyphens due to historical reasons
+
+RbtwsChannelNum ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Channel Number"
+    SYNTAX      Unsigned32 (1..1024)
+
+RbtwsRadioEnable ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Radio mode (administratively enabled or disabled)."
+    SYNTAX      INTEGER {
+                    enabled  (1),
+                    disabled (2)
+                }
+
+RbtwsRadioConfigState ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Radio Configuration State, as seen by the AC."
+    SYNTAX      INTEGER {
+                    configInit  (1),
+                    configFail  (2),
+                    configOk    (3)
+                }
+
+RbtwsRadioRate ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d-1"
+    STATUS      current
+    DESCRIPTION
+        "The possible transmission rates of an AP radio.
+        Both a and b/g rates are covered; a specific radio will report
+        the applicable transmission rates (either a or b/g).
+        Here are the possible rates, in Mbps:
+        - 802.11g radios: 54, 48, 36, 24, 18, 12, 11, 9, 6, 5.5, 2, or 1;
+        - 802.11b radios: 11, 5.5, 2, or 1;
+        - 802.11a radios: 54, 48, 36, 24, 18, 12, 9, or 6.
+        The value in MIB is specified as the rate in Mbps times 10,
+        in order to have only integer values, zero meaning unknown rate."
+    SYNTAX      Unsigned32 (0 | 10..540)
+
+RbtwsRadioType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumeration to indicate the Radio Type, as seen by AC."
+    SYNTAX      INTEGER {
+                    typeUnknown     (1),
+                    typeA           (2), -- 802.11a
+                    typeB           (3), -- 802.11b
+                    typeG           (4)  -- 802.11b+g
+                }
+
+RbtwsRssi ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "RSSI (Received Signal Strength Indicator) for last packet
+        received from this neighbor, in decibels referred to
+        1 milliwatt (dBm). A higher value indicates a stronger signal."
+    SYNTAX      Integer32 (-100..0)
+
+RbtwsApWasOperational ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumeration to indicate whether the AP was operational
+        before a transition occured. Normally used in notifications."
+    SYNTAX      INTEGER {
+                    oper    (1),
+                    nonOper (2)
+                }
+                
+rbtwsClientSessionTc MODULE-IDENTITY
+    LAST-UPDATED "200609262029Z"
+    ORGANIZATION "Enterasys Networks"
+    CONTACT-INFO
+        "www.enterasys.com"
+    DESCRIPTION
+        "Textual Conventions used by Enterasys Networks wireless switches.
+
+        Copyright 2006 Enterasys Networks, Inc.
+        All rights reserved.
+        This SNMP Management Information Base
+        Specification (Specification) embodies
+        confidential and proprietary intellectual property.
+
+        This Specification is supplied 'AS IS' and Enterasys Networks
+        makes no warranty, either express or implied, as to the use,
+        operation, condition, or performance of the Specification."
+
+    REVISION "200609260001Z"
+    DESCRIPTION "v1.0.1: initial version"
+
+    ::= { rbtwsMibs 10 }
+
+
+RbtwsUserAccessType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Describes the access type by the user"
+    SYNTAX      INTEGER {
+            mac                 (1),
+            web                 (2),
+            dot1x               (3),
+            last-resort         (4)
+        }
+
+RbtwsClientSessionState ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumeration of the client session states.
+        Value 'associated(1)' applies only to wireless sessions.
+        Value 'wired(8)' applies only to wired sessions."
+    SYNTAX      INTEGER {
+            associated          (1),
+            authorizing         (2),
+            authorized          (3),
+            active              (4),
+            de-associated       (5),
+            roaming-away        (6),
+            updated-to-roam     (7),
+            wired               (8),
+            clearing            (9),
+            invalid             (10),
+            web-authing         (11)
+            }
+
+RbtwsClientDot1xState ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumeration of the dot1x states for a client."
+    SYNTAX      INTEGER {
+            initialize          (1),
+            disconnected        (2),
+            connecting          (3),
+            authenticating      (4),
+            authenticated       (5),
+            wired               (6),
+            aborting            (7),
+            held                (8)
+        }
+
+RbtwsClientAuthenProtocolType ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Enumeration of the dot1x client authentication protocol types."
+    SYNTAX      INTEGER {
+            none                (1),
+            eap-tls             (2),
+            eap-ttls            (3),
+            md5                 (4),
+            peap                (5),
+            leap                (6),
+            pass-through        (7)
+        }
+        
+rbtwsClientSessionMib MODULE-IDENTITY
+    LAST-UPDATED "200611200913Z"
+    ORGANIZATION "Enterasys Networks"
+    CONTACT-INFO
+        "www.enterasys.com"
+    DESCRIPTION
+        "Client Session MIB.
+
+        AP = Access Point;
+        AC = Access Controller (wireless switch),
+             the device that runs a SNMP Agent implementing this MIB.
+
+        Copyright 2006 Enterasys Networks, Inc.
+        All rights reserved.
+        This SNMP Management Information Base
+        Specification (Specification) embodies
+        confidential and proprietary intellectual property.
+
+        This Specification is supplied 'AS IS' and Enterasys Networks
+        makes no warranty, either express or implied, as to the use,
+        operation, condition, or performance of the Specification."
+
+    REVISION "200611160043Z"
+    DESCRIPTION "v2.2.1: added one value (21) to RbtwsSessState"
+
+    REVISION "200610170042Z"
+    DESCRIPTION "v2.2.0: Described semantics of rbtwsClSessRoamHistTimeStamp"
+
+    REVISION "200609260032Z"
+    DESCRIPTION "v2.1.1: Added three new columnar objects:
+        - rbtwsClSessClientSessDot1xAuthMethod,
+                to be used instead of rbtwsClSessClientSessAuthMethod;
+        - rbtwsClSessClientSessSessionState,
+                to be used instead of rbtwsClSessClientSessState;
+        - rbtwsClSessClientSessLoginType,
+                to provide context for interpreting the values of
+                the above objects (Dot1xAuthMethod, SessionState).
+
+        Changed behaviour for rbtwsClSessClientSessAuthServer:
+        provides system IP when auth is done via local DB
+        (it used to be 0.0.0.0 in such cases)."
+
+    REVISION "200607290021Z"
+    DESCRIPTION "v2.0.2: Fixed imports and compliance group"
+
+    REVISION "200606060010Z"
+    DESCRIPTION "v2.0.1: Adding scalar for total number of sessions."
+
+    REVISION "200603300008Z"
+    DESCRIPTION "v1.0: Initial version, for 4.1 release"
+
+    ::= { rbtwsMibs 4 }
+
+
+-- Textual conventions
+
+RbtwsEncryptionType ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+        "Encryption types."
+    SYNTAX INTEGER {
+        none            (1),
+        aesCcm          (2),
+        aesOcb          (3),
+        tkip            (4),
+        wep104          (5),
+        wep40           (6),
+        staticWep       (7)
+    }
+
+RbtwsAuthMethod ::= TEXTUAL-CONVENTION
+    STATUS       deprecated
+    DESCRIPTION
+        "Authentication methods."
+    SYNTAX INTEGER {
+        none            (1),
+        identity        (2),
+        notification    (3),
+        nak             (4),
+        md5             (5),
+        otp             (6),
+        tokenCard       (7),
+        tls             (14),
+        leap            (18),
+        ttls            (22),
+        peap            (26),
+        msChapv2        (27),
+        eapExt          (34),
+        passThru        (255)
+    }
+
+RbtwsSessState ::= TEXTUAL-CONVENTION
+    STATUS       deprecated
+    DESCRIPTION
+        "Session states."
+    SYNTAX INTEGER {
+        invalid             (1),
+        initializing        (2),
+        assocReqAndAuth     (3),
+        assocAndAuth        (4),
+        wired               (5),
+        webLoginPh1         (6),
+        webLoginPh1B        (7),
+        webLoginPh1F        (8),
+        webLoginPh2         (9),
+        webPortalLogin      (10),
+        authorizing         (11),
+        authorized          (12),
+        active              (13),
+        activePortal        (14),
+        deassociated        (15),
+        roamingAway         (16),
+        updatedToRoam       (17),
+        roamedAway          (18),
+        killing             (19),
+        free                (20),
+        enforceSoda         (21)
+    }
+
+
+-- Object definitions
+
+--
+-- The ClientSession MIB Tree
+--
+
+rbtwsClientSessionObjects    OBJECT IDENTIFIER ::= { rbtwsClientSessionMib 1 }
+rbtwsClientSessionDataObjects  OBJECT IDENTIFIER ::= { rbtwsClientSessionObjects 1 }
+
+
+-- Client Session Table
+-- ====================
+
+rbtwsClSessClientSessionTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbtwsClSessClientSessionEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Client Session Table."
+    ::= { rbtwsClientSessionDataObjects 1 }
+
+rbtwsClSessClientSessionEntry OBJECT-TYPE
+    SYNTAX      RbtwsClSessClientSessionEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Information about a particular client session."
+    INDEX   { rbtwsClSessClientSessMacAddress }
+    ::= { rbtwsClSessClientSessionTable 1 }
+
+RbtwsClSessClientSessionEntry ::= SEQUENCE {
+        rbtwsClSessClientSessMacAddress       MacAddress,
+        rbtwsClSessClientSessSessionId        DisplayString,
+        rbtwsClSessClientSessUsername         DisplayString,
+        rbtwsClSessClientSessIpAddress        IpAddress,
+        rbtwsClSessClientSessEncryptionType   RbtwsEncryptionType,
+        rbtwsClSessClientSessVlan             DisplayString,
+        rbtwsClSessClientSessApSerialNum      RbtwsApSerialNum,
+        rbtwsClSessClientSessRadioNum         RbtwsRadioNum,
+        rbtwsClSessClientSessAccessType       RbtwsAccessType,
+        rbtwsClSessClientSessAuthMethod       RbtwsAuthMethod,
+        rbtwsClSessClientSessAuthServer       IpAddress,
+        rbtwsClSessClientSessPortOrNum        Unsigned32,
+        rbtwsClSessClientSessVlanTag          Unsigned32,
+        rbtwsClSessClientSessTimeStamp        TimeStamp,
+        rbtwsClSessClientSessSsid             DisplayString,
+        rbtwsClSessClientSessState            RbtwsSessState,
+        rbtwsClSessClientSessLoginType        RbtwsUserAccessType,
+        rbtwsClSessClientSessDot1xAuthMethod  RbtwsClientAuthenProtocolType,
+        rbtwsClSessClientSessSessionState     RbtwsClientSessionState
+    }
+
+rbtwsClSessClientSessMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Client MAC address."
+    ::= { rbtwsClSessClientSessionEntry 1 }
+
+rbtwsClSessClientSessSessionId OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..30))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Session ID is a string long enough to be sure
+        we can make it unique over a long time."
+    ::= { rbtwsClSessClientSessionEntry 2 }
+
+rbtwsClSessClientSessUsername OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..80))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Client user name."
+    ::= { rbtwsClSessClientSessionEntry 3 }
+
+rbtwsClSessClientSessIpAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Client IP address.
+        If the client has no IP address, the value will be 0.0.0.0."
+    ::= { rbtwsClSessClientSessionEntry 4 }
+
+rbtwsClSessClientSessEncryptionType OBJECT-TYPE
+    SYNTAX      RbtwsEncryptionType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Encryption type."
+    ::= { rbtwsClSessClientSessionEntry 5 }
+
+rbtwsClSessClientSessVlan OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..80))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The name of the client VLAN."
+    ::= { rbtwsClSessClientSessionEntry 6 }
+
+rbtwsClSessClientSessApSerialNum OBJECT-TYPE
+    SYNTAX      RbtwsApSerialNum
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Serial Number of the AP this client is connected to.
+        It is a zero length string when wired access is used."
+    ::= { rbtwsClSessClientSessionEntry 7 }
+
+rbtwsClSessClientSessRadioNum OBJECT-TYPE
+    SYNTAX      RbtwsRadioNum
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of the Radio that provides service to this client.
+        It is 'not-applicable' when wired access is used."
+    ::= { rbtwsClSessClientSessionEntry 8 }
+
+rbtwsClSessClientSessAccessType OBJECT-TYPE
+    SYNTAX      RbtwsAccessType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Access type this client uses (via AP, DAP or wired)."
+    ::= { rbtwsClSessClientSessionEntry 9 }
+
+rbtwsClSessClientSessAuthMethod OBJECT-TYPE
+    SYNTAX      RbtwsAuthMethod
+    MAX-ACCESS  read-only
+    STATUS      deprecated
+    DESCRIPTION
+        "Authentication Method. Deprecated, use
+        rbtwsClSessClientSessDot1xAuthMethod instead."
+    ::= { rbtwsClSessClientSessionEntry 10 }
+
+rbtwsClSessClientSessAuthServer OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Authentication Server's IP Address.
+        If the client is authenticated via the local DB,
+        or not authenticated, its value will be the system IP."
+    ::= { rbtwsClSessClientSessionEntry 11 }
+
+rbtwsClSessClientSessPortOrNum OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Port number."
+    ::= { rbtwsClSessClientSessionEntry 12 }
+    
+rbtwsClSessClientSessVlanTag OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "VLAN tag."
+    ::= { rbtwsClSessClientSessionEntry 13 }
+
+rbtwsClSessClientSessTimeStamp OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Session start time stamp."
+    ::= { rbtwsClSessClientSessionEntry 14 }
+
+rbtwsClSessClientSessSsid OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE (0..33))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "SSID."
+    ::= { rbtwsClSessClientSessionEntry 15 }
+
+rbtwsClSessClientSessState OBJECT-TYPE
+    SYNTAX      RbtwsSessState
+    MAX-ACCESS  read-only
+    STATUS      deprecated
+    DESCRIPTION
+        "Session state. Deprecated, use
+        rbtwsClSessClientSessSessionState instead."
+    ::= { rbtwsClSessClientSessionEntry 16 }
+
+rbtwsClSessClientSessLoginType OBJECT-TYPE
+    SYNTAX      RbtwsUserAccessType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Login type (mac, web, dot1x or last-resort)."
+    ::= { rbtwsClSessClientSessionEntry 17 }
+
+rbtwsClSessClientSessDot1xAuthMethod OBJECT-TYPE
+    SYNTAX      RbtwsClientAuthenProtocolType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Dot1x Authentication Method."
+    ::= { rbtwsClSessClientSessionEntry 18 }
+
+rbtwsClSessClientSessSessionState OBJECT-TYPE
+    SYNTAX      RbtwsClientSessionState
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Session non-intermediate state."
+    ::= { rbtwsClSessClientSessionEntry 19 }
+
+
+-- Roaming History Table
+-- =====================
+
+rbtwsClSessRoamingHistoryTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbtwsClSessRoamingHistoryEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Roaming History Table.
+        Expansion of Client Session Table."
+    ::= { rbtwsClientSessionDataObjects 2 }
+
+rbtwsClSessRoamingHistoryEntry OBJECT-TYPE
+    SYNTAX      RbtwsClSessRoamingHistoryEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Roaming History Entry."
+    INDEX   { rbtwsClSessRoamHistMacAddress, rbtwsClSessRoamHistIndex }
+    ::= { rbtwsClSessRoamingHistoryTable 1 }
+
+RbtwsClSessRoamingHistoryEntry ::= SEQUENCE {
+        rbtwsClSessRoamHistMacAddress      MacAddress,
+        rbtwsClSessRoamHistIndex           Unsigned32,
+        rbtwsClSessRoamHistApSerialNum     RbtwsApSerialNum,
+        rbtwsClSessRoamHistRadioNum        RbtwsRadioNum,
+        rbtwsClSessRoamHistAccessType      RbtwsAccessType,
+        rbtwsClSessRoamHistApNumOrPort     Unsigned32,
+        rbtwsClSessRoamHistIpAddress       IpAddress,
+        rbtwsClSessRoamHistTimeStamp       TimeStamp
+    }
+
+rbtwsClSessRoamHistMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Client MAC address."
+    ::= { rbtwsClSessRoamingHistoryEntry 1 }
+
+rbtwsClSessRoamHistIndex OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Entry index."
+    ::= { rbtwsClSessRoamingHistoryEntry 2 }
+
+rbtwsClSessRoamHistApSerialNum OBJECT-TYPE
+    SYNTAX      RbtwsApSerialNum
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Serial Number of the AP this client was connected to."
+    ::= { rbtwsClSessRoamingHistoryEntry 3 }
+
+rbtwsClSessRoamHistRadioNum OBJECT-TYPE
+    SYNTAX      RbtwsRadioNum
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of the Radio that provided service to this client."
+    ::= { rbtwsClSessRoamingHistoryEntry 4 }
+
+rbtwsClSessRoamHistAccessType OBJECT-TYPE
+    SYNTAX      RbtwsAccessType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Access type used by this client (via AP, DAP or wired)."
+    ::= { rbtwsClSessRoamingHistoryEntry 5 }
+
+rbtwsClSessRoamHistApNumOrPort OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "AP port number, DAP number, or Port number for wired access."
+    ::= { rbtwsClSessRoamingHistoryEntry 6 }
+
+rbtwsClSessRoamHistIpAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "IP address of the AC (wireless switch)
+         the client or AP was connected to."
+    ::= { rbtwsClSessRoamingHistoryEntry 7 }
+
+rbtwsClSessRoamHistTimeStamp OBJECT-TYPE
+    SYNTAX      TimeStamp
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The difference between the time the session was created
+         on the roamed-to switch and the time the last switch,
+         the one where the user is at currently, started.
+         The timestamp unit is in hundredths of seconds."
+    ::= { rbtwsClSessRoamingHistoryEntry 8 }
+
+
+-- Client Session Statistics Table
+-- ===============================
+
+rbtwsClSessClientSessionStatisticsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RbtwsClSessClientSessionStatisticsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Client Session Statistics Table."
+    ::= { rbtwsClientSessionDataObjects 3 }
+
+rbtwsClSessClientSessionStatisticsEntry OBJECT-TYPE
+    SYNTAX      RbtwsClSessClientSessionStatisticsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Client Session Statistics Table Entry."
+
+
+    INDEX   { rbtwsClSessClientSessStatsMacAddress }
+    ::= { rbtwsClSessClientSessionStatisticsTable 1 }
+
+RbtwsClSessClientSessionStatisticsEntry ::= SEQUENCE {
+        rbtwsClSessClientSessStatsMacAddress     MacAddress,
+        rbtwsClSessClientSessStatsUniPktIn       Counter64,
+        rbtwsClSessClientSessStatsUniOctetIn     Counter64,
+        rbtwsClSessClientSessStatsUniPktOut      Counter64,
+        rbtwsClSessClientSessStatsUniOctetOut    Counter64,
+        rbtwsClSessClientSessStatsMultiPktIn     Counter64,
+        rbtwsClSessClientSessStatsMultiOctetIn   Counter64,
+        rbtwsClSessClientSessStatsEncErrPkt      Counter64,
+        rbtwsClSessClientSessStatsEncErrOctet    Counter64,
+        rbtwsClSessClientSessStatsLastRate       RbtwsRadioRate,
+        rbtwsClSessClientSessStatsLastRssi       RbtwsRssi,
+        rbtwsClSessClientSessStatsLastSNR        Integer32
+    }
+
+rbtwsClSessClientSessStatsMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Client MAC address."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 1 }
+    
+rbtwsClSessClientSessStatsUniPktIn OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Unicast packets in."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 2 }
+
+rbtwsClSessClientSessStatsUniOctetIn OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Unicast octets in."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 3 }
+
+rbtwsClSessClientSessStatsUniPktOut OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Unicast packets out."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 4 }
+
+rbtwsClSessClientSessStatsUniOctetOut OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Unicast octets out."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 5 }
+
+rbtwsClSessClientSessStatsMultiPktIn OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Multicast packets in."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 6 }
+
+rbtwsClSessClientSessStatsMultiOctetIn OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Multicast octets in."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 7 }
+
+rbtwsClSessClientSessStatsEncErrPkt OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of packets with encryption errors."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 8 }
+
+rbtwsClSessClientSessStatsEncErrOctet OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of octets with encryption errors."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 9 }
+
+rbtwsClSessClientSessStatsLastRate OBJECT-TYPE
+    SYNTAX      RbtwsRadioRate
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Last packet data rate."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 10 }
+
+rbtwsClSessClientSessStatsLastRssi OBJECT-TYPE
+    SYNTAX      RbtwsRssi
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "RSSI (Received Signal Strength Indicator) for last packet,
+        in decibels referred to 1 milliwatt (dBm).
+        A higher value indicates a stronger signal."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 11 }
+
+rbtwsClSessClientSessStatsLastSNR OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Last packet data Signal to Noise Ratio."
+    ::= { rbtwsClSessClientSessionStatisticsEntry 12 }
+
+-- ==================================
+--
+-- Scalars
+--
+
+rbtwsClSessTotalSessions OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Total number of sessions."
+    ::= { rbtwsClientSessionDataObjects 4 }
+
+-- ============================================================================
+--
+-- Conformance
+--
+
+rbtwsClientSessionConformance  OBJECT IDENTIFIER ::= { rbtwsClientSessionObjects 2 }
+rbtwsClientSessionCompliances  OBJECT IDENTIFIER ::= { rbtwsClientSessionConformance 1 }
+rbtwsClientSessionGroups       OBJECT IDENTIFIER ::= { rbtwsClientSessionConformance 2 }
+
+-- Compliance
+
+rbtwsClientSessionCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for devices that implement
+        the Client Session MIB."
+    MODULE  -- rbtwsClientSessionMib
+
+    MANDATORY-GROUPS { rbtwsClientSessionCommonGroup }
+
+    ::= { rbtwsClientSessionCompliances 1 }
+
+-- Units of Conformance
+
+rbtwsClientSessionCommonGroup OBJECT-GROUP
+        OBJECTS {
+                 rbtwsClSessClientSessSessionId,
+                 rbtwsClSessClientSessUsername,
+                 rbtwsClSessClientSessIpAddress,
+                 rbtwsClSessClientSessEncryptionType,
+                 rbtwsClSessClientSessVlan,
+                 rbtwsClSessClientSessApSerialNum,
+                 rbtwsClSessClientSessRadioNum,
+                 rbtwsClSessClientSessAccessType,
+                 rbtwsClSessClientSessAuthMethod,
+                 rbtwsClSessClientSessAuthServer,
+                 rbtwsClSessClientSessPortOrNum,
+                 rbtwsClSessClientSessVlanTag,
+                 rbtwsClSessClientSessTimeStamp,
+                 rbtwsClSessClientSessSsid,
+                 rbtwsClSessClientSessState,
+                 rbtwsClSessRoamHistApSerialNum,
+                 rbtwsClSessRoamHistRadioNum,
+                 rbtwsClSessRoamHistAccessType,
+                 rbtwsClSessRoamHistApNumOrPort,
+                 rbtwsClSessRoamHistIpAddress,
+                 rbtwsClSessRoamHistTimeStamp,
+                 rbtwsClSessClientSessStatsUniPktIn,
+                 rbtwsClSessClientSessStatsUniOctetIn,
+                 rbtwsClSessClientSessStatsUniPktOut,
+                 rbtwsClSessClientSessStatsUniOctetOut,
+                 rbtwsClSessClientSessStatsMultiPktIn,
+                 rbtwsClSessClientSessStatsMultiOctetIn,
+                 rbtwsClSessClientSessStatsEncErrPkt,
+                 rbtwsClSessClientSessStatsEncErrOctet,
+                 rbtwsClSessClientSessStatsLastRate,
+                 rbtwsClSessClientSessStatsLastRssi,
+                 rbtwsClSessClientSessStatsLastSNR
+                }
+        STATUS      current
+        DESCRIPTION
+        "Mandatory group of objects implemented to provide
+        Client Session info."
+        ::= { rbtwsClientSessionGroups 1 }
+
+END

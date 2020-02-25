@@ -16,7 +16,7 @@ Juniper-PPPOE-MIB  DEFINITIONS ::= BEGIN
 IMPORTS
     MODULE-IDENTITY, OBJECT-TYPE, Integer32, Counter32, Unsigned32
         FROM SNMPv2-SMI
-    TEXTUAL-CONVENTION, DisplayString, RowStatus, TruthValue, MacAddress
+    TEXTUAL-CONVENTION, DisplayString, RowStatus
         FROM SNMPv2-TC
     MODULE-COMPLIANCE, OBJECT-GROUP
         FROM SNMPv2-CONF
@@ -28,7 +28,7 @@ IMPORTS
         FROM Juniper-TC;
 
 juniPPPoEMIB  MODULE-IDENTITY
-    LAST-UPDATED "200508032058Z"  -- 03-Aug-05 04:58 PM EDT
+    LAST-UPDATED "200507131140Z"  -- 13-Jul-05 11:40 AM EDT
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -47,10 +47,7 @@ juniPPPoEMIB  MODULE-IDENTITY
         effect of creating/deleting corresponding entries in the IF-MIB
         ifTable/ifXTable, and in the Juniper-UNI-IF-MIB.juniIfTable."
     -- Revision History
-    REVISION    "200508032058Z"  -- 03-Aug-05 04:58 PM EDT  - JUNOSe 7.2
-    DESCRIPTION
-        "Added Interface Lockout configuration and state support."
-	REVISION    "200505181201Z"  -- 18-May-05 12:01 PM EDT  - JUNOSe 7.0.1
+    REVISION    "200507131140Z"  -- 13-Jul-05 11:40 AM EDT  - JUNOSe 7.0.1
     DESCRIPTION
         "Added MTU control object."
     REVISION    "200406092058Z"  -- 10-Mar-03 04:58 PM EDT  - JUNOSe 7.0
@@ -188,10 +185,8 @@ JuniPPPoEIfEntry ::= SEQUENCE {
     juniPPPoEIfPADIFlag          JuniEnable,
     juniPPPoEIfAutoconfig        JuniEnable,
     juniPPPoEIfServiceNameTable  Unsigned32,
-    juniPPPoEIfPadrRemoteCircuitIdCapture JuniEnable,
-    juniPPPoEIfMtu               Integer32,
-    juniPPPoEIfLockoutMin        Integer32,
-    juniPPPoEIfLockoutMax        Integer32 }
+	juniPPPoEIfPadrRemoteCircuitIdCapture JuniEnable,
+    juniPPPoEIfMtu               Integer32 }
 
 juniPPPoEIfIfIndex OBJECT-TYPE
     SYNTAX      InterfaceIndex
@@ -329,67 +324,6 @@ juniPPPoEIfMtu OBJECT-TYPE
     DEFVAL    { 1494 }
     ::= { juniPPPoEIfEntry 11 }
 
-juniPPPoEIfLockoutMin OBJECT-TYPE
-    SYNTAX      Integer32 (0..86400)
-    MAX-ACCESS  read-write
-    STATUS      current
-    DESCRIPTION
-        "The lower bound, in seconds, of the time range used to specify 
-        the duration of the lockout of the client from recognition for
-        the specified interface.  This only takes effect if
-        juniPPPoEIfAutoconfig is set for this interface.
-
-        The ability to lockout the client in the event of an error in
-        creating a PPP interface is enabled by default.  The initial lockout
-        duration is this object's value and increases exponentially for
-        each failure that occurs for the client creating a PPP interface
-        for the PPPoE interface within the greater of 15 minutes
-        and juniPPPoEIfLockoutMax.
-
-        The lockout duration for the client will not exceed juniPPPoEIfLockoutMax.
-        If the time between creation errors for the PPP interface for this
-        interface is greater than the greater of 15 minutes and
-        juniPPPoEIfLockoutMax, then the lockout duration reverts to this
-        object's value.
-
-
-        To disable the ability to lockout the client from recognition in the
-        event of an error in creating a PPP interface for the specified interface,
-        the value of this object and juniPPPoEIfLockoutMin must be set to 0.
-        It is not recommended that this lockout feature be disabled except for 
-        debugging purposes or when this interface supports more than one session."
-    DEFVAL    { 0 }
-    ::= { juniPPPoEIfEntry 12 }
-
-juniPPPoEIfLockoutMax OBJECT-TYPE
-    SYNTAX      Integer32 (0..86400)
-    MAX-ACCESS  read-write
-    STATUS      current
-    DESCRIPTION
-        "The upper bound, in seconds, of the time range used to specify 
-        the duration of the lockout of the client from recognition for
-        the specified interface.  This only takes effect if
-        juniPPPoEIfAutoconfig is set for this interface.
-
-        The ability to lockout the client from recognition in the event
-        of an error in creating a PPP interface is enabled by default.
-        The initial lockout duration is juniPPPoEIfLockoutMin and
-        increases exponentially for each failure that occurs for the client
-        interface within the greater of 15 minutes and this object's value.
-
-        The lockout duration for the client will not exceed juniPPPoEIfLockoutMax.
-        If the time between creation errors for the PPP interface for this
-        interface is greater than the greater of 15 minutes and
-        juniPPPoEIfLockoutMax, then the lockout duration reverts to
-        juniPPPoEIfLockoutMin.
-
-        To disable the ability to lockout the client from recognition in the
-        event of an error in creating a PPP interface for the specified interface,
-        the value of this object and juniPPPoEIfLockoutMin must be set to 0.
-        It is not recommended that this lockout feature be disabled except for 
-        debugging purposes or when this interface supports more than one session."
-    DEFVAL    { 0 }
-	::= { juniPPPoEIfEntry 13 }
 
 --
 -- The PPPoE Interface Statistics Table
@@ -588,82 +522,6 @@ juniPPPoEIfStatsRxInvPadRSession OBJECT-TYPE
     DESCRIPTION
         "Number of PADR packets received with invalid session identifiers."
     ::= { juniPPPoEIfStatsEntry 19 }
-
---
--- The PPPoE Interface Client Lockout Table
---
-juniPPPoEIfLockoutTable OBJECT-TYPE
-    SYNTAX      SEQUENCE OF JuniPPPoEIfLockoutEntry
-    MAX-ACCESS  not-accessible
-    STATUS      current
-    DESCRIPTION
-        "The lockout configuration and state of a PPPoE client on this interface."
-    ::= { juniPPPoEIfLayer 4 }
-
-juniPPPoEIfLockoutEntry OBJECT-TYPE
-    SYNTAX      JuniPPPoEIfLockoutEntry
-    MAX-ACCESS  not-accessible
-    STATUS      current
-    DESCRIPTION
-        "Each entry contains the configuration and state of a particular
-         PPPoE interface client lockout."
-    INDEX     { juniPPPoEIfIfIndex, juniPPPoEIfLockoutClientAddress }
-    ::= { juniPPPoEIfLockoutTable 1 }
-
-JuniPPPoEIfLockoutEntry ::= SEQUENCE {
-	juniPPPoEIfLockoutClientAddress     MacAddress,
-	juniPPPoEIfLockoutTime              Integer32,
-	juniPPPoEIfLockoutElapsedTime       Integer32,
-	juniPPPoEIfLockoutNextTime          Integer32 }
-
-juniPPPoEIfLockoutClientAddress OBJECT-TYPE
-    SYNTAX      MacAddress
-    MAX-ACCESS  not-accessible
-    STATUS      current
-    DESCRIPTION
-        "The source MAC address if the client."
-    ::= { juniPPPoEIfLockoutEntry 1 }
-
-juniPPPoEIfLockoutTime OBJECT-TYPE
-    SYNTAX      Integer32 (0..86400)
-    MAX-ACCESS  read-only
-    STATUS      current
-    DESCRIPTION
-        "The time duration, in seconds, currently used to lockout the
-        specified encapsulation type from recognition for the specified
-        interface.  The reported value is within the range specified by
-        juniPPPoEIfLockoutMin and juniPPPoEIfLockoutMax.  A value of 0 
-        indicates that no lockout is occurring for the encapsulation type
-        for the specified interface."
-    ::= { juniPPPoEIfLockoutEntry 2 }
-
-juniPPPoEIfLockoutElapsedTime OBJECT-TYPE
-    SYNTAX      Integer32 (0..86400)
-    MAX-ACCESS  read-only
-    STATUS      current
-    DESCRIPTION
-        "The elapsed time, in seconds, that the specified encapsulation type
-        has been locked-out from recognition for the specified interface. 
-        Its value will not exceed that of juniPPPoEIfLockoutTime.  A value of 
-        0 indicates that no lockout is occurring for the encapsulation type
-        for the specified interface."
-    ::= { juniPPPoEIfLockoutEntry 3 }
-
-juniPPPoEIfLockoutNextTime OBJECT-TYPE
-    SYNTAX      Integer32 (0..86400)
-    MAX-ACCESS  read-only
-    STATUS      current
-    DESCRIPTION
-        "The time duration, in seconds, that will be used to lockout the 
-        specified encapsulation type from recognition for the specified
-        interface for the next event that results in a lockout condition.
-        The reported value is within the range specified by
-        juniPPPoEIfLockoutMin and juniPPPoEIfLockoutMax.  When
-        juniPPPoEIfEnable is set to enable, a value of 0 indicates that
-        lockout is prevented from occurring for the encapsulation type
-        for the specified interface (i.e., juniPPPoEIfLockoutMin and
-        juniPPPoEIfLockoutMax are both set to 0)."
-    ::= { juniPPPoEIfLockoutEntry 4 }
 
 
 -- /////////////////////////////////////////////////////////////////////////////
@@ -1417,11 +1275,10 @@ juniPPPoECompliance9  MODULE-COMPLIANCE
     ::= { juniPPPoECompliances 9 }                                 -- JUNOSe 7.0
 
 juniPPPoECompliance10  MODULE-COMPLIANCE
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
-        "Obsolete compliance statement for entities which implement the Juniper
-        PPPoE MIB.  This statement became obsolete when support was added for
-        lockout configuration."
+        "The compliance statement for entities which implement the Juniper PPPoE
+        MIB."
     MODULE   -- this module
         MANDATORY-GROUPS {
             juniPPPoEGroup8,
@@ -1429,20 +1286,6 @@ juniPPPoECompliance10  MODULE-COMPLIANCE
             juniPPPoESummaryGroup,
             juniPPPoEServiceNameTableGroup }
     ::= { juniPPPoECompliances 10 }                                -- JUNOSe 7.0.1
-
-juniPPPoECompliance11  MODULE-COMPLIANCE
-    STATUS      current
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper PPPoE
-        MIB."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniPPPoEGroup9,
-            juniPPPoESubIfGroup2,
-            juniPPPoESummaryGroup,
-            juniPPPoEServiceNameTableGroup,
-			juniPPPoELockoutTableGroup }
-    ::= { juniPPPoECompliances 11 }                                 -- JUNOSe 7.2
 
 
 --
@@ -1791,8 +1634,8 @@ juniPPPoEGroup8  OBJECT-GROUP
         juniPPPoEIfPADIFlag,
         juniPPPoEIfAutoconfig,
         juniPPPoEIfServiceNameTable,
-        juniPPPoEIfPadrRemoteCircuitIdCapture,
-        juniPPPoEIfMtu,
+		juniPPPoEIfPadrRemoteCircuitIdCapture,
+		juniPPPoEIfMtu,
 
         juniPPPoEIfStatsRxPADI,
         juniPPPoEIfStatsTxPADO,
@@ -1819,60 +1662,5 @@ juniPPPoEGroup8  OBJECT-GROUP
         "A collection of objects providing management of PPPoE interfaces in a
         Juniper product."
     ::= { juniPPPoEGroups 13 }
-
-juniPPPoELockoutTableGroup  OBJECT-GROUP
-    OBJECTS {
-        juniPPPoEIfLockoutTime,
-        juniPPPoEIfLockoutElapsedTime,
-        juniPPPoEIfLockoutNextTime }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of PPPoE lockout
-        tables in a Juniper product."
-    ::= { juniPPPoEGroups 14 }
-
-juniPPPoEGroup9  OBJECT-GROUP
-    OBJECTS {
-        juniPPPoENextIfIndex,
-
-        juniPPPoEIfIfIndex,
-        juniPPPoEIfMaxNumSessions,
-        juniPPPoEIfRowStatus,
-        juniPPPoEIfLowerIfIndex,
-        juniPPPoEIfAcName,
-        juniPPPoEIfDupProtect,
-        juniPPPoEIfPADIFlag,
-        juniPPPoEIfAutoconfig,
-        juniPPPoEIfServiceNameTable,
-        juniPPPoEIfPadrRemoteCircuitIdCapture,
-        juniPPPoEIfMtu,
-        juniPPPoEIfLockoutMin,
-        juniPPPoEIfLockoutMax,
-
-        juniPPPoEIfStatsRxPADI,
-        juniPPPoEIfStatsTxPADO,
-        juniPPPoEIfStatsRxPADR,
-        juniPPPoEIfStatsTxPADS,
-        juniPPPoEIfStatsRxPADT,
-        juniPPPoEIfStatsTxPADT,
-        juniPPPoEIfStatsRxInvVersion,
-        juniPPPoEIfStatsRxInvCode,
-        juniPPPoEIfStatsRxInvTags,
-        juniPPPoEIfStatsRxInvTagLength,
-        juniPPPoEIfStatsRxInvLength,
-        juniPPPoEIfStatsRxInvTypes,
-        juniPPPoEIfStatsRxInvPackets,
-        juniPPPoEIfStatsRxInsufficientResources,
-        juniPPPoEIfStatsTxPADM,
-        juniPPPoEIfStatsTxPADN,
-        juniPPPoEIfStatsRxInvPadISession,
-        juniPPPoEIfStatsRxInvPadRSession,
-
-        juniPPPoEGlobalMotm }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects providing management of PPPoE interfaces in a
-        Juniper product."
-    ::= { juniPPPoEGroups 15 }
 
 END

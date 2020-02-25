@@ -1,0 +1,393 @@
+SNI-BIOS-MIB DEFINITIONS ::= BEGIN
+
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1995
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001
+-- All rights reserved
+--
+--
+
+IMPORTS
+	OBJECT-TYPE								FROM RFC-1212
+	mib-2, DisplayString					FROM RFC1213-MIB
+	TimeTicks, Counter, Gauge, enterprises	FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+-- SNI Server Management MIB nodes
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+
+-- The MIB objects
+ 
+sniBiosVersionMajor OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Major Version of the BIOS"
+	::= { sniBios 1 }
+
+sniBiosVersionMinor OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Minor Version of the BIOS"
+	::= { sniBios 2 }
+
+sniBiosDiagnosticStatus OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"A bit field: 
+BIT            MEANING
+ 0             Timeout reading an adapter ID (eisa)
+ 1             Adapter do not match configuration(eisa)
+ 2             CMOS RAM time found invalid
+ 3             Fixed disk/adapter fails initialization
+ 4             Memory size compare error at POST
+ 5             Invalid configuration information found at POST
+ 6             CMOS RAM checksum is bad
+ 7             Real-time clock lost power"
+	::= { sniBios 3 }
+
+sniBIOSConfiguration OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Configuration word of the pc"
+	::= { sniBios 4 }
+
+-- These "processor" objects should no longer be used from this MIB.
+-- Use "cpuTable" from group "systemBoard" in SRVCTRL.MIB to retrieve
+-- processor information.
+
+sniBIOSProcessors OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of processors"
+	::= { sniBios 5 }
+
+sniProcessorEntryTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniProcessorEntry
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table of all processors in the system"
+	::= { sniBios 6 }
+
+sniProcessorEntry OBJECT-TYPE
+	SYNTAX	SniProcessorEntry
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ sniBIOSProcessorIndex }
+	::= { sniProcessorEntryTable 1 }
+
+SniProcessorEntry ::= 
+	SEQUENCE {
+		sniBIOSProcessorIndex
+			INTEGER,
+		sniBIOSProcessor
+			INTEGER,
+		sniBIOSProcessorState
+			INTEGER
+	}
+
+sniBIOSProcessorIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Index of the processor"
+	::= { sniProcessorEntry 1 }
+
+sniBIOSProcessor OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		p386(3),
+		p486(4),
+		pentium(5),
+		ppro(6)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the processor in the system"
+	::= { sniProcessorEntry 2 }
+
+sniBIOSProcessorState OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		ok(2),
+		failed(3)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Current state of the processor"
+	::= { sniProcessorEntry 3 }
+
+sniBIOSMemory OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Memory size of the PC in KB"
+	::= { sniBios 7 }
+
+sniBIOSNumHDs OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION
+"Number of hard disks"
+	::= { sniBios 8 }
+
+sniBIOSInterruptTable OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Bit vector, Bit N = IRQ N enabled"
+	::= { sniBios 9 }
+
+sniSerialEntryTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniSerialEntry
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"(null)"
+	::= { sniBios 10 }
+
+sniSerialEntry OBJECT-TYPE
+	SYNTAX	SniSerialEntry
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ sniSerialPortIndex }
+	::= { sniSerialEntryTable 1 }
+
+SniSerialEntry ::= 
+	SEQUENCE {
+		sniSerialPortIndex
+			INTEGER,
+		sniSerialPortAddress
+			INTEGER,
+		sniSerialWordLength
+			INTEGER,
+		sniSerialStopBits
+			INTEGER,
+		sniSerialParity
+			INTEGER,
+		sniSerialPortName
+			DisplayString
+	}
+
+sniSerialPortIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Index of the Serial port entry"
+	::= { sniSerialEntry 1 }
+
+sniSerialPortAddress OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Address of the io port of the serial interface"
+	::= { sniSerialEntry 2 }
+
+sniSerialWordLength OBJECT-TYPE
+	SYNTAX	INTEGER(5..8)
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Word length used"
+	::= { sniSerialEntry 3 }
+
+sniSerialStopBits OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Stop bits 1(1), 2(1,5) 3(2)"
+	::= { sniSerialEntry 4 }
+
+sniSerialParity OBJECT-TYPE
+	SYNTAX	INTEGER{
+		true(1),
+		false(2)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"true iff parity is on"
+	::= { sniSerialEntry 5 }
+
+sniSerialPortName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Name of the serial interface"
+	::= { sniSerialEntry 6 }
+	
+
+sniParallelEntryTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniParallelEntry
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"(null)"
+	::= { sniBios 11 }
+
+sniParallelEntry OBJECT-TYPE
+	SYNTAX	SniParallelEntry
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ sniParallelPortIndex }
+	::= { sniParallelEntryTable 1 }
+
+SniParallelEntry ::= 
+	SEQUENCE {
+		sniParallelPortIndex
+			INTEGER,
+		sniParallelPortAddress
+			INTEGER,
+		sniParallelStatus
+			INTEGER,
+		sniParallelPortName
+			DisplayString
+	}
+
+sniParallelPortIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Index of the parallel port"
+	::= { sniParallelEntry 1 }
+
+sniParallelPortAddress OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Address of the io port of the parallel interface"
+	::= { sniParallelEntry 2 }
+
+sniParallelStatus OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Contents of the parallel interface status register"
+	::= { sniParallelEntry 3 }
+
+sniParallelPortName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Name of the parallel interface"
+	::= { sniParallelEntry 4 }
+	
+	
+sniBIOSReboot OBJECT-TYPE
+	SYNTAX	INTEGER{
+		reboot(1)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Warm-Boot of the Computer"
+	::= { sniBios 12 }
+
+sniBIOSSystemType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		pce5s(2),
+		pce5smp(3),
+		pce5sred(4),
+		pce6s(5),
+		pce6smp(6),
+		pcd5tg(7),
+		pcd5t(8),
+		primergy150(9),
+        primergy350(10),
+        primergy550(11),
+        primergy750(12),
+        primergy560(13),
+        primergy760(14),
+        pcdse(50)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+				"The system type of the host. 
+                 This value should no longer be used for cabinet identification. It will no
+                 longer be supported in next versions!! Use cabinetIdentNumber to identify the
+                 housing type and cabinetSystemName for the type of the cabinet!"
+	::= { sniBios 13 }
+
+sniBiosRevision OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The BIOS revision string."
+	::= { sniBios 14 }
+
+END

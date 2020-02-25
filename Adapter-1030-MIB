@@ -1,0 +1,845 @@
+-- Copyright(c) 2001-2003, LSI Logic
+-- MIB file for 1030 controllers
+-- File: Ver1.5
+-- Previous: Ver 1.4
+-- Date: 10-28-2003
+-- Date: 01-30-2004
+-- Date: 02-25-2004
+-- Date: 03-17-2004
+-- Date: 05-17-2004
+-- Revision : For LSI 1030 support
+
+Adapter-1030-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    enterprises, Counter        FROM RFC1155-SMI
+    Gauge                       FROM RFC1155-SMI
+    PhysAddress                 FROM RFC1213-MIB
+    DisplayString               FROM RFC1213-MIB
+    OBJECT-TYPE                 FROM RFC-1212;
+
+--------------------------------------------------------------------------------
+--
+-- LSI specific object identifiers.
+--
+--------------------------------------------------------------------------------
+lsi                             OBJECT IDENTIFIER ::= {enterprises 3582}
+lsiRAID                         OBJECT IDENTIFIER ::= { lsi 2 }
+c1030                           OBJECT IDENTIFIER ::= { lsiRAID 2 }
+--------------------------------------------------------------------------------
+--
+-- Management/monitoring MIB object groups.
+--
+--------------------------------------------------------------------------------
+versionInfo                     OBJECT IDENTIFIER ::= {c1030 6}
+raidTraps                       OBJECT IDENTIFIER ::= {c1030 5}
+lsiSparePool                    OBJECT IDENTIFIER ::= {c1030 4}
+lsiDevice                       OBJECT IDENTIFIER ::= {c1030 3}
+lsiLogicalDrive                 OBJECT IDENTIFIER ::= {c1030 2}
+lsiAdapter                      OBJECT IDENTIFIER ::= {c1030 1}
+
+--------------------------------------------------------------------------------
+--
+-- Version Information group.
+--
+--------------------------------------------------------------------------------
+
+mibRevMajor                     OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The major revision level of the MIB"
+    ::= { versionInfo 1 }
+
+mibRevMinor                     OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The minor revision level of the MIB"
+    ::= { versionInfo 2 }
+
+agentModuleName                 OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(0..63))
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The module name"
+    ::= { versionInfo 3 }
+
+agentModuleVersion              OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(0..63))
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The module version in xx.yy.zz format. Where xx is the major version number and yy is the minor version number and zz is the release version number."
+    ::= { versionInfo 4 }
+
+releaseDate                     OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(0..63))
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "Module Release Date"
+    ::= { versionInfo 5 }
+
+--------------------------------------------------------------------------------
+
+-- Adapter Table Definition
+
+adapterTable                    OBJECT-TYPE
+    SYNTAX                      SEQUENCE OF AdapterEntry
+    ACCESS                      not-accessible
+    STATUS                      optional
+    DESCRIPTION                 "A List of adapter Entries containing Information/Properties about the adapters on the Controller."
+    ::= { lsiAdapter 2 }
+
+adpNumber                       OBJECT-TYPE
+    SYNTAX                      Gauge
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The present number of rows in the adapter table."
+    ::= { lsiAdapter 1 }
+
+    adapterEntry                OBJECT-TYPE
+    SYNTAX                      AdapterEntry
+    ACCESS                      not-accessible
+    STATUS                      mandatory
+    DESCRIPTION                 "An Entry in the adapter table."
+    INDEX                       { adapterID }
+    ::= { adapterTable 1 }
+
+    AdapterEntry ::=
+        SEQUENCE {
+            adapterID           INTEGER,
+            numLogicalDrives    INTEGER,
+            initiatorID         INTEGER,
+            firmwareVersion     DisplayString,
+            biosVersion         DisplayString,
+            subsystemId         INTEGER,
+            subsystemVendorId   INTEGER,
+            productName         DisplayString,
+            driverVersion       DisplayString,
+            spinupDelay         INTEGER,
+            adapterType         INTEGER,
+            numDevices          INTEGER
+    }
+
+-- defines for each attribute in AdapterEntry
+
+adapterID                       OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "AdapterID for this Adapter.(Unique)"
+    ::= { adapterEntry 1 }
+
+numLogicalDrives                OBJECT-TYPE
+    SYNTAX                      INTEGER (0..8)
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Number of Logical Drives Configured on this Adapter."
+    ::= { adapterEntry 2 }
+
+initiatorID                     OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "SCSI ID for this Adapter."
+    ::= { adapterEntry 3 }
+
+firmwareVersion                 OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The Firmware Version of the Firmware running on this adapter."
+    ::= { adapterEntry 4 }
+
+biosVersion                     OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The Bios Version of the BIOS Present in the Flash ROM on this adapter."
+    ::= { adapterEntry 5 }
+
+subsystemId                     OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The PCI sub system ID of this adapter"
+    ::= { adapterEntry 6 }
+
+subsystemVendorId               OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The PCI sub system vendor ID of this adapter"
+    ::= { adapterEntry 7 }
+
+productName                     OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The enriched formation of the adapter retrieved from the firmware"
+    ::= { adapterEntry 8 }
+
+driverVersion                   OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The version of the driver"
+    ::= { adapterEntry 9 }
+
+spinupDelay                     OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "This is the Spinup Delay for Spinning Up Physical Drives at Firmware Initialization Time."
+    ::= { adapterEntry 10 }
+
+adapterType                     OBJECT-TYPE
+     SYNTAX                     INTEGER
+                                {
+                                scsi(1),
+                                scsioverfc(2),
+                                ipoverfc(3)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Type of the adapter."
+    ::= { adapterEntry 11 }
+
+numDevices                      OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "No of devices attached to the adapter"
+    ::= { adapterEntry 12 }
+
+-- Logical Drive Table Definition
+
+logicaldriveTable               OBJECT-TYPE
+    SYNTAX                      SEQUENCE OF LogicaldriveEntry
+    ACCESS                      not-accessible
+    STATUS                      optional
+    DESCRIPTION                 "A List of Logical Drive Entries containing Information/Properties about the Logical Drives Configured in the System."
+    ::= { lsiLogicalDrive 2 }
+
+ldNumber                        OBJECT-TYPE
+    SYNTAX                      Gauge
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The present number of rows in the ld table."
+    ::= { lsiLogicalDrive 1 }
+
+logicaldriveEntry               OBJECT-TYPE
+    SYNTAX                      LogicaldriveEntry
+    ACCESS                      not-accessible
+    STATUS                      optional
+    DESCRIPTION                 "An Entry in the Logical Drive Table."
+    INDEX                       { logicalDriveID }
+    ::= { logicaldriveTable 1 }
+
+    LogicaldriveEntry ::=
+        SEQUENCE {
+            logicalDriveID      INTEGER,
+            ldAdapterID         INTEGER,
+            ldState             INTEGER,
+            ldStatus            INTEGER,
+            sizeInMB            INTEGER,
+            raidLevel           INTEGER,
+            stripeSize          INTEGER,
+            numberOfStripes     INTEGER,
+            resyncProgress      INTEGER,
+            physicalDrvs        DisplayString,
+            quiesced            INTEGER,
+            sparepoolIDs        DisplayString
+        }
+
+-- defines for each attribute in LogicaldriveEntry
+
+logicalDriveID                  OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Logical Drive ID for this Logical Drive Entry(Unique)."
+    ::= { logicaldriveEntry 1 }
+
+ldAdapterID                     OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The Adapter ID for this Instance of Adapter/LogicalDrive object."
+    ::= { logicaldriveEntry 2 }
+
+ldState                         OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                optimal(1),
+                                degraded(2),
+                                failed(3)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The State of this Logical Drive."
+    ::= { logicaldriveEntry 3 }
+
+ldStatus                        OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                disabled(2),
+                                enabled(1)
+                                }
+    ACCESS                      read-write
+    STATUS                      optional
+    DESCRIPTION                 "The Status of this Logical Drive."
+    ::= { logicaldriveEntry 4 }
+
+sizeInMB                        OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The Configured Size of this Logical Drive."
+    ::= { logicaldriveEntry 5 }
+
+raidLevel                       OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                integratedStriping(1),
+                                integratedMirroringEnhanced(2),
+                                integratedMirroring(3)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Configured Raid Level for this Logical Drive."
+    ::= { logicaldriveEntry 6 }
+
+stripeSize                      OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                notApplicable (1),
+                                sixtyfourKB (64),
+                                onetwentyeightKB (128),
+                                twofiftysixKB (256),
+                                fivetwelveKB (512),
+                                onezerotwofourKB (1024)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Configured Stripe Size for this Logical Drive in KB."
+    ::= { logicaldriveEntry 7 }
+
+numberOfStripes                 OBJECT-TYPE
+    SYNTAX                      INTEGER (1..6)
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Configured Number of Stripes for this Logical Drive."
+    ::= { logicaldriveEntry 8 }
+
+resyncProgress                  OBJECT-TYPE
+    SYNTAX                      INTEGER    {
+                                noResyncInProgress(2),
+                                resyncIsCurrentlyInProgress(1)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "RESYNCHRONIZATION Progress for this Logical Drive."
+    ::= { logicaldriveEntry 9 }
+
+physicalDrvs                    OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..48))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Physical drive id(s) which are part of this LD."
+    ::= { logicaldriveEntry 10 }
+
+
+quiesced                        OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                true(1),
+                                false(2)
+                                }
+    ACCESS                      read-write
+    STATUS                      optional
+    DESCRIPTION                 "Physical Disk I/O for this Logical Drive are quiesced or not."
+    ::= { logicaldriveEntry 11 }
+
+sparepoolIDs                    OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..48))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Spare pool id(s) which are associated with this LD."
+    ::= { logicaldriveEntry 12 }
+
+-- Device Table Definition
+
+deviceTable                     OBJECT-TYPE
+    SYNTAX                      SEQUENCE OF DeviceEntry
+    ACCESS                      not-accessible
+    STATUS                      optional
+    DESCRIPTION                 "A List of Physical Device Entries containing Information about the Physical Devices in the System."
+    ::= { lsiDevice 2 }
+
+pdNumber                        OBJECT-TYPE
+    SYNTAX                      Gauge
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The present number of rows in the device table."
+    ::= { lsiDevice 1 }
+
+deviceEntry                     OBJECT-TYPE
+        SYNTAX                  DeviceEntry
+        ACCESS                  not-accessible
+        STATUS                  optional
+        DESCRIPTION             "An Entry in the Device Table."
+        INDEX                   { physDevID  }
+    ::= { deviceTable 1 }
+
+    DeviceEntry ::=
+        SEQUENCE {
+            physDevID           INTEGER,
+            physAdapterID       INTEGER,
+            targetID            INTEGER,
+            bus                 INTEGER,
+            lun                 INTEGER,
+            logicalDriveNumber  INTEGER,
+            state               INTEGER,
+            sizeMB              INTEGER,
+            deviceType          INTEGER,
+            scsiLevel           INTEGER,
+            rebuildProgress     DisplayString,
+            errorCount          INTEGER,
+            transferSpeed       INTEGER,
+            transferWidth       INTEGER,
+            vendor              DisplayString,
+            productID           DisplayString,
+            productRev          DisplayString,
+            physSpID            INTEGER
+        }
+
+-- defines for each attribute in PhysicaldriveEntry
+
+physDevID                       OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The unique Device ID"
+    ::= { deviceEntry 1 }
+
+physAdapterID                   OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The Adapter ID for this Instance of Adapter/Device Instance."
+    ::= { deviceEntry 2 }
+
+targetID                        OBJECT-TYPE
+    SYNTAX                      INTEGER(0..15)
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "SCSI Target ID at which this Device is present."
+    ::= { deviceEntry 3 }
+
+bus                             OBJECT-TYPE
+    SYNTAX                      INTEGER(0..15)
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "BUS at which this Device is present."
+    ::= { deviceEntry 4 }
+
+lun                             OBJECT-TYPE
+    SYNTAX                      INTEGER(0..255)
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Logical Unit ID at which this Device is present."
+    ::= { deviceEntry 5 }
+
+logicalDriveNumber              OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Logical drive where this Device is present. -1 in case it is not part of any LD."
+    ::= { deviceEntry 6 }
+
+state                           OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                online(1),
+                                missing-notResponding(2),
+                                notCompatible(3),
+                                failed(4),
+                                initializing(5),
+                                offlineRequested(6),
+                                failedRequested(7),
+                                offline(256)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Current State of this Device."
+    ::= { deviceEntry 7 }
+
+sizeMB                          OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Actual Size of this Device in Mega Byte(1024*1024 bytes)."
+    ::= { deviceEntry 8 }
+
+deviceType                      OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                disk(9),
+                                tape(1),
+                                printer(2),
+                                processor(3),
+                                worm(4),
+                                cdrom(5),
+                                scanner(6),
+                                optical(7),
+                                changer(8),
+                                dvd(10)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Type of this Device."
+    ::= { deviceEntry 9 }
+
+scsiLevel                       OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                scsi1(1),
+                                scsi2(2),
+                                scsi3(3)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "ANSI SCSI Level Conformance of this Device."
+    ::= { deviceEntry 10 }
+
+rebuildProgress                 OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..25))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Rebuild Progress(% Completed) for this Physical Drive if the Physical Drive State is Rebuild."
+    ::= { deviceEntry 11 }
+
+errorCount                      OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "No of errors occurred on this Drive Since it was Configured. This is applicable if the physical disk is part of a Logical drive"
+    ::= { deviceEntry 12 }
+
+transferSpeed                   OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                asynchronous(1),
+                                scsi(2),
+                                fast(3),
+                                ultra(4),
+                                ultra2(5),
+                                ultra160(6),
+                                ultra320(7)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Data transfer rate."
+    ::= { deviceEntry 13 }
+
+transferWidth                   OBJECT-TYPE
+    SYNTAX                      INTEGER {
+                                unknown(256),
+                                narrow-8bit(1),
+                                wide-16bit(2)
+                                }
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Data transfer width."
+    ::= { deviceEntry 14 }
+
+vendor                          OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..25))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Vendor Identification of the device."
+    ::= { deviceEntry 15 }
+
+productID                       OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..25))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Product Identification of the device."
+    ::= { deviceEntry 16 }
+
+productRev                      OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..25))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Product Revision Level of the device."
+    ::= { deviceEntry 17 }
+
+physSpID                        OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Spare pool membership ID. If not a member then it will be -1."
+    ::= { deviceEntry 18 }
+
+-- Spare pool Table Definition
+
+sparepoolTable                  OBJECT-TYPE
+    SYNTAX                      SEQUENCE OF SparepoolEntry
+    ACCESS                      not-accessible
+    STATUS                      mandatory
+    DESCRIPTION                 "A List of Spare Pool Entries containing Information about the sparepools in the System."
+    ::= { lsiSparePool 2 }
+
+spNumber                        OBJECT-TYPE
+    SYNTAX                      Gauge
+    ACCESS                      read-only
+    STATUS                      mandatory
+    DESCRIPTION                 "The present number of rows in the device table."
+    ::= { lsiSparePool 1 }
+
+sparepoolEntry                  OBJECT-TYPE
+    SYNTAX                      SparepoolEntry
+    ACCESS                      not-accessible
+    STATUS                      mandatory
+    DESCRIPTION                 "An Entry in the SparePool Table."
+    INDEX                       { spID  }
+    ::= { sparepoolTable 1 }
+
+    SparepoolEntry ::=
+        SEQUENCE {
+            spID                INTEGER,
+            ldIDs               DisplayString,
+            noPhyDrvs           INTEGER,
+            drvIDs              DisplayString
+        }
+
+-- defines for each attribute in PhysicaldriveEntry
+
+spID                            OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The unique Sparepool ID"
+    ::= { sparepoolEntry 1 }
+
+ldIDs                           OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..25))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The Logical Drive ID(s) where this pool is associated."
+    ::= { sparepoolEntry 2 }
+
+noPhyDrvs                       OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The number of drives attached to this pool."
+    ::= { sparepoolEntry 3 }
+
+drvIDs                          OBJECT-TYPE
+    SYNTAX                      DisplayString (SIZE(1..25))
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "The physical Drive ID(s) which are associated with this sparepool."
+    ::= { sparepoolEntry 4 }
+
+-- Following are the Objects defined for Traps
+
+rtAdapterNumber                 OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Adapter ID for which Trap is generated."
+    ::= { raidTraps 1001 }
+
+rtLogicalDriveNumber            OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Logical Drive Number for which Trap is generated."
+    ::= { raidTraps 1002 }
+
+rtTargetID                      OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Device ID of the Physical Drive for which Trap is Generated."
+    ::= { raidTraps 1003 }
+
+rtOldDriveState                 OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Old State of Logical/Physical Drive, when a State Change Trap is Generated."
+    ::= { raidTraps 1004 }
+
+rtNewDriveState                 OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "New State of Logical/Physical Drive, when a State Change Trap is Generated."
+    ::= { raidTraps 1005 }
+
+rtSenseKey                      OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Check Condition Sense-Key reported by Physical Drive for which Trap is Generated."
+    ::= { raidTraps 1006 }
+
+rtASC                           OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Check Condition Additional Sense Code (ASC) reported by Physical Drive for which Trap is Generated."
+    ::= { raidTraps 1007 }
+
+rtASCQ                          OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Check Condition Additional Sense Code Qualifier (ASCQ) reported by Physical Drive for which Trap is Generated."
+    ::= { raidTraps 1008 }
+
+rtLUN                           OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "LUN for which Trap is Generated."
+    ::= { raidTraps 1009 }
+
+rtProduct                       OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Product name for which Trap is Generated."
+    ::= { raidTraps 1010 }
+
+rtVendor                        OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Vendor name for which Trap is Generated."
+    ::= { raidTraps 1011 }
+
+rtSMART                         OBJECT-TYPE
+    SYNTAX                      INTEGER
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Sense information for which Trap is Generated."
+    ::= { raidTraps 1012 }
+
+rtOldDriveStatus                OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "Old Status of LogicalDrive, when a Status Change Trap is Generated."
+    ::= { raidTraps 1013 }
+
+rtNewDriveStatus                OBJECT-TYPE
+    SYNTAX                      DisplayString
+    ACCESS                      read-only
+    STATUS                      optional
+    DESCRIPTION                 "New Status of Logical Drive, when a Status Change Trap is Generated."
+    ::= { raidTraps 1014 }
+
+-- Following are the trap definitions, which use variables defined
+-- within the object lsiRaidMib.
+
+rtConfigUpdated TRAP-TYPE
+    ENTERPRISE raidTraps
+    VARIABLES { rtAdapterNumber }
+    DESCRIPTION "Adapter-%d: A New Configuration has been written."
+    --#TYPE "RAID Trap: Configuration Updated"
+    --#SUMMARY "Host Adapter-%d: A New Configuration has been written."
+    --#ARGUMENTS { 0 }
+    --#SEVERITY INFORMATIONAL
+    --#STATE OPERATIONAL
+    ::= 9001
+
+rtPhysicalDriveStateChange TRAP-TYPE
+    ENTERPRISE raidTraps
+    VARIABLES
+        {
+        rtAdapterNumber,
+        rtTargetID,
+        rtOldDriveState,
+        rtNewDriveState
+        }
+    DESCRIPTION "Adapter-%d, Target-%d: Drive State Changed from %s to %s."
+    --#TYPE "RAID Trap: Physical Drive State Change"
+    --#SUMMARY "Adapter-%d, Target-%d: Drive State Changed from %s to %s."
+    --#ARGUMENTS { 0, 1, 2, 3 }
+    --#SEVERITY INFORMATIONAL
+    --#STATE OPERATIONAL
+    ::= 9002
+
+rtLogicalDriveStateChange TRAP-TYPE
+    ENTERPRISE raidTraps
+    VARIABLES
+        {
+        rtAdapterNumber,
+        rtLogicalDriveNumber,
+        rtOldDriveState,
+        rtNewDriveState
+        }
+    DESCRIPTION "Adapter-%d, Logical Drive-%d: State Changed from %s to %s."
+    --#TYPE "RAID Trap: Logical Drive State Change"
+    --#SUMMARY "Adapter-%d, Logical Drive-%d: State Changed from %s to %s."
+    --#ARGUMENTS { 0, 1, 2, 3 }
+    --#SEVERITY INFORMATIONAL
+    --#STATE OPERATIONAL
+    ::= 9003
+
+rtResyncStarted TRAP-TYPE
+    ENTERPRISE raidTraps
+    VARIABLES
+        {
+        rtAdapterNumber,
+        rtLogicalDriveNumber
+        }
+    DESCRIPTION "Adapter-%d, Logical Drive-%d: Resynchronization Started."
+    --#TYPE "RAID Trap: Resynchronization Started"
+    --#SUMMARY "Adapter-%d, Logical Drive-%d: Resynchronization Started."
+    --#ARGUMENTS { 0, 1 }
+    --#SEVERITY INFORMATIONAL
+    --#STATE OPERATIONAL
+    ::= 9004
+
+rtResyncCompleted TRAP-TYPE
+    ENTERPRISE raidTraps
+    VARIABLES
+        {
+        rtAdapterNumber,
+        rtLogicalDriveNumber
+        }
+    DESCRIPTION "Adapter-%d, Logical Drive-%d: Resynchronization Completed Successfully."
+    --#TYPE "RAID Trap: Resynchronization Completed"
+    --#SUMMARY "Adapter-%d, Logical Drive-%d: Resynchronization Completed Successfully."
+    --#ARGUMENTS { 0, 1 }
+    --#SEVERITY INFORMATIONAL
+    --#STATE OPERATIONAL
+    ::= 9005
+
+rtNewDriveInserted TRAP-TYPE
+    ENTERPRISE raidTraps
+    VARIABLES
+        {
+        rtAdapterNumber,
+        rtTargetID
+        }
+    DESCRIPTION "Adapter-%d, Target-%d: New Device Inserted."
+    --#TYPE "RAID Trap: New Drive Inserted"
+    --#SUMMARY "Adapter-%d, Target-%d: New Device Inserted."
+    --#ARGUMENTS { 0, 1 }
+    --#SEVERITY INFORMATIONAL
+    --#STATE OPERATIONAL
+    ::= 9006
+
+rtDeviceFailed TRAP-TYPE
+    ENTERPRISE raidTraps
+    VARIABLES
+        {
+        rtAdapterNumber,
+        rtTargetID
+        }
+    DESCRIPTION "Adapter-%d, Target-%d: Device Removed/Failed."
+    --#TYPE "RAID Trap: Device Removed/Failed"
+    --#SUMMARY "Adapter-%d, Target-%d: Device Removed/Failed."
+    --#ARGUMENTS { 0, 1 }
+    --#SEVERITY INFORMATIONAL
+    --#STATE OPERATIONAL
+    ::= 9007
+
+END

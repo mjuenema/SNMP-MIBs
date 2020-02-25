@@ -6,7 +6,7 @@
 --   Extensions for Policy management
 --
 -- Copyright (c) 2000, 2002 Unisphere Networks, Inc.
--- Copyright (c) 2002, 2003, 2005 Juniper Networks, Inc.
+-- Copyright (c) 2002, 2003 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -26,7 +26,7 @@ IMPORTS
         FROM Juniper-MIBs;
 
 juniPolicyMIB  MODULE-IDENTITY
-    LAST-UPDATED "200508081821Z"  -- 08-Aug-05 02:21 PM EDT
+    LAST-UPDATED "200310211905Z"  -- 21-Oct-03 03:05 PM EDT
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -38,12 +38,6 @@ juniPolicyMIB  MODULE-IDENTITY
     DESCRIPTION
         "The Policy MIB for the Juniper Networks enterprise."
     -- Revision History
-    REVISION    "200508081821Z"  -- 08-Aug-05 02:21 PM EDT  - JUNOSe 7.2
-    DESCRIPTION
-        "Add support for ATM Cell Mode configuration."
-    REVISION    "200502011558Z"  -- 01-Feb-05 10:58 AM EST  - JUNOSe 7.0
-    DESCRIPTION
-        "Add attachment statistics preserve attribute."
     REVISION    "200310211905Z"  -- 21-Oct-03 03:05 PM EDT  - JUNOSe 5.3
     DESCRIPTION
         "Policy precedence enhancements.
@@ -111,8 +105,7 @@ JuniPolicyAttachmentType ::= TEXTUAL-CONVENTION
                     noPolicy(0),
                     inputPolicy(1),
                     outputPolicy(2),
-                    secondaryInputPolicy(4),
-					auxiliaryInputPolicy(7) }
+                    secondaryInputPolicy(4) }
 
 JuniPolicyForwardingType ::= TEXTUAL-CONVENTION
     STATUS      current
@@ -199,8 +192,7 @@ JuniPolicyEntry ::= SEQUENCE {
     juniPolicyErrorValue     Integer32,
     juniPolicyName           DisplayString,
     juniPolicyReferenceCount Counter32,
-    juniPolicyRuleNextIndex  Integer32,
-    juniPolicyAtmCellModeEnable TruthValue }
+    juniPolicyRuleNextIndex  Integer32 }
 
 juniPolicyId OBJECT-TYPE
     SYNTAX      Integer32 (0..2147483647)
@@ -320,13 +312,6 @@ juniPolicyRuleNextIndex OBJECT-TYPE
         it is assumed that index allocation is unintended."
     ::= { juniPolicyEntry 8 }
 
-juniPolicyAtmCellModeEnable OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "Specifies whether the policy is in ATM Cell Mode."
-    ::= { juniPolicyEntry 9 }
 
 --
 -- The Policy Rule table
@@ -401,8 +386,7 @@ juniPolicyRuleType OBJECT-TYPE
                     trafficClassRule(6),
                     forwardRule(7),
                     logRule(8),
-                    colorRule(10),
-		    exceptionRule(11) }
+                    colorRule(10) }
     MAX-ACCESS  read-only
     STATUS      deprecated
     DESCRIPTION
@@ -1195,8 +1179,7 @@ juniPolicyRuleType2 OBJECT-TYPE
                     trafficClassRule(6),
                     forwardRule(7),
                     logRule(8),
-                    colorRule(10),
-		    exceptionRule(11) }
+                    colorRule(10) }
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
@@ -1780,55 +1763,6 @@ juniPolicyClassifierGroupPrecedence OBJECT-TYPE
         "The precedence value for this classifier within this policy."
     DEFVAL     { 100 }
     ::= {juniPolicyClassifierGroupEntry 4 }
-
---
--- Exception rule  table.
---
-juniExceptionRuleTable OBJECT-TYPE
-    SYNTAX           SEQUENCE OF JuniExceptionRuleEntry
-    MAX-ACCESS  not-accessible
-    STATUS            current
-    DESCRIPTION
-        "A list of entries which provide Exception rule data.  Creation of entries
-        in the table result in a corresponding entry being created in the policy
-        rule table."
-    ::= { juniPolicy 25 }
-
-juniExceptionRuleEntry OBJECT-TYPE
-    SYNTAX           JuniExceptionRuleEntry
-    MAX-ACCESS  not-accessible
-    STATUS            current
-    DESCRIPTION
-        "An Exception rule entry."
-    INDEX     { juniPolicyRulePolicyId2,
-                juniPolicyRuleClaclId,
-                juniPolicyRuleId2 }
-    ::= { juniExceptionRuleTable 1 }
-
-JuniExceptionRuleEntry ::= SEQUENCE {
-    juniExceptionRowStatus   RowStatus,
-    juniExceptionApplication  INTEGER }
-
-juniExceptionRowStatus OBJECT-TYPE
-    SYNTAX           RowStatus
-    MAX-ACCESS  read-create
-    STATUS            current
-    DESCRIPTION
-        "Controls creation/deletion of conceptual rows within this table.
-
-        The exception field is mandatory and must be specified.
-
-        Modes supported are create-and-go and destroy. "
-    ::= { juniExceptionRuleEntry 1 }
-
-juniExceptionApplication OBJECT-TYPE
-    SYNTAX      INTEGER {
-                    http-redirect (1) }
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "The application that will receive the packet exceptioned because of this policy action."
-    ::= { juniExceptionRuleEntry 2 }
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2836,8 +2770,7 @@ JuniPolicyIfAttachEntry ::= SEQUENCE {
     juniPolicyIfAttachPolicyType     JuniPolicyAttachmentType,
     juniPolicyIfAttachRowStatus      RowStatus,
     juniPolicyIfAttachPolicyId       Integer32,
-    juniPolicyIfAttachStatsEnable    TruthValue,
-    juniPolicyIfAttachStatsPreserve  TruthValue }
+    juniPolicyIfAttachStatsEnable    TruthValue }
 
 juniPolicyIfAttachInterfaceId OBJECT-TYPE
     SYNTAX      InterfaceIndex
@@ -2921,28 +2854,9 @@ juniPolicyIfAttachStatsEnable OBJECT-TYPE
         This object may be modified while the row is active.  The desired value
         must be set before the policy is attached or in a multiple object
         varbind.  Failure to do so will result in the policy being attached with
-        the previous value of juniPolicyIfAttachStatsEnable."
+        the previous value of juniPolicyStatsEnable."
     DEFVAL    { false }
     ::= { juniPolicyIfAttachEntry 6 }
-
-juniPolicyIfAttachStatsPreserve OBJECT-TYPE
-    SYNTAX      TruthValue
-    MAX-ACCESS  read-create
-    STATUS      current
-    DESCRIPTION
-        "This object is used to control the preserving of statistics when a policy
-        is attached to an interface that already has a policy attachment.
-
-        Set this object to true to preserve statistics.
-
-	Get and GetNext will always return false.
-
-        This object may be modified while the row is active.  The desired value
-        must be set before the policy is attached or in a multiple object
-        varbind.  Failure to do so will result in the policy being attached with
-        the previous value of juniPolicyIfAttachStatsPreserve."
-    DEFVAL    { false }
-    ::= { juniPolicyIfAttachEntry 7 }
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3984,11 +3898,10 @@ juniPolicyCompliance7  MODULE-COMPLIANCE
     ::= { juniPolicyCompliances 7 }                                -- JUNOSe 5.2
 
 juniPolicyCompliance8  MODULE-COMPLIANCE
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper
-        policy management MIB. This statement was made obsolete when
-        support for policy sharing was added."
+        policy management MIB."
     MODULE  -- this module
         MANDATORY-GROUPS {
             juniPolicyBaseGroup2,
@@ -4034,113 +3947,6 @@ juniPolicyCompliance8  MODULE-COMPLIANCE
                 "The traffic class rule group is mandatory only for entities
                 that implement traffic class policy management."
     ::= { juniPolicyCompliances 8 }                                -- JUNOSe 5.3
-
-juniPolicyCompliance9  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper
-        policy management MIB. This statement was made obsolete when ATM-cell-mode
-        support was added to the policy configuration."
-    MODULE  -- this module
-        MANDATORY-GROUPS {
-            juniPolicyBaseGroup2,
-            juniPolicyClaclGrpGroup,
-            juniClassifierControlListGroup3,
-            juniPolicyIfAttachGroup2,
-            juniPolicyAttachProfileGroup,
-            juniPolicyAttachStatisticsGroup2 }
-        GROUP       juniRateLimitGroup3
-            DESCRIPTION
-                "The rate limit group is mandatory only for entities that
-                implement rate limit policy management."
-        GROUP       juniLogRuleGroup2
-            DESCRIPTION
-                "The log rule group is mandatory only for entities that
-                implement log policy management."
-        GROUP       juniNextHopRulesGroup2
-            DESCRIPTION
-                "The next-hop rules group is mandatory only for entities that
-                implement next-hop policy management."
-        GROUP       juniFilterRulesGroup2
-            DESCRIPTION
-                "The filter rules group is mandatory only for entities that
-                implement filter policy management."
-        GROUP       juniNextInterfaceRulesGroup2
-            DESCRIPTION
-                "The next-interface rules group is mandatory only for entities
-                that implement next-interface policy management."
-        GROUP       juniMarkingRulesGroup2
-            DESCRIPTION
-                "The marking rules group is mandatory only for entities that
-                implement marking policy management."
-        GROUP       juniForwardRulesGroup3
-            DESCRIPTION
-                "The forward rules group is mandatory only for entities that
-                implement forward policy management."
-        GROUP       juniColorRulesGroup2
-            DESCRIPTION
-                "The color rules group is mandatory only for entities that
-                implement color policy management."
-        GROUP       juniTrafficClassRulesGroup2
-            DESCRIPTION
-                "The traffic class rule group is mandatory only for entities
-                that implement traffic class policy management."
-    ::= { juniPolicyCompliances 9 }                                -- JUNOSe 6.2
-
-juniPolicyCompliance10  MODULE-COMPLIANCE
-    STATUS      current
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper
-        policy management MIB."
-    MODULE  -- this module
-        MANDATORY-GROUPS {
-            juniPolicyBaseGroup3,
-            juniPolicyClaclGrpGroup,
-            juniClassifierControlListGroup3,
-            juniPolicyIfAttachGroup2,
-            juniPolicyAttachProfileGroup,
-            juniPolicyAttachStatisticsGroup2 }
-        GROUP       juniRateLimitGroup3
-            DESCRIPTION
-                "The rate limit group is mandatory only for entities that
-                implement rate limit policy management."
-        GROUP       juniLogRuleGroup2
-            DESCRIPTION
-                "The log rule group is mandatory only for entities that
-                implement log policy management."
-        GROUP       juniNextHopRulesGroup2
-            DESCRIPTION
-                "The next-hop rules group is mandatory only for entities that
-                implement next-hop policy management."
-        GROUP       juniFilterRulesGroup2
-            DESCRIPTION
-                "The filter rules group is mandatory only for entities that
-                implement filter policy management."
-        GROUP       juniNextInterfaceRulesGroup2
-            DESCRIPTION
-                "The next-interface rules group is mandatory only for entities
-                that implement next-interface policy management."
-        GROUP       juniMarkingRulesGroup2
-            DESCRIPTION
-                "The marking rules group is mandatory only for entities that
-                implement marking policy management."
-        GROUP       juniForwardRulesGroup3
-            DESCRIPTION
-                "The forward rules group is mandatory only for entities that
-                implement forward policy management."
-        GROUP       juniColorRulesGroup2
-            DESCRIPTION
-                "The color rules group is mandatory only for entities that
-                implement color policy management."
-        GROUP       juniTrafficClassRulesGroup2
-            DESCRIPTION
-                "The traffic class rule group is mandatory only for entities
-                that implement traffic class policy management."
-        GROUP       juniExceptionRulesGroup1
-            DESCRIPTION
-                "The exception rule group is mandatory only for entities
-                that implement exception policy management."
-    ::= { juniPolicyCompliances 10 }                                -- JUNOSe 7.2
 
 
 --
@@ -4383,11 +4189,10 @@ juniPolicyIfAttachGroup  OBJECT-GROUP
         juniPolicyIfAttachRowStatus,
         juniPolicyIfAttachPolicyId,
         juniPolicyIfAttachStatsEnable }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
         "A collection of objects for managing attachment of policies to
-        interfaces in a Juniper product. This group statement was made 
-        obsolete when support for policy sharing was added."
+        interfaces in a Juniper product."
     ::= { juniPolicyGroups 10 }                                    -- JUNOSe 3.0
 
 juniPolicyProfileGroup2  OBJECT-GROUP
@@ -4786,11 +4591,10 @@ juniPolicyBaseGroup2  OBJECT-GROUP
 
         juniPolicyRuleType2,
         juniPolicySuspend2 }
-    STATUS      obsolete
+    STATUS      current
     DESCRIPTION
         "A collection of basic objects for managing policies in a Juniper
-        product.  This group was made obsolete when ATM-cell-mode
-        support was added to the policy configuration."
+        product."
     ::= { juniPolicyGroups 35 }                                    -- JUNOSe 5.3
 
 juniForwardRulesGroup3  OBJECT-GROUP
@@ -4875,47 +4679,5 @@ juniClassifierControlListGroup3  OBJECT-GROUP
         "A collection of objects for managing elements of classifier control
         lists in a Juniper product."
     ::= { juniPolicyGroups 39 }                                    -- JUNOSe 5.3
-
-juniPolicyIfAttachGroup2  OBJECT-GROUP
-    OBJECTS {
-        juniPolicyIfAttachRowStatus,
-        juniPolicyIfAttachPolicyId,
-        juniPolicyIfAttachStatsEnable,
-	juniPolicyIfAttachStatsPreserve }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects for managing attachment of policies to
-        interfaces in a Juniper product."
-    ::= { juniPolicyGroups 40 }                                    -- JUNOSe 6.2
-
-juniExceptionRulesGroup1  OBJECT-GROUP
-    OBJECTS {
-        juniExceptionRowStatus,
-        juniExceptionApplication }
-    STATUS      current
-    DESCRIPTION
-        "A collection of objects for managing exception policy rules in a
-        Juniper product."
-    ::= { juniPolicyGroups 41 }                                    -- JUNOSe 7.1
-
-juniPolicyBaseGroup3  OBJECT-GROUP
-    OBJECTS {
-        juniPolicyNextIndex,
-
-        juniPolicyRowStatus,
-        juniPolicyAdminState,
-        juniPolicyName,
-        juniPolicyReferenceCount,
-        juniPolicyRuleNextIndex,
-
-        juniPolicyRuleType2,
-        juniPolicySuspend2,
-        juniPolicyAtmCellModeEnable  }
-    STATUS      current
-    DESCRIPTION
-        "A collection of basic objects for managing policies in a Juniper
-        product."
-    ::= { juniPolicyGroups 42 }                                    -- JUNOSe 7.2
-
 
 END

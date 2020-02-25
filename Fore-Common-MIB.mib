@@ -1,0 +1,211 @@
+-- 
+-- Copyright 1999 by Fore Systems, Inc. 
+-- Converted to SMIv2 rfc 2578,2579,2580 - STD 58
+--
+-- ($Id: //depot/prod/switch/smf/src/snmp/mibs/fore-common.mib#8 $)
+-- Copyright 1993-1995 by Fore Systems, Inc.
+
+Fore-Common-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	enterprises, TimeTicks,
+	Integer32, MODULE-IDENTITY	FROM SNMPv2-SMI;
+	
+------------------------------------------------------------------------
+
+fore		           MODULE-IDENTITY
+          LAST-UPDATED         "9911050000Z"
+          ORGANIZATION         "FORE"
+          CONTACT-INFO         
+               "      Postal:   FORE Systems Inc.
+                                 1000 FORE Drive
+                                 Warrendale, PA 15086-7502
+                       Tel:      +1 724 742 6900
+                       Email:    nm_mibs@fore.com
+                       Web:      http://www.fore.com"
+          DESCRIPTION "Definitions common to all FORE private MIBS."
+    ::= { enterprises 326 }
+
+admin		OBJECT IDENTIFIER ::= { fore 1 }
+systems		OBJECT IDENTIFIER ::= { fore 2 }
+foreExperiment  OBJECT IDENTIFIER ::= { fore 3 }
+operations	OBJECT IDENTIFIER ::= { admin 1 }
+snmpErrors      OBJECT IDENTIFIER ::= { admin 2 }
+fileXfr	        OBJECT IDENTIFIER ::= { admin 6 } 	
+preDot1qVlanMIB            OBJECT IDENTIFIER ::= { admin 8 }
+snmpTrapLog	OBJECT IDENTIFIER ::= { admin 9 }
+ilmisnmp	OBJECT IDENTIFIER ::= { admin 10 }
+ilmiRegistry    OBJECT IDENTIFIER ::= { admin 14 }
+foreIfExtension	OBJECT IDENTIFIER ::= { admin 15 }
+frameInternetworking OBJECT IDENTIFIER ::= { admin 16 } 
+ifExtensions         OBJECT IDENTIFIER ::= { admin 17 }
+atmAdapter	OBJECT IDENTIFIER ::= { systems 1 }
+atmSwitch	OBJECT IDENTIFIER ::= { systems 2 }
+software        OBJECT IDENTIFIER ::= { atmSwitch 2 }
+asxd		OBJECT IDENTIFIER ::= { software 1 }
+hardware	OBJECT IDENTIFIER ::= { atmSwitch 1 }
+asx		OBJECT IDENTIFIER ::= { hardware 1 }
+
+------------------------------------------------------------------------
+-- Textual Conventions
+
+-- The SPANS ATM Address
+
+SpansAddress ::= OCTET STRING (SIZE (8))
+
+-- ATM Forum ATM Address (allow E.164 addresses)
+AtmAddress   ::= OCTET STRING (SIZE (8 | 20))
+
+-- The NsapPrefix type if used by Q2931 signalling
+-- for setting ATM address.
+
+NsapPrefix ::= OCTET STRING(SIZE(13))
+
+-- The NsapAddress type is used for NSAP (Network Service
+-- Access Point) routing group tables.
+
+NsapAddr ::= OCTET STRING(SIZE(20))
+
+-- Transit Network Selection according to Q2931 signalling
+-- to identify requested transit networks.
+ 
+TransitNetwork ::= OCTET STRING(SIZE(4))
+
+-- The enterprise specific trap number. 
+TrapNumber ::= Integer32
+ 
+------------------------------------------------------------------------
+-- MIB Types Definitions
+
+-- The status of a table entry.
+-- Taken from RFC1757-MIB DEFINITIONS
+
+-- Setting this object to the value invalid(4) has the
+-- effect of invalidating the corresponding entry.
+-- That is, it effectively disassociates the mapping
+-- identified with said entry.
+-- It is an implementation-specific matter as to whether
+-- the agent removes an invalidated entry from the table.
+-- Accordingly, management stations must be prepared to
+-- receive tabular information from agents that corresponds
+-- to entries currently not in use.  Proper
+-- interpretation of such entries requires examination
+-- of the relevant EntryStatus object.
+-- 
+-- An existing instance of this object cannot be set to
+-- createRequest(2).  This object may only be set to
+-- createRequest(2) when this instance is created.  When
+-- this object is created, the agent may wish to create
+-- supplemental object instances to complete a conceptual
+-- row in this table.  Immediately after completing the
+-- create operation, the agent must set this object to
+-- underCreation(3).
+-- 
+-- Entries shall exist in the underCreation(3) state until
+-- the management station is finished configuring the
+-- entry and sets this object to valid(1) or aborts,
+-- setting this object to invalid(4).  If the agent
+-- determines that an entry has been in the
+-- underCreation(3) state for an abnormally long time,
+-- it may decide that the management station has
+-- crashed.  If the agent makes this decision,
+-- it may set this object to invalid(4) to reclaim the
+-- entry.  A prudent agent will understand that the
+-- management station may need to wait for human input
+-- and will allow for that possibility in its
+-- determination of this abnormally long period.
+
+EntryStatus ::= INTEGER
+	   { valid(1),
+	     createRequest(2),
+	     underCreation(3),
+	     invalid(4)
+	   }
+
+-- The type of the signaling protocol that 
+-- created the table entry for the path or channel.
+-- Note that entry 5, spvc, should be deprecated due
+-- to the introduction of spvcSpans and spvcPnni.
+-- spvcPnni will be the protocol for both PNNI SPVCCs and
+-- PNNI SPVPCs.
+
+AtmSigProtocol ::= INTEGER 
+	  {    	other (1),
+		spans (2),
+	     	q2931 (3),
+	     	pvc (4),
+		spvc (5),
+		oam (6),
+                spvcSpans(7),
+                spvcPnni(8),
+		rcc(9),
+		fsig(10)
+	   }
+
+-- General State
+GeneralState ::= INTEGER
+	{	normal(1),
+		fail(2)
+	}
+
+-- IntegerBitString is a set of bits that will fit into a 32
+-- bit integer.  The bits are numbered from the low order
+-- bit as bit 0 to high order bit 31.
+
+IntegerBitString ::= Integer32
+
+--
+-- ConnectionType
+--
+-- This object identifies the type of the path/channel
+-- endpoints(ingress and egress) at a switch with respect
+-- to a particular network. It also indicates whether the
+-- path/channel is a point-to-point(PP), point-to-multipoint(PMP),
+-- multipoint-to-point(MPP) or multipoint-to-multipoint(MPMP).
+-- Used for Call Recording.
+--
+-- ** NOTE ** These values are filled in by the user during the
+-- creation of a path/channel and hence may not reflect the true
+-- status of the path/channel.
+--
+-- The ConnectionType type is defined as a bit-mapped value.
+-- The fields are as follows:
+--      <call-type><ingress-point-type><egress-point-type>
+--     (bits 4 & 5)    (bits 2 & 3)       (bits 0 & 1)
+-- The ingress and egress connection types are defined as
+-- follows:
+--              Bit map         value
+--               00             originating
+--               01             transit
+--               10             terminating
+--               11             invalid
+-- From a billing perspective, even PVPs & PVCs
+-- have a `source' and a `destination' switch.
+-- `originating' indicates that the ingress/egress endpoint
+-- of the path/channel is connected to the `source' node
+-- which is outside the network.
+-- `transit' indicates that the ingress/egress endpoint of
+-- the path/channel is connected to a node within the
+-- same network.
+-- `terminating' indicates the ingress/egress endpoint of
+-- the path/channel is connected to the `destination' node
+-- which is outside the network.
+-- The call-type field is defined as follows:
+--              Bit map         value
+--               00             PP
+--               01             PMP
+--               10             MPP
+--               11             MPMP
+-- The call-type field is valid only if the ingress and egress
+-- connect point types are specified. If the ingress/egress
+-- connect point types are specified, the call-type defaults to
+-- `PP' if not specified.
+-- Example: For a PMP PVC whose ingress side is connected to
+-- a switch within the same network and whose egress side is
+-- connected to the `destination' node, the ConnectionType
+-- variable is going to have a value of 010110(0x16) or 22.
+--
+ 
+ConnectionType ::= Integer32
+ 
+END

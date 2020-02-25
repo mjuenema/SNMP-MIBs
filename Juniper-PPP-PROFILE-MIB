@@ -6,7 +6,7 @@
 --   PPP Profile MIB
 --
 -- Copyright (c) 2001, 2002 Unisphere Networks, Inc.
--- Copyright (c) 2002, 2003, 2005 Juniper Networks, Inc.
+-- Copyright (c) 2002, 2003 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -19,13 +19,13 @@ IMPORTS
         FROM SNMPv2-CONF
     juniMibs
         FROM Juniper-MIBs
-    JuniEnable, JuniSetMap, JuniName, JuniNibbleConfig
+    JuniEnable, JuniSetMap, JuniName
         FROM Juniper-TC
     JuniPppAuthentication
         FROM Juniper-PPP-MIB;
 
 juniPppProfileMIB  MODULE-IDENTITY
-    LAST-UPDATED "200512212013Z"  -- 21-Dec-05 03:13 PM EST
+    LAST-UPDATED "200311032110Z"  -- 03-Nov-03 04:10 PM EST
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -40,12 +40,6 @@ juniPppProfileMIB  MODULE-IDENTITY
         tables found in the Juniper-PROFILE-MIB to support profiles for PPP
         interfaces."
     -- Revision History
-    REVISION    "200512212013Z"  -- 21-Dec-05 03:13 PM EST  - JUNOSe 7.3
-    DESCRIPTION
-        "Added new authentication elements to use JuniNibbleConfig."
-    REVISION    "200510191626Z"  -- 19-Oct-05 12:26 PM EDT  - JUNOSe 7.2
-    DESCRIPTION
-	"Added new object for multilink." 
     REVISION    "200311032110Z"  -- 03-Nov-03 04:10 PM EST  - JUNOSe 5.3
     DESCRIPTION
         "Added support for MLPPP fragmentation and reassembly."
@@ -134,9 +128,7 @@ JuniPppProfileEntry ::= SEQUENCE {
     juniPppProfileFragmentation                JuniEnable,
     juniPppProfileReassembly                   JuniEnable,
     juniPppProfileMaxReceiveReconstructedUnit  Integer32,
-    juniPppProfileFragmentSize                 Integer32,
-    juniPppProfileHashLinkSelection            JuniEnable,
-    juniPppProfileLcpAuthentication2           JuniNibbleConfig }
+    juniPppProfileFragmentSize                 Integer32 }
 
 juniPppProfileId  OBJECT-TYPE
     SYNTAX      Unsigned32
@@ -201,7 +193,7 @@ juniPppProfileLcpKeepalive  OBJECT-TYPE
 juniPppProfileLcpAuthentication  OBJECT-TYPE
     SYNTAX      JuniPppAuthentication
     MAX-ACCESS  read-write
-    STATUS      deprecated
+    STATUS      current
     DESCRIPTION
         "Specifies the type(s) of authentication, if any, to be negotiated with
         the peer:
@@ -212,13 +204,7 @@ juniPppProfileLcpAuthentication  OBJECT-TYPE
           chapPap   CHAP negotiation is attempted first; if fails, attempt PAP.
 
         Setting this object to none will set the
-        juniPppProfileAuthenticatorVirtualRouter object to an empty string.
-
-        This object returns a none value on the get operation. New object
-        juniPppProfileLcpAuthentication2 will reflect the configured values.
-
-        Setting this object along with the juniPppProfileLcpAuthentication2 
-        object will return an inconsistentValue error."
+        juniPppProfileAuthenticatorVirtualRouter object to an empty string."
     DEFVAL    { none }
     ::= { juniPppProfileEntry 5 }
 
@@ -420,55 +406,6 @@ juniPppProfileFragmentSize  OBJECT-TYPE
     DEFVAL    { 1 }
     ::= { juniPppProfileEntry 23 }
 
-juniPppProfileHashLinkSelection  OBJECT-TYPE
-    SYNTAX      JuniEnable
-    MAX-ACCESS  read-write
-    STATUS      current
-    DESCRIPTION
-        "Enables MLPPP hash-based link selection for non-best-effort data."
-    DEFVAL    { disable }
-    ::= { juniPppProfileEntry 24 }
-
-juniPppProfileLcpAuthentication2  OBJECT-TYPE
-    SYNTAX      JuniNibbleConfig
-    MAX-ACCESS  read-write
-    STATUS      current
-    DESCRIPTION
-        "A configuration variable comprised of nibbles i.e. 4 bits, such that 
-         a client can supply a list of 0 to 8 selections.  The least 
-         significant nibble is the first value of the list, and the most 
-         significant nibble is the last value.  The value in each field 
-         ranges from 0 to 15, however the first nibble with value 0 indicates
-         the end of the list.  Repetition of values is not allowed. 
-         Segregation of values is not allowed.
-
-         Valid Values are:
-         none - 0
-         pap  - 1
-         chap - 2
-         eap  - 3
-
-         Example valid encoding:
-         0x00000321
-         0x00000012
-
-         Not a valid encoding:
-         0x00000121
-         0x01002001
-
-         If authentication negotiation is not supported for this PPP interface,
-         then any attempt to explicitly set this object will result in a
-         notWritable error and it will be implicitly set to the DEFVAL on row
-         creation.
-
-         Setting this object to null will set
-         juniPppProfileAuthenticatorVirtualRouter object to an empty string.
-
-         Setting this object along with the juniPppProfileLcpAuthentication 
-         object will return an inconsistentValue error."
-    DEFVAL    { 0 }
-    ::= { juniPppProfileEntry 25 }
-
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Notifications
@@ -554,36 +491,15 @@ juniPppProfileCompliance6  MODULE-COMPLIANCE
     ::= { juniPppProfileCompliances 6 }                            -- JUNOSe 5.1
 
 juniPppProfileCompliance7  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper PPP
-        Profile MIB.  This statement became obsolete when object 
-        juniPppProfileHashLinkSelection was added."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniPppProfileGroup7 }
-    ::= { juniPppProfileCompliances 7 }                            -- JUNOSe 5.3
-
-juniPppProfileCompliance8  MODULE-COMPLIANCE
-    STATUS      obsolete
-    DESCRIPTION
-        "The compliance statement for entities which implement the Juniper PPP
-        Profile MIB.  This statement became obsolete when object 
-        juniPppProfileLcpAuthentication2 was added."
-    MODULE   -- this module
-        MANDATORY-GROUPS {
-            juniPppProfileGroup8 }
-    ::= { juniPppProfileCompliances 8 }                            -- JUNOSe 7.2
-
-juniPppProfileCompliance9  MODULE-COMPLIANCE
     STATUS      current
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper PPP
         Profile MIB."
     MODULE   -- this module
         MANDATORY-GROUPS {
-            juniPppProfileGroup9 }
-    ::= { juniPppProfileCompliances 9 }                            -- JUNOSe 7.3
+            juniPppProfileGroup7 }
+    ::= { juniPppProfileCompliances 7 }                            -- JUNOSe 5.3
+
 
 --
 -- units of conformance
@@ -758,76 +674,10 @@ juniPppProfileGroup7  OBJECT-GROUP
         juniPppProfileReassembly,
         juniPppProfileMaxReceiveReconstructedUnit,
         juniPppProfileFragmentSize }
-    STATUS      obsolete
-    DESCRIPTION
-	"Obsolete collection of objects providing management of profile
-        functionality for PPP interfaces in a Juniper product.  This group
-        became obsolete when support was added for mlppp hash-based link
-	selection."
-    ::= { juniPppProfileGroups 7 }                                 -- JUNOSe 5.3
-
-juniPppProfileGroup8  OBJECT-GROUP
-    OBJECTS {
-        juniPppProfileSetMap,
-        juniPppProfileLcpMagicNumber,
-        juniPppProfileLcpKeepalive,
-        juniPppProfileLcpAuthentication,
-        juniPppProfileIpPeerDnsPriority,
-        juniPppProfileIpPeerWinsPriority,
-        juniPppProfileLcpInitialMRU,
-        juniPppProfilePacketLog,
-        juniPppProfileStateLog,
-        juniPppProfileChapMinChallengeLength,
-        juniPppProfileChapMaxChallengeLength,
-        juniPppProfilePassiveMode,
-        juniPppProfileMlppp,
-        juniPppProfileIpcpNetmask,
-        juniPppProfileAuthenticatorVirtualRouter,
-        juniPppProfileAaaProfile,
-        juniPppProfileInitiateIp,
-        juniPppProfileInitiateIpv6,
-        juniPppProfileFragmentation,
-        juniPppProfileReassembly,
-        juniPppProfileMaxReceiveReconstructedUnit,
-        juniPppProfileFragmentSize,
-	juniPppProfileHashLinkSelection }
-    STATUS      obsolete
-    DESCRIPTION
-	"Obsolete collection of objects providing management of profile
-        functionality for PPP interfaces in a Juniper product.  This group
-        became obsolete when juniPppProfileLcpAuthentication2 was added."
-    ::= { juniPppProfileGroups 8 }                                 -- JUNOSe 7.2
-
-juniPppProfileGroup9  OBJECT-GROUP
-    OBJECTS {
-        juniPppProfileSetMap,
-        juniPppProfileLcpMagicNumber,
-        juniPppProfileLcpKeepalive,
-        juniPppProfileLcpAuthentication,
-        juniPppProfileIpPeerDnsPriority,
-        juniPppProfileIpPeerWinsPriority,
-        juniPppProfileLcpInitialMRU,
-        juniPppProfilePacketLog,
-        juniPppProfileStateLog,
-        juniPppProfileChapMinChallengeLength,
-        juniPppProfileChapMaxChallengeLength,
-        juniPppProfilePassiveMode,
-        juniPppProfileMlppp,
-        juniPppProfileIpcpNetmask,
-        juniPppProfileAuthenticatorVirtualRouter,
-        juniPppProfileAaaProfile,
-        juniPppProfileInitiateIp,
-        juniPppProfileInitiateIpv6,
-        juniPppProfileFragmentation,
-        juniPppProfileReassembly,
-        juniPppProfileMaxReceiveReconstructedUnit,
-        juniPppProfileFragmentSize,
-	juniPppProfileHashLinkSelection,
-        juniPppProfileLcpAuthentication2 }
     STATUS      current
     DESCRIPTION
         "A collection of objects providing management of profile functionality
         for PPP interfaces in a Juniper product."
-    ::= { juniPppProfileGroups 9 }                                 -- JUNOSe 7.3
+    ::= { juniPppProfileGroups 7 }                                 -- JUNOSe 5.3
 
 END

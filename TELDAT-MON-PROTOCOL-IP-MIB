@@ -1,0 +1,1134 @@
+
+
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+            -- MIB privada de Teldat
+
+            -- Monitorizacin del equipo NUCLEOX-PLUS
+
+                -- Protocolo IP
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    --      28-05-13    E. Amorena      XH 2811. Unlimited routing table.
+    -- 1.2  23/05/11  P. Ortiz      XH 1468. Rutas estﬂticas con owner
+    -- 1.1  08/07/09  I. Mu±oz      Revisin de todas las MIB para
+    --                M.A. Pastor   evitar warnings y errores de
+    --                              compilacin
+    -- 1.0  01/07/04  J. Molina     Fichero procedente del fichero IP.mib
+
+
+    -- Historial del fichero IP.mib:
+    -- 01-10-01  N. Villase±or  Traduccin a inglâs
+    -- 01-12-00  M.A. Pastor    Modificaciones para que pueda ser
+    --                          compilada utilizando compiladores
+    --                          distintos del de Teldat
+    -- 04-05-00  M.A. Pastor    Implementacin inicial
+    --------------------------------------------------------------------------
+
+TELDAT-MON-PROTOCOL-IP-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            IpAddress, Counter
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            telProdNpMonProtIP
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+-- Grupo telProdNpMonProtIP
+
+-- Incluye los parﬂmetros referentes al protocolo IP.
+
+-- Tabla de las rutas de agregacin.
+
+    telProdNpMonProtIPAggRoutTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPAggRoutEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of configured aggregation routes. Each route is determined by an
+        address and its corresponding mask."
+        ::= { telProdNpMonProtIP 1 }
+
+    telProdNpMonProtIPAggRoutEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPAggRoutEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry of the aggregation routes table corresponds to a configured
+        aggregation route, and it has an index (shows the position of the entry
+        or route inside the table), the route destination IP address and its
+        corresponding mask."
+        INDEX { telProdNpMonProtIPAggRoutIndex }
+        ::= { telProdNpMonProtIPAggRoutTable 1 }
+
+    TelProdNpMonProtIPAggRoutEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPAggRoutIndex
+                INTEGER,
+            telProdNpMonProtIPAggRoutSubnetAddr
+                IpAddress,
+            telProdNpMonProtIPAggRoutMask
+                IpAddress
+            }
+
+    telProdNpMonProtIPAggRoutIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: entry order or position (aggregation route) inside the
+        table."
+        ::= { telProdNpMonProtIPAggRoutEntry 1 }
+
+    telProdNpMonProtIPAggRoutSubnetAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination network or subnetwork of the route."
+        ::= { telProdNpMonProtIPAggRoutEntry 2 }
+
+    telProdNpMonProtIPAggRoutMask OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination network or subnetwork mask of the route."
+        ::= { telProdNpMonProtIPAggRoutEntry 3 }
+
+-- Grupo donde se engloban todas las variables que proporcionan informacin
+-- acerca de los controles de acceso. Puede saberse el modo de control de acceso
+-- en uso y ademﬂs la lista de los registros de control de acceso.
+
+    telProdNpMonProtIPAccControl OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIP 2 }
+
+    -- Grupo de las variables globales de los controles de acceso. Incluye
+    -- informacin sobre el estado (habilitado/deshabilitado) de los controles
+    -- de acceso, el nîmero de veces que los controles de acceso han entrado en
+    -- funcionamiento y los "cache hits" o veces que los paquetes a comprobar
+    -- coinciden con los que recientemente pasaron por estos controles de acceso
+    -- (y fueron o no rechazados), de modo que no es necesario realizar las
+    -- comprobaciones oportunas de los controles de acceso para tomar la
+    -- decisin.
+
+    telProdNpMonProtIPAccContGloGroup OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIPAccControl 1 }
+
+    telProdNpMonProtIPAccContGloStatus OBJECT-TYPE
+        SYNTAX INTEGER{
+            no_sense (0),
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It shows the method used to control the access: if the variable value
+        is enabled (1), there is access control and the registers are checked,
+        and if the value is disabled (2), there is not access control and
+        therefore all access control registers are ignored."
+        ::= { telProdNpMonProtIPAccContGloGroup 1 }
+
+    telProdNpMonProtIPAccContGloTimesRun OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Times access controls have been invoked or consulted due to particular
+        characteristics of some incoming and outgoing packets."
+        ::= { telProdNpMonProtIPAccContGloGroup 2 }
+
+    telProdNpMonProtIPAccContGloCacheHits OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Cache Hits: number of coincidences of the packets to check with the
+        packets that recently passed access controls (and were or not rejected),
+        so it is not necessary to consult these access controls to take a
+        decision."
+        ::= { telProdNpMonProtIPAccContGloGroup 3 }
+
+    -- Tabla que muestra los controles de acceso existentes, uno por entrada.
+
+    telProdNpMonProtIPAccContTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPAccContEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "One entry per existing access control register."
+        ::= { telProdNpMonProtIPAccControl 2 }
+
+    telProdNpMonProtIPAccContEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPAccContEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry has an index that indicates the number of the access control
+        register or order number of the table entry, the access control method
+        used, the addresses and source and destination masks, the first and last
+        protocol of the range of IP protocolos to filter, and the first and last
+        port of the range of source ports and of the range of destination ports
+        to filter, and the times that concrete access control has been queried."
+        INDEX { telProdNpMonProtIPAccContIndex }
+        ::= { telProdNpMonProtIPAccContTable 1 }
+
+    TelProdNpMonProtIPAccContEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPAccContIndex
+                INTEGER,
+            telProdNpMonProtIPAccContType
+                INTEGER,
+            telProdNpMonProtIPAccContSrcIpAddr
+                IpAddress,
+            telProdNpMonProtIPAccContSrcMask
+                IpAddress,
+            telProdNpMonProtIPAccContDstIpAddr
+                IpAddress,
+            telProdNpMonProtIPAccContDstMask
+                IpAddress,
+            telProdNpMonProtIPAccContBegPro
+                INTEGER,
+            telProdNpMonProtIPAccContEndPro
+                INTEGER,
+            telProdNpMonProtIPAccContBegSPrt
+                INTEGER,
+            telProdNpMonProtIPAccContEndSPrt
+                INTEGER,
+            telProdNpMonProtIPAccContBegDPrt
+                INTEGER,
+            telProdNpMonProtIPAccContEndDPrt
+                INTEGER,
+            telProdNpMonProtIPAccContInvoc
+                INTEGER
+            }
+
+    telProdNpMonProtIPAccContIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: number of the access control register or order number of
+        the table entry."
+        ::= { telProdNpMonProtIPAccContEntry 1 }
+
+    telProdNpMonProtIPAccContType OBJECT-TYPE
+        SYNTAX INTEGER {
+            exclusive(1),
+            inclusive(2),
+            invalid(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Type of access control or way the packets, whose features fit the
+        record, will be processed. If the value is exclusive (1), the packets
+        coincident with that filter are refused. If the value is inclusive (2),
+        the packets coincident with the register are routed."
+        ::= { telProdNpMonProtIPAccContEntry 2 }
+
+    telProdNpMonProtIPAccContSrcIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source IP address."
+        ::= { telProdNpMonProtIPAccContEntry 3 }
+
+    telProdNpMonProtIPAccContSrcMask OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source IP address mask."
+        ::= { telProdNpMonProtIPAccContEntry 4 }
+
+    telProdNpMonProtIPAccContDstIpAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination IP address."
+        ::= { telProdNpMonProtIPAccContEntry 5 }
+
+    telProdNpMonProtIPAccContDstMask OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination IP address mask."
+        ::= { telProdNpMonProtIPAccContEntry 6 }
+
+    telProdNpMonProtIPAccContBegPro OBJECT-TYPE
+        SYNTAX INTEGER(0..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First protocol of the range of IP protocols to filter."
+        ::= { telProdNpMonProtIPAccContEntry 7 }
+
+    telProdNpMonProtIPAccContEndPro OBJECT-TYPE
+        SYNTAX INTEGER(0..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Last protocol of the range of IP protocols to filter."
+        ::= { telProdNpMonProtIPAccContEntry 8 }
+
+    telProdNpMonProtIPAccContBegSPrt OBJECT-TYPE
+        SYNTAX INTEGER(0..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First port of the range of IP source ports to filter."
+        ::= { telProdNpMonProtIPAccContEntry 9 }
+
+    telProdNpMonProtIPAccContEndSPrt OBJECT-TYPE
+        SYNTAX INTEGER(0..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Last port of the range of IP source ports to filter."
+        ::= { telProdNpMonProtIPAccContEntry 10 }
+
+    telProdNpMonProtIPAccContBegDPrt OBJECT-TYPE
+        SYNTAX INTEGER(0..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First port of the range of IP destination ports to filter."
+        ::= { telProdNpMonProtIPAccContEntry 11 }
+
+    telProdNpMonProtIPAccContEndDPrt OBJECT-TYPE
+        SYNTAX INTEGER(0..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Last port of the range of IP destination ports to filter."
+        ::= { telProdNpMonProtIPAccContEntry 12 }
+
+    telProdNpMonProtIPAccContInvoc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Times that entry (access control) have been invoked or consulted due to
+        particular characteristics of some incoming and outgoing packets."
+        ::= { telProdNpMonProtIPAccContEntry 13 }
+
+-- Tabla del estado de la cache de IP. En esta tabla se muestran las rutas de
+-- destino usadas recientemente y que se encuentran en la memoria cache de
+-- routing. Al tratar de encaminar un paquete, si un destino no se encuentra en
+-- la memoria cache, el router busca dicho destino en la tabla general de
+-- routing para tomar una decisin al respecto.
+
+    telProdNpMonProtIPCacheTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPCacheEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table that shows destination routes used more recently. They are saved
+        in the routing cache memory."
+        ::= { telProdNpMonProtIP 3 }
+
+    telProdNpMonProtIPCacheEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPCacheEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry is a recently used route and it is saved in the routing
+        cache memory. It contains information about the destination address,
+        the number of packets sent to that destination host, the IP address of
+        the next hop to destination, the output interface to arrive to the next
+        router in the way to the destination IP address, and the number of
+        paths, with the same cost and active, towards destination."
+        INDEX { telProdNpMonProtIPCacheIndex }
+
+        ::= { telProdNpMonProtIPCacheTable 1 }
+
+    TelProdNpMonProtIPCacheEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPCacheIndex
+                INTEGER,
+            telProdNpMonProtIPCacheDest
+                IpAddress,
+            telProdNpMonProtIPCacheUsage
+                INTEGER,
+            telProdNpMonProtIPCacheNextHop
+                IpAddress,
+            telProdNpMonProtIPCacheInterf
+                INTEGER,
+            telProdNpMonProtIPCachePathNum
+                INTEGER
+            }
+
+    telProdNpMonProtIPCacheIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order number of the entry or route contained in routing
+        cache memory."
+        ::= { telProdNpMonProtIPCacheEntry 1 }
+
+    telProdNpMonProtIPCacheDest OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination host address."
+        ::= { telProdNpMonProtIPCacheEntry 2 }
+
+    telProdNpMonProtIPCacheUsage OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of packets sent to that host."
+        ::= { telProdNpMonProtIPCacheEntry 3 }
+
+    telProdNpMonProtIPCacheNextHop OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Next hop: IP address of the next router towards the destination host
+        address."
+        ::= { telProdNpMonProtIPCacheEntry 4 }
+
+    telProdNpMonProtIPCacheInterf OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "The packet leaves through the interface with that destination host
+        address towards the next hop address."
+        ::= { telProdNpMonProtIPCacheEntry 5 }
+
+    telProdNpMonProtIPCachePathNum OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of paths, with the same cost and actives, towards destination.
+        In console this information is only shown if the value differs from 1.
+        For SNMP is always given, being 1 the default value."
+        ::= { telProdNpMonProtIPCacheEntry 6 }
+
+-- Grupo donde se engloban las variables que proporcionan acceso a los
+-- estadçsticos propios del protocolo IP.
+
+    telProdNpMonProtIPStatsGroup OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIP 4 }
+
+    -- Grupo de estadçsticos globales.
+
+    telProdNpMonProtIPStatsGlobal OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIPStatsGroup 1 }
+
+    telProdNpMonProtIPStatsRoutTableOv OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Routes dropped when the routing table is full."
+        ::= { telProdNpMonProtIPStatsGlobal 1 }
+
+    telProdNpMonProtIPStatsNetUnreach OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Packets not transfered due to unknown destination."
+        ::= { telProdNpMonProtIPStatsGlobal 2 }
+
+    telProdNpMonProtIPStatsBadSubn OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Illegal subnetwork packets or routes."
+        ::= { telProdNpMonProtIPStatsGlobal 3 }
+
+    telProdNpMonProtIPStatsBadNet OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Illegal network packets or routes."
+        ::= { telProdNpMonProtIPStatsGlobal 4 }
+
+    telProdNpMonProtIPStatsUnhandBroad OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Received non local, broadcast IP packets (not progressed)."
+        ::= { telProdNpMonProtIPStatsGlobal 5 }
+
+    telProdNpMonProtIPStatsUnhandMult OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Received multicast IP packets of which addresses have not been
+        recognized by the router."
+        ::= { telProdNpMonProtIPStatsGlobal 6 }
+
+    telProdNpMonProtIPStatsUnhandDirBro OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Direct (non local) received broadcast when the packet transfer is
+        disabled."
+        ::= { telProdNpMonProtIPStatsGlobal 7 }
+
+    telProdNpMonProtIPStatsLLBroad OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Received packets with non local IP address that were sent to a link
+        layer broadcast address."
+        ::= { telProdNpMonProtIPStatsGlobal 8 }
+
+    telProdNpMonProtIPStatsDiscardFilter OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Received packets that were addressed to filtered sub/networks."
+        ::= { telProdNpMonProtIPStatsGlobal 9 }
+
+    telProdNpMonProtIPStatsMultAccepted OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "IP Multicast packets that were received and processed successfully by
+        the router."
+        ::= { telProdNpMonProtIPStatsGlobal 10 }
+
+    -- Tabla que muestra los contadores de paquetes IP desbordados a la entrada
+    -- de cada interfaz (net). El çndice de la tabla serﬂ el nîmero de interfaz
+    -- y habrﬂ una entrada por cada uno conteniendo dicha informacin.
+
+    telProdNpMonProtIPStatsOverTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPStatsOverEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains the value of counters of discarded IP packets.
+        This packets were discarded due to congestion in the input queue of the
+        interface."
+        ::= { telProdNpMonProtIPStatsGroup 2 }
+
+    telProdNpMonProtIPStatsOverEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPStatsOverEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry corresponds to an interface, and gives information about
+        the number of packets discarded due to congestion in the input queue of
+        the interface."
+        INDEX { telProdNpMonProtIPStatsOverIndex }
+
+        ::= { telProdNpMonProtIPStatsOverTable 1 }
+
+    TelProdNpMonProtIPStatsOverEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPStatsOverIndex
+                INTEGER,
+            telProdNpMonProtIPStatsOverCounter
+                Counter
+            }
+
+    telProdNpMonProtIPStatsOverIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: interface number related to the packets overflowed in the
+        input queue of which value is shown in the next variable. The index is
+        the net number plus 1, which means that interfaces are numbered
+        beginning with 1 and not 0 as happens in console."
+        ::= { telProdNpMonProtIPStatsOverEntry 1 }
+
+    telProdNpMonProtIPStatsOverCounter OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Packets discarded due to congestion in the input queue of packets that
+        corresponds to the interface determined by the index."
+        ::= { telProdNpMonProtIPStatsOverEntry 2 }
+
+    -- Variable de reset: se ponen a 0 todos los contadores de estadçsticos
+    -- correspondientes al grupo telProdNpMonProtIPStatsGlobal y a la tabla
+    -- telProdNpMonProtIPStatsOverTable.
+
+    telProdNpMonProtIPStatsDelete OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "If this variable is set to 1, the statistics related to the IP protocol
+        contained in the telProdNpMonProtIPStatsGlobal group are deleted and the
+        counters of discarded packets in input queues of different interfaces
+        (telProdNpMonProtIPStatsOverTable) are set to 0. In a get operation the
+        value 2 is got if the last delete trial succeded, 3 if an error ocurred
+        and 4 if no delete operation of statistics has been performed."
+        ::= { telProdNpMonProtIPStatsGroup 3 }
+
+-- Tabla de rutas (comando "dump").
+
+    telProdNpMonProtIPRoutingTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPRoutingEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains information about the routes contained in the
+        routing table."
+        ::= { telProdNpMonProtIP 5 }
+
+    telProdNpMonProtIPRoutingEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPRoutingEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains information about the type of route, address and
+        mask of the destination network/subnetwork, cost, time passed since the
+        routing table was refreshed (in case of RIP routes), next hop (IP address
+        of the next router where the packet must be sent to reach destination),
+        output interface of the packet, output subinterface (it only makes sense
+        if the output interface is X.25 or Frame Relay. In other case the value
+        is 0) and the number of paths to destination, with the same cost and
+        active."
+        INDEX { telProdNpMonProtIPRoutingIndex }
+
+        ::= { telProdNpMonProtIPRoutingTable 1 }
+
+    TelProdNpMonProtIPRoutingEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPRoutingIndex
+                INTEGER,
+            telProdNpMonProtIPRoutingType
+                INTEGER,
+            telProdNpMonProtIPRoutingDstNet
+                IpAddress,
+            telProdNpMonProtIPRoutingMask
+                IpAddress,
+            telProdNpMonProtIPRoutingCost
+                INTEGER,
+            telProdNpMonProtIPRoutingAge
+                INTEGER,
+            telProdNpMonProtIPRoutingNextHop
+                IpAddress,
+            telProdNpMonProtIPRoutingInterf
+                INTEGER,
+            telProdNpMonProtIPRoutingPathNum
+                INTEGER
+            }
+
+    telProdNpMonProtIPRoutingIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Index: route number or place in the table."
+        ::= { telProdNpMonProtIPRoutingEntry 1 }
+
+    telProdNpMonProtIPRoutingType OBJECT-TYPE
+        SYNTAX INTEGER {
+            none(0),
+            direct(1),
+            static(2),
+            rip(3),
+            default(4),
+            deleted(5),
+            egp_info(6),
+            egp_core_info(7),
+            egp_info_readv(8),
+            subnetworks(9),
+            filter(10),
+            spf_intra_area(11),
+            spf_inter_area(12),
+            spf_AS_ext_type_1(13),
+            spf_AS_ext_type_2(14),
+            spf_address_range(15),
+            icmp_redirect(16),
+            gateway_discovery(17),
+            dual_ISIS_level_1(18),
+            dual_ISIS_level_2(19),
+            bgp_info(20),
+            bgp_info_readv(21),
+            aggregation(22)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It indicates how the route was created. Possible values of the
+        variable are:
+        (0) Neither of the enumerated options
+        (1) Direct: network or subnetwork directly reached
+        (2) Static: route configured in a static way
+        (3) RIP: route learned by the RIP protocol
+        (4) Default: default route
+        (5) Deleted: the route was deleted
+        (6) EGP info
+        (7) EGP core info
+        (8) EGP info readv
+        (9) Subnetworks: network divided into subnetworks
+        (10) Filter
+        (11) SPF: The route is an intra-area OSPF route
+        (12) SPIA: The route is an inter-area OSPF route
+        (13) SPE1: Extern OSPF route, type 1
+        (14) SPE2: Extern OSPF route, type 2
+        (15) SPF Address range: OSPF active address range. Not used to route packets
+        (16) ICMP redirect
+        (17) Gateway discovery
+        (18) Dual ISIS-level 1
+        (19) Dual ISIS-level 2
+        (20) BGP info
+        (21) BGP info (readv)
+        (22) Network aggregation."
+        ::= { telProdNpMonProtIPRoutingEntry 2 }
+
+    telProdNpMonProtIPRoutingDstNet OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination IP network or subnetwork"
+        ::= { telProdNpMonProtIPRoutingEntry 3 }
+
+    telProdNpMonProtIPRoutingMask OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination IP network mask."
+        ::= { telProdNpMonProtIPRoutingEntry 4 }
+
+    telProdNpMonProtIPRoutingCost OBJECT-TYPE
+        SYNTAX INTEGER(0..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Route cost."
+        ::= { telProdNpMonProtIPRoutingEntry 5 }
+
+    telProdNpMonProtIPRoutingAge OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "In case of RIP routes, time passed since the routing table was
+        refreshed."
+        ::= { telProdNpMonProtIPRoutingEntry 6 }
+
+    telProdNpMonProtIPRoutingNextHop OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "IP address of the next router in the way to destination or output
+        interface the router will use to route packets. This variable does not
+        make sense in the following cases: if there is not next hop or it is
+        a filter, or if the output net is a point to point link and its address
+        is 0.0.0.0, or next hop IP address begins with 0.X.X.X, or the
+        destination address is the same as the interface structure address used
+        to route a packet to that destination. In these cases the net number
+        should be used instead of the next hop IP address and the value taken
+        by the variable is 0.0.0.0."
+        ::= { telProdNpMonProtIPRoutingEntry 7 }
+
+    telProdNpMonProtIPRoutingInterf OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It is the interface from which the packet with that destination host
+        address is sent towards next hop address. If is the case the output
+        interface does not make sense, the variable will take the value 0."
+        ::= { telProdNpMonProtIPRoutingEntry 8 }
+
+    telProdNpMonProtIPRoutingPathNum OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of paths, with the same cost and active, towards destination.
+        Though this value is not always shown by console, something should be
+        get through SNMP, and it will be 1 when it cannot appear by console."
+        ::= { telProdNpMonProtIPRoutingEntry 9 }
+
+-- Tabla de las direcciones configuradas para los interfaces. Esta tabla tendrﬂ
+-- dos çndices: el primero es el nîmero de interfaz, y el segundo es el nîmero
+-- de orden de esa direccin para ese interfaz.
+
+    telProdNpMonProtIPIfcAddrTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPIfcAddrEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of configured addresses for the router interfaces."
+        ::= { telProdNpMonProtIP 6 }
+
+    telProdNpMonProtIPIfcAddrEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPIfcAddrEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains an address related to the interface which value is
+        the first table index, and it contains all possible addresses for that
+        interface. The second table index indicates the order number of that
+        address inside that interface.
+        Apart from the two indexes it has IP address and related mask."
+        INDEX { telProdNpMonProtIPIfcAddrIfcIndex, telProdNpMonProtIPIfcAddrOrdIndex }
+
+        ::= { telProdNpMonProtIPIfcAddrTable 1 }
+
+    TelProdNpMonProtIPIfcAddrEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPIfcAddrIfcIndex
+                INTEGER,
+            telProdNpMonProtIPIfcAddrOrdIndex
+                INTEGER,
+            telProdNpMonProtIPIfcAddrAddr
+                IpAddress,
+            telProdNpMonProtIPIfcAddrMask
+                IpAddress
+            }
+
+    telProdNpMonProtIPIfcAddrIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First table index: interface number that owns that entry address."
+        ::= { telProdNpMonProtIPIfcAddrEntry 1 }
+
+    telProdNpMonProtIPIfcAddrOrdIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Second table index: order number of the address inside the list of
+        configured interfaces for that interfa determined by the first index."
+        ::= { telProdNpMonProtIPIfcAddrEntry 2 }
+
+    telProdNpMonProtIPIfcAddrAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "IP address."
+        ::= { telProdNpMonProtIPIfcAddrEntry 3 }
+
+    telProdNpMonProtIPIfcAddrMask OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface network mask."
+        ::= { telProdNpMonProtIPIfcAddrEntry 4 }
+
+-- Grupo de variables que informan acerca del tama±o configurado de ciertos
+-- parﬂmetros propios del protocolo IP: tama±o de la tabla de rutas, nîmero de
+-- entradas de dicha tabla que se han usado, tama±o del buffer de reensamblado,
+-- tama±o del mayor paquete reensamblado, tama±o de la cache de rutas y nîmero
+-- de entradas de la cache usadas en ese momento.
+
+    telProdNpMonProtIPSizeGroup OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIP 7 }
+
+    telProdNpMonProtIPSizeRoutTable OBJECT-TYPE
+        SYNTAX INTEGER(0..1000000000)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Limit on the number of entries in the routing table. The special value
+        0 means unlimited."
+        ::= { telProdNpMonProtIPSizeGroup 1 }
+
+    telProdNpMonProtIPSizeRouEntUsed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of entries of the IP routing table used."
+        ::= { telProdNpMonProtIPSizeGroup 2 }
+
+    telProdNpMonProtIPSizeReassBuff OBJECT-TYPE
+        SYNTAX INTEGER(2048..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Reassembling buffer length. This buffer is used to reassemble
+        fragmented IP packets."
+        ::= { telProdNpMonProtIPSizeGroup 3 }
+
+    telProdNpMonProtIPSizeReassPkt OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Largest IP packet that the router has reassembled."
+        ::= { telProdNpMonProtIPSizeGroup 4 }
+
+    telProdNpMonProtIPSizeRoutCache OBJECT-TYPE
+        SYNTAX INTEGER(64..10000)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "IP routing table length."
+        ::= { telProdNpMonProtIPSizeGroup 5 }
+
+    telProdNpMonProtIPSizeCachEntUsed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of entries of the table."
+        ::= { telProdNpMonProtIPSizeGroup 6 }
+
+-- Tabla de las rutas estﬂticas configuradas. Una entrada por cada ruta.
+
+    telProdNpMonProtIPStatRoutTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPStatRoutEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of static routes. It also shows the default network and
+        subnetwork routers. The default routers are shown as static routes
+        with the destination address set to 0.0.0.0 and mask 0.0.0.0. The
+        default subnet routers also appear as static routes towards networks
+        divided into subnetworks."
+        ::= { telProdNpMonProtIP 8 }
+
+    telProdNpMonProtIPStatRoutEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPStatRoutEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each route is specified by an address, the corresponding mask, next hop
+        address, cost, output interface, output subinterface, state and owner."
+        INDEX { telProdNpMonProtIPStatRoutIndex }
+
+        ::= { telProdNpMonProtIPStatRoutTable 1 }
+
+    TelProdNpMonProtIPStatRoutEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPStatRoutIndex
+                INTEGER,
+            telProdNpMonProtIPStatRoutNet
+                IpAddress,
+            telProdNpMonProtIPStatRoutMask
+                IpAddress,
+            telProdNpMonProtIPStatRoutCost
+                INTEGER,
+            telProdNpMonProtIPStatRoutNextHop
+                IpAddress,
+            telProdNpMonProtIPStatRoutIfc
+                INTEGER,
+            telProdNpMonProtIPStatRoutSubint
+                INTEGER,
+            telProdNpMonProtIPStatRoutState
+                INTEGER,
+            telProdNpMonProtIPStatRoutOwner
+                INTEGER
+            }
+
+    telProdNpMonProtIPStatRoutIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order number of the static route (one per table entry)."
+        ::= { telProdNpMonProtIPStatRoutEntry 1 }
+
+    telProdNpMonProtIPStatRoutNet OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Route destination network or subnetwork."
+        ::= { telProdNpMonProtIPStatRoutEntry 2 }
+
+    telProdNpMonProtIPStatRoutMask OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Route destination network or subnetwork mask."
+        ::= { telProdNpMonProtIPStatRoutEntry 3 }
+
+    telProdNpMonProtIPStatRoutCost OBJECT-TYPE
+        SYNTAX INTEGER(0..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Route use cost."
+        ::= { telProdNpMonProtIPStatRoutEntry 4 }
+
+    telProdNpMonProtIPStatRoutNextHop OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Next router IP address where packets will be sent to reach the
+        destination shown in the route. In case it has to be shown the output
+        interface value, instead of next hop IP address, as it is necessary to
+        get a value for this variable via SNMP, the default value taken by the
+        variable will be 0.0.0.0."
+        ::= { telProdNpMonProtIPStatRoutEntry 5 }
+
+    telProdNpMonProtIPStatRoutIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Identifier of the output interface of the packets which chose this
+        route. This variable will be 0 (unknown interface) in case the node
+        were not able to discover the output interface (because it does not
+        exist) when the route was monitored."
+        ::= { telProdNpMonProtIPStatRoutEntry 6 }
+
+    telProdNpMonProtIPStatRoutSubint OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Identifier of the output subinterface of the packets that chose this
+        route. For FR it shows the output DLCI, for X25 (R->N) shows the output
+        NRI, for a generic interface not divisible in subinterfaces it takes
+        the value 0, similar to the N/A (Not Aplicable) that appears by console.
+        If the node cannot determine the output interface (because it does not
+        exist) when the route is monitored, the variable takes the value 0,
+        while what appears by console is UNK (unjnown subinterface)."
+        ::= { telProdNpMonProtIPStatRoutEntry 7 }
+
+    telProdNpMonProtIPStatRoutState OBJECT-TYPE
+        SYNTAX INTEGER {
+            active(1),
+            inactive(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It indicates if the static route is active (1) (active interface and
+        subinterface) or inactive (2) (inactive or unknown interface and
+        subinterface). An active state does not imply an active route inside
+        the routing table (it can be monitored in the routing table). It only
+        means that the static route would be chosen as best route in case no
+        other route (static or dynamic) with better cost exist."
+        ::= { telProdNpMonProtIPStatRoutEntry 8 }
+
+    telProdNpMonProtIPStatRoutOwner OBJECT-TYPE
+        SYNTAX INTEGER {
+            configured(1),
+            dhcp(2),
+            aqc_manager(3),
+            id_link(4),
+            ipcp(5),
+            radius(6),
+            reverse_route_injection(7),
+            acat(8)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It indicates what module or protocol has installed the static route.
+        There is a special case, configured(1), for those routes entered by
+        hand in configuration."
+        ::= { telProdNpMonProtIPStatRoutEntry 9 }
+
+-- Tabla de los filtros. En consola se listan junto a las rutas estﬂticas, pero
+-- se van a poner como una tabla aparte.
+
+    telProdNpMonProtIPFilterTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPFilterEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of configured filters.They are listed together with static routes
+        by console, but they are shown in an independent table, separated from
+        static routes. Each filter has an entry in the table that consists of
+        the table index, the IP address and mask determined by the filter."
+        ::= { telProdNpMonProtIP 9 }
+
+    telProdNpMonProtIPFilterEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPFilterEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry of the filter table is related to a configured filter, and
+        consists of an index (that shows the filter position or table entry),
+        the IP address of the filter related to that entry and the associated
+        mask."
+        INDEX { telProdNpMonProtIPFilterIndex }
+        ::= { telProdNpMonProtIPFilterTable 1 }
+
+    TelProdNpMonProtIPFilterEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPFilterIndex
+                INTEGER,
+            telProdNpMonProtIPFilterAddr
+                IpAddress,
+            telProdNpMonProtIPFilterMask
+                IpAddress
+            }
+
+    telProdNpMonProtIPFilterIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order or position of the entry (filter) in the table."
+        ::= { telProdNpMonProtIPFilterEntry 1 }
+
+    telProdNpMonProtIPFilterAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "IP address related to the filter which position inside the table is
+        determined by the index."
+        ::= { telProdNpMonProtIPFilterEntry 2 }
+
+    telProdNpMonProtIPFilterMask OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Network or subnetwork mask corresponding to that filter."
+        ::= { telProdNpMonProtIPFilterEntry 3 }
+
+END

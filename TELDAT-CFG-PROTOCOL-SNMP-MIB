@@ -1,0 +1,632 @@
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+                -- MIB privada de Teldat
+
+                -- MIB de configuracin del protocolo SNMP.
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.3  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.2  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+    -- 1.1  25/11/04    M.A. Pastor     Se actualiza la descripcin y los
+    --                                  valores posibles de la variable que
+    --                                  indica la forma en que se comprueba que
+    --                                  el destino es alcanzable antes del
+    --                                  envço de traps
+    -- 1.0  01/07/04    J. Molina       Fichero procedente de nucleox.mib
+
+
+    -- Historial de nucleox.mib:
+    -- 1.0 (beta)   18/07/97    Jose Picot Coca & Ignacio Salas Salmern
+            -- Implementacion inicial
+--------------------------------------------------------------------------------
+
+TELDAT-CFG-PROTOCOL-SNMP-MIB DEFINITIONS ::= BEGIN
+
+-- Tipos importados
+
+    IMPORTS
+        IpAddress
+            FROM RFC1155-SMI
+        DisplayString
+            FROM RFC1213-MIB
+        OBJECT-TYPE
+            FROM RFC-1212
+        telProdNpConfProtocol
+            FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+-- telProdNpConfProtSNMP group
+
+    telProdNpConfProtSNMP   OBJECT IDENTIFIER ::= { telProdNpConfProtocol 4 }
+
+
+    -- Grupo telProdNpSNMPGloGroup
+
+    telProdNpSNMPGloGroup   OBJECT IDENTIFIER ::= { telProdNpConfProtSNMP 1 }
+
+    telProdNpSNMPGloHabSnmp OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variables allows enabling / disabling SNMP.
+            Default value is 2(no), disabled."
+        DEFVAL {2}
+        ::={ telProdNpSNMPGloGroup 1 }
+
+    telProdNpSNMPGloHabDefect OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable enables SNMP default configuration.
+            Default value is 1(yes), enabled."
+        DEFVAL {1}
+        ::={ telProdNpSNMPGloGroup 2 }
+
+    telProdNpSNMPGloConfPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable configures traps port.
+            Default value is 162."
+        DEFVAL {162}
+        ::={ telProdNpSNMPGloGroup 3 }
+
+    telProdNpSNMPGloMaxTimeTrapPend OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Maximum time of pending traps sending.
+            Default value is 50."
+        DEFVAL {50}
+        ::={ telProdNpSNMPGloGroup 4 }
+
+    telProdNpSNMPGloMaxNumTrapPend  OBJECT-TYPE
+        SYNTAX  INTEGER(0..64)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Maximum number of traps pending of sending.
+            Default value is 32."
+        DEFVAL {32}
+        ::={ telProdNpSNMPGloGroup 5 }
+
+    telProdNpSNMPGloMaxDestTrap OBJECT-TYPE
+        SYNTAX  INTEGER(0..8)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Maximum number of traps destinations.
+            Default value is 4."
+        DEFVAL {4}
+        ::={ telProdNpSNMPGloGroup 6 }
+
+    telProdNpSNMPGloCheckDest OBJECT-TYPE
+        SYNTAX  INTEGER{
+                ip-route(1),
+                udp(2),
+                icmp(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+        "This variable is used to enable/disable the reachability checking for
+        the manager stations configured as trap destinations before sending.
+        If this parameter is set to ip-route (this will only check there is an
+        IP route to the destination), it makes no sense to periodically send
+        the ECHO UDP or ICMP which are used to find out which managers can be
+        reached.
+        The permitted values for this variable are:
+        (1) ip-route: traps are only sent when a route to the destination has
+            existed during certain time.
+        (2) udp: enables ECHO UDP sending to the destinations to check if they
+            are accessible.
+        (3) icmp: enables ECHO ICMP sending to the destinations to check if
+            they are accessible.
+        The default value is 2 (udp)."
+        DEFVAL {2}
+        ::={ telProdNpSNMPGloGroup 7 }
+
+    -- La tabla de comunidades
+
+    -- La tabla de comunidades contiene la informacion de las comunidades, el
+    -- numero de comunidad (indice), la variable de crear fila de la tabla, la
+    -- variable de borrar fila de la tabla, el tipo de acceso, habilitacion de
+    -- todas las trap, habilitacion de las traps Cold Start, habilitacion de
+    -- las traps Warm Start, habilitacion de las traps Link Down, habilitacion
+    -- de las traps Link Up, habilitacion de las traps Authentication Failure,
+    -- habilitacion de las traps privadas (Enterprise) y la vista de la
+    -- comunidad.
+
+    -- La variable de habilitacion de todas las traps afecta a las variables de
+    -- las traps individuales. Si la habilitamos, todas las demas se
+    -- habilitaran y los mismo ocurre si la deshabilitamos.
+
+    telProdNpSNMPCommunityTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpSNMPCommunityEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Communities list. The table index is the community number."
+        ::= { telProdNpConfProtSNMP 2 }
+
+   telProdNpSNMPCommunityEntry OBJECT-TYPE
+        SYNTAX  TelProdNpSNMPCommunityEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the communities, the community number (table
+            index), the variable to add a table row, the variable to delete a table
+            row, the access type, the habilitation of all traps, the habilitation of the
+            Cold Start traps, the habilitation of the Warm Start traps, the habilitation
+            of the Link Down traps, the habilitation of the Link Up traps, the
+            habilitation of the Authentication Failure traps, the habilitation of the
+            private traps (Enterprise) and the community view."
+        INDEX { telProdNpSNMPComIndex }
+        ::={ telProdNpSNMPCommunityTable 1 }
+
+    TelProdNpSNMPCommunityEntry ::=
+        SEQUENCE{
+            telProdNpSNMPComIndex
+                INTEGER,
+            telProdNpSNMPComCreate
+                DisplayString,
+            telProdNpSNMPComDelete
+                INTEGER,
+            telProdNpSNMPComName
+                DisplayString,
+            telProdNpSNMPComAccess
+                INTEGER,
+            telProdNpSNMPComHabTrapAll
+                INTEGER,
+            telProdNpSNMPComHabTrapColdStart
+                INTEGER,
+            telProdNpSNMPComHabTrapWarmStart
+                INTEGER,
+            telProdNpSNMPComHabTrapLinkDown
+                INTEGER,
+            telProdNpSNMPComHabTrapLinkUp
+                INTEGER,
+            telProdNpSNMPComHabTrapAuthFail
+                INTEGER,
+            telProdNpSNMPComHabTrapEnt
+                INTEGER,
+            telProdNpSNMPComView
+                DisplayString
+            }
+
+    telProdNpSNMPComIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Snmp community number. It is the table index."
+        ::={ telProdNpSNMPCommunityEntry 1 }
+
+    telProdNpSNMPComCreate OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..31))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Variable to add a table row.
+            To add a snmp community, it is necessary to realize a set and
+            pass the name of the new community. If it is repeated, then it will
+            return error."
+        ::={ telProdNpSNMPCommunityEntry 2 }
+
+    telProdNpSNMPComDelete OBJECT-TYPE
+        SYNTAX  INTEGER{
+                delete(1),
+                set_ok(2),
+                set_no_ok(3),
+                indeterminate(4)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Variable to delete a table row.
+            To delete a snmp community, a set to 1 must be realized. Get returns
+            2 if the last set was realized succesfully; 3 if it resulted in error and 4
+            in another case."
+        ::={ telProdNpSNMPCommunityEntry 3 }
+
+    telProdNpSNMPComName OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..31))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Community name; maximum: 32 characters."
+        ::={ telProdNpSNMPCommunityEntry 4 }
+
+    telProdNpSNMPComAccess OBJECT-TYPE
+        SYNTAX  INTEGER{
+                write_read_trap(1),
+                read_trap(2),
+                trap_only(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Access type for the community:
+                1 allows reading, writing and the reception of traps;
+                2, reading and traps;
+                3, only traps.
+            Default value is 2 (READ_TRAP)."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 5 }
+
+    telProdNpSNMPComHabTrapAll OBJECT-TYPE
+        SYNTAX  INTEGER{
+                all(1),
+                none(2),
+                some(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling/disabling all traps.
+            It only allows set to 1 (all traps) and 2 (none).
+            Its value affects to the variables of the individual traps.
+            If it is enabled/disabled, then all the others will be enabled/disabled.
+            If there are enabled and disabled traps, its value is 3 (some traps).
+            Default value is 2 (none)."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 6 }
+
+    telProdNpSNMPComHabTrapColdStart OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling/disabling Cold Start traps.
+            Default value is 2(no), disabled."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 7 }
+
+    telProdNpSNMPComHabTrapWarmStart OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling/disabling Warm Start traps.
+            Default value is 2(no), disabled."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 8 }
+
+    telProdNpSNMPComHabTrapLinkDown OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling/disabling Link Down traps.
+            Default value is 2(no), disabled."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 9 }
+
+    telProdNpSNMPComHabTrapLinkUp OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling/disabling Link Up traps.
+            Default value is 2(no), disabled."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 10 }
+
+    telProdNpSNMPComHabTrapAuthFail OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling/disabling authentication failure traps.
+            Default value is 2(no), disabled."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 11 }
+
+    telProdNpSNMPComHabTrapEnt OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling/disabling private traps (enterprise).
+            Default value is 2(no), disabled."
+        DEFVAL {2}
+        ::={ telProdNpSNMPCommunityEntry 12 }
+
+    telProdNpSNMPComView OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..31))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "View name. Maximum: 32 characters.
+            Existing views can only be assigned to the community.
+            Default value is all."
+        DEFVAL {"all"}
+        ::={ telProdNpSNMPCommunityEntry 13 }
+
+
+    -- La tabla de direcciones IP
+
+    -- La tabla de direcciones IP contiene la informacion de las
+    -- direcciones IP, el numero de comunidad (1¶ indice), el indice de la
+    -- direccion IP(2¶ indice),
+    -- la variable de control de la tabla, el nombre de la comunidad,
+    -- la direccion IP y la mascara asociada a esa direccion IP.
+
+    telProdNpSNMPDirTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpSNMPDirEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "List of the IP addresses associated to a community.
+            There are two indexes: the community and the IP address position."
+        ::= { telProdNpConfProtSNMP 3 }
+
+    telProdNpSNMPDirEntry OBJECT-TYPE
+        SYNTAX  TelProdNpSNMPDirEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the IP addresses, the community number (first
+            index), the IP address index (second index), the table control variable,
+            the community name, the IP address and the mask associated to that
+            IP address."
+        INDEX   { telProdNpSNMPDirComIndex, telProdNpSNMPDirDirIndex }
+        ::={ telProdNpSNMPDirTable 1 }
+
+    TelProdNpSNMPDirEntry ::=
+        SEQUENCE{
+            telProdNpSNMPDirComIndex
+                INTEGER,
+            telProdNpSNMPDirDirIndex
+                INTEGER,
+            telProdNpSNMPDirStatus
+                INTEGER,
+            telProdNpSNMPDirComName
+                DisplayString,
+            telProdNpSNMPDirIP
+                IpAddress,
+            telProdNpSNMPDirMask
+                IpAddress
+            }
+
+    telProdNpSNMPDirComIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Community number associated to the IP address.
+            It is the first table index."
+        ::={ telProdNpSNMPDirEntry 1 }
+
+    telProdNpSNMPDirDirIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Entry number of the IP address.
+            It is the second table index."
+        ::={ telProdNpSNMPDirEntry 2 }
+
+    telProdNpSNMPDirStatus OBJECT-TYPE
+        SYNTAX  INTEGER{
+                valid(1),
+                add(2),
+                delete(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Table control variable.
+            Set to 1 does nothing.
+            Set to 2 adds a new row (address) in the table with the default
+            values and returns 2. If it already existed, then it returns error.
+            The value assigned to neighbor IP address is 0.0.0.1, and if it already
+            exists, then it increases it in an unit and so on.
+            It must be added immediately after the last index.
+            Set to 3 deletes all table fields corresponding to that address, and
+            returns 3.
+            Get returns 1 if the address exists."
+        ::={ telProdNpSNMPDirEntry 3 }
+
+    telProdNpSNMPDirComName OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..31))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Community name. Maximum: 32 characters."
+        ::={ telProdNpSNMPDirEntry 4 }
+
+    telProdNpSNMPDirIP OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "IP address of this entry.
+            Default value is 0.0.0.0.
+            If a new row for a community is requested to which a row with
+            the default values has already been assigned to it, theb default IP
+            address will be 0.0.0.1 and so on."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpSNMPDirEntry 5 }
+
+    telProdNpSNMPDirMask OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Mask associated to this IP address.
+            Default value is 255.0.0.0"
+        -- DEFVAL {"255.0.0.0"}
+        ::={ telProdNpSNMPDirEntry 6 }
+
+    -- La tabla de subrramas.
+
+    -- La tabla de subrramas contiene la informacion de las subrramas,
+    -- el numero de la vista asociada (1¶ indice) el numero de subrrama
+    -- (2¶ indice), la variable de crear fila de la tabla, la variable de
+    -- borrar fila de la tabla, el nombre de la vista asociada y el OID
+    -- de la subrrama.
+
+    -- Esta tabla crea nuevas subrramas asociadas a vistas del arbol.
+    -- En caso de que la vista no exista, entonces la crea y le asocia
+    -- la subrrama en cuestion.
+
+    telProdNpSNMPSubTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpSNMPSubEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Subbranches list.
+            There are two indixes: the view and the subbranch."
+        ::= { telProdNpConfProtSNMP 4 }
+
+    telProdNpSNMPSubEntry OBJECT-TYPE
+        SYNTAX  TelProdNpSNMPSubEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the subbranches, the associated view number
+            (first index), the subbranch number (second index), a variable to add
+            a new row, a variable to delete a table row, the associate view
+            number and the subbranch OID.
+            This table creates new subbranches associated to tree views.
+            If the view doesn't exist, then it creates it and it associates the
+            concrete subbranch to it."
+        INDEX { telProdNpSNMPSubViewIndex, telProdNpSNMPSubSubtreeIndex }
+        ::={ telProdNpSNMPSubTable 1 }
+
+    TelProdNpSNMPSubEntry ::=
+        SEQUENCE{
+            telProdNpSNMPSubViewIndex
+                INTEGER,
+            telProdNpSNMPSubSubtreeIndex
+                INTEGER,
+            telProdNpSNMPSubCreate
+                DisplayString,
+            telProdNpSNMPSubDel
+                INTEGER,
+            telProdNpSNMPSubNameView
+                DisplayString,
+            telProdNpSNMPSubOID
+                OBJECT IDENTIFIER
+            }
+
+
+    telProdNpSNMPSubViewIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "View number associated to the IP address.
+            It is the first table index."
+        ::={ telProdNpSNMPSubEntry 1 }
+
+    telProdNpSNMPSubSubtreeIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Subbranch number. It is the second table index."
+        ::={ telProdNpSNMPSubEntry 2 }
+
+    telProdNpSNMPSubCreate OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..31))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows adding a new table row.
+            To add a subbranch,  and give the name of the
+            new subbranch.
+            If it is repeated (there already is a view with an equal associate
+            subbranch), then it will return error.
+            If the view doesn't exist, then it creates it and it associates the
+            concrete subbranch to it."
+        ::={ telProdNpSNMPSubEntry 3 }
+
+    telProdNpSNMPSubDel OBJECT-TYPE
+        SYNTAX  INTEGER{
+                delete(1),
+                set_ok(2),
+                set_non_ok(3),
+                indeterminate(4)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows deleting a table row.
+            To add a subbranch, a set to 1 must be done.
+            Get returns 2 if the last set was realized, 3 if it was wrong and 4
+            in another case."
+        ::={ telProdNpSNMPSubEntry 4 }
+
+    telProdNpSNMPSubNameView OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..31))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "View name. Maximum: 32 characters.
+            If it is tried to give a view name that it already exists, and in
+            addition it already has an equal associate subbranch, then it will
+            return error."
+        ::={ telProdNpSNMPSubEntry 5 }
+
+    telProdNpSNMPSubOID OBJECT-TYPE
+        SYNTAX  OBJECT IDENTIFIER
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Subbranch identifier.
+            Default value is 0.0.
+            If it is tried to add a subbranch with the default OID to a view in
+            which that default OID already exists, then the value will be incremented
+            in an unit and so on."
+        -- DEFVAL {0 0}
+        ::={ telProdNpSNMPSubEntry 6 }
+
+END

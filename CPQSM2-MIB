@@ -4,7 +4,7 @@
 --         Management Information Base for SNMP Network Management
 --
 --
---      Copyright 1996,2003 Hewlett-Packard Development Company, L.P.
+--      Copyright 1996,2013 Hewlett-Packard Development Company, L.P.
 --
 --      Hewlett-Packard Company shall not be liable for technical or
 --      editorial errors or omissions contained herein. The information in
@@ -40,9 +40,14 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
         TRAP-TYPE               FROM RFC-1215
         sysName                 FROM RFC1213-MIB
         compaq                  FROM CPQHOST-MIB
-        cpqHoTrapFlags          FROM CPQHOST-MIB;
+        cpqHoGUIDCanonical      FROM CPQHOST-MIB
+        cpqHoTrapFlags          FROM CPQHOST-MIB
+        cpqSiAssetTag           FROM CPQSINFO-MIB
+        cpqSiProductName        FROM CPQSINFO-MIB
+        cpqSiSysProductId       FROM CPQSINFO-MIB
+        cpqSiSysSerialNum       FROM CPQSINFO-MIB;
 
---    compaq              OBJECT IDENTIFIER ::= { enterprises 232 }
+--  compaq              OBJECT IDENTIFIER ::= { enterprises 232 }
     cpqSm2              OBJECT IDENTIFIER ::= { compaq 9 }
     cpqSm2MibRev        OBJECT IDENTIFIER ::= { cpqSm2 1 }
     cpqSm2Component     OBJECT IDENTIFIER ::= { cpqSm2 2 }
@@ -53,8 +58,10 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
     cpqSm2EventLog      OBJECT IDENTIFIER ::= { cpqSm2Component 3 }
     cpqSm2AsyncComm     OBJECT IDENTIFIER ::= { cpqSm2Component 4 }
     cpqSm2Nic           OBJECT IDENTIFIER ::= { cpqSm2Component 5 }
+    cpqSm2Ers           OBJECT IDENTIFIER ::= { cpqSm2Component 6 }
 
     cpqSm2OsCommon      OBJECT IDENTIFIER ::= { cpqSm2Interface 4 }
+    cpqSm2NicIpv6       OBJECT IDENTIFIER ::= { cpqSm2Nic 3 }
 
 -- Object identifiers returned for the sysObjectId from the firmware agent.
 -- This loosely matches the cpqSm2CntlrModel enumeration construct.
@@ -70,7 +77,14 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
    cpqSm2ProdiLo           OBJECT IDENTIFIER ::= { cpqSm2Products 5 }
  -- .1.3.6.1.4.1.232.9.4.6
    cpqSm2ProdRILOEII       OBJECT IDENTIFIER ::= { cpqSm2Products 6 }
-
+ -- .1.3.6.1.4.1.232.9.4.7
+   cpqSm2ProdRILO2         OBJECT IDENTIFIER ::= { cpqSm2Products 7 }
+ -- .1.3.6.1.4.1.232.9.4.8
+   cpqSm2ProdRLO100        OBJECT IDENTIFIER ::= { cpqSm2Products 8 }
+ -- .1.3.6.1.4.1.232.9.4.9
+   cpqSm2ProdRILO3         OBJECT IDENTIFIER ::= { cpqSm2Products 9 }
+ -- .1.3.6.1.4.1.232.9.4.10
+   cpqSm2ProdRILO4         OBJECT IDENTIFIER ::= { cpqSm2Products 10 }
 
 -- ****************************************************************************
 --   Remote Insight/Integrated Lights-Out Information MIB Revision
@@ -84,7 +98,7 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 --      supporting the Remote Insight/Integrated Lights-Out MIB.
 --
 --      An Insight Agent conforming to this document will return a
---      cpqSm2MibRevMajor of one (1) and a cpqSm2MibRevMinor of six (6).
+--      cpqSm2MibRevMajor of one (1) and a cpqSm2MibRevMinor of forty six (46).
 --
 -- ****************************************************************************
 
@@ -467,24 +481,38 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             This is a collection of post error flags.  Each bit has the
             following meaning when it is on (1):
 
-                Bit 17-31: RESERVED: Always 0.
+                Bit 31:    RESERVED
+                Bit 30:    RESERVED
+                Bit 29:    CPLD - PAL5 error.
+                Bit 28:    CPLD - PAL4 error.
+                Bit 27:    CPLD - PAL3 error.
+                Bit 26:    CPLD - PAL2 error.
+                Bit 25:    CPLD - PAL1 error.
+                Bit 24:    CPLD - PAL0 error.
+                Bit 23:    Power Management Controller error.
+                Bit 22:    EEPROM content error.
+                Bit 21:    Supported Host error.
+                Bit 20:    Host ROM error.
+                Bit 19:    Infrastructure error.
+                Bit 18:    Thread Initialization error.
+                Bit 17:    Boot Block error.
                 Bit 16:    I2C error.
                 Bit 15:    EEPROM error.
                 Bit 14:    SRAM error.
-                Bit 13:    CPLD error.
-                Bit 12:    Mouse interface error.
+                Bit 13:    CPLD.
+                Bit 12:    Embedded Flash/SD-CARD
                 Bit 11:    NIC Error
-                Bit 10:    PCMCIA Error
-                Bit 9:     Video Error
+                Bit 10:    RESERVED
+                Bit 9:     RESERVED
                 Bit 8:     NVRAM write / read / verify error.
-                Bit 7:     NVRAM interface error.
-                Bit 6:     Battery interface error.
-                Bit 5:     Keyboard interface error.
-                Bit 4:     Serial port UART error.
-                Bit 3:     Modem UART error.
-                Bit 2:     Modem firmware error.
-                Bit 1:     Memory test error.
-                Bit 0:     Busmaster I/O read error.
+                Bit 7:     NVRAM Interface error.
+                Bit 6:     RESERVED
+                Bit 5:     RESERVED
+                Bit 4:     Serial Port UART error.
+                Bit 3:     Misc Cryptography error.
+                Bit 2:     Web Server cryptography error.
+                Bit 1:     Memory Test error.
+                Bit 0:     Cryptographic Hardware error.
 
             NOTE:   bit 31 is the most significant bit, bit 0 is the least
                     significant.
@@ -726,7 +754,11 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
                 pciRemoteInsightBoard(3),
                 pciLightsOutRemoteInsightBoard(4),
                 pciIntegratedLightsOutRemoteInsight(5),
-                pciLightsOutRemoteInsightBoardII(6)
+                pciLightsOutRemoteInsightBoardII(6),
+                pciIntegratedLightsOutRemoteInsight2(7),
+                pciLightsOut100series(8),
+                pciIntegratedLightsOutRemoteInsight3(9),
+                pciIntegratedLightsOutRemoteInsight4(10)
                 }
         ACCESS  read-only
         STATUS  mandatory
@@ -752,7 +784,19 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
               This is Integrated Remote Insight Lights-Out Edition.
 
             pciLightsOutRemoteInsightBoardII(6)
-              This is the Remote Insight Lights-Out Edition version II."
+              This is the Remote Insight Lights-Out Edition version II.
+
+            pciIntegratedLightsOutRemoteInsight2(7)
+              This is the Integrated Lights-Out 2 Edition.
+                            
+            pciLightsOut100series(8)  
+              This is the Lights-Out 100 Edition for 100 Series of ProLiant servers.
+              
+            pciIntegratedLightsOutRemoteInsight3(9)
+              This is the Integrated Lights-Out 3 Edition.
+
+            pciIntegratedLightsOutRemoteInsight4(10)
+              This is the Integrated Lights-Out 4 Edition."
 
         ::= { cpqSm2Cntlr 21 }
 
@@ -951,6 +995,71 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             "
 
         ::= { cpqSm2Cntlr 29}
+
+    cpqSm2CntlrLicenseActive OBJECT-TYPE
+        SYNTAX  INTEGER {
+                none(1),
+                iloAdvanced(2),
+                iloLight(3),
+                iloAdvancedBlade(4),
+                iloStandard(5),
+                iloEssentials(6),
+                iloScaleOut(7)
+                }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight License State.
+
+            The following values are defined:
+
+            none(1)
+              The Insight Agent is unable to determine the active license
+              or no license is installed.
+
+            iloAdvanced(2)
+              iLO Advanced license is installed.
+
+            iloLight(3)
+              iLO Light license is installed.
+
+            iloAdvancedBlade(4)
+             iLO Advanced for Bladesystem license is installed.
+
+            iloStandard(5)
+             iLO Standard for HP BladeSystem license is installed.
+
+            iloEssentials(6)
+              iLO Essentials license is installed.
+
+            iloScaleOut(7)
+              iLO Scale Out license is installed."
+
+        ::= { cpqSm2Cntlr 30}
+
+    cpqSm2CntlrLicenseKey OBJECT-TYPE
+         SYNTAX  DisplayString (SIZE (32))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "iLO Active ASCII License key string. On implicitly licensed 
+             systems like blades, a license will be indicated as installed, 
+             although the key value may be blank"
+
+        ::= { cpqSm2Cntlr 31}
+
+    cpqSm2CntlrServerPowerState OBJECT-TYPE
+        SYNTAX  INTEGER {
+     		unknown(1),
+                poweredOff(2),
+                poweredOn(3),
+                insufficientPowerOrPowerOnDenied(4)
+                             }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION        
+            "The current power state for the server.  The power cap reach state indicates there was an attempt to power on, but the server could not reserve enough power. " 
+        ::= { cpqSm2Cntlr 32}
 
 
 -- ****************************************************************************
@@ -2054,6 +2163,413 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
         ::= { cpqSm2NicStatsEntry 15 }
 
 
+-- ************************************************************************************
+--   Remote Insight/ Integrated Lights-Out Network Interface Configuration IPv6 Table
+-- ====================================================================================
+--
+-- The compaq enterprise               (1.3.6.1.4.1.232)
+--      cpqSm2 Group                   (1.3.6.1.4.1.232.9)
+--       cpqSm2Component Group         (1.3.6.1.4.1.232.9.2)
+--        cpqSm2Nic Group              (1.3.6.1.4.1.232.9.2.5)
+--         cpqSm2NicIpv6 Group         (1.3.6.1.4.1.232.9.2.5.3)
+
+-- ********************************************************************
+--    cpqSm2NicIpv6 OBJECT-TYPE
+--        SYNTAX  SEQUENCE OF CpqSm2NicIpv6Entry
+--        ACCESS  not-accessible
+--        STATUS  mandatory
+--        DESCRIPTION
+--            "The list of IPv6 network interface configuration settings for the Remote Insight/ Integrated Lights-Out."
+--        ::= { cpqSm2Nic 3 }
+
+    cpqSm2NicIpv6Gateway OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "This value specifies the IPv6 gateway address."
+        ::= { cpqSm2NicIpv6 1 }
+
+-- *********************************************************************
+
+-- The compaq enterprise               (1.3.6.1.4.1.232)
+--      cpqSm2 Group                   (1.3.6.1.4.1.232.9)
+--       cpqSm2Component Group         (1.3.6.1.4.1.232.9.2)
+--        cpqSm2Nic Group              (1.3.6.1.4.1.232.9.2.5)
+--         cpqSm2NicIpv6 Group         (1.3.6.1.4.1.232.9.2.5.3)
+--          cpqSm2NicIpv6Address Table (1.3.6.1.4.1.232.9.2.5.3.2)
+-- ****************************************************************************
+
+    cpqSm2NicIpv6AddressTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CpqSm2NicIpv6AddressEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A table of IPv6 Manual Address information."
+        ::= { cpqSm2NicIpv6 2 }
+
+    cpqSm2NicIpv6AddressEntry OBJECT-TYPE
+        SYNTAX  CpqSm2NicIpv6AddressEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A defined nic's IPv6 static address configuration settings for the Remote Insight/ Integrated Lights-Out."
+        INDEX   { cpqSm2NicIpv6Index }
+        ::= { cpqSm2NicIpv6AddressTable 1 }
+
+    CpqSm2NicIpv6AddressEntry ::= SEQUENCE {
+        cpqSm2NicIpv6Index             INTEGER,
+        cpqSm2NicIpv6Address           DisplayString,
+        cpqSm2NicIpv6Status            DisplayString,
+        cpqSm2NicIpv6PrefixLen         INTEGER
+        }
+
+    cpqSm2NicIpv6Index OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "An index that uniquely specifies this entry."
+        ::= { cpqSm2NicIpv6AddressEntry 1 }
+          
+    cpqSm2NicIpv6Address OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 Address with the CIDR(Classless Inter-Domain Routing) notation that the logical adapter presents to the network."
+        ::= { cpqSm2NicIpv6AddressEntry 2 }
+
+    cpqSm2NicIpv6Status OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 Address Status."
+        ::= { cpqSm2NicIpv6AddressEntry 3 }
+
+    cpqSm2NicIpv6PrefixLen OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Prefix specifies a subnet with a range of IP addresses."
+        ::= { cpqSm2NicIpv6AddressEntry 4 }
+
+-- *********************************************************************
+-- The compaq enterprise               (1.3.6.1.4.1.232)
+--      cpqSm2 Group                   (1.3.6.1.4.1.232.9)
+--       cpqSm2Component Group         (1.3.6.1.4.1.232.9.2)
+--        cpqSm2Nic Group              (1.3.6.1.4.1.232.9.2.5)
+--         cpqSm2NicIpv6 Group         (1.3.6.1.4.1.232.9.2.5.3)
+--          cpqSm2NicIpv6Dhcp Table    (1.3.6.1.4.1.232.9.2.5.3.3)
+-- ****************************************************************************
+
+    cpqSm2NicIpv6DhcpTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CpqSm2NicIpv6DhcpEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A table of IPv6 Dhcp Address information."
+        ::= { cpqSm2NicIpv6 3 }
+
+    cpqSm2NicIpv6DhcpEntry OBJECT-TYPE
+        SYNTAX  CpqSm2NicIpv6DhcpEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A defined nic's IPv6 DHCP configuration settings for the Remote Insight/ Integrated Lights-Out."
+        INDEX   { cpqSm2NicIpv6Index }
+        ::= { cpqSm2NicIpv6DhcpTable 1 }
+
+    CpqSm2NicIpv6DhcpEntry ::= SEQUENCE {
+        cpqSm2NicIpv6DhcpIndex         INTEGER,
+        cpqSm2NicIpv6Dhcp              DisplayString,
+        cpqSm2NicIpv6DhcpStatus        DisplayString,
+        cpqSm2NicIpv6DhcpPrefixLen     INTEGER
+        }
+
+    cpqSm2NicIpv6DhcpIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "An index that uniquely specifies this entry."
+        ::= { cpqSm2NicIpv6DhcpEntry 1 }
+          
+    cpqSm2NicIpv6Dhcp OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 Address with the CIDR(Classless Inter-Domain Routing) notation that the logical adapter presents to the network."
+        ::= { cpqSm2NicIpv6DhcpEntry 2 }
+
+    cpqSm2NicIpv6DhcpStatus OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 Dhcp Status."
+        ::= { cpqSm2NicIpv6DhcpEntry 3 }
+
+    cpqSm2NicIpv6DhcpPrefixLen OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Prefix specifies a subnet with a range of IP addresses."
+        ::= { cpqSm2NicIpv6DhcpEntry 4 }
+
+-- *********************************************************************
+-- The compaq enterprise               (1.3.6.1.4.1.232)
+--      cpqSm2 Group                   (1.3.6.1.4.1.232.9)
+--       cpqSm2Component Group         (1.3.6.1.4.1.232.9.2)
+--        cpqSm2Nic Group              (1.3.6.1.4.1.232.9.2.5)
+--         cpqSm2NicIpv6 Group         (1.3.6.1.4.1.232.9.2.5.3)
+--          cpqSm2NicIpv6Slaac Table   (1.3.6.1.4.1.232.9.2.5.3.4)
+-- ****************************************************************************
+
+    cpqSm2NicIpv6SlaacTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CpqSm2NicIpv6SlaacEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A table of IPv6 Slaac Address information."
+        ::= { cpqSm2NicIpv6 4 }
+
+    cpqSm2NicIpv6SlaacEntry OBJECT-TYPE
+        SYNTAX  CpqSm2NicIpv6SlaacEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A defined nic's IPv6 Slaac address configuration settings for the Remote Insight/ Integrated Lights-Out."
+        INDEX   { cpqSm2NicIpv6SlaacIndex }
+        ::= { cpqSm2NicIpv6SlaacTable 1 }
+
+    CpqSm2NicIpv6SlaacEntry ::= SEQUENCE {
+        cpqSm2NicIpv6SlaacIndex        INTEGER,
+        cpqSm2NicIpv6Slaac             DisplayString,
+        cpqsm2NicIpv6SlaacStatus       DisplayString,
+        cpqSm2NicIpv6SlaacPrefixLen    INTEGER
+        }
+
+    cpqSm2NicIpv6SlaacIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "An index that uniquely specifies this entry."
+        ::= { cpqSm2NicIpv6SlaacEntry 1 }
+          
+    cpqSm2NicIpv6Slaac OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 Slaac Address with the CIDR(Classless Inter-Domain Routing) notation that the logical adapter presents to the network."
+        ::= { cpqSm2NicIpv6SlaacEntry 2 }
+
+    cpqsm2NicIpv6SlaacStatus OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 Slaac Status."
+        ::= { cpqSm2NicIpv6SlaacEntry 3 }
+
+    cpqSm2NicIpv6SlaacPrefixLen OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Prefix specifies a subnet with a range of IP addresses."
+        ::= { cpqSm2NicIpv6SlaacEntry 4 }
+
+-- *********************************************************************
+-- The compaq enterprise               (1.3.6.1.4.1.232)
+--      cpqSm2 Group                   (1.3.6.1.4.1.232.9)
+--       cpqSm2Component Group         (1.3.6.1.4.1.232.9.2)
+--        cpqSm2Nic Group              (1.3.6.1.4.1.232.9.2.5)
+--         cpqSm2NicIpv6 Group         (1.3.6.1.4.1.232.9.2.5.3)
+--          cpqSm2NicIpv6Route Table   (1.3.6.1.4.1.232.9.2.5.3.5)
+-- ****************************************************************************
+
+    cpqSm2NicIpv6RouteTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF CpqSm2NicIpv6RouteEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A table of IPv6 Route Address information."
+        ::= { cpqSm2NicIpv6 5 }
+
+    cpqSm2NicIpv6RouteEntry OBJECT-TYPE
+        SYNTAX  CpqSm2NicIpv6RouteEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "A defined nic's IPv6 route configuration settings for the Remote Insight/ Integrated Lights-Out."
+        INDEX   { cpqSm2NicIpv6RouteIndex }
+        ::= { cpqSm2NicIpv6RouteTable 1 }
+
+    CpqSm2NicIpv6RouteEntry ::= SEQUENCE {
+        cpqSm2NicIpv6RouteIndex             INTEGER,
+        cpqSm2NicIpv6RouteDest              DisplayString,
+        cpqsm2NicIpv6RouteDestStatus        DisplayString,
+        cpqSm2NicIpv6RouteDestPrefixLen     INTEGER,
+        cpqSM2NicIpv6RouteGate              DisplayString,
+        cpqsm2NicIpv6RouteGateStatus        DisplayString
+        }
+
+    cpqSm2NicIpv6RouteIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "An index that uniquely specifies this entry."
+        ::= { cpqSm2NicIpv6RouteEntry 1 }
+          
+    cpqSm2NicIpv6RouteDest OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 route destination address with the CIDR(Classless Inter-Domain Routing) notation that the logical adapter presents to the network."
+        ::= { cpqSm2NicIpv6RouteEntry 2 }
+
+    cpqsm2NicIpv6RouteDestStatus OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 route destination Status."
+        ::= { cpqSm2NicIpv6RouteEntry 3 }
+
+    cpqSm2NicIpv6RouteDestPrefixLen OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Route Destination Prefix specifies a subnet with a range of IP addresses."
+        ::= { cpqSm2NicIpv6RouteEntry 4 }
+
+    cpqSM2NicIpv6RouteGate OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 route gate address with the CIDR(Classless Inter-Domain Routing) notation that the logical adapter presents to the network."
+        ::= { cpqSm2NicIpv6RouteEntry 5 }
+
+    cpqsm2NicIpv6RouteGateStatus OBJECT-TYPE
+        SYNTAX  DisplayString
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote Insight/ Integrated Lights-Out Network Interface
+            Controller IPv6 route gate Status."
+        ::= { cpqSm2NicIpv6RouteEntry 6 }
+
+
+--  *********************************************************************
+--   Remote Insight/ Integrated Lights-Out Embedded Remote Support Group
+--   ===================================================================
+--
+-- The compaq enterprise               (1.3.6.1.4.1.232)
+--      cpqSm2 Group                   (1.3.6.1.4.1.232.9)
+--       cpqSm2Component Group         (1.3.6.1.4.1.232.9.2)
+--        cpqSm2Ers Group              (1.3.6.1.4.1.232.9.2.6)
+--
+--      The cpqSm2Ers group contains the configuration and statistics for the
+--      embedded remote support feature of Remote Insight/ Integrated Lights-Out.
+--
+--      Implementation of the cpqSm2Ers group is mandatory for all agents
+--      that support the Remote Insight/Integrated Lights-Out MIB.
+--
+-- ****************************************************************************
+    cpqSm2ErsTransactionType OBJECT-TYPE
+        SYNTAX  INTEGER {
+                    registration(1),
+                    serviceEvent(2),
+                    l2DataCollection(3),
+                    unregistration(4),
+                    ahsDataCollection(5)
+                    }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Embedded Remote Support transaction type.
+
+            The following values are defined:
+
+            registration(1)
+                Registration operation with Insight Remote Host or Insight Online Host.
+
+            serviceEvent(2)
+                Sending of service event to Insight Remote Host or Insight Online Host.
+
+            l2DataCollection(3)
+                L2 Data collection operation.
+
+            unregistration(4)
+                Unregistration with Insight Remote Host or Insight Online Host.
+
+            ahsDataCollection(5)
+                Active Health System data collection operation."
+        ::= { cpqSm2Ers 1 }
+
+    cpqSm2ErsConnectionModel OBJECT-TYPE
+        SYNTAX  INTEGER {
+            insightOnline(1),
+            insightRemoteSupport(2)
+            }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Embedded Remote Support connection model configured on
+             the Remote Insight/ Integrated Lights-Out."
+        ::= { cpqSm2Ers 2 }
+
+    cpqSm2ErsFailureCode OBJECT-TYPE
+        SYNTAX  INTEGER {
+            genericTransmitError(1),
+            clientTransmitTimeout(2),
+            clientReceiveTimeout(3),
+            proxyConnectError(4),
+            remoteHostConnectError(5),
+            remoteServiceError(6)
+            }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Embedded Remote Support transaction failure code."
+        ::= { cpqSm2Ers 3 }
+
+    cpqSm2ErsRemoteHost OBJECT-TYPE
+        SYNTAX  DisplayString (SIZE (0..135))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Remote destination server's hostname and port as configured 
+             on the Remote Insight/ Integrated Lights-Out.
+
+             Example: myremotehost.hp.com:6789"
+        ::= { cpqSm2Ers 4 }
+
+
 -- ****************************************************************************
 --   Remote Insight/ Integrated Lights-Out Trap Definition
 --   =====================================================
@@ -2077,13 +2593,16 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 
             The Remote Insight/ Integrated Lights-Out firmware has detected a server reset."
 
-              --#TYPE "Server Reset Detected"
+              --#TYPE "Server Reset Detected (9001)"
               --#SUMMARY "Server reset detected."
               --#ARGUMENTS {}
               --#SEVERITY CRITICAL
               --#TIMEINDEX 99
               --#STATE   DEGRADED
-
+              --#SIMPLE_SEVERITY CRITICAL
+              --#HWSTATUS_CATEGORY DEVICEBAY
+              --#LIFECYCLE
+              
         ::= 9001
 
     cpqSm2ServerPowerOutage TRAP-TYPE
@@ -2095,13 +2614,16 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             The Remote Insight/ Integrated Lights-Out firmware has detected server
             power failure."
 
-              --#TYPE "Server Power Outage"
+              --#TYPE "Server Power Outage (9002)"
               --#SUMMARY "Server power outage detected."
               --#ARGUMENTS {}
               --#SEVERITY CRITICAL
               --#TIMEINDEX 99
               --#STATE   DEGRADED
-
+              --#SIMPLE_SEVERITY CRITICAL
+              --#HWSTATUS_CATEGORY POWER
+              --#ACTION "Check the server's power source."
+              
         ::= 9002
 
     cpqSm2UnauthorizedLoginAttempts TRAP-TYPE
@@ -2113,13 +2635,16 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             The Remote Insight/ Integrated Lights-Out firmware has detected
             unauthorized login attempts."
 
-              --#TYPE "Remote Insight/ Integrated Lights-Out Unauthorized Login Attempts"
-              --#SUMMARY "More than %d unauthorized login attempts detected."
+              --#TYPE "Remote Insight/ Integrated Lights-Out Unauthorized Login Attempts (9003)"
+              --#SUMMARY "Integrated Lights-Out detected more than %d unauthorized login attempts."
               --#ARGUMENTS {2}
               --#SEVERITY INFORMATIONAL
               --#TIMEINDEX 99
               --#STATE   OPERATIONAL
-
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY NONE
+              --#ACTION "Check the iLO log for more information on the login failure."
+              
         ::= 9003
 
     cpqSm2BatteryFailed TRAP-TYPE
@@ -2130,13 +2655,15 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 
             The Remote Insight battery has failed and needs to be replaced."
 
-              --#TYPE "Remote Insight Battery Failed"
+              --#TYPE "Remote Insight Battery Failed (9004)"
               --#SUMMARY "Remote Insight battery failed."
               --#ARGUMENTS {}
               --#SEVERITY CRITICAL
               --#TIMEINDEX 99
               --#STATE   FAILED
-
+              --#SIMPLE_SEVERITY CRITICAL
+              --#HWSTATUS_CATEGORY NONE
+              
         ::= 9004
 
     cpqSm2SelfTestError TRAP-TYPE
@@ -2148,13 +2675,16 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             The Remote Insight/ Integrated Lights-Out firmware has detected a Remote
             Insight self test error."
 
-              --#TYPE "Remote Insight/ Integrated Lights-Out Self Test Error"
+              --#TYPE "Remote Insight/ Integrated Lights-Out Self Test Error (9005)"
               --#SUMMARY "Remote Insight/ Integrated Lights-Out self test error %d."
               --#ARGUMENTS {2}
               --#SEVERITY CRITICAL
               --#TIMEINDEX 99
               --#STATE   FAILED
-
+              --#SIMPLE_SEVERITY CRITICAL
+              --#HWSTATUS_CATEGORY NONE
+              --#ACTION "To decode the error-code look into cpqSm2CntlrSelfTestErrors description. You can also check iLO logs & Diagnostic page to get more details on the error."
+              
         ::= 9005
 
     cpqSm2InterfaceError TRAP-TYPE
@@ -2166,13 +2696,15 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             The host OS has detected an error in the Remote Insight/ Integrated Lights-Out
             interface.  The firmware is not responding."
 
-              --#TYPE "Remote Insight/ Integrated Lights-Out Interface Error"
+              --#TYPE "Remote Insight/ Integrated Lights-Out Interface Error (9006)"
               --#SUMMARY "Server %s, Remote Insight/ Integrated Lights-Out interface error."
               --#ARGUMENTS {0}
               --#SEVERITY MAJOR
               --#TIMEINDEX 99
               --#STATE   DEGRADED
-
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY NONE
+              
         ::= 9006
 
     cpqSm2BatteryDisconnected TRAP-TYPE
@@ -2183,13 +2715,15 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 
             The Remote Insight battery cable has been disconnected."
 
-              --#TYPE "Remote Insight Battery Disconnected"
+              --#TYPE "Remote Insight Battery Disconnected (9007)"
               --#SUMMARY "Remote Insight battery disconnected."
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
               --#TIMEINDEX 99
               --#STATE   DEGRADED
-
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY NONE
+              
         ::= 9007
 
     cpqSm2KeyboardCableDisconnected TRAP-TYPE
@@ -2200,13 +2734,15 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 
             The Remote Insight keyboard cable has been disconnected."
 
-              --#TYPE "Remote Insight keyboard cable disconnected"
+              --#TYPE "Remote Insight keyboard cable disconnected (9008)"
               --#SUMMARY "Remote Insight keyboard cable disconnected."
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
               --#TIMEINDEX 99
               --#STATE   DEGRADED
-
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY NONE
+              
         ::= 9008
 
     cpqSm2MouseCableDisconnected TRAP-TYPE
@@ -2217,13 +2753,15 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 
             The Remote Insight mouse cable has been disconnected."
 
-              --#TYPE "Remote Insight mouse cable disconnected"
+              --#TYPE "Remote Insight mouse cable disconnected (9009)"
               --#SUMMARY "Remote Insight mouse cable disconnected."
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
               --#TIMEINDEX 99
               --#STATE   DEGRADED
-
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY NONE
+              
         ::= 9009
 
     cpqSm2ExternalPowerCableDisconnected TRAP-TYPE
@@ -2234,13 +2772,15 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 
             The Remote Insight external power cable has been disconnected."
 
-              --#TYPE "Remote Insight external power cable disconnected"
+              --#TYPE "Remote Insight external power cable disconnected (9010)"
               --#SUMMARY "Remote Insight external power cable disconnected."
               --#ARGUMENTS {}
               --#SEVERITY MAJOR
               --#TIMEINDEX 99
               --#STATE   DEGRADED
-
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY NONE
+              
         ::= 9010
 
 -- New for 5.30.0.0
@@ -2252,13 +2792,16 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
 
             The Remote Insight/ Integrated Lights-Out firmware has detected the logs are full."
 
-              --#TYPE "Remote Insight/ Integrated Lights-Out Logs Full."
-              --#SUMMARY "Remote Insight/ Integrated Lights-Out Logs Full"
+              --#TYPE "Remote Insight/ Integrated Lights-Out Logs Full. (9011)"
+              --#SUMMARY "Remote Insight/ Integrated Lights-Out logs full."
               --#ARGUMENTS {}
-              --#SEVERITY INFORMATIONAL
+              --#SEVERITY MINOR
               --#TIMEINDEX 99
               --#STATE   OPERATIONAL
-
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY LOGS
+              --#LIFECYCLE
+              
         ::= 9011
 
 -- New for 5.30.0.0
@@ -2271,12 +2814,15 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             The Remote Insight/ Integrated Lights-Out firmware has detected the security override jumper
             has been toggled to the engaged position."
 
-              --#TYPE "Security override engaged."
+              --#TYPE "Security override engaged. (9012)"
               --#SUMMARY "Remote Insight/ Integrated Lights-Out firmware has detected the security override jumper has been engaged."
               --#ARGUMENTS {}
               --#SEVERITY INFORMATIONAL
               --#TIMEINDEX 99
               --#STATE   OPERATIONAL
+              --#SIMPLE_SEVERITY OK
+              --#HWSTATUS_CATEGORY NONE              
+              --#LIFECYCLE
 
         ::= 9012
 
@@ -2290,14 +2836,147 @@ CPQSM2-MIB DEFINITIONS ::= BEGIN
             The Remote Insight/ Integrated Lights-Out firmware has detected the security override jumper
             has been toggled to the disengaged position."
 
-              --#TYPE "Security override disengaged."
+              --#TYPE "Security override disengaged. (9013)"
               --#SUMMARY "Remote Insight/ Integrated Lights-Out firmware has detected the security override jumper has been disengaged."
               --#ARGUMENTS {}
               --#SEVERITY INFORMATIONAL
               --#TIMEINDEX 99
               --#STATE   OPERATIONAL
+              --#SIMPLE_SEVERITY OK
+              --#HWSTATUS_CATEGORY NONE            
+              --#LIFECYCLE
 
         ::= 9013
 
+   cpqSm2ServerFatalError TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES  { sysName }
+        DESCRIPTION
+            "Server Fatal Error Detected.
+
+            The Remote Insight/ Integrated Lights-Out firmware has 
+detected a server fatal error."
+
+              --#TYPE "Server Fatal Error Detected (9014)"
+              --#SUMMARY "Server fatal error detected."
+              --#ARGUMENTS {}
+              --#SEVERITY CRITICAL
+              --#TIMEINDEX 99
+              --#STATE   DEGRADED
+              --#SIMPLE_SEVERITY CRITICAL
+              --#HWSTATUS_CATEGORY NONE              
+
+        ::= 9014
+
+   cpqSm2NicLinkDown TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES  { sysName }
+        DESCRIPTION
+            "The iLO NIC Link is Down.
+
+            The Remote Insight/ Integrated Lights-Out firmware has 
+detected the loss of network link."
+
+              --#TYPE "The iLO NIC Link is Down (9015)"
+              --#SUMMARY "The iLO NIC link has been lost."
+              --#ARGUMENTS {}
+              --#SEVERITY CRITICAL
+              --#TIMEINDEX 99
+              --#STATE   DEGRADED
+              --#SIMPLE_SEVERITY CRITICAL
+              --#HWSTATUS_CATEGORY NETWORK
+              --#ACTION "Check the network connections for the iLO."              
+
+        ::= 9015
+
+   cpqSm2NicLinkUp TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES  { sysName }
+        DESCRIPTION
+            "The iLO NIC Link is Up.
+
+            The Remote Insight/ Integrated Lights-Out firmware has 
+detected the presence of network link."
+
+              --#TYPE "The iLO NIC Link is Up (9016)"
+              --#SUMMARY "The iLO NIC link has been restored."
+              --#ARGUMENTS {}
+              --#SEVERITY INFORMATIONAL
+              --#TIMEINDEX 99
+              --#STATE   OPERATIONAL
+              --#SIMPLE_SEVERITY OK
+              --#HWSTATUS_CATEGORY NETWORK              
+
+        ::= 9016
+
+    cpqSm2ServerPowerOn TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES  { sysName,  cpqHoTrapFlags, cpqHoGUIDCanonical }
+        DESCRIPTION
+            "The server has been powered on. This will be sent once a server power on transition has occurred." 
+              --#TYPE "Server powered on (9017)"
+              --#SUMMARY "The server has been powered on."
+              --#ARGUMENTS {}
+              --#SEVERITY INFORMATIONAL
+              --#TIMEINDEX 99
+              --#STATE   OPERATIONAL
+              --#SIMPLE_SEVERITY OK
+              --#HWSTATUS_CATEGORY POWER
+              --#LIFECYCLE              
+    ::= 9017  
+ 
+    cpqSm2ServerPowerOff TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES  { sysName,  cpqHoTrapFlags, cpqHoGUIDCanonical }
+        DESCRIPTION
+            "The server has been powered off. This will be sent once the server has been powered off, either by OS, or the power button. "
+ 
+              --#TYPE "Server powered off (9018)"
+              --#SUMMARY "The server has been powered off."
+              --#ARGUMENTS {}
+              --#SEVERITY INFORMATIONAL
+              --#TIMEINDEX 99
+              --#STATE   DEGRADED
+              --#SIMPLE_SEVERITY OK
+              --#HWSTATUS_CATEGORY POWER
+              --#LIFECYCLE
+    ::= 9018 
+ 
+    cpqSm2ServerPowerOnFailure TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES  { sysName, cpqHoTrapFlags, cpqHoGUIDCanonical }
+        DESCRIPTION
+            "A request was made to power on the server, however the server could not be powered on due to a failure condition."
+ 
+              --#TYPE "Server power on failure (9019)"
+              --#SUMMARY "The server could not be powered on."
+              --#ARGUMENTS {}
+              --#SEVERITY CRITICAL
+              --#TIMEINDEX 99
+              --#STATE   DEGRADED
+              --#SIMPLE_SEVERITY CRITICAL
+              --#HWSTATUS_CATEGORY POWER
+    ::= 9019
+
+    cpqSm2IrsCommFailure TRAP-TYPE
+        ENTERPRISE compaq
+        VARIABLES  { sysName, cpqHoTrapFlags, cpqHoGUIDCanonical, cpqSiProductName,
+                     cpqSiSysProductId, cpqSiSysSerialNum, cpqSiAssetTag,
+                     cpqSm2ErsTransactionType, cpqSm2ErsConnectionModel,
+                     cpqSm2ErsFailureCode, cpqSm2ErsRemoteHost }
+        DESCRIPTION
+            "The iLO to Insight Remote Support or Insight Online communication failed."
+
+              --#TYPE "iLO to Insight Remote Support communication failure (9020)"
+              --#SUMMARY "The iLO to Insight Remote Support or Insight Online communication failed."
+              --#ARGUMENTS {}
+              --#SEVERITY MAJOR
+              --#TIMEINDEX 99
+              --#STATE   DEGRADED
+              --#SIMPLE_SEVERITY MAJOR
+              --#HWSTATUS_CATEGORY REMOTESUPPORT
+              --#ACTION "Please check the connectivity to Insight Remote Support or Insight Online Host."
+    ::= 9020
+	
 END
 
