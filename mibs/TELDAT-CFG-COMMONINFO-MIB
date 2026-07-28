@@ -1,0 +1,863 @@
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+                -- MIB privada de Teldat
+
+                -- MIB de parﬂmetros globales de configuracin.
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.8  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.7  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+    -- 1.6  12/12/08    P. Nogueira     Variables obsoletas, correciones
+    -- 1.5  05/03/08    J. Herrero      A±adidos estados operativos de interfaz
+    -- 1.4  21/02/08    J. Herrero      Corregida para compilacin con
+    --                  M.A. Pastor     MG-Soft MIB Compiler
+    -- 1.3  08/02/05    M.A. Pastor     Aunque se introdujo el cabecero no se
+    --                                  habçan corregido realmente los valores
+    --                                  del medio activo
+    -- 1.2  29/11/04    M.A. Pastor     Corregidos valores medio activo
+    -- 1.1  09/07/04    J. Molina       Reload<->Restart
+    -- 1.0  01/07/04    J. Molina       Fichero procedente de nucleox.mib
+
+
+    -- Historial de nucleox.mib:
+    -- 1.0 (beta)   18/07/97    Jose Picot Coca & Ignacio Salas Salmern
+            -- Implementacion inicial
+    --------------------------------------------------------------------------
+
+TELDAT-CFG-CommonInfo-MIB DEFINITIONS ::= BEGIN
+
+-- Tipos importados
+
+    IMPORTS
+        TimeTicks
+            FROM RFC1155-SMI
+
+        OBJECT-TYPE
+            FROM RFC-1212
+
+        DisplayString
+            FROM RFC1213-MIB
+
+        telProductsNpConfig
+            FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    -- ConfigControl
+
+    telProdNpConfigControl  OBJECT IDENTIFIER ::= { telProductsNpConfig 1 }
+
+    telProdNpConfigControlBugsClear OBJECT-TYPE
+        SYNTAX  INTEGER{
+                nondeletebugs(0),
+                deletebugs(1)
+            }
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "In writing 1 resets all bugs stored in the system, in reading
+            always 0."
+        ::={ telProdNpConfigControl 1 }
+
+    telProdNpConfigControlReload OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set(1),
+                last-set-ok(2),
+                last-set-failed(3),
+                indeterminated(4)
+            }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Reset of the device."
+        ::={ telProdNpConfigControl 2 }
+
+    telProdNpConfigControlRestart OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set(1),
+                last-set-ok(2),
+                last-set-failed(3),
+                indeterminated(4)
+            }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Restart of the device."
+        ::={ telProdNpConfigControl 3 }
+
+    telProdNpConfigControlSaveConfig OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set(1),
+                last-set-ok(2),
+                last-set-failed(3),
+                indeterminated(4),
+                confirm-set(5)
+            }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "It saves the configuration parameters of the device."
+        ::={ telProdNpConfigControl 4 }
+
+    telProdNpConfigControlOKSet OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS   read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Number of processed and returned set by the SNMP agent. If a set to 1
+            (the only allowed value for set) is realized, the counter is reset to 0."
+        ::={ telProdNpConfigControl 5 }
+
+    telProdNpConfChkSum OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-write
+        STATUS obsolete
+        DESCRIPTION
+            "It establishes a backup of the SRAM to check the integrity of the
+            data contained in it."
+        ::={ telProdNpConfigControl 6 }
+
+    telProdNpConfActDev OBJECT-TYPE
+        SYNTAX  INTEGER
+                    {
+                        smartcard-flash(1),
+                        smartcard(2),
+                        flash(3)
+                    }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Active Device. Device used to read and write configuration files."
+        ::={ telProdNpConfigControl 7 }
+
+    telProdNpConfConfSavedDev OBJECT-TYPE
+        SYNTAX  INTEGER
+                    {
+                        smartcard(1),
+                        flash(2),
+                        smartcard-flash(3)
+                    }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Device where the last configuration has been saved."
+        ::={ telProdNpConfigControl 8 }
+
+
+    -- ConfDataGlobal
+
+    telProdNpConfDataGlobal OBJECT IDENTIFIER ::= { telProductsNpConfig 2 }
+
+    telProdNpConfDataDescription    OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..100))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "A description of the device which includes hardware type, networking
+            software and operating system."
+        ::={ telProdNpConfDataGlobal 1 }
+
+    telProdNpConfDataObjectID   OBJECT-TYPE
+        SYNTAX  OBJECT IDENTIFIER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Object Identifier assigned to the device"
+        ::={ telProdNpConfDataGlobal 2 }
+
+    telProdNpConfDataName   OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..79))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Name assigned to the device (generally the one of TCP/IP)."
+        ::={ telProdNpConfDataGlobal 3 }
+
+    telProdNpConfDataContact    OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..79))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Contact person; along with other data, as the telephone number."
+        ::={ telProdNpConfDataGlobal 4 }
+
+    telProdNpConfDataLocation   OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..79))
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Location; where the device is located physically."
+        ::={ telProdNpConfDataGlobal 5 }
+
+    telProdNpConfDataServices   OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "A coded number which indicates the layers for which this node
+            performs services."
+        ::={ telProdNpConfDataGlobal 6 }
+
+    telProdNpConfDataUptime OBJECT-TYPE
+        SYNTAX  TimeTicks
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Time in hundredths of a second from the last reboot of the device."
+        ::={ telProdNpConfDataGlobal 7 }
+
+    telProdNpConfDataInactTime  OBJECT-TYPE
+        SYNTAX  INTEGER(1..600)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Maximum time (in minutes) of inactivity of the telnet, after which
+            session disconnection will take place."
+        ::={ telProdNpConfDataGlobal 9 }
+
+
+    -- La tabla BuffersRx
+
+    -- La tabla de BuffersRx contiene la informacion del
+    -- tamanyo del buffer de recepcion de cada uno de los
+    -- interfaces del router. Solo de la parte router (los interfaces del
+    -- 1 hasta el Router-Nodo excluido), no de la parte nodo.
+
+
+    telProdNpConfDataBuffersRxTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpConfDataBuffersRxEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+            "BuffersRx list. The value of the interface determines the entry number."
+        ::= { telProdNpConfDataGlobal 8 }
+
+    telProdNpConfDataBuffersRxEntry OBJECT-TYPE
+        SYNTAX  TelProdNpConfDataBuffersRxEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+            "Each entry consists of the router interface number of the device and
+            the size of the reception buffer."
+        INDEX   { telProdNpConfDataBuffersRxIndex }
+        ::={ telProdNpConfDataBuffersRxTable 1 }
+
+    TelProdNpConfDataBuffersRxEntry ::=
+        SEQUENCE{
+            telProdNpConfDataBuffersRxIndex
+                INTEGER,
+            telProdNpConfDataBuffersRxValue
+                INTEGER
+            }
+
+    telProdNpConfDataBuffersRxIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  obsolete
+        DESCRIPTION
+            "Interface number of the router part of the device. It is the table
+            index, and its value is between 1 until Router-Node, this last one
+            excluded."
+         ::={ telProdNpConfDataBuffersRxEntry 1 }
+
+    telProdNpConfDataBuffersRxValue OBJECT-TYPE
+        SYNTAX  INTEGER(5..255)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+            "Size of the reception buffer. If the assigned value is less than 5
+            the default value will be 5, and if it is more than 255
+            the default value will be 255."
+        DEFVAL{5}
+        ::={ telProdNpConfDataBuffersRxEntry 2 }
+
+
+    -- ConfInterfaceAsignation
+    telProdNpConfInterfaceAsignation    OBJECT IDENTIFIER ::= { telProductsNpConfig 6 }
+
+    -- Esta rama de asignacion de interfaces tiene tres partes.
+    -- La primera (solo de lectura, telProdNpInterfAsigListInitial)
+    -- muestra la configuracion de los interfaces que tenia al ROUTER en
+    -- la ultima reinicializacion o reseteo. La tabla asociada la indexa el
+    -- n¶ de interfaz. La segunda (telProdNpInterfAsig) permite la asignacion
+    -- de un tipo de interfaz al conector deseado. La tabla asociada la indexa
+    -- el numero de conector.
+    -- La tercera (solo de lectura,telProdNpInterfAsigListModify) muestra la
+    -- configuracion de los interfaces en el momento actual;
+    -- teniendo en cuenta las modificaciones realizadas en
+    -- la tabla telProdNpInterfAsigTable. La tabla asociada la indexa el n¶ de
+    -- interfaz.
+
+    -- Grupo telProdNpInterfAsigListInitial
+
+    telProdNpInterfAsigListInitial  OBJECT IDENTIFIER ::= { telProdNpConfInterfaceAsignation 1 }
+
+    -- Tabla telProdNpInterfAsigListInitialTable
+
+    -- La tabla de configuracion inicial de interfaces
+    -- (despues del ultimo reset o reinicializacion del ROUTER).
+    -- La tabla de interfaces contiene el indice (el numero de interfaz),
+    -- el tipo de interfaz, el conector y una descripcion del mismo.
+
+    telProdNpInterfAsigListInitialTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpInterfAsigListInitialEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Interfaces list. It is the existing configuration after the last reset
+            of the router.
+            The table index is the interface number."
+        ::= { telProdNpInterfAsigListInitial 1 }
+
+   telProdNpInterfAsigListInitialEntry OBJECT-TYPE
+        SYNTAX  TelProdNpInterfAsigListInitialEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the index (interface number), the interface
+            type, the connector and a description of the same one."
+        INDEX   { telNpInterfAListInitialIndex }
+        ::={ telProdNpInterfAsigListInitialTable 1 }
+
+    TelProdNpInterfAsigListInitialEntry ::=
+        SEQUENCE{
+            telNpInterfAListInitialIndex
+                INTEGER,
+            telNpInterfAListInitialType
+                INTEGER,
+            telNpInterfAListInitialConn
+                INTEGER,
+            telNpInterfAListInitialDescription
+                DisplayString
+            }
+
+    telNpInterfAListInitialIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Interface number. It is the table index."
+        ::={ telProdNpInterfAsigListInitialEntry 1 }
+
+    telNpInterfAListInitialType OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Number associated to the interface type."
+        ::={ telProdNpInterfAsigListInitialEntry 2 }
+
+    telNpInterfAListInitialConn OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Number associated to the interface connector."
+        ::={ telProdNpInterfAsigListInitialEntry 3 }
+
+    telNpInterfAListInitialDescription OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..49))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Hardware description of the interface."
+        ::={ telProdNpInterfAsigListInitialEntry 4 }
+
+    -- Grupo telProdNpInterfAsig
+
+    telProdNpInterfAsig  OBJECT IDENTIFIER ::= { telProdNpConfInterfaceAsignation 2 }
+
+    -- Tabla  telProdNpInterfAsigTable.
+
+    -- Esta tabla permite la asignacion de interfaces
+    -- a los conectores del router : linea LAN (el tipo de interfaz asociado:
+    -- Ethernet o TokenRing lo define el Hardware); las lineas WAN pueden tener
+    -- asociados interfaces del tipo :Frame Relay (1), PPP (2), PPPAS (3),
+    -- SDLC (4), X25 (5), X28(6), ATPPP-DIAL (7) ; la segunda linea LAN, cuyo
+    -- tipo de interfaz asociado, Ethernet o Token Ring, lo define el Hardware;
+    -- las lineas RDSI pueden tener asociados interfaces del tipo: FR-DIAL (20),
+    -- PPP-DIAL(21), X25-DIAL (22); conector interno, que puede tener asociado
+    -- XST y el interfaz 270.
+
+    -- La tabla de  DataLink contiene la informacion del indice, conector y
+    -- el valor del interfaz asociado a dicho conector.
+
+    -- El indice puede tomar estos valores:
+
+    -- lan1 (1), linea1 (2), linea2 (3), linea3 (4), linea4 (5), linea5 (6),
+    -- linea6 (7), linea7 (8), linea8 (9), lan2 (16), rdsi1 (20), rdsi2 (21),
+    -- interno (30), router->nodo (31), nodo->router (32), int-270 (33).
+
+    -- El conector puede tomar estos valores:
+
+    -- lan (1), linea1 (2), linea2 (3), linea3 (4), linea4 (5), linea5 (6),
+    -- linea6 (7), linea7 (8), linea8 (9), rdsi1 (10), rdsi2 (11), lan2 (16),
+    -- interno (0), router-> nodo (0), nodo->router (0), con-270 (0).
+
+
+    telProdNpInterfAsigTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpInterfAsigEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Connectors list. The table index is the value of the line index:
+            LAN, WAN, ISDN, INTERNAL, ROUTER-> NODE, NODE->ROUTER
+            or CON-270."
+        ::= { telProdNpInterfAsig 1 }
+
+   telProdNpInterfAsigEntry OBJECT-TYPE
+        SYNTAX  TelProdNpInterfAsigEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry contains the index, the connector number and the
+            interface value."
+        INDEX { telNpInterfAsigIndex }
+        ::={ telProdNpInterfAsigTable 1 }
+
+    TelProdNpInterfAsigEntry ::=
+        SEQUENCE{
+            telNpInterfAsigIndex
+                INTEGER,
+            telNpInterfAsigConector
+                INTEGER,
+            telNpInterfAsigValue
+                INTEGER
+            }
+
+    telNpInterfAsigIndex OBJECT-TYPE
+        SYNTAX  INTEGER{
+                lan1(1),
+                line1(2),
+                line2(3),
+                line3(4),
+                line4(5),
+                line5(6),
+                line6(7),
+                line7(8),
+                line8(9),
+                lan2(16),
+                isdn1(20),
+                isdn2(21),
+                internal(30),
+                router-node(31),
+                node-router(32),
+                int-270(33)
+                }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Number associated to the hardware which indexes the table.
+            The only possible values are: lan1(1), line1(2), line2(3),line3(4),
+            line4(5), line5(6), line6(7), line7(8), line8(9), lan2(16), isdn1(20),
+            isdn2(21), internal(30), router-node(31), node-router(32), int-270(33)."
+        ::={ telProdNpInterfAsigEntry 1 }
+
+    telNpInterfAsigConector OBJECT-TYPE
+        SYNTAX  INTEGER{
+                lan(1),
+                line1(2),
+                line2(3),
+                line3(4),
+                line4(5),
+                line5(6),
+                line6(7),
+                line7(8),
+                linea8(9),
+                isdn1(10),
+                isdn2(11),
+                lan2(16),
+                others(0)
+                --internal(0),
+                --router-node(0),
+                --node-router (0),
+                --con-270 (0)
+                }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Number associated to the connector."
+        ::={ telProdNpInterfAsigEntry 2 }
+
+    telNpInterfAsigValue OBJECT-TYPE
+        SYNTAX  INTEGER{
+                ok(2),
+                error(3),
+                indefinite(4),
+                fr(61),
+                ppp(59),
+                pppas(55),
+                sdlc(63),
+                x25(61444),
+                x28(11),
+                atppp-dial(31),
+                chb1-dial-fr(40),
+                chb1-dial-ppp(41),
+                chb1-dial-x25(61442),
+                chb2-dial-fr(240),
+                chb2-dial-ppp(241),
+                chb2-dial-x25(261442),
+                ch-mppp(75),
+                xst(61445),
+                int-270(61446)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows associating a certain protocol type to the
+            connector.
+            In reading, this variable shows if the last allocation attempt were
+            in success (2, ok), in error (3) or if still any attempt has not been
+            carried out to assign a protocol to a connector (4, indefinite).
+            In writing, it is only permitted to do a set to some of the values
+            allowed like possible protocols associated to the connectors.
+            To LAN lines, the protocol type is determined by the device hardware
+            (Ethernet or TokenRing), reason why they do not admit Set operations
+            that try to modify this protocol.
+            Possible values for WAN lines are:
+                fr (61),
+                ppp (59),
+                pppas (55),
+                sdlc (63),
+                x25 (61444),
+                x28 (11),
+                atppp-dial (31).
+            ISDN lines can have two B channels, and its possible values are:
+            B1 channel:
+                chb1-dial-fr (40),
+                chb1-dial-ppp (41),
+                chb1-dial-x25 (61442)
+            B2 channel:
+                chb2-dial-fr (240),
+                chb2-dial-ppp (241),
+                chb2-dial-x25 (261442)
+        An interface MultiLink PPP can also be assigned to ISDN lines, independently
+        of the type of B channel, since these interfaces are not associated to any
+        specific connector, nor physical line.
+            ch-mppp (75)
+        When doing the allocation, the dial-fr and dial-ppp will always go first
+        and the MPPP after.
+
+        The INTERNAL interface can take the value xst (61445), associated to index
+        30.
+
+        There can be another INTERNAL interface with the value int-270 (61446),
+        associated to the index 33.
+
+        This is the only way to assign the values, and any interrelation different
+        from the associations above indicated cannot be done.
+
+        When a atppp-dial (null, value 31) is assigned to one of the WAN lines
+        by first time, two interfaces (one after the other) are added: one for the
+        ATI of the B channel type: X.25(value 18), and another for the particular
+        DIAL (PPP).
+
+        The allocation of the DIAL interfaces (X25-DIAL, FR-DIAL, PPP-DIAL) is
+        complex.
+        In general, the allocation is done starting for the connector 1 and after
+        with the connector 2.
+        In general, chb1 will be assigned first and chb2 after.
+        If it is tried to generate a chb2 in a connector which doesn't have chb1,
+        it returns error.
+        In case a same connector has FR-dial and/or PPP-dial in a B channel
+        and X25-dial in the other B channel, FR-dial and / or PPP-dial will be
+        assigned to chb1.
+
+        I. If the device has an only basic access (ISDN) and can carry two B
+        channels, then these will be chb1 and chb2. They are always present and
+        are modified individually.
+
+        II. If the device has two basic access and can carry two B channels, there
+        are three possibilities: that they are associate one to each basic access,
+        that two B channels are associate to one of the accesses and the other one
+        is empty, and the inverse thing to the previous thing.
+
+        A. CHB1 ALLOCATION:
+
+        *If a chb1-x25 is assigned to a connector, two things can occur:
+
+        - There is chb1 for that connector:
+
+        If it is chb1-x25 nothing is done.
+
+        If it is chb1-rdsi-base, it is changed to chb1-x25 and chb1-rdsi-base
+        is eliminated. The PPP-DIAL or FR-DIAL which it has associate are
+        eliminated if there is no another RDSI-BASE in that connector, otherwise
+        they stay associated to that RDSI-BASE.
+
+        - There isn't chb1 for that connector:
+
+        In this case, the other connector has two B channels, chb1 and chb2.
+        Therefore chb2 of the other connector is modified.
+
+        If it is ch2-x25, it is associated to it to the chb1 of the initial connector.
+
+        If it is chb2-rdsi-base, it is changed to chb1-x25 of the initial connector
+        and chb2-rdsi-base is eliminated from its connector. The PPP-DIAL or
+        FR-DIAL which it has associate, are eliminated if there is no another RDSI-BASE
+        in its connector, otherwise they stay associated to that RDSI-BASE.
+
+        *If a chb1-rdsi-base is assigned to a connector, two things can occur:
+
+        - There is chb1 for that connector:
+
+        If it is chb1-x25, it is changed to chb1-rdsi-base.
+
+        If it is chb1-rdsi-base, PPP-DIAL or FR-DIAL is added to that chb1-rdsi-base.
+
+        - There isn't chb1 for that connector:
+
+        In this case, the other connector has two B channels, chb1 and chb2.
+        Therefore chb2 of the other connector is modified. If it is chb2-x25,
+        it is changed to chb1-rdsi-base. of the initial connector.
+
+        If it is chb2-rdsi-base, it is changed to chb1-rdsi-base of the initial connector
+        and chb2-rdsi-base is eliminated from its connector. The PPP-DIAL or
+        FR-DIAL which it has associate, are eliminated if there is no another RDSI-BASE
+        in its connector, otherwise they stay associated to that RDSI-BASE.
+
+
+        B. CHB2 ALLOCATION:
+
+        *If a chb2-x25 is assigned to a connector (this is always done after having
+        associated the chb1 to that connector), two things can occur:
+
+        - There is chb2 for that connector:
+
+        If it is chb2-x25 nothing is done.
+
+        If it is chb2-rdsi-base, it is changed to chb2-x25 and chb2-rdsi-base
+        is eliminated. The PPP-DIAL or FR-DIAL which it has associate are
+        eliminated if there is no another RDSI-BASE in that connector, otherwise
+        they stay associated to that RDSI-BASE.
+
+        - There isn't chb2 for that connector:
+
+        In this case, the other connector has a B channel (chb1), therefore chb1
+        of the other connector is modified.
+
+        If it is ch1-x25, it is associated to it to the chb2 of the initial connector.
+
+        If it is chb1-rdsi-base, it is changed to chb2-x25 of the initial connector
+        and chb1-rdsi-base is eliminated from its connector. The PPP-DIAL or
+        FR-DIAL which it has associate, are eliminated if there is no another RDSI-BASE
+        in its connector, otherwise they stay associated to that RDSI-BASE.
+
+        *If a chb2-rdsi-base is assigned to a connector (this is always done
+        after having associated the chb1 to that connector), two things can occur:
+
+        - There is chb1 for that connector:
+
+        If it is chb2-x25, it is changed to chb2-rdsi-base.
+
+        If it is chb2-rdsi-base, PPP-DIAL or FR-DIAL is added to that chb2-rdsi-base.
+
+        - There isn't chb2 for that connector:
+
+        In this case, the other connector has a B channel (chb1), therefore
+        the chb1 of the other connector is modified.
+
+        If it is chb1-x25, it is changed to chb2-rdsi-base. of the initial connector.
+
+        If it is chb1-rdsi-base, it is changed to chb2-rdsi-base of the initial connector
+        and chb1-rdsi-base is eliminated from its connector. The PPP-DIAL or
+        FR-DIAL which it has associate, are eliminated if there is no another RDSI-BASE
+        in its connector, otherwise they stay associated to that RDSI-BASE.
+
+        III.  If the device has two basic accesses and can carry 4 B channels, they
+        will be chb1 and chb2 for the RDSI1, and chb1 and chb2 for the RDSI2.
+        They are always present and are modified individually.
+
+        When a FR-DIAL or PPP-DIAL is assigned to one of the ISDN lines
+        by first time, two interfaces are added: one for the ISDN and another
+        for the particular DIAL (FR or PPP).
+
+        A X25-DIAL by each ISDN basic access can only be assigned. There can
+        be several FR-DIAL and PPP-DIAL in a same ISDN basic access.
+
+        X25-dial cannot coexist with FR-dial nor PPP-dial in a same ISDN basic
+        access. For that reason, when assigning a X25-dial to an ISDN connector,
+        the ISDN-base is eliminated, and if there is no another RDSI-base associated
+        to that connector, possible PPP-dial and FR-dial are also eliminated; the
+        same happens if there is a X25-dial in a basic access and it is tried to
+        add a FR-dial or a PPP-dial: then the X25-DIAL is eliminated.
+
+        The maximum number of interfaces that the device can have is 40.
+        In addition, there can be 6 DIAL in total between the two basic accesses, for
+        each ISDN basic access."
+        ::={ telProdNpInterfAsigEntry 3 }
+
+
+    -- Grupo telProdNpInterfAsigListModify
+
+    telProdNpInterfAsigListModify   OBJECT IDENTIFIER ::= { telProdNpConfInterfaceAsignation 3 }
+
+    -- Tabla telProdNpInterfAsigListModifyTable
+
+    -- La tabla de configuracion actual de interfaces del ROUTER.
+    -- La tabla de interfaces contiene el indice (el numero de interfaz),
+    -- la variable de borrado de un interfaz (siempre que este permitido),
+    -- el tipo de interfaz, el conector, una descripcion de tipo de interfaz
+    -- y del conector.
+
+    telProdNpInterfAsigListModifyTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpInterfAsigListModifyEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "List of the modified interfaces. It is the actual interfaces configuration,
+            considering the modifications done in the router.
+            The table index is the interface number."
+        ::= { telProdNpInterfAsigListModify 1 }
+
+    telProdNpInterfAsigListModifyEntry OBJECT-TYPE
+        SYNTAX  TelProdNpInterfAsigListModifyEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry contains the information of the index (the interface
+            number), the variable to delete an interface (whenever it is permitted),
+            the interface type, the connector, and a description of the interface type
+            and connector."
+        INDEX   { telNpInterfAListModifyIndex }
+        ::={ telProdNpInterfAsigListModifyTable 1 }
+
+    TelProdNpInterfAsigListModifyEntry ::=
+        SEQUENCE{
+            telNpInterfAListModifyIndex
+                INTEGER,
+            telNpInterfAListModifyDelInterf
+                INTEGER,
+            telNpInterfAListModifyType
+                INTEGER,
+            telNpInterfAListModifyConn
+                INTEGER,
+            telNpInterfAListModifyTypeDescription
+                DisplayString,
+            telNpInterfAListModifyConnDescription
+                DisplayString,
+            telNpInterfAListModifyAdminStat
+                INTEGER,
+            telNpInterfAListModifyOperStat
+                INTEGER
+            }
+
+    telNpInterfAListModifyIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Interface type. It is the index table."
+        ::={ telProdNpInterfAsigListModifyEntry 1 }
+
+    telNpInterfAListModifyDelInterf OBJECT-TYPE
+        SYNTAX  INTEGER{
+                valid(1),
+                last-set-ok(2),
+                last-set-non-ok(3),
+                indeterminate(4)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows deleting an interface.
+            The operation is done if it is permitted to delete this interface.
+            A set to 1 must be done to delete the interface (it returns 1(valid)
+            if it is done with success and error in opposite case).
+            Get returns 2(last-set-ok) if the last set was done with success,
+            3(last-set-non-ok) if it resulted in error and 4 in another case."
+        ::={ telProdNpInterfAsigListModifyEntry 2 }
+
+    telNpInterfAListModifyType OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Number associated to the interface type."
+        ::={ telProdNpInterfAsigListModifyEntry 3 }
+
+    telNpInterfAListModifyConn OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Number associated to the interface connector."
+        ::={ telProdNpInterfAsigListModifyEntry 4 }
+
+    telNpInterfAListModifyTypeDescription OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..50))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Description of the interface type."
+        ::={ telProdNpInterfAsigListModifyEntry 5 }
+
+    telNpInterfAListModifyConnDescription OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(0..50))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Description of the connector type."
+        ::={ telProdNpInterfAsigListModifyEntry 6 }
+
+    telNpInterfAListModifyAdminStat OBJECT-TYPE
+        SYNTAX  INTEGER{
+                up(1),
+                down(2),
+                ignored(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Administrative or wished status of the interface."
+        ::={ telProdNpInterfAsigListModifyEntry 7 }
+
+    telNpInterfAListModifyOperStat OBJECT-TYPE
+        SYNTAX  INTEGER{
+                up(1),
+                down(2),
+                ignored(3),
+                unknown(4),
+                dormant(5),
+                not-present(6)
+                }
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Operative state of the interface."
+        ::={ telProdNpInterfAsigListModifyEntry 8 }
+
+    -- Variable telNpInterfADelAll
+
+    telNpInterfADelAll  OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set(1),
+                last-set-ok(2),
+                last-set-failed (3),
+                indeterminate(4)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable deletes all interfaces configuration that has been
+            modified until the moment."
+        ::={ telProdNpConfInterfaceAsignation 4 }
+
+END

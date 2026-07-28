@@ -1,0 +1,1106 @@
+SNI-HD-MIB DEFINITIONS ::= BEGIN
+
+-- Version: 3.02.05
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1995
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001
+-- All rights reserved
+--
+
+IMPORTS
+	OBJECT-TYPE								FROM RFC-1212
+	mib-2, DisplayString					FROM RFC1213-MIB
+	TimeTicks, Counter, Gauge, enterprises	FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+-- Trap IDs for all ServerView MIBs:
+-- Trap enterprise is "sniServerMgmt".
+
+-- SNI Trap MIB:            000..199, 300..399  (enterprise "sni"!!)
+-- SNI Mylex MIB:           200..299
+-- SNI ServerControl MIB:   600..699
+-- SNI ServerView MIB:      700..749
+-- SNI Harddisk MIB:        750..800  (this MIB)
+
+
+-- SNI Server Management MIB nodes
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+
+-- HD MIB groups and tables:
+
+--  sniHDAdapterTable    OBJECT IDENTIFIER		::= { sniHd 1 }
+--  sniHDDeviceTable     OBJECT IDENTIFIER		::= { sniHd 2 }
+--  sniHDMediaTable      OBJECT IDENTIFIER		::= { sniHd 3 }
+--  sniHDPartitionTable  OBJECT IDENTIFIER		::= { sniHd 4 }
+    sniHDAgentInfo       OBJECT IDENTIFIER		::= { sniHd 19 }
+    sniHDTrapInfo        OBJECT IDENTIFIER		::= { sniHd 20 }
+
+ 
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: sniHDAdapterTable
+--
+--      HD MIB:                   1.3.6.1.4.1.231.2.10.2.2.3
+--        sniHDAdapterTable:      1.3.6.1.4.1.231.2.10.2.2.3.1
+--
+-- Implementation of this table is optional
+--
+-- This table defines information about mass storage adapter boards
+-- ----------------------------------------------------------------------------------------------
+ 
+
+sniHDAdapterTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniHDAdapter
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table of all controllers attached to the system"
+	::= { sniHd 1 }
+
+sniHDAdapter OBJECT-TYPE
+	SYNTAX	SniHDAdapter
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ sniHDAdapterBusType, sniHDAdapterBusNo, sniHDAdapterNo }
+	::= { sniHDAdapterTable 1 }
+
+SniHDAdapter ::= 
+	SEQUENCE {
+		sniHDAdapterBusType
+			INTEGER,
+		sniHDAdapterBusNo
+			INTEGER,
+		sniHDAdapterNo
+			INTEGER,
+		sniHDAdapterName
+			DisplayString,
+		sniHDAdapterStatus
+			INTEGER,
+		sniHDAdapterChildren
+			INTEGER,
+		sniHDAdapterDriverName
+			DisplayString,
+		sniHDAdapterDevices
+			INTEGER,
+		sniHDAdapterSlot
+			INTEGER,
+		sniHDAdapterPortAddress
+			INTEGER,
+		sniHDAdapterHostType
+			INTEGER,
+		sniHDAdapterControllerIndex
+			INTEGER
+	}
+
+sniHDAdapterBusType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(0),
+		other(1),
+		isa(2),
+		eisa(3),
+		pci(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The type of the bus"
+	::= { sniHDAdapter 1 }
+
+sniHDAdapterBusNo OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The internal bus number (based on 1)"
+	::= { sniHDAdapter 2 }
+
+sniHDAdapterNo OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique Index (based on 1)"
+	::= { sniHDAdapter 3 }
+
+sniHDAdapterName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Symbolic name of the adapter"
+	::= { sniHDAdapter 4 }
+
+sniHDAdapterStatus OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the adapter (bit field)
+                       ^^^^^^^^^ 
+
+   ACTIVATED         0x00000001
+   CREATED           0x00000002
+   ASSIGNABLE        0x00000004
+   ASSIGNED          0x00000008
+   RESERVED          0x00000010
+   BEING_IDENTIFIED  0x00000020
+   MAGAZINE_LOADED   0x00000040
+   PREFAILURE        0x00000080
+   REMOVABLE         0x00000100
+   READ_ONLY         0x00000200
+   IN_DEVICE         0x00010000
+   ACCEPTS_MAGAZINES 0x00020000
+   IS_IN_A_CHANGER   0x00040000
+   LOADABLE          0x00080000
+   BEING_LOADED      0x00080000
+   DEVICE_LOCK       0x01000000
+   CHANGER_LOCK      0x02000000
+   REMIRRORING       0x04000000
+   SELECTED          0x08000000"
+	::= { sniHDAdapter 5 }
+
+sniHDAdapterChildren OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of children of this adapter"
+	::= { sniHDAdapter 6 }
+
+sniHDAdapterDriverName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Name of the driver that manages this adapter"
+	::= { sniHDAdapter 7 }
+
+sniHDAdapterDevices OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of devices attached to this adapter"
+	::= { sniHDAdapter 8 }
+
+sniHDAdapterSlot OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The slot of the adapter"
+	::= { sniHDAdapter 9 }
+
+sniHDAdapterPortAddress OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Portaddress of this adapter"
+	::= { sniHDAdapter 10 }
+
+sniHDAdapterHostType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		ideAdapter(2),
+		scsiAdapter(3)
+    }
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The type of the host bus"
+	::= { sniHDAdapter 11 }
+
+sniHDAdapterControllerIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Zero based index for each specific adapter host type.
+ Example: IDE controller 0, 1, 2..., SCSI controller 0, 1, 2..."
+	::= { sniHDAdapter 12 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: sniHDDeviceTable
+--
+--      HD MIB:                   1.3.6.1.4.1.231.2.10.2.2.3
+--        sniHDDeviceTable:       1.3.6.1.4.1.231.2.10.2.2.3.2
+--
+-- Implementation of this table is optional
+--
+-- This table defines information about mass storage devices (hard disks, CD-ROMs, jukebox...)
+-- ----------------------------------------------------------------------------------------------
+
+sniHDDeviceTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniHDDevice
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table of all disks attached to the system"
+	::= { sniHd 2 }
+
+sniHDDevice OBJECT-TYPE
+	SYNTAX	SniHDDevice
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ sniHDDeviceBusType, sniHDDeviceBusNo, sniHDDeviceAdapter, sniHDDeviceIndex }
+	::= { sniHDDeviceTable 1 }
+
+SniHDDevice ::= 
+	SEQUENCE {
+		sniHDDeviceBusType
+			INTEGER,
+		sniHDDeviceBusNo
+			INTEGER,
+		sniHDDeviceAdapter
+			INTEGER,
+		sniHDDeviceIndex
+			INTEGER,
+		sniHDDeviceName
+			DisplayString,
+		sniHDDeviceStatus
+			INTEGER,
+		sniHDDeviceChildren
+			INTEGER,
+		sniHDDeviceSystemType
+			INTEGER,
+		sniHDDeviceAccessFlags
+			INTEGER,
+		sniHDDeviceBlockSize
+			INTEGER,
+		sniHDDeviceSectorSize
+			INTEGER,
+		sniHDDeviceHeads
+			INTEGER,
+		sniHDDeviceSectors
+			INTEGER,
+		sniHDDeviceCylinders
+			INTEGER,
+		sniHDDeviceCapacity
+			INTEGER,
+		sniHDDeviceRawName
+			DisplayString,
+		sniHDDeviceSmartCompliant
+			INTEGER,
+		sniHDDeviceSmartMonitoring
+			INTEGER,
+		sniHDDeviceSmartStatus
+			INTEGER,
+		sniHDDeviceIndexPerAdapter
+			INTEGER,
+        sniHDDeviceChannel
+			INTEGER,
+		sniHDDeviceTargetId
+			INTEGER,
+		sniHDDeviceLogicalUnit
+			INTEGER
+	}
+
+sniHDDeviceBusType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(0),
+		other(1),
+		isa(2),
+		eisa(3),
+		pci(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The type of the bus"
+	::= { sniHDDevice 1 }
+
+sniHDDeviceBusNo OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The internal bus number"
+	::= { sniHDDevice 2 }
+
+sniHDDeviceAdapter OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique Index of the adapter"
+	::= { sniHDDevice 3 }
+
+sniHDDeviceIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique index"
+	::= { sniHDDevice 4 }
+
+sniHDDeviceName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Symbolic name of the device"
+	::= { sniHDDevice 5 }
+
+sniHDDeviceStatus OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the adapter (bit field)
+                       ^^^^^^^^^ 
+
+   ACTIVATED         0x00000001
+   CREATED           0x00000002
+   ASSIGNABLE        0x00000004
+   ASSIGNED          0x00000008
+   RESERVED          0x00000010
+   BEING_IDENTIFIED  0x00000020
+   MAGAZINE_LOADED   0x00000040
+   PREFAILURE        0x00000080
+   REMOVABLE         0x00000100
+   READ_ONLY         0x00000200
+   IN_DEVICE         0x00010000
+   ACCEPTS_MAGAZINES 0x00020000
+   IS_IN_A_CHANGER   0x00040000
+   LOADABLE          0x00080000
+   BEING_LOADED      0x00080000
+   DEVICE_LOCK       0x01000000
+   CHANGER_LOCK      0x02000000
+   REMIRRORING       0x04000000
+   SELECTED          0x08000000"
+	::= { sniHDDevice 6 }
+
+sniHDDeviceChildren OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of children of this adapter"
+	::= { sniHDDevice 7 }
+
+sniHDDeviceSystemType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		other(1),
+		directAccessDevice(2),
+		sequentialAccessDevice(3),
+		printerDevice(4),
+		processorDevice(5),
+		writeOnceDevice(6),
+		cdRomDevice(7),
+		scannerDevice(8),
+		opticalMemoryDevice(9),
+		mediumChanger(10),
+		communicationDevice(11),
+		ascii8Device(12),
+		arraycontrollerDevice(14),
+		enclosureServiceDevice(15),
+        simplifiedDirectAccessDevice(16),
+		opticalCardReaderWriter(17),
+        unknown(255)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the device"
+	::= { sniHDDevice 8 }
+
+sniHDDeviceAccessFlags OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Access flags"
+	::= { sniHDDevice 9 }
+
+sniHDDeviceBlockSize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Size of group of sectors to be transferred at once (in byte)"
+	::= { sniHDDevice 10 }
+
+sniHDDeviceSectorSize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Requested size for sector (in bytes); default 512 bytes"
+	::= { sniHDDevice 11 }
+
+sniHDDeviceHeads OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Heads or parameter 1 for tapes and removable media"
+	::= { sniHDDevice 12 }
+
+sniHDDeviceSectors OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Sectors or parameter 2 for tapes and removable media"
+	::= { sniHDDevice 13 }
+
+sniHDDeviceCylinders OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Cylinders or parameter 3 for tapes and removable media"
+	::= { sniHDDevice 14 }
+
+sniHDDeviceCapacity OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Total capacity of device in sectors"
+	::= { sniHDDevice 15 }
+
+sniHDDeviceRawName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Device name passed from driver"
+	::= { sniHDDevice 16 }
+
+
+-- SMART facility objects
+
+sniHDDeviceSmartCompliant OBJECT-TYPE
+	SYNTAX	INTEGER { 
+		true(1), 
+		false(2) 
+		}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+		"Is this device SMART (Self Monitoring Analysis and Reporting Technology)
+		 compliant? If SMART information cannot be obtained, false(2) must be reported."
+	::= { sniHDDevice 17 }
+
+sniHDDeviceSmartMonitoring OBJECT-TYPE
+	SYNTAX	INTEGER { 
+		enable(1), 
+		disable(2), 
+		not-available(3)
+		}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+		"In write mode, only enable and disable are allowed.
+		An error will be reported if you try to enable a non Smart
+		compliant device.		
+		In read mode, not-available(3) is returned if the device is not Smart 
+		compliant. Disable will be reported, if one option or more
+		has changed after the initial configuration of the agent."
+	::= { sniHDDevice 18 }
+
+sniHDDeviceSmartStatus OBJECT-TYPE
+	SYNTAX	INTEGER { 
+		ok(1), 
+		failure-predicted(2),
+		not-available(3)
+		}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+		"If not SmartCompliant or SmartMonitoring disabled, 
+		not-available(3) must be reported."
+	::= { sniHDDevice 19 }
+
+sniHDDeviceIndexPerAdapter OBJECT-TYPE
+	SYNTAX	INTEGER		
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+		"Index of the device for its adapter.
+		Note : sniHDDeviceIndex gives the index
+		across all adapters."
+	::= { sniHDDevice 20 }
+
+sniHDDeviceChannel OBJECT-TYPE
+	SYNTAX	INTEGER		
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+		"Zero based channel number the device is attached to. 
+		 Zero if only one channel exists."
+	::= { sniHDDevice 21 }
+
+sniHDDeviceTargetId OBJECT-TYPE
+	SYNTAX	INTEGER		
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+		"Zero based SCSI target ID of the attached device.
+		 For ATAPI / IDE devices: 0 -> Master, 1 -> Slave."
+	::= { sniHDDevice 22 }
+
+sniHDDeviceLogicalUnit OBJECT-TYPE
+	SYNTAX	INTEGER		
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+		"Zero based SCSI LU of the attached device.
+		 Always zero for ATAPI and IDE devices."
+	::= { sniHDDevice 23 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: sniHDMediaTable
+--
+--      HD MIB:                   1.3.6.1.4.1.231.2.10.2.2.3
+--        sniHDMediaTable:        1.3.6.1.4.1.231.2.10.2.2.3.3
+--
+-- Implementation of this table is optional
+--
+-- This table defines information about mass storage medias (media in CD-ROMs...)
+-- ----------------------------------------------------------------------------------------------
+
+sniHDMediaTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniHDMedia
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table of all disks attached to the system"
+	::= { sniHd 3 }
+
+sniHDMedia OBJECT-TYPE
+	SYNTAX	SniHDMedia
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ sniHDMediaBusType, sniHDMediaBusNo, sniHDMediaAdapter, sniHDMediaIndex }
+	::= { sniHDMediaTable 1 }
+
+SniHDMedia ::= 
+	SEQUENCE {
+		sniHDMediaBusType
+			INTEGER,
+		sniHDMediaBusNo
+			INTEGER,
+		sniHDMediaAdapter
+			INTEGER,
+		sniHDMediaIndex
+			INTEGER,
+		sniHDMediaName
+			DisplayString,
+		sniHDMediaStatus
+			INTEGER,
+		sniHDMediaChildren
+			INTEGER,
+		sniHDMediaIdentificationType
+			INTEGER,
+		sniHDMediaLabel
+			DisplayString,
+		sniHDMediaTimeStamp
+			TimeTicks,
+		sniHDMediaType
+			INTEGER
+	}
+
+sniHDMediaBusType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(0),
+		other(1),
+		isa(2),
+		eisa(3),
+		pci(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The type of the bus"
+	::= { sniHDMedia 1 }
+
+sniHDMediaBusNo OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The internal bus number"
+	::= { sniHDMedia 2 }
+
+sniHDMediaAdapter OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique Index of the adapter"
+	::= { sniHDMedia 3 }
+
+sniHDMediaIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique index"
+	::= { sniHDMedia 4 }
+
+sniHDMediaName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Symbolic name of the media"
+	::= { sniHDMedia 5 }
+
+sniHDMediaStatus OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the adapter (bit field)
+                       ^^^^^^^^^ 
+
+   ACTIVATED         0x00000001
+   CREATED           0x00000002
+   ASSIGNABLE        0x00000004
+   ASSIGNED          0x00000008
+   RESERVED          0x00000010
+   BEING_IDENTIFIED  0x00000020
+   MAGAZINE_LOADED   0x00000040
+   PREFAILURE        0x00000080
+   REMOVABLE         0x00000100
+   READ_ONLY         0x00000200
+   IN_DEVICE         0x00010000
+   ACCEPTS_MAGAZINES 0x00020000
+   IS_IN_A_CHANGER   0x00040000
+   LOADABLE          0x00080000
+   BEING_LOADED      0x00080000
+   DEVICE_LOCK       0x01000000
+   CHANGER_LOCK      0x02000000
+   REMIRRORING       0x04000000
+   SELECTED          0x08000000"
+	::= { sniHDMedia 6 }
+
+sniHDMediaChildren OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of children of this media"
+	::= { sniHDMedia 7 }
+
+sniHDMediaIdentificationType OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Novell-assigned number"
+	::= { sniHDMedia 8 }
+
+sniHDMediaLabel OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"ASCII string name"
+	::= { sniHDMedia 9 }
+
+sniHDMediaTimeStamp OBJECT-TYPE
+	SYNTAX	TimeTicks
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"DOS time stamp"
+	::= { sniHDMedia 10 }
+
+sniHDMediaType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		other(2),
+		highSierraCD(3),
+		iso-CD(4),
+		mac-CD(5),
+		netWareFileSystem(6),
+		smsMedia(7)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The type of the media"
+	::= { sniHDMedia 11 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: sniHDPartitionTable
+--
+--      HD MIB:                   1.3.6.1.4.1.231.2.10.2.2.3
+--        sniHDPartitionTable:    1.3.6.1.4.1.231.2.10.2.2.3.4
+--
+-- Implementation of this table is optional
+--
+-- This table defines information about the available partitions on a mass storage device 
+-- ----------------------------------------------------------------------------------------------
+ 
+sniHDPartitionTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniHDPartition
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table of all disks attached to the system"
+	::= { sniHd 4 }
+
+sniHDPartition OBJECT-TYPE
+	SYNTAX	SniHDPartition
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ sniHDPartitionBusType, sniHDPartitionBusNo, sniHDPartitionAdapter, sniHDPartitionIndex }
+	::= { sniHDPartitionTable 1 }
+
+SniHDPartition ::= 
+	SEQUENCE {
+		sniHDPartitionBusType
+			INTEGER,
+		sniHDPartitionBusNo
+			INTEGER,
+		sniHDPartitionAdapter
+			INTEGER,
+		sniHDPartitionMedia
+			INTEGER,
+		sniHDPartitionIndex
+			INTEGER,
+		sniHDPartitionName
+			DisplayString,
+		sniHDPartitionStatus
+			INTEGER,
+		sniHDPartitionDevice
+			INTEGER,
+		sniHDPartitionType
+			INTEGER,
+		sniHDPartitionOffset
+			INTEGER,
+		sniHDPartitionSize
+			INTEGER,
+		sniHDPartitionTypeString
+			DisplayString
+	}
+
+sniHDPartitionBusType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(0),
+		other(1),
+		isa(2),
+		eisa(3),
+		pci(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The type of the bus"
+	::= { sniHDPartition 1 }
+
+sniHDPartitionBusNo OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The internal bus number"
+	::= { sniHDPartition 2 }
+
+sniHDPartitionAdapter OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique Index of the adapter"
+	::= { sniHDPartition 3 }
+
+sniHDPartitionMedia OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique index ?"
+	::= { sniHDPartition 4 }
+
+sniHDPartitionIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique index"
+	::= { sniHDPartition 5 }
+
+sniHDPartitionName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Symbolic name of the partition"
+	::= { sniHDPartition 6 }
+
+sniHDPartitionStatus OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the adapter (bit field)
+                       ^^^^^^^^^ 
+
+   ACTIVATED         0x00000001
+   CREATED           0x00000002
+   ASSIGNABLE        0x00000004
+   ASSIGNED          0x00000008
+   RESERVED          0x00000010
+   BEING_IDENTIFIED  0x00000020
+   MAGAZINE_LOADED   0x00000040
+   PREFAILURE        0x00000080
+   REMOVABLE         0x00000100
+   READ_ONLY         0x00000200
+   IN_DEVICE         0x00010000
+   ACCEPTS_MAGAZINES 0x00020000
+   IS_IN_A_CHANGER   0x00040000
+   LOADABLE          0x00080000
+   BEING_LOADED      0x00080000
+   DEVICE_LOCK       0x01000000
+   CHANGER_LOCK      0x02000000
+   REMIRRORING       0x04000000
+   SELECTED          0x08000000"
+	::= { sniHDPartition 7 }
+
+sniHDPartitionDevice OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Unique Index of the device"
+	::= { sniHDPartition 8 }
+
+sniHDPartitionType OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the partition"
+	::= { sniHDPartition 9 }
+
+sniHDPartitionOffset OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Offset of the partition (in MBytes!!)"
+	::= { sniHDPartition 10 }
+
+sniHDPartitionSize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Size of the partition (in MBytes!!)"
+	::= { sniHDPartition 11 }
+		
+sniHDPartitionTypeString OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the partition, as clear string"
+	::= { sniHDPartition 12 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP: sniHDAgentInfo
+-- Implementation of this group is mandatory
+--
+--      HD MIB:                      1.3.6.1.4.1.231.2.10.2.2.3
+--       sniHDAgentInfo:             1.3.6.1.4.1.231.2.10.2.2.3.19
+--
+-- This group defines common agent information data. 
+--
+-- **********************************************************************************************
+
+sniHDAgentId OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION "Agent identification string"
+	::= { sniHDAgentInfo 1 }
+
+sniHDAgentCompany OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION "Agent company string"
+	::= { sniHDAgentInfo 2 }
+
+sniHDAgentVersion OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION "Agent version string"
+	::= { sniHDAgentInfo 3 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP: sniHDTrapInfo
+-- Implementation of this group is mandatory
+--
+--      HD MIB:                      1.3.6.1.4.1.231.2.10.2.2.3
+--       sniHDTrapInfo:              1.3.6.1.4.1.231.2.10.2.2.3.20
+--
+-- This group defines the trap parameter variables. They are not directly accessible, but
+-- sent together with traps.
+--
+-- **********************************************************************************************
+
+sniHdTrapServerName OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Name of server the trap occurred"
+	::= { sniHDTrapInfo 1 }
+
+sniHdTrapTime OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Time the trap occurred (in seconds since 01/01/1970 00:00h)"
+	::= { sniHDTrapInfo 2 }
+
+sniHdTrapDeviceName OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Symbolic name of the harddisk device"
+	::= { sniHDTrapInfo 3 }
+
+sniHdTrapDeviceIndexPerAdapter OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Index of the device for its adapter"
+	::= { sniHDTrapInfo 4 }
+
+sniHdTrapAdapterName OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Symbolic name of the adapter"
+	::= { sniHDTrapInfo 5 }
+
+sniHdTrapAdapterNumber OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Number of the adapter in adapter table"
+	::= { sniHDTrapInfo 6 }
+
+
+-- **********************************************************************************************
+--
+-- TRAP definitions
+--
+--      Trap ID range:       750..799
+--      Trap enterprise:     sniServerMgmt (1.3.6.1.4.1.231.2.10.2)
+--
+-- **********************************************************************************************
+
+
+sniSMARTFailurePredicted TRAP-TYPE
+     ENTERPRISE	    sniServerMgmt 
+     VARIABLES       
+     {
+		 sniHdTrapServerName, 
+		 sniHdTrapTime, 
+		 sniHdTrapDeviceName, 
+		 sniHdTrapDeviceIndexPerAdapter, 
+		 sniHdTrapAdapterName, 
+		 sniHdTrapAdapterNumber 
+	 }
+     DESCRIPTION
+         "Sent if a failure (S.M.A.R.T) has been predicted on a hard disk."
+     --#TYPE        "SMART predicted disk failure"
+     --#SUMMARY     "SMART predicts failure on disk %d (%s), "
+     --#SUMMARY     "adapter %d (%s), on Server %s."    
+     --#ARGUMENTS   { 3, 2, 5, 4, 0}
+     --#SEVERITY    CRITICAL
+     --#TIMEINDEX   1		 
+     --#HELP        "Action: Device should be replaced in near future. Note: Refer to manual how to replace defect device."
+     --#HELPTAG		0
+	 --#STATE       DEGRADED	
+     ::=  750
+
+sniSMARTMonitoringDisabled TRAP-TYPE
+     ENTERPRISE	    sniServerMgmt 
+     VARIABLES       
+     {
+		 sniHdTrapServerName, 
+		 sniHdTrapTime, 
+		 sniHdTrapDeviceName, 
+		 sniHdTrapDeviceIndexPerAdapter, 
+		 sniHdTrapAdapterName, 
+		 sniHdTrapAdapterNumber 
+	 }
+     DESCRIPTION
+         "Sent if S.M.A.R.T configuration has been changed."
+     --#TYPE        "SMART configuration changed"
+     --#SUMMARY     "SMART configuration has been changed on hard disk %d (%s),"
+     --#SUMMARY     "adapter %d (%s), on Server %s."    
+     --#ARGUMENTS   { 3, 2, 5, 4, 0}
+     --#SEVERITY    INFORMATIONAL
+     --#TIMEINDEX   1		 
+     --#STATE       OPERATIONAL
+     ::=  751
+
+END

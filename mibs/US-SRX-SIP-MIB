@@ -1,0 +1,986 @@
+-- ==================================================================
+--  Copyright © 1999 - 2008 Siemens Enterprise Communications
+--
+--  All Rights Reserved.
+--
+--  Reproduction of this document is authorized on condition that
+--  this copyright notice is included.
+--
+--  This MIB document embodies proprietary intellectual property. 
+--  of Siemens Network Convergence LLC, which retains all title and
+--  ownership in this MIB, including any revisions.
+--
+--  This module will be extended, as required.
+--
+--  Siemens Network Convergence LLC reserves the right to make 
+--  changes in specification and other information contained in this 
+--  document without prior notice. The reader should consult 
+--  Siemens Network Convergence LLC to determine whether any such
+--  changes have been made.
+--
+--  Copyright © 1999 - 2008 Siemens Enterprise Communications
+
+-- ==================================================================
+
+--  Revision History
+--
+--  10/18/01		Badri Narayan  	 inital code
+--  08/01/02		Badri Narayan	 Added Sip Performance stat
+--  12/10/02		Badri Narayan	 Added usSrxSipVoiceMailSrvrIPAddr
+--					 and usSrxSipMWISubscriptionTime
+--  05/08/03            Polly Yu         Updated copyright text
+--  06/06/03		Badri Narayan	 Added usSrxSipDefaultSessions 
+--					 usSrxSipMaxSessions
+--  10/16/03		Badri Narayan	 Added usSrxSipNodeTwoListenIPAddr
+--					 usSrxSipListeningIPPort usSrxSipTLSPort
+--  12/10/03		Badri Narayan	 Changed usSrxSipListeningTCPPort 
+--					 to usSrxSipTCPPort
+--  01/29/03		Badri Narayan	 Changed UdpPort for TCP Port and 
+--					 removed TCP Port and made it readwrite 
+--					 and changed listeningPort to readwrite
+--  11/17/04            Hong Nguyen      Added switch-swide param for FRN 336
+--                                       SipUpdateSupported & SdpCrossCheckCount
+--  01/17/05            Hong Nguyen      Added presence server support - FRN115
+--  05/05/05            Badri Narayan    Changed Min Value/units for MinSession 
+--        			         Timer
+--  06/01/05            Emilio Negron    Added the SIP Answer Timeout parm per 
+--                                       FRN1210
+--  06/02/05            Pedro Henriques  Added usSrxSipIntlE164Numbers param 
+--                                       FRN1054
+--  10/07/05            Pedro Henriques  update default of usSrxSipMaxSessions
+--  10/10/05		A.Georgakopoulos Added usSrxSipReroutingEndpntEn,
+--					 usSrxSipReroutingSubscrEn, usSrxSipReroutingTimerInvite,
+--					 usSrxSipReroutingTimerTrying, usSrxSipIntlReroutingPAC,
+--					 usSrxSipNatlReroutingPAC, usSrxSipLocalReroutingPAC param
+--					 FRN0653 
+--  07/21/05            Emilio Negron    Mobile IP Centrex Prefix added per 
+--                                       FRN1323
+--  10/17/05            Ren Luo          update default of usSrxSipMaxSessions 
+--  10/20/05            João Fonseca     Added new SIP counters for FRN0785
+--                                       Added SIP reason management objects
+--  02/09/06		A.Georgakopoulos Changed range for Rerouting 
+--					 Timer Invite
+--  02/20/06            João Fonseca	 Added descriptions for SIP reason table restrictions
+--  12/12/05            Nikos Vittas     Added 7 office wide parameters for FRN1412
+--  03/08/06            Nikos Vittas     Added usSrxSipEnableServerVersion for FRN1606  
+--  04/05/06		C.Georgantonis   Added  usSrxSipPRackFlags for CQ92328 
+--  04/19/06	        C.Georgantonis   Modified status to 'obsolete' for
+--                                       usSrxSipUpdateSupported and usSrxSipPRackFlags
+--  04/20/06            A.Georgakopoulos Added usSrxSipTimerT302 for FRN0381
+--  07/11/06            Nikos Vittas     Updated usSrxSipMaxRegistrationRenew for CQ 102282 
+--  09/19/06            Gerasimos Kouris Object usSrxSipVoiceMailSrvrIPAddr status changed
+--                                       to deprecated
+--  10/24/06            Emilio Negron    Per FRN1790, modified attributes for
+--                                       usSrxMaxSessions. Also added SIPSM Audit On Demand 
+--                                       parameters usSrxSipSMAuditIntervalTimer and usSrxSip-
+--                                       SMAuditOnDemand.
+--  11/03/06            Amjad Ahmad      UNISP00118070:TimerT302 is deprecated
+--  12/04/06            Luis Morais      Added New Sip Statistics Table for FRN2192
+--                                       Added New Sip End Point Performance
+--                                       statistics for FRN2192
+--                                       Added new SIP system wide counters for
+--                                       FRN2192. 
+--  02/02/07            Joao Fonseca     Added new parameter usSrxSipDefaultRegisterExpires.
+--  04/17/07            Carlos Amaral    FRN2440 - Added new object usSrxSipTDMRoutingPrefix.
+--  05/15/07            Carlos Amaral    FRN2247 - Added two new objects usSrxSipOutbound and 
+--                                                 usSrxSipSTUNKeepAlive.
+--  04/10/08            C.Chatzidimitriou FRN3208 - Cleanup of mibs
+--
+-- #########################################################################
+
+US-SRX-SIP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, Integer32
+        FROM SNMPv2-SMI
+    DisplayString, RowStatus
+        FROM SNMPv2-TC
+    Boolean, TimeStampSeconds 
+        FROM FSC-RTP-MIB
+    surpassRtp
+	FROM SURPASS-RTP-MIB
+    hiq8000Admin
+        FROM SURPASS-RTP-ADMIN-MIB
+    SrxRowCountType
+        FROM HIQ-ADMIN-MIB;
+
+-- ########################################################
+-- ########################################################
+
+usSrxSip MODULE-IDENTITY
+    LAST-UPDATED "200806111500Z"
+    ORGANIZATION "Siemens Network Convergence LLC"
+    CONTACT-INFO " "
+    DESCRIPTION
+        "SRX SIP MIB module which manages the SIP Signal Manager"
+        
+    REVISION "200806111500Z"    
+    DESCRIPTION
+            "Updated the MIB to be fully compatible with SNMPv2"
+
+    ::= { hiq8000Admin 2 }
+
+-- ########################################################
+-- usSrxSipTable. This table is used for configuring the SIP Signalling Manager.
+-- ########################################################
+
+
+usSrxSipObjects               OBJECT IDENTIFIER     ::= { usSrxSip 1 }
+
+usSrxSipConfigStatisticsData  OBJECT IDENTIFIER     ::= { usSrxSipObjects 1 }
+
+usSrxSipReasonMgmt            OBJECT IDENTIFIER     ::= { usSrxSipObjects 2 } 
+
+--##################################################
+--  Sip Performance statistics enhancement
+--###################################################
+
+usSrxSipPerfInviteMsgsSentByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the count of Invite 
+	messages sent from Client."
+    ::= { usSrxSipConfigStatisticsData 1 }
+
+usSrxSipPerf100TryingMsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 100 Trying messages Received
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 2 }
+
+
+usSrxSipPerf180RingingMsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 180 Ringing messages Received
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 3 }
+
+usSrxSipPerf200OKForInviteMsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 200 OK for Invite messages Received
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 4 }
+
+usSrxSipPerf301MsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 301 (Moved Permanently) messages Received
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 5 }
+
+usSrxSipPerf302MsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 302 (Moved Temporarily) messages Received
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 6 }
+
+usSrxSipPerfAckForInviteMsgsSentByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Ack for Invite messages sent
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 7 }
+
+usSrxSipPerfAckForErrorMsgsSentByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Ack For Error messages sent
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 8 }
+
+
+usSrxSipPerfErrorMsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Error messages Received
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 9 }
+
+
+usSrxSipPerfByeMsgsSentByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Bye messages Sent
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 10 }
+
+
+usSrxSipPerf200OKForByeMsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 200 OK for Bye messages Received
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 11 }
+
+
+usSrxSipPerfCancelMsgsSentByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Cancel messages Sent
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 12 }
+
+usSrxSipPerf200OKforCancelMsgsRecvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 200 OK for Cancel messages 
+	Received by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 13 }
+
+usSrxSipPerf487MsgsRcvdByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 487 (Request Terminated) 
+	messages Received by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 14 }
+
+usSrxSipPerfAckForCancelMsgsSentByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Ack For Cancel messages Sent
+        by the SIP Client." 
+    ::= { usSrxSipConfigStatisticsData 15 }
+
+usSrxSipPerf200OKforRegisterMsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 200 OK for Register messages Sent
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 16 }
+
+usSrxSipPerfRegisterMsgsReceivedByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Register messages Received
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 17 }
+
+
+usSrxSipPerf100TryingMsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 100 Trying messages 
+	Sent by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 18 }
+
+
+usSrxSipPerfInviteMsgsRecdByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Invite messages Received
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 19 }
+
+usSrxSipPerf180RingingMsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 180 Ringing messages Sent
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 20 }
+
+
+usSrxSipPerf200OKforInviteMsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 200 OK for Invite messages Sent
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 21 }
+
+usSrxSipPerfAckforInviteMsgsRecdByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the for Ack 
+	for INVITE messages Received by the hiQ." 
+    ::= { usSrxSipConfigStatisticsData 22 }
+
+usSrxSipPerfErrorMsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Error messages Sent
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 23 }
+
+
+usSrxSipPerfAckForErrorMsgsRecdByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Ack for Error messages Received
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 24 }
+
+
+usSrxSipPerf200OKforByeMsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 200 OK for Bye messages Sent
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 25 }
+
+
+usSrxSipPerfByeMsgsRecdByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+        "This value identifies the Bye messages Received
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 26 }
+
+
+usSrxSipPerf200OKforCancelMsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 200 OK for Cancel messages Sent
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 27 }
+
+
+usSrxSipPerfCancelMsgsRecdByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the Cancel messages Received
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 28 }
+
+usSrxSipPerf487MsgsSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the 487 (Connection Terminated) messages Sent
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 29 }
+
+
+usSrxSipPerfAckforCancelMsgsRecdByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION 
+       "This value identifies the ACK for Cancel messages Received
+        by the SIP Server." 
+    ::= { usSrxSipConfigStatisticsData 30 }
+
+
+-- New counters for FRN0785: SIP Proxy Enhancement
+usSrxSipPerfUACSntRefer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the REFER messages Sent
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 31 }
+
+usSrxSipPerfUACRcv202Accepted OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 202 ACCEPTED messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 32 }
+
+usSrxSipPerfUACRcv4xx6xxRefer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 4xx-6xx for REFER messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 33 }
+
+usSrxSipPerfUACSntNotify OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the NOTIFY messages Sent
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 34 }
+
+usSrxSipPerfUACRcv200OKNotify OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OK for NOTIFY messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 35 }
+
+usSrxSipPerfUACRcv4xx6xxNotify OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 4xx-6xx for NOTIFY messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 36 }
+
+usSrxSipPerfUACSntSubscribe OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the SUBSCRIBE messages Sent
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 37 }
+
+usSrxSipPerfUACRcv200OKSubs OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OK for SUBSCRIBE messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 38 }
+
+usSrxSipPerfUACRcv4xx6xxSubs OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 4xx-6xx for SUBSCRIBE messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 39 }
+
+usSrxSipPerfUACSntInfo OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the INFO messages Sent
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 40 }
+
+usSrxSipPerfUACRcv200OKInfo OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OK for INFO messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 41 }
+
+usSrxSipPerfUACRcv300Multiple OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 300 MULTIPLE CHOICES messages Received
+        by the SIP Client."
+    ::= { usSrxSipConfigStatisticsData 42 }
+
+usSrxSipPerfUASRcvRefer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the REFER messages Received
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 43 }
+
+usSrxSipPerfUASSnt202Accepted OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 202 ACCEPTED messages Sent
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 44 }
+
+usSrxSipPerfUASSnt4xx6xxRefer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 4xx-6xx for REFER messages Sent
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 45 }
+
+usSrxSipPerfUASRcvNotify OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the NOTIFY messages Received
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 46 }
+
+usSrxSipPerfUASSnt200OKNotify OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OK for NOTIFY messages Sent
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 47 }
+
+usSrxSipPerfUASSnt4xx6xxNotify OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 4xx-6xx for NOTIFY messages Sent
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 48 }
+
+usSrxSipPerfUASRcvSubscribe OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the SUBSCRIBE messages Received
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 49 }
+
+usSrxSipPerfUASSnt200OKSubs OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OK for SUBSCRIBE messages Sent
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 50 }
+
+usSrxSipPerfUASSnt4xx6xxSubs OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 4xx-6xx for SUBSCRIBE messages Sent
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 51 }
+
+usSrxSipPerfUASRcvInfo OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the INFO messages Received
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 52 }
+
+usSrxSipPerfUASSnt200OKInfo OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OK for INFO messages Sent
+        by the SIP Server."
+    ::= { usSrxSipConfigStatisticsData 53 }
+
+-- New Counters for FRN2192
+usSrxSipPerf183MsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the total 183 messages received."
+    ::= { usSrxSipConfigStatisticsData 54 }
+
+usSrxSipPerf1xxMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 1xx messages received."
+    ::= { usSrxSipConfigStatisticsData 55 }
+
+usSrxSipPerf2xxMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 2xx messages received."
+    ::= { usSrxSipConfigStatisticsData 56 }
+
+usSrxSipPerf3xxMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 3xx messages received."
+    ::= { usSrxSipConfigStatisticsData 57 }
+
+usSrxSipPerf4xxMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 4xx messages received."
+    ::= { usSrxSipConfigStatisticsData 58 }
+
+usSrxSipPerf5xxMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 5xx messages received."
+    ::= { usSrxSipConfigStatisticsData 59 }
+
+usSrxSipPerf6xxMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 6xx  messages received."
+    ::= { usSrxSipConfigStatisticsData 60 }
+
+usSrxSipPerf183MsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the total 183 messages sent."
+    ::= { usSrxSipConfigStatisticsData 61 }
+
+usSrxSipPerf1xxMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 1xx messages sent."
+    ::= { usSrxSipConfigStatisticsData 62 }
+
+usSrxSipPerf2xxMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 2xx messages sent."
+    ::= { usSrxSipConfigStatisticsData 63 }
+
+usSrxSipPerf3xxMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 3xx messages sent."
+    ::= { usSrxSipConfigStatisticsData 64 }
+
+usSrxSipPerf4xxMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 4xx messages sent."
+    ::= { usSrxSipConfigStatisticsData 65 }
+
+usSrxSipPerf5xxMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 5xx messages sent."
+    ::= { usSrxSipConfigStatisticsData 66 }
+
+usSrxSipPerf6xxMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the rest of supported 6xx  messages sent."
+    ::= { usSrxSipConfigStatisticsData 67 }
+
+usSrxSipPerfNoSupportRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the number of unsupported messages received."
+    ::= { usSrxSipConfigStatisticsData 68 }
+
+usSrxSipPrackMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the PRACK messages received."
+    ::= { usSrxSipConfigStatisticsData 69 }
+
+usSrxSipUpdateMsgRcvByClient OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the Update messages received."
+    ::= { usSrxSipConfigStatisticsData 70 }
+
+usSrxSipPrackMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the PRACK messages sent."
+    ::= { usSrxSipConfigStatisticsData 71 }
+
+usSrxSipUpdateMsgSentByServer OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the Update messages sent."
+    ::= { usSrxSipConfigStatisticsData 72 }
+
+usSrxSip200OKForPrackRcvByServ OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OKs received for PRACK messages."
+    ::= { usSrxSipConfigStatisticsData 73 }
+
+usSrxSip200OKForUpdateRcvByServ OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OKs received for Update messages."
+    ::= { usSrxSipConfigStatisticsData 74 }
+
+usSrxSip200OKForPrackSentByCli OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OKs sent for PRACK messages."
+    ::= { usSrxSipConfigStatisticsData 75 }
+
+usSrxSip200OKForUpdateSentByCli OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the 200OKs sent for Update messages."
+    ::= { usSrxSipConfigStatisticsData 76 }
+
+usSrxSipAckFor3xxSentByClient OBJECT-TYPE	
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+       "This value identifies the Acks sent in response to 3xx messages."
+    ::= { usSrxSipConfigStatisticsData 77 }
+
+
+-- New SIP Reason Table Management for FRN0785
+
+usSrxReasonTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF UsSrxReasonEntry
+        MAX-ACCESS not-accessible
+        STATUS  current
+        DESCRIPTION "
+          The usSrxReasonTable stores the information for the creation
+	   of Reason Header including causes for the SIP and Q.850 protocols,
+	   and also some predefined and user-defined ones.
+
+Restrictions:
+Reason Type  | Id                     | Type                
+             | Access    | Values     | Access      | Values  
+-------------+-----------+------------+-------------+--------             
+Q.850        | read-only | 1..127     | read-create | 1       
+SIP          | read-only | 300..699   | read-create | 2       
+Pre-defined  | read-only | 1000..1999 | read-create | 3       
+User-defined | read-only | 2000...    | read-create | 4       
+             
+Reason Type  | Prim cause             | Prim text              
+             | Access      | Values   | Access     | Values     
+-------------+-------------+----------+------------+-----------            
+Q.850        | read-create | =Id      | read-write | 0-32 char  
+SIP          | read-create | =Id      | read-write | 0-32 char  
+Pre-defined  | read-write  | 300..699 | read-write | 0-32 char  
+User-defined | read-write  | 300..699 | read-write | 0-32 char  
+              
+Reason Type  | Sec cause           | Sec text                                                     
+             | Access     | Values | Access     | Values                                
+-------------+------------+--------+------------+------------------------------------             
+Q.850        | read-write | >=0    | read-write | (SecCause!=0)?(0-32 char):(0 char)
+SIP          | read-write | >=0    | read-write | (SecCause!=0)?(0-32 char):(0 char)
+Pre-defined  | read-write | >=0    | read-write | (SecCause!=0)?(0-32 char):(0 char)
+User-defined | read-write | >=0    | read-write | (SecCause!=0)?(0-32 char):(0 char)
+"
+        ::= { usSrxSipReasonMgmt 1 }
+
+usSrxReasonEntry OBJECT-TYPE
+        SYNTAX UsSrxReasonEntry
+        MAX-ACCESS not-accessible
+        STATUS  current
+        DESCRIPTION "
+          An entry in the usSrxReasonTable."
+        INDEX  { usSrxReasonId }
+        ::= { usSrxReasonTable 1 }
+
+UsSrxReasonEntry ::=
+	SEQUENCE {
+		usSrxReasonId			Integer32,
+		usSrxReasonType		        INTEGER,
+		usSrxReasonPrimaryCause	        Integer32,
+		usSrxReasonPrimaryText	        DisplayString,
+		usSrxReasonSecondaryCause	Integer32,
+		usSrxReasonSecondaryText	DisplayString,
+		usSrxReasonInterceptCount	SrxRowCountType,
+		usSrxReasonRowStatus	        RowStatus
+	}
+
+usSrxReasonId OBJECT-TYPE
+        SYNTAX Integer32 (0..2147483647)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION "
+          A unique, non-reusable index assigned when a reason is created."
+        ::= { usSrxReasonEntry 1 }	
+
+usSrxReasonType OBJECT-TYPE
+        SYNTAX INTEGER { q850(1), 
+			 sip(2), 
+                         predefined(3),
+                         user-defined(4) }
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION "
+          An integer variable identifying the reason type"
+        DEFVAL { user-defined }
+        ::= { usSrxReasonEntry 2 } 
+
+usSrxReasonPrimaryCause OBJECT-TYPE
+        SYNTAX Integer32 
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION "
+          The primary cause for the reason entry. "
+        ::= { usSrxReasonEntry 3 }
+
+usSrxReasonPrimaryText OBJECT-TYPE
+        SYNTAX DisplayString
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION "
+          The text associated with the primary cause. "
+        ::= { usSrxReasonEntry 4 }
+
+usSrxReasonSecondaryCause OBJECT-TYPE
+        SYNTAX Integer32 
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION "
+          The secondary cause for the reason entry."
+        DEFVAL { 0 }
+        ::= { usSrxReasonEntry 5 }
+
+usSrxReasonSecondaryText OBJECT-TYPE
+        SYNTAX DisplayString
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION "
+          The text associated with the secondary cause."
+        DEFVAL { "" }
+        ::= { usSrxReasonEntry 6 }
+
+usSrxReasonInterceptCount OBJECT-TYPE
+        SYNTAX SrxRowCountType
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION "
+          The usSrxReasonInterceptCount is a scalar object that
+          returns the total number intercepts associated to the
+          reason entry. This value equals the number of rows in
+          usSrxReasonInterceptTable with the same usSrxReasonId 
+          as this entry."
+	 ::= { usSrxReasonEntry 7 }
+
+
+usSrxReasonRowStatus OBJECT-TYPE
+        SYNTAX RowStatus
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+        " The status of this row of the table.
+        - `active' (1), which indicates that the conceptual row is
+           available for use by the system;
+
+        - `createAndGo' (4), which is supplied by a management
+           station wishing to create a new instance of a
+           conceptual row and to have its status automatically set
+           to active, making it available for use by the system;
+
+        - `destroy' (6), which is supplied by a management station
+           wishing to delete all of the instances associated with
+           an existing conceptual row.
+
+           The only two values which are expected to be received by
+           the access routines for Siemens Network Convergence LLC are
+           'createAndGo' to create a new instance, and 'destroy' to delete
+           an existing instance."
+        ::= { usSrxReasonEntry 8 }
+
+
+usSrxReasonTableRowCount OBJECT-TYPE
+        SYNTAX SrxRowCountType
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION "
+          The usSrxReasonTableRowCount is a scalar object that returns
+          the total number of reason entries."
+	 ::= { usSrxSipReasonMgmt 2 }
+
+
+END

@@ -1,0 +1,873 @@
+TROPIC-ABSNODE-MIB DEFINITIONS ::= BEGIN
+
+-- (c) Copyright 2016 Nokia.  All rights reserved.
+-- This software is the confidential and proprietary property of
+-- Nokia and may only be used in accordance with the
+-- terms of the license agreement provided with this software.
+
+ IMPORTS
+      MODULE-IDENTITY, OBJECT-TYPE,
+      Unsigned32, Integer32                   FROM SNMPv2-SMI
+      MODULE-COMPLIANCE, OBJECT-GROUP         FROM SNMPv2-CONF
+      TEXTUAL-CONVENTION,
+      TruthValue,
+      RowStatus,
+      DisplayString                           FROM SNMPv2-TC
+      InetAddressIPv4                         FROM INET-ADDRESS-MIB
+      tnAbsNodeMIBModules, tnAbsNodeObjs,tnAbsNodeMIB          FROM TROPIC-GLOBAL-REG
+      InterfaceIndex                          FROM IF-MIB
+      TnGmreOptLineImpEncoding, TnGmreOptLineImpCompModule     FROM TROPIC-ASON-MIB;
+
+  tnAbsNodeMibModule MODULE-IDENTITY
+      LAST-UPDATED    "201604281200Z"
+      ORGANIZATION    "Alcatel-Lucent"
+      CONTACT-INFO    "Alcatel-Lucent
+                       Postal: 600 March Rd.
+                       Kanata, Ontario
+                       Canada K2K 2E6
+
+                       Phone: +1 613 591 3600
+                       Fax:   +1 613 591 3680"
+
+      DESCRIPTION     "Abstract Node Data Plane Interface MIB types."
+
+      REVISION        "201602261200Z"
+      DESCRIPTION     "Initial version."
+
+      REVISION        "201604281200Z"
+      DESCRIPTION     "Added the following to tnAbsNodeOtLinePortTable:
+                       tnAbsNodeOtLinePortAddDropSparePort,
+                       tnAbsNodeOtLinePortAddDropOpsPort." 
+
+      ::= { tnAbsNodeMIBModules 1 }
+
+--------------------------------------------------------------------------------
+-- Top level components of this MIB
+--------------------------------------------------------------------------------
+-- traps
+--  tnGmplsDpifNotifications  OBJECT IDENTIFIER ::= { tnAbsNodeMIB 2 }
+--  tnGmplsDpifNotifyPrefix   OBJECT IDENTIFIER ::= { tnGmplsDpifNotifications 0 }
+
+  tnAbsNodeConf           OBJECT IDENTIFIER ::= { tnAbsNodeMIB 3 }
+  tnAbsNodeGroups         OBJECT IDENTIFIER ::= { tnAbsNodeConf 1 }
+  tnAbsNodeCompliances    OBJECT IDENTIFIER ::= { tnAbsNodeConf 2 }
+
+--------------------------------------------------------------------------------
+-- ABSNODE Scalar
+--------------------------------------------------------------------------------
+    tnAbsNodeAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Total number of attributes in this MIB file."
+        ::= { tnAbsNodeObjs 1 }
+
+--------------------------------------------------------------------------------
+-- TEXTUAL CONVENTIONS (i.e. types used in this MIB file
+--------------------------------------------------------------------------------
+    TnAbsNodeOpState ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "The Operational State of an Abstract Node interface.
+                      Up - interface is fully functional.
+                      Down - operator has manually taken the interface down: it
+                             is not operational.
+                      Deg - interface is running in degraded mode: problably
+                            some alarms/defects were detected by the interface."
+        SYNTAX       INTEGER {
+                       up(1),    -- Up
+                       down(2),  -- Down
+                       deg(3)    -- Degraded
+                     }
+            
+    TnAbsNodeAnalogBandwidth ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "Analog Bandwidth of an Abstract Node interface."
+        SYNTAX       INTEGER {
+                       otm-2p666(1),
+                       otm-9p95328(2),
+                       otm-10p3125(3),
+                       otm-10p519(4),
+                       otm-10p709(5),
+                       otm-11p049(6),
+                       otm-11p096(7),
+                       otm-11p317(8),
+                       otm-39p813(9),
+                       otm-43p018(10),
+                       otm-44p583(11),
+                       otm-103p125(12),
+                       otm-111p810(13),
+                       otm-129p280(14),
+                       otm-258p560(15),
+                       otm-268p925(16)
+                     }
+
+    TnAbsNodeChannelSpacing ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "Channel Spacing of an Abstract Node interface."
+        SYNTAX       INTEGER {
+                       cs-50-GHz(1),
+                       cs-100-GHz(2)
+                     }
+
+    TnAbsNode3RType ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "The type of a 3R."
+        SYNTAX       INTEGER {
+                       uni3r(1),        -- Unidirectional regeneration
+                       cross-regen(2),  -- Cross regeneration
+                       b2b-regen(3),    -- Back to back regeneration
+                       lo-regen(4),     -- Low-Order regeneration
+                       none(5)          -- No 3R
+                     }
+
+    TnAbsNode3RConnType ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "Connection type of a 3R."
+        SYNTAX       INTEGER {
+                       uni(1),
+                       bidi(2)
+                     }
+
+    TnAbsNodeEndPointType ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "End Point Type of an OTS port."
+        SYNTAX       INTEGER {
+                       roadm(1),       -- WR8-88 based ROADM
+                       ila(2),         -- In-Line Amplifier
+                       roadm-wrt20(3), -- WR20 based ROADM
+                       roadm-AF(4)     -- WR8-88AF based ROADM
+                     }
+
+    TnAbsNodeAddDropType ::= TEXTUAL-CONVENTION
+        STATUS       current
+        DESCRIPTION  "Add Drop type of the IF-Group."
+        SYNTAX       INTEGER {
+                       local(1),                 -- local IF-Group
+                       configD(2),               -- config D IF-Group
+                       configDprime(3),          -- config D' IF-Group
+                       configDdoublePrime(4),    -- config D'' IF-Group
+                       mCS(5),                   -- MCS IF-Group (on CDC-F node)
+                       opsConfigD(6),            -- config D IF-Group with OPSA protected OTs
+                       opsConfigDprime(7),       -- config D' IF-Group with OPSA protected OTs
+                       opsConfigDdoublePrime(8)  -- config D'' IF-Group with OPSA protected OTs
+                     }
+
+
+--------------------------------------------------------------------------------
+-- TABLES
+--------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------
+-- Abstract Node - Subnode Table
+---------------------------------------------------------------------------
+    tnAbsNodeSubnodeTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnAbsNodeSubnodeEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The Abstract Node Subnode Table."
+        ::= { tnAbsNodeObjs 2 }
+
+    tnAbsNodeSubnodeEntry OBJECT-TYPE
+        SYNTAX         TnAbsNodeSubnodeEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An entry in this table represents an AbsNode Subnode
+                        (logical node)."
+        REFERENCE      "?"
+        INDEX          { tnAbsNodeSubnodeLocalShelfId }
+        ::= { tnAbsNodeSubnodeTable 1 }
+    
+    TnAbsNodeSubnodeEntry ::= SEQUENCE {
+        tnAbsNodeSubnodeLocalShelfId    Unsigned32,
+        tnAbsNodeSubnodeLocalDPNodeId   Unsigned32,
+        tnAbsNodeSubnodeNodalSrg        Unsigned32,
+        tnAbsNodeSubnodeShelfUnavail    TruthValue
+    }
+
+    tnAbsNodeSubnodeLocalShelfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Index of this table. The physical address of the
+                        subnode (given in the interface naming scheme)."
+        ::= { tnAbsNodeSubnodeEntry 1 }
+
+    tnAbsNodeSubnodeLocalDPNodeId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The local dataplane node ID. Auto-generated."
+        ::= { tnAbsNodeSubnodeEntry 2 }
+
+    tnAbsNodeSubnodeNodalSrg OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "SRG Id of the subnode. Auto-generated: Default: NodeId + MSB"
+        ::= { tnAbsNodeSubnodeEntry 3 }
+
+    tnAbsNodeSubnodeShelfUnavail OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Specifies if the subnode is available or not."
+        ::= { tnAbsNodeSubnodeEntry 4 }
+
+
+------------------------------------------------------------------------------------------
+-- Abstract Node - Traffic Engineering Link Table
+------------------------------------------------------------------------------------------
+    tnAbsNodeTeLinkTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnAbsNodeTeLinkEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The Abstract Node Traffic Engineering Link Table."
+        ::= { tnAbsNodeObjs 3 }
+
+    tnAbsNodeTeLinkEntry OBJECT-TYPE
+        SYNTAX         TnAbsNodeTeLinkEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An entry in this table represents a TE-Link object."
+        REFERENCE      "?"
+        INDEX          { tnAbsNodeTeLinkIfId }
+        ::= { tnAbsNodeTeLinkTable 1 }
+
+    TnAbsNodeTeLinkEntry ::= SEQUENCE {
+        tnAbsNodeTeLinkIfId                  Unsigned32,
+        tnAbsNodeTeLinkRemoteIfId            Unsigned32,
+        tnAbsNodeTeLinkRemoteNodeAddress     InetAddressIPv4,
+        tnAbsNodeTeLinkUserLabel             DisplayString,
+        tnAbsNodeTeLinkMetric                Unsigned32,
+        tnAbsNodeTeLinkSrgIds                DisplayString,
+        tnAbsNodeTeLinkColor                 Unsigned32,
+        tnAbsNodeTeLinkLatency               Unsigned32,
+        tnAbsNodeTeLinkComponentIfIdList     DisplayString,
+        tnAbsNodeTeLinkRowStatus             RowStatus
+    }
+
+    tnAbsNodeTeLinkIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Index of this table. The local TE-Link interface ID. Auto-generated: derived
+                        from OTS line port interface ID."
+        ::= { tnAbsNodeTeLinkEntry 1 }
+
+    tnAbsNodeTeLinkRemoteIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The remote TE-Link interface ID. Auto-generated: derived from OTS line port interface ID."
+        ::= { tnAbsNodeTeLinkEntry 2 }
+
+    tnAbsNodeTeLinkRemoteNodeAddress OBJECT-TYPE
+        SYNTAX         InetAddressIPv4
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The node address of the remote node the TE-Link is
+                        connecting with. Auto-generated: derived from OTS line remote node address."
+        ::= { tnAbsNodeTeLinkEntry 3 }
+
+    tnAbsNodeTeLinkUserLabel OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The TE-Link user label. Default: empty."
+        ::= { tnAbsNodeTeLinkEntry 4 }
+
+    tnAbsNodeTeLinkMetric OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The TE-Link metrict (cost). Default: 1."
+        ::= { tnAbsNodeTeLinkEntry 5 }
+
+    tnAbsNodeTeLinkSrgIds OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The list of SRG IDs: list of Unsigned32 separated by ','."
+        ::= { tnAbsNodeTeLinkEntry 6 }
+
+    tnAbsNodeTeLinkColor OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The resource color assigned to this TE-Link. Default 0."
+        ::= { tnAbsNodeTeLinkEntry 7 }
+
+    tnAbsNodeTeLinkLatency OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The latency value assigned to this TE-Link. In WDM
+                        always value 0."
+        DEFVAL         { 0 }
+        ::= { tnAbsNodeTeLinkEntry 8 }
+
+    tnAbsNodeTeLinkComponentIfIdList OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The list of OTS-line interface indexes assigned to the TE-Link: list
+                        of Unsigned32 separated by ','. Default: only OTS Line port."
+        ::= { tnAbsNodeTeLinkEntry 9 }
+
+    tnAbsNodeTeLinkRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This variable is used to create, modify, and/or
+                        delete a row in this table.  Supported values
+                        for this table are:
+                          active       => activate new TE link config
+                          notInService => configuration not active
+                          notReady     => mandatory parameters missing
+                          destroy      => delete TE link
+                          createAndGo  => create and activate new TE link entry
+
+                        CreateAndWait of row entries is not allowed."
+        ::= { tnAbsNodeTeLinkEntry 10 }
+
+
+------------------------------------------------------------------------------------------
+-- Abstract Node - OTS Port Table
+------------------------------------------------------------------------------------------
+    tnAbsNodeOtsPortTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnAbsNodeOtsPortEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The Abstract Node OTS Port Table."
+        ::= { tnAbsNodeObjs 4 }
+
+    tnAbsNodeOtsPortEntry OBJECT-TYPE
+        SYNTAX         TnAbsNodeOtsPortEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An entry in this table represents an OTS Port object."
+        REFERENCE      "?"
+        INDEX          { tnAbsNodeOtsPortIfId }
+        ::= { tnAbsNodeOtsPortTable 1 }
+
+    TnAbsNodeOtsPortEntry ::= SEQUENCE {
+        tnAbsNodeOtsPortIfId                  Unsigned32,
+        tnAbsNodeOtsPortNeIfIndex             InterfaceIndex,
+        tnAbsNodeOtsPortLocalShelfId          Unsigned32,
+        tnAbsNodeOtsPortRemoteIfId            Unsigned32,
+        tnAbsNodeOtsPortRemoteNodeAddress     InetAddressIPv4,
+        tnAbsNodeOtsPortUserLabel             DisplayString,
+        tnAbsNodeOtsPortEndPointType          TnAbsNodeEndPointType,
+        tnAbsNodeOtsPortOpState               TnAbsNodeOpState
+    }
+
+    tnAbsNodeOtsPortIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Index of this table. Maps to the Interface Id of the OTS Port."
+        ::= { tnAbsNodeOtsPortEntry 1 }
+
+    tnAbsNodeOtsPortNeIfIndex OBJECT-TYPE
+        SYNTAX         InterfaceIndex
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The unique identifier in the NE which needs to be used to retrieve
+                        the optical impairments and wavelength sets of this OTS line port."
+        ::= { tnAbsNodeOtsPortEntry 2 }
+
+    tnAbsNodeOtsPortLocalShelfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The physical address of the subnode."
+        ::= { tnAbsNodeOtsPortEntry 3 }
+
+    tnAbsNodeOtsPortRemoteIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The node index of the remote node the link is connecting
+                        with."
+        ::= { tnAbsNodeOtsPortEntry 4 }
+
+    tnAbsNodeOtsPortRemoteNodeAddress OBJECT-TYPE
+        SYNTAX         InetAddressIPv4
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The node address of the remote node the link is connecting
+                        with."
+        ::= { tnAbsNodeOtsPortEntry 5 }
+
+    tnAbsNodeOtsPortUserLabel OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The OTS Port user specific label. Default: empty."
+        ::= { tnAbsNodeOtsPortEntry 6 }
+
+    tnAbsNodeOtsPortEndPointType OBJECT-TYPE
+        SYNTAX         TnAbsNodeEndPointType
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Data link endpoint type (OTS line attribute, relevant
+                        for path thru node penalty calculation)."
+        ::= { tnAbsNodeOtsPortEntry 7 }
+
+    tnAbsNodeOtsPortOpState OBJECT-TYPE
+        SYNTAX         TnAbsNodeOpState
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Operational State of the OTS Port."
+        ::= { tnAbsNodeOtsPortEntry 8 }
+
+
+------------------------------------------------------------------------------------------
+-- Abstract Node - IF-Group Table
+------------------------------------------------------------------------------------------
+    tnAbsNodeIfGroupTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnAbsNodeIfGroupEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The Abstract Node IF-Group Table."
+        ::= { tnAbsNodeObjs 5 }
+
+    tnAbsNodeIfGroupEntry OBJECT-TYPE
+        SYNTAX         TnAbsNodeIfGroupEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An entry in this table represents an IF-Group object."
+        REFERENCE      "?"
+        INDEX          { tnAbsNodeIfGroupIfId }
+        ::= { tnAbsNodeIfGroupTable 1 }
+
+    TnAbsNodeIfGroupEntry ::= SEQUENCE {
+        tnAbsNodeIfGroupIfId                  Unsigned32,
+        tnAbsNodeIfGroupAdType                TnAbsNodeAddDropType
+    }
+
+    tnAbsNodeIfGroupIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Index of this table. Maps to the IF-Group Interface Id."
+        ::= { tnAbsNodeIfGroupEntry 1 }
+
+    tnAbsNodeIfGroupAdType OBJECT-TYPE
+        SYNTAX         TnAbsNodeAddDropType
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The add/drop type of the IF-Group."
+        ::= { tnAbsNodeIfGroupEntry 2 }
+
+
+------------------------------------------------------------------------------------------
+-- Abstract Node - OT Line Port Table
+------------------------------------------------------------------------------------------
+    tnAbsNodeOtLinePortTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnAbsNodeOtLinePortEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The Abstract Node OT Line Port Table."
+        ::= { tnAbsNodeObjs 6 }
+
+    tnAbsNodeOtLinePortEntry OBJECT-TYPE
+        SYNTAX         TnAbsNodeOtLinePortEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An entry in this table represents an OT Line Port object."
+        REFERENCE      "?"
+        INDEX          { tnAbsNodeOtLinePortIfId }
+        ::= { tnAbsNodeOtLinePortTable 1 }
+
+    TnAbsNodeOtLinePortEntry ::= SEQUENCE {
+        tnAbsNodeOtLinePortIfId                  Unsigned32,
+        tnAbsNodeOtLinePortRmConPort             DisplayString,
+        tnAbsNodeOtLinePortLocalShelfId          Unsigned32,
+        tnAbsNodeOtLinePortIfGroupIfId           Unsigned32,
+        tnAbsNodeOtLinePortSubGroupIfId          Unsigned32,
+        tnAbsNodeOtLinePortIsOpsaProtected       TruthValue,
+        tnAbsNodeOtLinePortSpareIfGroupIfId      Unsigned32,
+        tnAbsNodeOtLinePortSpareSubGroupIfId     Unsigned32,
+        tnAbsNodeOtLinePortModType               TnGmreOptLineImpEncoding, -- should come from TROPIC-ASON-MIB
+        tnAbsNodeOtLinePortAnalogBw              TnAbsNodeAnalogBandwidth,
+        tnAbsNodeOtLinePortCompMode              TnGmreOptLineImpCompModule, -- should come from TROPIC-ASON-MIB
+        tnAbsNodeOtLinePortFecTypes              DisplayString,
+        tnAbsNodeOtLinePortSpacing               TnAbsNodeChannelSpacing,
+        tnAbsNodeOtLinePortMinChannel            Integer32,
+        tnAbsNodeOtLinePortMaxChannel            Integer32,
+        tnAbsNodeOtLinePortChanStep              Unsigned32,
+        tnAbsNodeOtLinePortSubGroupWidth         TnAbsNodeChannelSpacing,
+        tnAbsNodeOtLinePortIsFlexBwSupported     TruthValue,
+        tnAbsNodeOtLinePort3RType                TnAbsNode3RType,
+        tnAbsNodeOtLinePortConnectedIfId         Unsigned32,
+        tnAbsNodeOtLinePort3RConnType            TnAbsNode3RConnType,
+        tnAbsNodeOtLinePortOpState               TnAbsNodeOpState,
+        tnAbsNodeOtLinePortAddDropPort           DisplayString,
+        tnAbsNodeOtLinePortAddDropSparePort      DisplayString,
+        tnAbsNodeOtLinePortAddDropOpsPort        DisplayString
+    }
+
+    tnAbsNodeOtLinePortIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Index of this table. Maps to the IF-Group Interface Id."
+        ::= { tnAbsNodeOtLinePortEntry 1 }
+
+    tnAbsNodeOtLinePortRmConPort OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Connected UpLink card port."
+        ::= { tnAbsNodeOtLinePortEntry 2 }
+
+    tnAbsNodeOtLinePortLocalShelfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The physical address of the subnode."
+        ::= { tnAbsNodeOtLinePortEntry 3 }
+    
+    tnAbsNodeOtLinePortIfGroupIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The interface index of the IF-Group the OT is part of."
+        ::= { tnAbsNodeOtLinePortEntry 4 }
+    
+    tnAbsNodeOtLinePortSubGroupIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The interface index of the IF-Group subgroup the OT is part of."
+        ::= { tnAbsNodeOtLinePortEntry 5 }
+    
+    tnAbsNodeOtLinePortIsOpsaProtected OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates whether the OT is OPSA protected."
+        ::= { tnAbsNodeOtLinePortEntry 6 }
+
+    tnAbsNodeOtLinePortSpareIfGroupIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The interface index of the spare leg IF-Group (for OPSA protected OT only)."
+        ::= { tnAbsNodeOtLinePortEntry 7 }
+    
+    tnAbsNodeOtLinePortSpareSubGroupIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The interface index of the spare leg IF-Group subgroup (for OPSA protected OT only)."
+        ::= { tnAbsNodeOtLinePortEntry 8 }
+    
+    tnAbsNodeOtLinePortModType OBJECT-TYPE
+        SYNTAX         TnGmreOptLineImpEncoding  -- should come from TROPIC-ASON-MIB
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The modulation type of the OT."
+        ::= { tnAbsNodeOtLinePortEntry 9 }
+
+    tnAbsNodeOtLinePortAnalogBw OBJECT-TYPE
+        SYNTAX         TnAbsNodeAnalogBandwidth
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The analog bandwidth of the OT."
+        ::= { tnAbsNodeOtLinePortEntry 10 }
+
+    tnAbsNodeOtLinePortCompMode OBJECT-TYPE
+        SYNTAX         TnGmreOptLineImpCompModule  -- should come from TROPIC-ASON-MIB
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The compensation module."
+        ::= { tnAbsNodeOtLinePortEntry 11 }
+
+    tnAbsNodeOtLinePortFecTypes OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The supported FEC types."
+        ::= { tnAbsNodeOtLinePortEntry 12 }
+
+    tnAbsNodeOtLinePortSpacing OBJECT-TYPE
+        SYNTAX         TnAbsNodeChannelSpacing
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The channel spacing."
+        ::= { tnAbsNodeOtLinePortEntry 13 }
+
+    tnAbsNodeOtLinePortMinChannel OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "."
+        ::= { tnAbsNodeOtLinePortEntry 14 }
+    
+    tnAbsNodeOtLinePortMaxChannel OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "."
+        ::= { tnAbsNodeOtLinePortEntry 15 }
+    
+    tnAbsNodeOtLinePortChanStep OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The channel step."
+        ::= { tnAbsNodeOtLinePortEntry 16 }
+    
+    tnAbsNodeOtLinePortSubGroupWidth OBJECT-TYPE
+        SYNTAX         TnAbsNodeChannelSpacing
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The subgroup width."
+        ::= { tnAbsNodeOtLinePortEntry 17 }
+
+    tnAbsNodeOtLinePortIsFlexBwSupported OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates whether the OT is supporting flexible bandwidth."
+        ::= { tnAbsNodeOtLinePortEntry 18 }
+
+    tnAbsNodeOtLinePort3RType OBJECT-TYPE
+        SYNTAX         TnAbsNode3RType
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates whether the OT is configured as a 3R and its type."
+        ::= { tnAbsNodeOtLinePortEntry 19 }
+
+    tnAbsNodeOtLinePortConnectedIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The interface index of the connected OT composing the 3R group."
+        ::= { tnAbsNodeOtLinePortEntry 20 }
+    
+    tnAbsNodeOtLinePort3RConnType OBJECT-TYPE
+        SYNTAX         TnAbsNode3RConnType
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The 3R connection type."
+        ::= { tnAbsNodeOtLinePortEntry 21 }
+
+    tnAbsNodeOtLinePortOpState OBJECT-TYPE
+        SYNTAX         TnAbsNodeOpState
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The operational state of the OT line port."
+        ::= { tnAbsNodeOtLinePortEntry 22 }
+    
+    tnAbsNodeOtLinePortAddDropPort OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "SFD, CWR, MCS, PSC access port of the IF-Group."
+        ::= { tnAbsNodeOtLinePortEntry 23 }
+
+    tnAbsNodeOtLinePortAddDropSparePort OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "SFD, CWR, MCS, PSC access port of the spare OPSA leg IF-Group."
+        ::= { tnAbsNodeOtLinePortEntry 24 }
+
+    tnAbsNodeOtLinePortAddDropOpsPort OBJECT-TYPE
+        SYNTAX         DisplayString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "OPSA port if OT is involved in OPSA."
+        ::= { tnAbsNodeOtLinePortEntry 25 }
+
+    
+------------------------------------------------------------------------------------------
+-- Abstract Node - Restricted Connectivity Table
+------------------------------------------------------------------------------------------
+    tnAbsNodeConnectivityTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnAbsNodeConnectivityEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The Abstract Node Restricted Connectivity Table."
+        ::= { tnAbsNodeObjs 7 }
+
+    tnAbsNodeConnectivityEntry OBJECT-TYPE
+        SYNTAX         TnAbsNodeConnectivityEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An entry in this table represents an unidirectional connectivity
+                        between an IF-Group and OTS Port or vice versa, identified
+                        by their interface IDs."
+        REFERENCE      "?"
+        INDEX          { tnAbsNodeConnectivityFromIfId,
+                         tnAbsNodeConnectivityToIfId }
+        ::= { tnAbsNodeConnectivityTable 1 }
+
+    TnAbsNodeConnectivityEntry ::= SEQUENCE {
+        tnAbsNodeConnectivityFromIfId              Unsigned32,
+        tnAbsNodeConnectivityToIfId                Unsigned32,
+        tnAbsNodeConnectivityOpState               TnAbsNodeOpState
+    }
+
+    tnAbsNodeConnectivityFromIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Source TP of the connectivity. Maps to IF-Group or OTS Port Interface Id."
+        ::= { tnAbsNodeConnectivityEntry 1 }
+
+    tnAbsNodeConnectivityToIfId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Destination TP of the connectivity. Maps to IF-Group or OTS Port Interface Id."
+        ::= { tnAbsNodeConnectivityEntry 2 }
+
+    tnAbsNodeConnectivityOpState OBJECT-TYPE
+        SYNTAX         TnAbsNodeOpState
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The operational State of the connectivity."
+        ::= { tnAbsNodeConnectivityEntry 3 }
+    
+
+---------------------------------------------------------------------------
+-- Conformance Group Definitions
+---------------------------------------------------------------------------
+    tnAbsNodeObjsGroup OBJECT-GROUP
+        OBJECTS {
+            tnAbsNodeAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnAbsNodeGroups 1 }
+
+    tnAbsNodeSubnodeGroup OBJECT-GROUP
+        OBJECTS {
+            tnAbsNodeSubnodeLocalShelfId,
+            tnAbsNodeSubnodeLocalDPNodeId,
+            tnAbsNodeSubnodeNodalSrg,
+            tnAbsNodeSubnodeShelfUnavail
+        }
+        STATUS         current
+        DESCRIPTION    "The Abstract Node Subnode group of objects providing for
+                        management of Abstract Node."
+        ::= { tnAbsNodeGroups 2 }
+
+    tnAbsNodeTeLinkGroup OBJECT-GROUP
+        OBJECTS {
+            tnAbsNodeTeLinkIfId,
+            tnAbsNodeTeLinkRemoteIfId,
+            tnAbsNodeTeLinkRemoteNodeAddress,
+            tnAbsNodeTeLinkUserLabel,
+            tnAbsNodeTeLinkMetric,
+            tnAbsNodeTeLinkSrgIds,
+            tnAbsNodeTeLinkColor,
+            tnAbsNodeTeLinkLatency,
+            tnAbsNodeTeLinkComponentIfIdList,
+            tnAbsNodeTeLinkRowStatus
+        }
+        STATUS         current
+        DESCRIPTION    "The Abstract Node TE link interface group of
+                        objects providing for management of Abstract Node TE
+                        entities."
+        ::= { tnAbsNodeGroups 3 }
+
+    tnAbsNodeOtsPortGroup OBJECT-GROUP
+        OBJECTS {
+            tnAbsNodeOtsPortIfId,
+            tnAbsNodeOtsPortNeIfIndex,
+            tnAbsNodeOtsPortLocalShelfId,
+            tnAbsNodeOtsPortRemoteIfId,
+            tnAbsNodeOtsPortRemoteNodeAddress,
+            tnAbsNodeOtsPortUserLabel,
+            tnAbsNodeOtsPortEndPointType,
+            tnAbsNodeOtsPortOpState
+        }
+        STATUS         current
+        DESCRIPTION    "The Abstract Node OTS Port  interface group of
+                        objects providing for management of Abstract Node
+                        OTS Port entities."
+        ::= { tnAbsNodeGroups 4 }
+
+    tnAbsNodeIfGroupGroup OBJECT-GROUP
+        OBJECTS {
+            tnAbsNodeIfGroupIfId,
+            tnAbsNodeIfGroupAdType
+        }
+        STATUS         current
+        DESCRIPTION    "The Abstract Node IF-Group interface group of
+                        objects providing for management of Abstract Node
+                        IF-Group entities."
+        ::= { tnAbsNodeGroups 5 }
+
+    tnAbsNodeOtLinePortGroup OBJECT-GROUP
+        OBJECTS {
+            tnAbsNodeOtLinePortIfId,
+            tnAbsNodeOtLinePortRmConPort,
+            tnAbsNodeOtLinePortLocalShelfId,
+            tnAbsNodeOtLinePortIfGroupIfId,
+            tnAbsNodeOtLinePortSubGroupIfId,
+            tnAbsNodeOtLinePortIsOpsaProtected,
+            tnAbsNodeOtLinePortSpareIfGroupIfId,
+            tnAbsNodeOtLinePortSpareSubGroupIfId,
+            tnAbsNodeOtLinePortModType,
+            tnAbsNodeOtLinePortAnalogBw,
+            tnAbsNodeOtLinePortCompMode,
+            tnAbsNodeOtLinePortFecTypes,
+            tnAbsNodeOtLinePortSpacing,
+            tnAbsNodeOtLinePortMinChannel,
+            tnAbsNodeOtLinePortMaxChannel,
+            tnAbsNodeOtLinePortChanStep,
+            tnAbsNodeOtLinePortSubGroupWidth,
+            tnAbsNodeOtLinePortIsFlexBwSupported,
+            tnAbsNodeOtLinePort3RType,
+            tnAbsNodeOtLinePortConnectedIfId,
+            tnAbsNodeOtLinePort3RConnType,
+            tnAbsNodeOtLinePortOpState,
+            tnAbsNodeOtLinePortAddDropPort,
+            tnAbsNodeOtLinePortAddDropSparePort,
+            tnAbsNodeOtLinePortAddDropOpsPort
+        }
+        STATUS         current
+        DESCRIPTION    "The Abstract Node dataplane TE link interface group of
+                        objects providing for management of Abstract Node TE
+                        entities."
+        ::= { tnAbsNodeGroups 6 }
+
+    tnAbsNodeConnectivityGroup OBJECT-GROUP
+        OBJECTS {
+            tnAbsNodeConnectivityFromIfId,
+            tnAbsNodeConnectivityToIfId,
+            tnAbsNodeConnectivityOpState
+        }
+        STATUS         current
+        DESCRIPTION    "The Abstract Node connectivity group of
+                        objects providing for management of Abstract Node
+                        restricted connectivity entities."
+        ::= { tnAbsNodeGroups 7 }
+
+
+---------------------------------------------------------------------------
+-- Compliance Statements (mandatory)
+---------------------------------------------------------------------------
+    tnAbsNodeCompliance MODULE-COMPLIANCE
+        STATUS         current
+        DESCRIPTION    "The compliance statement for SNMPv2 entities
+                        which implement Abstract Node."
+        MODULE
+        MANDATORY-GROUPS {
+            tnAbsNodeObjsGroup,
+            tnAbsNodeSubnodeGroup,
+            tnAbsNodeTeLinkGroup,
+            tnAbsNodeOtsPortGroup,
+            tnAbsNodeIfGroupGroup,
+            tnAbsNodeOtLinePortGroup,
+            tnAbsNodeConnectivityGroup
+        }
+        ::= { tnAbsNodeCompliances 1 }
+
+END -- DEFINITION OF TROPIC-ABSNODE-MIB

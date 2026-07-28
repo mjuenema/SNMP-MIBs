@@ -1,0 +1,1781 @@
+FSC-THRESHOLD-REPORT-MIB DEFINITIONS ::= BEGIN
+
+-- 
+-- Threshold and report MIB - for system threshold value monitoring and
+-- report management.
+-- 
+-- MIB Revision: 4.50.07
+-- 
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2003-2007
+-- All rights reserved
+-- 
+
+   IMPORTS
+        OBJECT-TYPE                            FROM RFC-1212
+        mib-2                                  FROM RFC1213-MIB
+        DisplayString                          FROM RFC1213-MIB
+        PhysAddress                            FROM RFC1213-MIB
+        Counter, Gauge, IpAddress, enterprises FROM RFC1155-SMI;
+
+-- The Windows MIB compiler doesn't support IMPORTS.
+-- In this case uncomment the next few lines.
+-- 
+-- DisplayString ::= OCTET STRING
+-- PhysAddress   ::= OCTET STRING
+-- enterprises       OBJECT IDENTIFIER   ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+
+   sni                   OBJECT IDENTIFIER ::= { enterprises 231 }
+   sniProductMibs        OBJECT IDENTIFIER ::= { sni 2 }
+
+   fscThresholdReportMib OBJECT IDENTIFIER   ::= { sniProductMibs 47 }
+   threshObjects OBJECT IDENTIFIER   ::= { fscThresholdReportMib 1 }
+   threshNotifications OBJECT IDENTIFIER   ::= { fscThresholdReportMib 2 }
+
+   --
+   -- Textual conventions
+   --
+
+   TrueFalse ::= INTEGER
+   {
+      false(1),
+      true(2)
+   }
+
+   ThresholdReportStatus ::= INTEGER
+   {
+	  unknown(1),
+      disabled(2),
+      enabledNotActive(3),
+      active(4),
+	  error(5)
+   }
+
+   PerformanceStatus ::= INTEGER
+   {
+	  unknown(1),
+	  normal(2),
+	  informational(3),
+	  warning(4),
+	  critical(5)
+   }
+
+
+-- StorageType and RowStatus are "textual conventions" handling conceptual rows.
+-- See RFC2579 at http://asg.web.cmu.edu/rfc/rfc2579.html
+-- 
+-- StorageType:
+-- ============
+-- 
+-- The following values are used to show the storage type of table rows
+-- in this MIB (read-only):
+-- 
+-- * volatile(2): the row can be modified and deleted
+-- * readOnly(5): the row cannot be modified nor deleted
+-- 
+-- RowStatus:
+-- ==========
+-- 
+-- The following values are used to control insertion and modification of
+-- table rows in this MIB (the values that can be used for each table are documented
+-- with the table's RowStatus description).
+-- 
+-- * active(1):        READ - the row is active;   WRITE - modify an existing row and/or make it active
+-- * notInService(2):  READ - the row is inactive; WRITE - modify an existing row and/or make it inactive
+-- * createAndGo(4):   WRITE-ONLY - create a new row and make it active
+-- * createAndWait(5): WRITE-ONLY - create a new row, but leave it inactive (notInService)
+-- * destroy(6):       WRITE-ONLY - destroy (delete) an existing row
+-- 
+-- To create or modify table rows, all required columns of that row must be set within ONE single
+-- set request! To delete a row, only the RowStatus value (destroy) is required.
+-- 
+-- A set must contain only values from the same table row!
+-- 
+-- 
+-- String table indexes:
+-- =====================
+-- 
+-- Most of the indexes in the MIB tables are defined as strings. These strings are encoded
+-- as described in RFC3411 at chapter "SnmpAdminString". It can contain also non-ASCII strings
+-- encoded in multibyte (according UTF-8 specification) and thus can keep Asian and other
+-- character sets. The length of these indexes must not exceed 100 bytes (not characters)!
+-- 
+
+   StorageType ::= INTEGER
+   {
+      other(1),
+      volatile(2),
+      nonVolatile(3),
+      permanent(4),
+	  readOnly(5)
+   }
+
+   RowStatus ::= INTEGER
+   {
+      active(1),
+      notInService(2),
+      notReady(3),
+      createAndGo(4),
+      createAndWait(5),
+	  destroy(6)
+   }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        threshAgentInfo
+-- DESCRIPTION  "This group defines agent specific objects like agent name,
+--               vendor name and versions"
+--
+--      threshAgentInfo group: 1.3.6.1.4.1.231.2.47.1.1
+--
+-- **********************************************************************************************
+
+threshAgentInfo OBJECT IDENTIFIER		::= { threshObjects 1 }
+
+threshAgentId OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Agent identification string"
+    ::= { threshAgentInfo 1 }
+
+threshAgentCompany OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Agent's company name (e.g. Fujitsu Siemens Computers)"
+    ::= { threshAgentInfo 2 }
+
+threshAgentVersion OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Agent's version string (e.g. 1.05)"
+    ::= { threshAgentInfo 3 }
+
+threshAgentBuild OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Compilation time and date of agent program"
+    ::= { threshAgentInfo 4 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        threshAgentOptions
+-- DESCRIPTION  "This group defines global agent options"
+--
+--      threshAgentOptions group: 1.3.6.1.4.1.231.2.47.1.2
+--
+-- **********************************************************************************************
+
+threshAgentOptions OBJECT IDENTIFIER		::= { threshObjects 2 }
+
+threshConfigurationChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last configuration modification time
+                  at any table (time_t format: seconds since 1970/01/01)"
+    ::= { threshAgentOptions 1 }
+
+threshThresholdStatus OBJECT-TYPE
+    SYNTAX       ThresholdReportStatus
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Replies the current threshold status, whether threshold monitoring is enabled and currently active:
+                     unknown:          unknown status (problem in underlying threshold management services?)
+                     disabled:         no enabled rulesets available
+                     enabledNotActive: ruleset(s) enabled, but no one currently active (in terms of time)
+                     active:           rulesets enabled and threshold monitoring currently active
+                     error:            a severe error happened in the threshold manager - no thresholds activated"
+    ::= { threshAgentOptions 2 }
+
+threshReportStatus OBJECT-TYPE
+    SYNTAX       ThresholdReportStatus
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Replies the current report status, whether report monitoring is enabled and currently active:
+                     unknown:          unknown status (problem in underlying report management services?)
+                     disabled:         no enabled reportsets available
+                     enabledNotActive: reportset(s) enabled, but no one currently active (in terms of time)
+                     active:           reportsets enabled and report monitoring currently active
+                     error:            a severe error happened in the report manager - no reports activated"
+    ::= { threshAgentOptions 3 }
+
+threshLastSetResultMessage OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Result message of last SET operation. Useful for debugging purpose when testing SNMP client software."
+    ::= { threshAgentOptions 4 }
+
+threshPerformanceStatus OBJECT-TYPE
+    SYNTAX       PerformanceStatus
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Information about the server performance: the worst value of all active thresholds;
+                  the severity of each rule is defined with object 'threshRulePerfStatusSeverity':
+                     unknown:       unknown status (problem in underlying threshold management services?)
+                     normal:        all active thresholds are in normal range (no thresholds exceeded)
+                     informational: one or more thresholds with 'informational' severity exceeded
+                     warning:       one or more thresholds with 'warning' severity exceeded
+                     critical:      one or more thresholds with 'critical' severity exceeded"
+    ::= { threshAgentOptions 5 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        thresholds
+-- DESCRIPTION  "This group defines the threshold handling"
+--
+--      thresholds group: 1.3.6.1.4.1.231.2.47.1.3
+--
+-- **********************************************************************************************
+
+thresholds OBJECT IDENTIFIER		::= { threshObjects 3 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        threshRuleTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all rules for threshold management"
+--
+--      threshRuleTable: 1.3.6.1.4.1.231.2.47.1.3.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+threshRuleTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ThreshRuleEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Description of all rules for threshold management"
+    ::= { thresholds 1 }
+
+-- Description of multiple instance handling in the resource table:
+-- 
+-- If multiple instances of a resource are to be monitored, the request string must contain
+-- a wild card ('*' character) where the request string should be modified. In SNMP a walk
+-- is executed at the given OID, for a Windows Registry resource all the values in a key
+-- or all subkeys in a key are enumerated.
+-- 
+-- You can select certain instances either by index (filling the 'threshRuleInstIndexes' object
+-- with a regular expression defining the indexes) or by a pattern matching the resource name (filling
+-- the 'threshRuleInstPatterns' object with a regular expression defining a pattern list). The object
+-- 'threshResourceInstNameReq' in the resource table specifies the request string for the instance's name to
+-- give an application the opportunity to display the available instances by name. The results of a query to
+-- the objects at 'threshResourceInstNameReq' are matched to the 'threshResourceInstPatterns' contents and the
+-- corresponding index values are used. If both pattern and index list are available, the pattern list will be
+-- used (index  list is ignored in this case).
+
+threshRuleEntry OBJECT-TYPE
+    SYNTAX       ThreshRuleEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { threshRuleName }
+    ::= { threshRuleTable 1 }
+
+ThreshRuleEntry ::= SEQUENCE
+{
+    threshRuleName
+        DisplayString,
+    threshRuleDescription
+        DisplayString,
+    threshRuleUserComment
+        DisplayString,
+    threshRuleHelpText
+        DisplayString,
+    threshRulePollInterval
+        INTEGER,
+    threshRuleResourceName
+        DisplayString,
+    threshRuleInstMonitor
+        INTEGER,
+    threshRuleInstIndexes
+        DisplayString,
+    threshRuleInstPatterns
+        DisplayString,
+    threshRuleTargetName
+        DisplayString,
+    threshRuleValueType
+        INTEGER,
+    threshRuleValuation
+        INTEGER,
+    threshRuleWatchPeriod
+        INTEGER,
+    threshRuleOperator
+        INTEGER,
+    threshRuleThresholdValue
+        INTEGER,
+    threshRuleRangeMinValue
+        INTEGER,
+    threshRuleRangeMaxValue
+        INTEGER,
+    threshRuleOccurenceCount
+        INTEGER,
+    threshRuleEventName
+        DisplayString,
+    threshRuleEventControl
+        INTEGER,
+    threshRuleEventDelay
+        INTEGER,
+    threshRuleEventAlternating
+        TrueFalse,
+    threshRuleRowStatus
+        RowStatus,
+    threshRuleStorageType
+        StorageType,
+    threshRuleCurrentValue
+        OCTET STRING,
+    threshRuleFireEvent
+        INTEGER,
+    threshRulePerfStatusSeverity
+        INTEGER
+}
+
+threshRuleName OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..100))
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Rule name (index, unique string)"
+    ::= { threshRuleEntry 1 }
+
+threshRuleDescription OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Detailed rule description"
+    ::= { threshRuleEntry 2 }
+
+threshRuleUserComment OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Comment which can be set by the user; will be sent with event"
+    ::= { threshRuleEntry 3 }
+
+threshRuleHelpText OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Detailed description of the rule (for dynamic generation of help pages)"
+    ::= { threshRuleEntry 4 }
+
+threshRulePollInterval OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Threshold polling interval (1..n seconds)"
+    ::= { threshRuleEntry 5 }
+
+threshRuleResourceName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Name of monitored resource (index in ResourceTable)"
+    ::= { threshRuleEntry 6 }
+
+threshRuleInstMonitor OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        any(1),
+        average(2)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource instances monitoring type - defines how to handle multiple instances:
+                     any:     any of the instances meets condition
+                     average: the average of all instances meets condition"
+    ::= { threshRuleEntry 7 }
+
+threshRuleInstIndexes OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource instances index value list (regular expression, like
+                     '[1-5]' (indexes 1..5), '[1,2,5]' (indexes 1, 2, or 5),
+                     '1[2-4]' (indexes 12..14);
+                     monitor all instances if empty"
+    ::= { threshRuleEntry 8 }
+
+threshRuleInstPatterns OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource instances index pattern list (regular expression, like
+                     '^/root$|^/home$|^/opt' (one of /root, /home or /opt*),
+                     '^data$|^system[1-3]$' (one of 'data' or 'system1'...'system3');
+                     monitor all instances if empty."
+    ::= { threshRuleEntry 9 }
+
+threshRuleTargetName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Name of an entry in the TargetTable, where to send the data queries to (localhost if empty)"
+    ::= { threshRuleEntry 10 }
+
+threshRuleValueType OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        absolute(1),
+        deltaAny(2),
+        deltaIncrease(3),
+        deltaDecrease(4)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Type of value monitoring (absolute, delta):
+                     absolute:      the current (absolute) value is tested to meet condition
+                     deltaAny:      the delta to the value of the previous poll interval is tested
+                                    (not regarding whether value increase or decrease)
+                     deltaIncrease: only increasing delta values are tested
+                     deltaDecrease: only decreasing delta values are tested"
+    ::= { threshRuleEntry 11 }
+
+threshRuleValuation OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        singleValue(1),
+        averageLinear(2),
+        averageMuted(3)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Rule valuation - defines how a value is measured:
+                     singleValue:   one single value is tested to meet condition
+                     averageLinear: sum of all measured values devided by the number of values
+                     averageMuted:  last value plus (delta value divided by 2)"
+    ::= { threshRuleEntry 12 }
+
+threshRuleWatchPeriod OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Monitoring period described as number of polling cycles (for average value calculation)"
+    ::= { threshRuleEntry 13 }
+
+threshRuleOperator OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        equal(1),
+        notEqual(2),
+        less(3),
+        lessOrEqual(4),
+        greater(5),
+        greaterOrEqual(6),
+        withinRange(7),
+        outOfRange(8),
+        existToNonExist(9),
+        nonExistToExist(10),
+        existChange(11)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Operator to be applied on the monitored resource;
+                  the rule applies when the monitored value is:
+                    equal:           equal to the threshold value (object 'threshRuleThresholdValue')
+                    notEqual:        not equal to the threshold value
+                    less:            less than the threshold value
+                    lessOrEqual:     less than or equal to the threshold value
+                    greater:         greater than the threshold value
+                    greaterOrEqual:  greater than or equal to the threshold value
+                    withinRange:     within the specified threshold value range (objects
+                                     'threshRuleRangeMinValue and 'threshRuleRangeMaxValue')
+                    outOfRange:      out of the specified threshold value range
+                    existToNonExist: value existed and now no longer exists
+                    nonExistToExist: value did not exist and now exists
+                    existChange:     value existence changed (in any way)"
+    ::= { threshRuleEntry 14 }
+
+threshRuleThresholdValue OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Threshold value (for boolean operators)"
+    ::= { threshRuleEntry 15 }
+
+threshRuleRangeMinValue OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Lower threshold range value (for range operators; x >= min value)"
+    ::= { threshRuleEntry 16 }
+
+threshRuleRangeMaxValue OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Upper threshold range value (for range operators; open interval --> x < max value)"
+    ::= { threshRuleEntry 17 }
+
+threshRuleOccurenceCount OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "The occurence counter for event generation: if count is 0 or 1, event is generated
+                  on every occurence, else event is generated after the specified number
+                  of continuous rule occurences"
+    ::= { threshRuleEntry 18 }
+
+threshRuleEventName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Name of the event (from EventTable) to be created when condition is met"
+    ::= { threshRuleEntry 19 }
+
+threshRuleEventControl OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        singleShot(1),
+        continuous(2),
+        continuousDelay(3)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "The frequency of event generation:
+                     singleShot:      only once until condition is not met again
+                     continuous:      event raises at every poll cycle when the rule meets condition
+                     continousDelay:  like 'continous', but not before a delay (object 'threshRuleEventDelay') has passed
+                                      or the rule met 'good condition' in the mean time"
+    ::= { threshRuleEntry 20 }
+
+threshRuleEventDelay OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "The minimum delay (in number of poll cycles) after that an event will be sent again
+                     if object 'threshRuleEventFrequency' is set to 'continuousDelay'"
+    ::= { threshRuleEntry 21 }
+
+threshRuleEventAlternating OBJECT-TYPE
+    SYNTAX       TrueFalse
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "If true, an event is also sent when condition is no longer met (good condition)"
+    ::= { threshRuleEntry 22 }
+
+threshRuleRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Rule table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, createAndGo, destroy"
+    ::= { threshRuleEntry 23 }
+
+threshRuleStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Rule table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { threshRuleEntry 24 }
+
+threshRuleCurrentValue OBJECT-TYPE
+    SYNTAX       OCTET STRING
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Current name(s) and value(s) of the rule, delivered as
+                  XML string: root tag is <Values>, each value enclosed by tag <Val Name=OID Type=Type>,
+                   e.g. <Val Name=''1.3.6.1.4.1.231.2.10.2.1.18.1.11.2'' Type=''std::integer''>66</Val>;
+                  for multiple instances the <Val> tag appears multiple times.
+                  
+                  ATTENTION: Currently this object can only be used with non-SNMP resources!
+                  For SNMP resources the manager must get this value directly using its OID."
+    ::= { threshRuleEntry 25 }
+
+threshRuleFireEvent OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Fire this event (for testing purpose): write a non-zero value to fire this event
+                  (reading this value always returns zero)"
+    ::= { threshRuleEntry 26 }
+
+threshRulePerfStatusSeverity OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        ignore(1),
+        informational(2),
+        warning(3),
+        critical(4)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "How to set the PerformanceStatus when the rule meets condition:
+                     ignore:        rule status is not considered in the PerformanceStatus
+                     informational: when the rule meets condition, the PerformanceStatus goes to 'informational'
+                     warning:       when the rule meets condition, the PerformanceStatus goes to 'warning'
+                     critical:      when the rule meets condition, the PerformanceStatus goes to 'critical'"
+    ::= { threshRuleEntry 27 }
+
+
+threshRuleTableChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of rule table (time_t format: seconds since 1970/01/01)"
+    ::= { thresholds 2 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        threshRulesetTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all rulesets for threshold management"
+--
+--      threshRulesetTable: 1.3.6.1.4.1.231.2.47.1.3.3
+--
+-- ----------------------------------------------------------------------------------------------
+
+threshRulesetTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ThreshRulesetEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Description of all rulesets for threshold management"
+    ::= { thresholds 3 }
+
+threshRulesetEntry OBJECT-TYPE
+    SYNTAX       ThreshRulesetEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { threshRulesetName }
+    ::= { threshRulesetTable 1 }
+
+ThreshRulesetEntry ::= SEQUENCE
+{
+    threshRulesetName
+        DisplayString,
+    threshRulesetDescription
+        DisplayString,
+    threshRulesetStartTime
+        INTEGER,
+    threshRulesetStopTime
+        INTEGER,
+    threshRulesetRunning
+        TrueFalse,
+    threshRulesetRowStatus
+        RowStatus,
+    threshRulesetStorageType
+        StorageType
+}
+
+threshRulesetName OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..100))
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Rule name (index, unique string)"
+    ::= { threshRulesetEntry 1 }
+
+threshRulesetDescription OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Detailed ruleset description"
+    ::= { threshRulesetEntry 2 }
+
+threshRulesetStartTime OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Time when to start (activate) this ruleset (optional, -1 if not available; minutes since midnight)."
+    ::= { threshRulesetEntry 3 }
+
+threshRulesetStopTime OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Time when to stop this ruleset (optional, -1 if not available;  minutes since midnight)."
+    ::= { threshRulesetEntry 4 }
+
+threshRulesetRunning OBJECT-TYPE
+    SYNTAX       TrueFalse
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Shows whether the ruleset is currently running (regarding to start/stop time)"
+    ::= { threshRulesetEntry 5 }
+
+threshRulesetRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Ruleset table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, notInService, createAndGo, createAndWait, destroy"
+    ::= { threshRulesetEntry 6 }
+
+threshRulesetStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Ruleset table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { threshRulesetEntry 7 }
+
+
+-- The start and stop times are optional. Start time defines when a rule set will automatically
+-- become running (if enabled). If no start time is set, the first entry will always be running.
+-- If no stop time is defined, the rule set will stay running until the next rule set with start
+-- time becomes running.
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        threshRulesetContentsTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Content mapping table of all rulesets for threshold management
+--               Index 1 is from the RulesetTable, index 2 is a rule number (not stored in database)."
+--
+--      threshRulesetContentsTable: 1.3.6.1.4.1.231.2.47.1.3.4
+--
+-- ----------------------------------------------------------------------------------------------
+
+threshRulesetContentsTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ThreshRulesetContentsEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Content mapping table of all rulesets for threshold management
+                  Index 1 is from the RulesetTable, index 2 is a rule number (not stored in database)."
+    ::= { thresholds 4 }
+
+threshRulesetContentsEntry OBJECT-TYPE
+    SYNTAX       ThreshRulesetContentsEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { threshRulesetName, threshRulesetContentsRuleIndex }
+    ::= { threshRulesetContentsTable 1 }
+
+ThreshRulesetContentsEntry ::= SEQUENCE
+{
+    threshRulesetContentsRuleIndex
+        INTEGER,
+    threshRulesetContentsRuleName
+        DisplayString,
+    threshRulesetContentsRowStatus
+        RowStatus,
+    threshRulesetContentsStorageType
+        StorageType
+}
+
+threshRulesetContentsRuleIndex OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Ruleset contents table rule number (second index; 1..n; this number is not stored in the ruleset database)"
+    ::= { threshRulesetContentsEntry 1 }
+
+threshRulesetContentsRuleName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Ruleset contents table rule name - this name must match to an entry in the rule table!
+                  If the rule is missing in the rule table, it will be ignored here."
+    ::= { threshRulesetContentsEntry 2 }
+
+threshRulesetContentsRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Ruleset contents table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, createAndGo, destroy"
+    ::= { threshRulesetContentsEntry 3 }
+
+threshRulesetContentsStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Ruleset contents table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { threshRulesetContentsEntry 4 }
+
+
+threshRulesetsChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of ruleset or ruleset contents table (time_t format: seconds since 1970/01/01)"
+    ::= { thresholds 5 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        threshEventTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Event destinations for threshold event creation"
+--
+--      threshEventTable: 1.3.6.1.4.1.231.2.47.1.3.6
+--
+-- ----------------------------------------------------------------------------------------------
+
+threshEventTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ThreshEventEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Event destinations for threshold event creation"
+    ::= { thresholds 6 }
+
+threshEventEntry OBJECT-TYPE
+    SYNTAX       ThreshEventEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { threshEventName }
+    ::= { threshEventTable 1 }
+
+ThreshEventEntry ::= SEQUENCE
+{
+    threshEventName
+        DisplayString,
+    threshEventType
+        INTEGER,
+    threshEventSeverity
+        INTEGER,
+    threshEventRowStatus
+        RowStatus,
+    threshEventStorageType
+        StorageType
+}
+
+threshEventName OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..100))
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Event name (index, unique string)"
+    ::= { threshEventEntry 1 }
+
+threshEventType OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        snmpTrap(1)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Type of event (SNMP trap,...)
+                     For SNMP traps the trap numbers and enterprise ID are predefined and apply
+                     to the trap definitions in this MIB."
+    ::= { threshEventEntry 2 }
+
+threshEventSeverity OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        critical(1),
+        major(2),
+        minor(3),
+        informational(4)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Severity of event (e.g. for SNMP traps).
+                    For SNMP traps this severity defines which one of the predefined traps is to be sent."
+    ::= { threshEventEntry 3 }
+
+threshEventRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Event table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, createAndGo, destroy"
+    ::= { threshEventEntry 4 }
+
+threshEventStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Event table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { threshEventEntry 5 }
+
+
+threshEventTableChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of event table (time_t format: seconds since 1970/01/01)"
+    ::= { thresholds 7 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        reports
+-- DESCRIPTION  "This group defines the report manager handling"
+--
+--      reports group: 1.3.6.1.4.1.231.2.47.1.4
+--
+-- **********************************************************************************************
+
+reports OBJECT IDENTIFIER		::= { threshObjects 4 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        reportTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all reports for report management"
+--
+--      reportTable: 1.3.6.1.4.1.231.2.47.1.4.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+reportTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ReportEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Description of all reports for report management"
+    ::= { reports 1 }
+
+reportEntry OBJECT-TYPE
+    SYNTAX       ReportEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { reportName }
+    ::= { reportTable 1 }
+
+ReportEntry ::= SEQUENCE
+{
+    reportName
+        DisplayString,
+    reportDescription
+        DisplayString,
+    reportUserComment
+        DisplayString,
+    reportHelpText
+        DisplayString,
+    reportPollInterval
+        INTEGER,
+    reportMaxEntries
+        INTEGER,
+    reportResourceName
+        DisplayString,
+    reportInstMonitor
+        INTEGER,
+    reportInstIndexes
+        DisplayString,
+    reportInstPatterns
+        DisplayString,
+    reportTargetName
+        DisplayString,
+    reportRowStatus
+        RowStatus,
+    reportStorageType
+        StorageType,
+    reportCurrentValue
+        OCTET STRING
+}
+
+reportName OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..100))
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Report name (index, unique string)"
+    ::= { reportEntry 1 }
+
+reportDescription OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Detailed rule description"
+    ::= { reportEntry 2 }
+
+reportUserComment OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Comment which can be set by the user; will be sent with event"
+    ::= { reportEntry 3 }
+
+reportHelpText OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Detailed description of the report (for dynamic generation of help pages)"
+    ::= { reportEntry 4 }
+
+reportPollInterval OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Report polling interval (1..n seconds)"
+    ::= { reportEntry 5 }
+
+reportMaxEntries OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Maximum number of recorded report entries (prevent from getting hard disk out of space; 0 = no limit)."
+    ::= { reportEntry 6 }
+
+reportResourceName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Name of monitored resource (index in ResourceTable)"
+    ::= { reportEntry 7 }
+
+reportInstMonitor OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        all(1),
+        average(2)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource instances monitoring type - defines how to handle multiple instances:
+                     all:     all of the instances are monitored
+                     average: the average of all instances is calculated and monitored"
+    ::= { reportEntry 8 }
+
+reportInstIndexes OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource instances index value list (regular expression, like
+                  '[1-5]' (indexes 1..5), '[1,2,5]' (indexes 1, 2, or 5),
+                  '1[2-4]' (indexes 12..14);
+                  monitor all instances if empty"
+    ::= { reportEntry 9 }
+
+reportInstPatterns OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource instances index pattern list (regular expression, like
+                  '^/root$|^/home$|^/opt' (one of /root, /home or /opt*),
+                  '^data$|^system[1-3]$' (one of 'data' or 'system1'...'system3');
+                  monitor all instances if empty."
+    ::= { reportEntry 10 }
+
+reportTargetName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Name of an entry in the TargetTable, where to send the data queries to (localhost if empty)"
+    ::= { reportEntry 11 }
+
+reportRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Report table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, createAndGo, destroy"
+    ::= { reportEntry 12 }
+
+reportStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Report table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { reportEntry 13 }
+
+reportCurrentValue OBJECT-TYPE
+    SYNTAX       OCTET STRING
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Current name(s) and value(s) of the report resource, delivered as
+                  XML string: root tag is <Values>, each value enclosed by tag <Val Name=OID Type=Type>,
+                   e.g. <Val Name=''1.3.6.1.4.1.231.2.10.2.1.18.1.11.2'' Type=''std::integer''>66</Val>;
+                  for multiple instances the <Val> tag appears multiple times.
+                  
+                  ATTENTION: Currently this object can only be used with non-SNMP resources!
+                  For SNMP resources the manager must get this value directly using its OID."
+    ::= { reportEntry 14 }
+
+
+reportTableChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of report table
+                    (time_t format: seconds since 1970/01/01)"
+    ::= { reports 2 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        reportSetTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all reports set properties for report management"
+--
+--      reportSetTable: 1.3.6.1.4.1.231.2.47.1.4.3
+--
+-- ----------------------------------------------------------------------------------------------
+
+reportSetTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ReportSetEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Description of all reports set properties for report management"
+    ::= { reports 3 }
+
+reportSetEntry OBJECT-TYPE
+    SYNTAX       ReportSetEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { reportSetName }
+    ::= { reportSetTable 1 }
+
+ReportSetEntry ::= SEQUENCE
+{
+    reportSetName
+        DisplayString,
+    reportSetDescription
+        DisplayString,
+    reportSetStartTime
+        INTEGER,
+    reportSetStopTime
+        INTEGER,
+    reportSetRecordingEnd
+        INTEGER,
+    reportSetRunning
+        TrueFalse,
+    reportSetRowStatus
+        RowStatus,
+    reportSetStorageType
+        StorageType
+}
+
+reportSetName OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..100))
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Short report set name, used for identication"
+    ::= { reportSetEntry 1 }
+
+reportSetDescription OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Detailed report set description"
+    ::= { reportSetEntry 2 }
+
+reportSetStartTime OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Time when to start (activate) this report set (optional, -1 if not available; minutes since midnight)."
+    ::= { reportSetEntry 3 }
+
+reportSetStopTime OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Time when to stop this report set (optional, -1 if not available;  minutes since midnight)."
+    ::= { reportSetEntry 4 }
+
+reportSetRecordingEnd OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Date when reporting should be finished (time_t format: seconds since 1970/01/01; 0 = no end date, must be stopped manually)
+                  Reporting terminates automatically either when the next day after the end date or the maximum entry limit is reached."
+    ::= { reportSetEntry 5 }
+
+reportSetRunning OBJECT-TYPE
+    SYNTAX       TrueFalse
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Shows whether the report set is currently running (regarding to start/stop time)"
+    ::= { reportSetEntry 6 }
+
+reportSetRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Report set table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, notInService, createAndGo, createAndWait, destroy"
+    ::= { reportSetEntry 7 }
+
+reportSetStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Report set table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { reportSetEntry 8 }
+
+
+reportSetTableChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of report set table
+                    (time_t format: seconds since 1970/01/01)"
+    ::= { reports 4 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        reportSetContentsTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Content mapping table of all rulesets for threshold management
+--               Indexes are from RulesetTable and RuleTable."
+--
+--      reportSetContentsTable: 1.3.6.1.4.1.231.2.47.1.4.5
+--
+-- ----------------------------------------------------------------------------------------------
+
+reportSetContentsTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ReportSetContentsEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Content mapping table of all rulesets for threshold management
+                  Indexes are from RulesetTable and RuleTable."
+    ::= { reports 5 }
+
+reportSetContentsEntry OBJECT-TYPE
+    SYNTAX       ReportSetContentsEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { reportSetName, reportSetContentsReportIndex }
+    ::= { reportSetContentsTable 1 }
+
+ReportSetContentsEntry ::= SEQUENCE
+{
+    reportSetContentsReportIndex
+        INTEGER,
+    reportSetContentsReportName
+        DisplayString,
+    reportSetContentsRowStatus
+        RowStatus,
+    reportSetContentsStorageType
+        StorageType
+}
+
+reportSetContentsReportIndex OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "reportSet contents table report number (second index; 1..n; this number is not stored in the ruleset database)"
+    ::= { reportSetContentsEntry 1 }
+
+reportSetContentsReportName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "reportSet contents table report name - this name must match to an entry in the reportSet table!
+                  If the report is missing in the reportSet table, it will be ignored here."
+    ::= { reportSetContentsEntry 2 }
+
+reportSetContentsRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Report set contents table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, createAndGo, destroy"
+    ::= { reportSetContentsEntry 3 }
+
+reportSetContentsStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Report set contents table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { reportSetContentsEntry 4 }
+
+
+reportSetContentsTableChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of ruleset contents table (time_t format: seconds since 1970/01/01)"
+    ::= { reports 6 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        reportValueRecordPropTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Properties of the corresponding ValueRecord"
+--
+--      reportValueRecordPropTable: 1.3.6.1.4.1.231.2.47.1.4.7
+--
+-- ----------------------------------------------------------------------------------------------
+
+reportValueRecordPropTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ReportValueRecordPropEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Properties of the corresponding ValueRecord"
+    ::= { reports 7 }
+
+reportValueRecordPropEntry OBJECT-TYPE
+    SYNTAX       ReportValueRecordPropEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { reportName }
+    ::= { reportValueRecordPropTable 1 }
+
+ReportValueRecordPropEntry ::= SEQUENCE
+{
+    reportHighestIndexInUse
+        INTEGER,
+    reportOldestIndexInUse
+        INTEGER
+}
+
+reportHighestIndexInUse OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "the highest available index in the ValueRecordTable."
+    ::= { reportValueRecordPropEntry 1 }
+
+reportOldestIndexInUse OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "the index of the oldest value in the ValueRecordTable. index-1 ist the most current value."
+    ::= { reportValueRecordPropEntry 2 }
+
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        reportValueRecordTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Record Values of an appointed report. Starts with index 1 and ends with index HighestIndexInUse"
+--
+--      reportValueRecordTable: 1.3.6.1.4.1.231.2.47.1.4.8
+--
+-- ----------------------------------------------------------------------------------------------
+
+reportValueRecordTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ReportValueRecordEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Record Values of an appointed report. Starts with index 1 and ends with index HighestIndexInUse"
+    ::= { reports 8 }
+
+reportValueRecordEntry OBJECT-TYPE
+    SYNTAX       ReportValueRecordEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { reportName,reportValueRecordIndex }
+    ::= { reportValueRecordTable 1 }
+
+ReportValueRecordEntry ::= SEQUENCE
+{
+    reportValueRecord
+        DisplayString,
+    reportValueRecordIndex
+        INTEGER
+}
+
+reportValueRecord OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Record value of the report in XML format"
+    ::= { reportValueRecordEntry 1 }
+
+reportValueRecordIndex OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Index of the Value Record"
+    ::= { reportValueRecordEntry 2 }
+
+
+
+-- **********************************************************************************************
+--
+-- GROUP        threshResources
+-- DESCRIPTION  "This group defines the available data resources for threshold and report handling"
+--
+--      threshResources group: 1.3.6.1.4.1.231.2.47.1.5
+--
+-- **********************************************************************************************
+
+threshResources OBJECT IDENTIFIER		::= { threshObjects 5 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        threshResourceTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Available resources for threshold and report management"
+--
+--      threshResourceTable: 1.3.6.1.4.1.231.2.47.1.5.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+threshResourceTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ThreshResourceEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Available resources for threshold and report management"
+    ::= { threshResources 1 }
+
+threshResourceEntry OBJECT-TYPE
+    SYNTAX       ThreshResourceEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { threshResourceName }
+    ::= { threshResourceTable 1 }
+
+ThreshResourceEntry ::= SEQUENCE
+{
+    threshResourceName
+        DisplayString,
+    threshResourceDescription
+        DisplayString,
+    threshResourceHelpText
+        DisplayString,
+    threshResourceReqType
+        INTEGER,
+    threshResourceReqString
+        DisplayString,
+    threshResourceInstNameReq
+        DisplayString,
+    threshResourceRowStatus
+        RowStatus,
+    threshResourceStorageType
+        StorageType,
+    threshResourceValueUnit
+        DisplayString,
+    threshResourceContainerName
+        DisplayString,
+    threshResourceGroupName
+        DisplayString
+}
+
+threshResourceName OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..100))
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource name (index, unique string)"
+    ::= { threshResourceEntry 1 }
+
+threshResourceDescription OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Short description of the resource (for display in front end applications)"
+    ::= { threshResourceEntry 2 }
+
+threshResourceHelpText OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Detailed description of the resource (for dynamic generation of help pages)"
+    ::= { threshResourceEntry 3 }
+
+threshResourceReqType OBJECT-TYPE
+    SYNTAX       INTEGER
+    {
+        builtin(1),
+        snmp-request(2),
+        registry(3)
+    }
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource request type - defines how to get the value (by SNMP, Windows Registry,
+                    for built-in the objects 'ReqString' and 'InstNameReq' are not needed)"
+    ::= { threshResourceEntry 4 }
+
+threshResourceReqString OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource value request string:
+                    An asterisk '*' marks an enumeration of multiple values and
+                    can only stand at the end of the request string.
+                    SNMP: '1.3.6.1.4.1.231.2.10.2.2.5.1.3.*'
+                    Windows Registry: 'HKLM\Software\FSC\key\@value'
+                                      'Software\FSC\key\@*'
+                    Root keys (can be omitted):
+                      HKLM = HKEY_LOCAL_MACHINE (default)
+                      HKCU = HKEY_CURRENT_USER
+                      HKCC = HKEY_CURRENT_CONFIG
+                      HKPD = HKEY_PERFORMANCE_DATA"
+    ::= { threshResourceEntry 5 }
+
+threshResourceInstNameReq OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource instance name request string (syntax and type
+                  like threshResourceReqString)"
+    ::= { threshResourceEntry 6 }
+
+threshResourceRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, createAndGo, destroy"
+    ::= { threshResourceEntry 7 }
+
+threshResourceStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Resource table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { threshResourceEntry 8 }
+
+threshResourceValueUnit OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Unit of a value of this resource. E.g. '%','MByte'"
+    ::= { threshResourceEntry 9 }
+
+threshResourceContainerName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Name of the container which contains ReqString. SNMP: contains the MIB name"
+    ::= { threshResourceEntry 10 }
+
+threshResourceGroupName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Name of the group the resource belongs to"
+    ::= { threshResourceEntry 11 }
+
+
+threshResourceTableChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of resource table (time_t format: seconds since 1970/01/01)"
+    ::= { threshResources 2 }
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        threshTargetTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Target destination names for threshold/report resource value reading
+--               Allows to send value requests to more than one target machines."
+--
+--      threshTargetTable: 1.3.6.1.4.1.231.2.47.1.5.3
+--
+-- ----------------------------------------------------------------------------------------------
+
+threshTargetTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF ThreshTargetEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Target destination names for threshold/report resource value reading
+                  Allows to send value requests to more than one target machines."
+    ::= { threshResources 3 }
+
+threshTargetEntry OBJECT-TYPE
+    SYNTAX       ThreshTargetEntry
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  ""
+    INDEX   { threshTargetName }
+    ::= { threshTargetTable 1 }
+
+ThreshTargetEntry ::= SEQUENCE
+{
+    threshTargetName
+        DisplayString,
+    threshTargetAddress
+        DisplayString,
+    threshTargetRowStatus
+        RowStatus,
+    threshTargetStorageType
+        StorageType
+}
+
+threshTargetName OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..100))
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource target name (index, unique string)"
+    ::= { threshTargetEntry 1 }
+
+threshTargetAddress OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource target address (string)
+                  This may be an IP address (dotted string representation) or a DNS name."
+    ::= { threshTargetEntry 2 }
+
+threshTargetRowStatus OBJECT-TYPE
+    SYNTAX       RowStatus
+    ACCESS       read-write
+    STATUS       mandatory
+    DESCRIPTION  "Resource target table row status (RFC2579; see comment on top of this MIB)
+                    supported values: active, createAndGo, destroy"
+    ::= { threshTargetEntry 3 }
+
+threshTargetStorageType OBJECT-TYPE
+    SYNTAX       StorageType
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Resource target table storage type (see RFC2579; see comment on top of this MIB)"
+    ::= { threshTargetEntry 4 }
+
+
+threshTargetTableChanged OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       read-only
+    STATUS       mandatory
+    DESCRIPTION  "Timestamp indicating last modification of target table (time_t format: seconds since 1970/01/01)"
+    ::= { threshResources 4 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        threshNotificationsInfo
+-- DESCRIPTION  "This group defines the notifications/traps and their parameter variables.
+--               They are not accessible directly, but sent together with traps."
+--
+--      threshNotificationsInfo group: 1.3.6.1.4.1.231.2.47.2.1
+--
+-- **********************************************************************************************
+
+threshNotificationsInfo OBJECT IDENTIFIER		::= { threshNotifications 1 }
+
+threshTrapInfoServerName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Name of the server the trap comes from"
+    ::= { threshNotificationsInfo 1 }
+
+threshTrapInfoTime OBJECT-TYPE
+    SYNTAX       INTEGER
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "Time when the trap occured (in seconds since 01/01/1970 00:00h)"
+    ::= { threshNotificationsInfo 2 }
+
+threshTrapInfoRuleName OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The name of the rule which met condition"
+    ::= { threshNotificationsInfo 3 }
+
+threshTrapInfoRuleValue OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The value that of the resource that met condition (single or average value;
+                  numeric values are converted to strings)"
+    ::= { threshNotificationsInfo 4 }
+
+threshTrapInfoRuleUserComment OBJECT-TYPE
+    SYNTAX       DisplayString
+    ACCESS       not-accessible
+    STATUS       mandatory
+    DESCRIPTION  "The user's description of the rule which met condition; user may define an action what to do when an event raises"
+    ::= { threshNotificationsInfo 5 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        threshNotificationsTraps
+-- DESCRIPTION  "This group defines the traps."
+--
+--     Trap enterprise: threshNotifications (1.3.6.1.4.1.231.2.47.2)
+--
+-- **********************************************************************************************
+
+threshTrapThresholdExceededCritical TRAP-TYPE
+    ENTERPRISE threshNotifications
+    VARIABLES {
+        threshTrapInfoServerName,
+        threshTrapInfoTime,
+        threshTrapInfoRuleName,
+        threshTrapInfoRuleValue,
+        threshTrapInfoRuleUserComment
+        }
+    DESCRIPTION     "A threshold has been exceeded."
+    --#TYPE         "Threshold exceeded (critical)"
+    --#SUMMARY      "Threshold exceeded at server %s."
+    --#SUMMARY      "The rule %s met condition with value %s."
+    --#SUMMARY      "Rule user comment: %s"
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     CRITICAL
+    --#TIMEINDEX    1
+    --#HELP         "The configured threshold has been exceeded"
+    --#STATE        OPERATIONAL
+    ::= 2200
+
+threshTrapThresholdExceededMajor TRAP-TYPE
+    ENTERPRISE threshNotifications
+    VARIABLES {
+        threshTrapInfoServerName,
+        threshTrapInfoTime,
+        threshTrapInfoRuleName,
+        threshTrapInfoRuleValue,
+        threshTrapInfoRuleUserComment
+        }
+    DESCRIPTION     "A threshold has been exceeded."
+    --#TYPE         "Threshold exceeded (major)"
+    --#SUMMARY      "Threshold exceeded at server %s."
+    --#SUMMARY      "The rule %s met condition with value %s."
+    --#SUMMARY      "Rule user comment: %s"
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     MAJOR
+    --#TIMEINDEX    1
+    --#HELP         "The configured threshold has been exceeded"
+    --#STATE        OPERATIONAL
+    ::= 2201
+
+threshTrapThresholdExceededMinor TRAP-TYPE
+    ENTERPRISE threshNotifications
+    VARIABLES {
+        threshTrapInfoServerName,
+        threshTrapInfoTime,
+        threshTrapInfoRuleName,
+        threshTrapInfoRuleValue,
+        threshTrapInfoRuleUserComment
+        }
+    DESCRIPTION     "A threshold has been exceeded."
+    --#TYPE         "Threshold exceeded (minor)"
+    --#SUMMARY      "Threshold exceeded at server %s."
+    --#SUMMARY      "The rule %s met condition with value %s."
+    --#SUMMARY      "Rule user comment: %s"
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     MINOR
+    --#TIMEINDEX    1
+    --#HELP         "The configured threshold has been exceeded"
+    --#STATE        OPERATIONAL
+    ::= 2202
+
+threshTrapThresholdExceededInformational TRAP-TYPE
+    ENTERPRISE threshNotifications
+    VARIABLES {
+        threshTrapInfoServerName,
+        threshTrapInfoTime,
+        threshTrapInfoRuleName,
+        threshTrapInfoRuleValue,
+        threshTrapInfoRuleUserComment
+        }
+    DESCRIPTION     "A threshold has been exceeded."
+    --#TYPE         "Threshold exceeded (informational)"
+    --#SUMMARY      "Threshold exceeded at server %s."
+    --#SUMMARY      "The rule %s met condition with value %s."
+    --#SUMMARY      "Rule user comment: %s"
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "The configured threshold has been exceeded"
+    --#STATE        OPERATIONAL
+    ::= 2203
+
+threshTrapThresholdResume TRAP-TYPE
+    ENTERPRISE threshNotifications
+    VARIABLES {
+        threshTrapInfoServerName,
+        threshTrapInfoTime,
+        threshTrapInfoRuleName,
+        threshTrapInfoRuleValue,
+        threshTrapInfoRuleUserComment
+        }
+    DESCRIPTION     "A threshold has been resumed."
+    --#TYPE         "Threshold resume"
+    --#SUMMARY      "Threshold resume at server %s."
+    --#SUMMARY      "The rule %s no longer meets condition with value %s."
+    --#SUMMARY      "Rule user comment: %s"
+    --#ARGUMENTS    { 0, 2, 3, 4 }
+    --#SEVERITY     INFORMATIONAL
+    --#TIMEINDEX    1
+    --#HELP         "The configured threshold is no longer exceeded. The monitored resource value is now in specified operation range."
+    --#STATE        OPERATIONAL
+    ::= 2204
+
+
+END

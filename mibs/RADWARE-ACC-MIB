@@ -1,0 +1,250 @@
+ACC-MIB DEFINITIONS ::= BEGIN
+
+-- Title:      RADWARE
+--             This Private MIB supports the Vgate
+-- Version:    2.9
+-- Date:       27 Oct 1995
+-- By:         RMA (Radware MIB Authority)
+-- E-mail:     US:            support@radware.com
+--             International: support_int@radware.com
+--
+IMPORTS
+       NetworkAddress,
+       IpAddress,
+       Counter,
+       Gauge,
+       enterprises
+              FROM RFC1155-SMI
+       OBJECT-TYPE
+              FROM RFC-1212
+       DisplayString,
+       PhysAddress,
+       ipAddrEntry
+              FROM RFC1213-MIB
+       TRAP-TYPE
+                    FROM RFC-1215
+       rsACC,
+       rndErrorDesc,
+       rndErrorSeverity
+                    FROM RADWARE-MIB;
+
+    TruthValue ::= INTEGER {
+         true (1),
+         false (2)
+        }
+    RowStatus ::= INTEGER {
+        active(1),
+        notInService(2),
+        notReady(3),
+        createAndGo(4),
+        createAndWait(5),
+        destroy(6)
+        }
+    NetNumber ::=  OCTET STRING (SIZE(4))
+
+-- Some MIB compilers require that the following 7 lines which define the path
+-- to RND MIB are commented out:
+
+-- mib            OBJECT IDENTIFIER ::= { mgmt 1  }
+-- directory      OBJECT IDENTIFIER ::= { internet 1  }
+-- experimental   OBJECT IDENTIFIER ::= { internet 3  }
+-- private        OBJECT IDENTIFIER ::= { internet 4  }
+-- enterprises    OBJECT IDENTIFIER ::= { private 1  }
+
+rsACCStatTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RsACCStatEntry
+    ACCESS not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+      "Table for the accelerator statistics table"
+    ::=  {rsACC 1}
+
+rsACCStatEntry OBJECT-TYPE
+    SYNTAX RsACCStatEntry
+    ACCESS not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+       "the row definition for this table"
+   INDEX { rsACCStatId }
+    ::=  {rsACCStatTable 1}
+
+RsACCStatEntry ::= SEQUENCE {
+  rsACCStatId        INTEGER,
+  rsACCStatValue     INTEGER
+  }
+
+rsACCStatId OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "accelerator's statistic id"
+    ::=  {rsACCStatEntry 1}
+
+rsACCStatValue OBJECT-TYPE
+    SYNTAX  INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "accelerator's statistic value"
+    ::=  {rsACCStatEntry 2}
+
+rsACCUseFlowTable OBJECT-TYPE
+    SYNTAX INTEGER {
+        enable(1),
+        disable(2)
+    }
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION "Traffic that is not added to the flow table will be 
+    sent to the master CPU."
+--  DEFVAL {enable}
+    ::= {rsACC 2}
+
+rsACCResourceTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RsACCResourceEntry
+    ACCESS not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+      "Table for the accelerator resource table"
+    ::=  {rsACC 3}
+
+rsACCResourceEntry OBJECT-TYPE
+    SYNTAX RsACCResourceEntry
+    ACCESS not-accessible
+    STATUS  mandatory
+    DESCRIPTION
+       "the row definition for this table"
+   INDEX {rsACCId, rsACCCPUId}
+    ::=  {rsACCResourceTable 1}
+
+RsACCResourceEntry ::= SEQUENCE {
+  rsACCId        INTEGER,
+  rsACCCPUId     INTEGER,
+  rsACCFlow      INTEGER,
+  rsACCOther     INTEGER,
+  rsACCIdle      INTEGER,
+  rsACCQueue     INTEGER
+  }
+
+rsACCId OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "accelerator id"
+    ::=  {rsACCResourceEntry 1}
+
+rsACCCPUId OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "cpu id"
+    ::=  {rsACCResourceEntry 2}
+  
+rsACCFlow OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "Utilization percentage of flow task"
+    ::=  {rsACCResourceEntry 3}
+  
+rsACCOther OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "Utilization percentage of the other tasks"
+    ::=  {rsACCResourceEntry 4}
+  
+rsACCIdle OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "Percentage of the idle time"
+    ::=  {rsACCResourceEntry 5}
+
+rsACCQueue OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+      "Percentage of the idle time"
+    ::=  {rsACCResourceEntry 6}
+
+rsACCFFTRouteIgnore OBJECT-TYPE
+    SYNTAX INTEGER {
+        enable(1),
+        disable(2)
+    }
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION "The source MAC address will be learnt from the packet 
+    received and not through the routing table."
+--  DEFVAL {enable}
+    ::= {rsACC 4}
+
+rsACCHardwareClassification OBJECT-TYPE
+    SYNTAX INTEGER {
+        enable(1),
+        disable(2)
+    }
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION "Indicates if hardware classification is enabled."
+--  DEFVAL {enable}
+    ::= {rsACC 5}
+
+rsACCTrunkMode OBJECT-TYPE
+    SYNTAX INTEGER {
+        static(1),
+        dynamic(2)
+    }
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION "Enables the user to set internal trunk mode to be static or dynamic"
+--  DEFVAL {dynamic}
+    ::= {rsACC 8}
+
+
+-- Enterprise-specific traps for RADWARE
+-- Each enterprise-specific trap has two bound variables describing the exact nature of
+-- the trap. rndErrorDesc provides a detailed description of the problem, including the
+-- related interface number, board number or any other applicable variable.
+-- rndErrorSeverity describes the severity of this problem.
+
+-- Trap template
+-- -------------
+--    TRAP-TYPE
+--       ENTERPRISE  rsServerDispatcher
+--       VARIABLES   { rndErrorDesc, rndErrorSeverity }
+--       DESCRIPTION
+--             ""
+--       ::=
+-- -------------
+
+rsACCFlowTableFull TRAP-TYPE
+   ENTERPRISE rsACC
+   VARIABLES { rndErrorDesc, rndErrorSeverity }
+   DESCRIPTION
+      "The flow table is full."
+   ::= 1
+
+rsACCFlowEntryExists TRAP-TYPE
+   ENTERPRISE rsACC
+   VARIABLES { rndErrorDesc, rndErrorSeverity }
+   DESCRIPTION
+      "The flow entry already exists."
+   ::= 2
+
+rsACCFlowEntryNotFound TRAP-TYPE
+   ENTERPRISE rsACC
+   VARIABLES { rndErrorDesc, rndErrorSeverity }
+   DESCRIPTION
+      "The flow entry was not found."
+   ::= 3
+
+  END

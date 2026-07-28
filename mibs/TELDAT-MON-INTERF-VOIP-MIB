@@ -1,0 +1,787 @@
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+            -- Interfaz VOIP
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.4  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.3  30/06/10    M.A. Pastor     Compatibilidad con Spectrum
+    -- 1.2  03/11/06    R. Chavarrça    No compilaba por culpa de unos comentarios sin
+    --                                  indicacin de inicio de comentario
+    -- 1.1  15/09/06    R. Chavarrça    Se corrigen algunos fallos. Se crea una tabla
+    --                                  para el comando Bypass. Se a±aden algunas variables
+    --                                  mﬂs a la tabla sobre informacin de la lçnea
+    -- 1.0  18/05/06    M. Fadon        Implementacin inicial
+--------------------------------------------------------------------------------
+
+TELDAT-MON-INTERF-VOIP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Unsigned32
+        FROM SNMPv2-SMI
+
+    DisplayString,
+    TruthValue,
+    DateAndTime,
+    TimeInterval,
+    TEXTUAL-CONVENTION
+        FROM SNMPv2-TC
+
+    telProdNpMonInterfRouter
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+--
+-- teldatVoIPMonMIB
+--
+
+telProdNpMonInterfVOIP MODULE-IDENTITY
+    LAST-UPDATED    "200605221109Z"
+    ORGANIZATION    "Teldat, S.A."
+    CONTACT-INFO
+        "Teldat, S.A.
+        Customer Service
+
+        Postal: Parque Tecnolgico de Madrid
+                Tres Cantos 28760
+                Madrid, SPAIN
+
+        Tel.: +34 918 076 565
+
+        http://www.teldat.com"
+    DESCRIPTION
+        "This module defines a MIB for VOIP interface monitoring.
+
+        VOIP MIB
+        |+++ Command group
+        |    |t++ Line Command Table
+        |    |+++ Bypass
+        |+++ Status group
+        |    |t++ Line State Table
+        |    |t++ Active Calls CDRs
+        |    |t++ Released Calls CDRs"
+
+    REVISION    "200605221109Z"
+    DESCRIPTION "Initial implementation."
+
+    ::= { telProdNpMonInterfRouter 17 }
+
+--
+--  Location of node telProdNpMonInterfVOIP in TELDAT-MIB
+--
+
+-- telproducts              OBJECT IDENTIFIER ::= { teldat 4 }
+-- telProductsNucleox       OBJECT IDENTIFIER ::= { telproducts 1 }
+-- telProductsNpMonit       OBJECT IDENTIFIER ::= { telProductsNucleox 2 }
+-- telProdNpMonInterface    OBJECT IDENTIFIER ::= { telProductsNpMonit 2 }
+-- telProdNpMonInterfRouter OBJECT IDENTIFIER ::= { telProdNpMonInterface 2 }
+-- telProdNpMonInterfVOIP   OBJECT IDENTIFIER ::= { telProdNpMonInterfRouter 17 }
+
+--
+--  VOIP tables index textual convention
+--
+
+VOIPTableIndex ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Integer range to use as index for VOIP tables"
+    SYNTAX  INTEGER (1 .. 65535)
+
+--
+--  VOIP codec textual convention
+--
+
+VOIPCodecs ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Codecs for a VoIP call."
+    SYNTAX  INTEGER {
+        unknown(1),
+        g711Alaw(2),
+        g711Ulaw(3),
+        g723_5k3(4),
+        g723_6k4(5),
+        g729(6)
+    }
+
+--
+--  VOIP MIB Objects
+--
+
+teldatVOIPObjects    OBJECT IDENTIFIER   ::= { telProdNpMonInterfVOIP 1 }
+
+--
+--  Global VOIP monitoring variables
+--
+
+--
+--  Global Comand group VOIP monitoring variables
+--
+
+teldatVOIPCmdObject     OBJECT IDENTIFIER   ::= { teldatVOIPObjects 1 }
+
+teldatVOIPCmdLineTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatVOIPCmdLineEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of commands available for VoIP ports. Each row represents a line"
+    ::= { teldatVOIPCmdObject 1 }
+
+teldatVOIPCmdLineEntry OBJECT-TYPE
+    SYNTAX      TeldatVOIPCmdLineEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that are commands to a VoIP port. The inex is the
+        line in the interface"
+    INDEX { teldatVOIPCmdLineIndex }
+    ::= { teldatVOIPCmdLineTable 1 }
+
+TeldatVOIPCmdLineEntry ::= SEQUENCE
+{
+    teldatVOIPCmdVoipIfcIndex       VOIPTableIndex,
+    teldatVOIPCmdLineIndex          VOIPTableIndex,
+    teldatVOIPCmdStatsClear         INTEGER
+}
+
+teldatVOIPCmdVoipIfcIndex OBJECT-TYPE
+    SYNTAX  VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Interface index."
+    ::={ teldatVOIPCmdLineEntry 1 }
+
+teldatVOIPCmdLineIndex OBJECT-TYPE
+    SYNTAX  VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Line index."
+    ::={ teldatVOIPCmdLineEntry 2 }
+
+teldatVOIPCmdStatsClear OBJECT-TYPE
+    SYNTAX  INTEGER {
+        clear(1),
+        ok(2),
+        error(3),
+        undefined(4)
+      }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Clear the stats of the VoIP port."
+    ::={ teldatVOIPCmdLineEntry 3 }
+
+teldatVOIPCmdInterfaceTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatVOIPCmdInterfaceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of commands available for VoIP interfaces.
+        Each row represents an interface"
+    ::= { teldatVOIPCmdObject 2 }
+
+teldatVOIPCmdInterfaceEntry OBJECT-TYPE
+    SYNTAX      TeldatVOIPCmdInterfaceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that are commands to a VoIP interface. The inex is the
+                number of the interface"
+    INDEX { teldatVOIPCmdInterfaceIndex }
+    ::= { teldatVOIPCmdInterfaceTable 1 }
+
+TeldatVOIPCmdInterfaceEntry ::= SEQUENCE
+{
+    teldatVOIPCmdInterfaceIndex     VOIPTableIndex,
+    teldatVOIPCmdInterfaceBypass    INTEGER
+}
+
+teldatVOIPCmdInterfaceIndex OBJECT-TYPE
+    SYNTAX  VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Interface index."
+    ::={ teldatVOIPCmdInterfaceEntry 1 }
+
+teldatVOIPCmdInterfaceBypass OBJECT-TYPE
+    SYNTAX      INTEGER {
+        enable(1),
+        disable(2),
+        ok(3),
+        error(4),
+        undefined(5)
+    }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enable or Disable Bypass if present"
+    ::= { teldatVOIPCmdInterfaceEntry 2 }
+
+teldatVOIPInfoInterfaceTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatVOIPInfoInterfaceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of information available for VoIP interfaces.
+        Each row represents an interface"
+    ::= { teldatVOIPCmdObject 3 }
+
+teldatVOIPInfoInterfaceEntry OBJECT-TYPE
+    SYNTAX      TeldatVOIPInfoInterfaceEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that are information about a VoIP interface.
+        The inex is the number of the interface"
+    INDEX { teldatVOIPInfoInterfaceIndex }
+    ::= { teldatVOIPInfoInterfaceTable 1 }
+
+TeldatVOIPInfoInterfaceEntry ::= SEQUENCE
+{
+    teldatVOIPInfoInterfaceIndex            VOIPTableIndex,
+    teldatVOIPInfoInterfaceBoardId          DisplayString,
+    teldatVOIPInfoInterfaceFirmwareId       DisplayString,
+    teldatVOIPInfoInterfaceChannels         INTEGER,
+    teldatVOIPInfoInterfaceUsedChannels     INTEGER,
+    teldatVOIPInfoInterfaceDSPChannels      INTEGER,
+    teldatVOIPInfoInterfaceType             DisplayString,
+    teldatVOIPInfoInterfaceBypass           INTEGER
+}
+
+teldatVOIPInfoInterfaceIndex OBJECT-TYPE
+    SYNTAX      VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Interface index"
+    ::= { teldatVOIPInfoInterfaceEntry 1 }
+
+teldatVOIPInfoInterfaceBoardId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Board identification number"
+    ::= { teldatVOIPInfoInterfaceEntry 2 }
+
+teldatVOIPInfoInterfaceFirmwareId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Firmware identification number"
+    ::= { teldatVOIPInfoInterfaceEntry 3 }
+
+teldatVOIPInfoInterfaceChannels OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of channels of the interface"
+    ::= { teldatVOIPInfoInterfaceEntry 4 }
+
+teldatVOIPInfoInterfaceUsedChannels OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of used channels of the interface"
+    ::= { teldatVOIPInfoInterfaceEntry 5 }
+
+teldatVOIPInfoInterfaceDSPChannels OBJECT-TYPE
+    SYNTAX      INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of ^DSP channels of the interface"
+    ::= { teldatVOIPInfoInterfaceEntry 6 }
+
+teldatVOIPInfoInterfaceType OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Board type"
+    ::= { teldatVOIPInfoInterfaceEntry 7 }
+
+teldatVOIPInfoInterfaceBypass OBJECT-TYPE
+    SYNTAX      INTEGER {
+        enabled(1),
+        disabled(2),
+        notpresent(3)
+    }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Bypass state"
+    ::= { teldatVOIPInfoInterfaceEntry 8 }
+
+--
+--  Global Stats group VOIP monitoring variables
+--
+
+teldatVOIPStatObject     OBJECT IDENTIFIER   ::= { teldatVOIPObjects 2 }
+
+--
+--  Line State Table, VOIP monitoring variables
+--
+
+teldatVOIPStateLineTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatVOIPStateLineEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of VOIP line state information."
+    ::= { teldatVOIPStatObject 1 }
+
+teldatVOIPStateLineEntry OBJECT-TYPE
+    SYNTAX      TeldatVOIPStateLineEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that are line state information."
+    INDEX { teldatVOIPStateInterfaceIndex, teldatVOIPStateLineIndex }
+
+    ::= { teldatVOIPStateLineTable 1 }
+
+TeldatVOIPStateLineEntry ::= SEQUENCE
+{
+    teldatVOIPStateInterfaceIndex       VOIPTableIndex,
+    teldatVOIPStateLineIndex            VOIPTableIndex,
+    teldatVOIPStateLineType             INTEGER,
+    teldatVOIPStateLineSubtype          INTEGER,
+    teldatVOIPStateLineSubtype          INTEGER,
+    teldatVOIPStateLineState            DisplayString,
+    teldatVOIPStateLineCodec            VOIPCodecs,
+    teldatVOIPStateLineVAD              TruthValue,
+    teldatVOIPStateLineFwd              DisplayString,
+    teldatVOIPStateLineNafwd            DisplayString
+}
+
+teldatVOIPStateInterfaceIndex OBJECT-TYPE
+    SYNTAX  VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Interface index."
+    ::={ teldatVOIPStateLineEntry 1 }
+
+teldatVOIPStateLineIndex OBJECT-TYPE
+    SYNTAX  VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Line index."
+    ::={ teldatVOIPStateLineEntry 2 }
+
+teldatVOIPStateLineType OBJECT-TYPE
+    SYNTAX  INTEGER {
+        fxs(1),
+        fxo(2),
+        e-m(3),
+        dummy(4),
+        four-wire(5),
+        isdn(6)
+    }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Type of VOIP line."
+    ::={ teldatVOIPStateLineEntry 3 }
+
+teldatVOIPStateLineSubtype OBJECT-TYPE
+    SYNTAX  INTEGER {
+        noPOTS(1),
+        fxs(2),
+        fxo(3),
+        fxsAndFxo(4)
+    }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Subtype of VOIP line"
+    ::={ teldatVOIPStateLineEntry 4 }
+
+teldatVOIPStateLineState OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Current state of VOIP line."
+    ::={ teldatVOIPStateLineEntry 5 }
+
+teldatVOIPStateLineCodec OBJECT-TYPE
+    SYNTAX  VOIPCodecs
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Current call codec in VOIP line."
+    ::={ teldatVOIPStateLineEntry 6 }
+
+teldatVOIPStateLineVAD OBJECT-TYPE
+    SYNTAX  TruthValue
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Current call voice activity detection in VOIP line."
+    ::={ teldatVOIPStateLineEntry 7 }
+
+teldatVOIPStateLineFwd OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Number to forward incoming calls if FXS VOIP line."
+    ::={ teldatVOIPStateLineEntry 8 }
+
+teldatVOIPStateLineNafwd OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Number to forward (if no answer) incoming calls if FXS VOIP line."
+    ::={ teldatVOIPStateLineEntry 9 }
+
+--
+--  Active Call CDRs Table, VOIP monitoring variables
+--
+
+teldatVOIPStatCdrActTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatVOIPStatCdrActEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of CDRs of active calls. Each row is an active call."
+    ::= { teldatVOIPStatObject 2 }
+
+teldatVOIPStatCdrActEntry OBJECT-TYPE
+    SYNTAX      TeldatVOIPStatCdrActEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects with detail records of an active call."
+    INDEX       { teldatVOIPStatCdrActIndex }
+
+    ::= { teldatVOIPStatCdrActTable 1 }
+
+TeldatVOIPStatCdrActEntry ::= SEQUENCE
+{
+    teldatVOIPStatCdrActIndex       VOIPTableIndex,
+    teldatVOIPStatCdrActCaller      DisplayString,
+    teldatVOIPStatCdrActCalled      DisplayString,
+    teldatVOIPStatCdrActType        INTEGER,
+    teldatVOIPStatCdrActInPeer      DisplayString,
+    teldatVOIPStatCdrActOutPeer     DisplayString,
+    teldatVOIPStatCdrActCodec       VOIPCodecs,
+    teldatVOIPStatCdrActTxB         Unsigned32,
+    teldatVOIPStatCdrActRxB         Unsigned32,
+    teldatVOIPStatCdrActSetup       DateAndTime,
+    teldatVOIPStatCdrActConn        DateAndTime,
+    teldatVOIPStatCdrActDur         TimeInterval
+}
+
+teldatVOIPStatCdrActIndex OBJECT-TYPE
+    SYNTAX  VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Active Call CDR index."
+    ::={ teldatVOIPStatCdrActEntry 1 }
+
+teldatVOIPStatCdrActCaller OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Caller number of the call."
+    ::={ teldatVOIPStatCdrActEntry 2 }
+
+teldatVOIPStatCdrActCalled OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Called number of the call."
+    ::={ teldatVOIPStatCdrActEntry 3 }
+
+teldatVOIPStatCdrActType OBJECT-TYPE
+    SYNTAX  INTEGER {
+        unknown(1),
+        local(2),
+        h323(3),
+        sipGw(4),
+        sipServer(5),
+        direct(6)
+    }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Type of the call."
+    ::={ teldatVOIPStatCdrActEntry 4 }
+
+teldatVOIPStatCdrActInPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Incoming peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatVOIPStatCdrActEntry 5 }
+
+teldatVOIPStatCdrActOutPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Outgoing peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatVOIPStatCdrActEntry 6 }
+
+teldatVOIPStatCdrActCodec OBJECT-TYPE
+    SYNTAX  VOIPCodecs
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Codec used in the call."
+    ::={ teldatVOIPStatCdrActEntry 7 }
+
+teldatVOIPStatCdrActTxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes transmited in the call."
+    ::={ teldatVOIPStatCdrActEntry 8 }
+
+teldatVOIPStatCdrActRxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes received in the call."
+    ::={ teldatVOIPStatCdrActEntry 9 }
+
+teldatVOIPStatCdrActSetup OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Setup Time."
+    ::={ teldatVOIPStatCdrActEntry 10 }
+
+teldatVOIPStatCdrActConn OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Connection Time."
+    ::={ teldatVOIPStatCdrActEntry 11 }
+
+teldatVOIPStatCdrActDur OBJECT-TYPE
+    SYNTAX  TimeInterval
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Duration Time."
+    ::={ teldatVOIPStatCdrActEntry 12 }
+
+--
+--  Released Call CDRs Table, VOIP monitoring variables
+--
+
+teldatVOIPStatCdrRelTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatVOIPStatCdrRelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of CDRs of Released calls. Each row is a Released call."
+    ::= { teldatVOIPStatObject 3 }
+
+teldatVOIPStatCdrRelEntry OBJECT-TYPE
+    SYNTAX      TeldatVOIPStatCdrRelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects with detail records of a Released call."
+    INDEX       { teldatVOIPStatCdrRelIndex }
+
+    ::= { teldatVOIPStatCdrRelTable 1 }
+
+TeldatVOIPStatCdrRelEntry ::= SEQUENCE
+{
+    teldatVOIPStatCdrRelIndex       VOIPTableIndex,
+    teldatVOIPStatCdrRelCaller      DisplayString,
+    teldatVOIPStatCdrRelCalled      DisplayString,
+    teldatVOIPStatCdrRelType        INTEGER,
+    teldatVOIPStatCdrRelInPeer      DisplayString,
+    teldatVOIPStatCdrRelOutPeer     DisplayString,
+    teldatVOIPStatCdrRelCodec       VOIPCodecs,
+    teldatVOIPStatCdrRelTxB         Unsigned32,
+    teldatVOIPStatCdrRelRxB         Unsigned32,
+    teldatVOIPStatCdrRelCause       INTEGER,
+    teldatVOIPStatCdrRelSetup       DateAndTime,
+    teldatVOIPStatCdrRelConn        DateAndTime,
+    teldatVOIPStatCdrRelDisc        DateAndTime,
+    teldatVOIPStatCdrRelDur         TimeInterval
+}
+
+teldatVOIPStatCdrRelIndex OBJECT-TYPE
+    SYNTAX  VOIPTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Released Call CDR index."
+    ::={ teldatVOIPStatCdrRelEntry 1 }
+
+teldatVOIPStatCdrRelCaller OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Caller number of the call."
+    ::={ teldatVOIPStatCdrRelEntry 2 }
+
+teldatVOIPStatCdrRelCalled OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Called number of the call."
+    ::={ teldatVOIPStatCdrRelEntry 3 }
+
+teldatVOIPStatCdrRelType OBJECT-TYPE
+    SYNTAX  INTEGER {
+        local(1),
+        h323(2),
+        sipGw(3),
+        sipServer(4),
+        direct(5)
+    }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Type of the call."
+    ::={ teldatVOIPStatCdrRelEntry 4 }
+
+teldatVOIPStatCdrRelInPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Incoming peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatVOIPStatCdrRelEntry 5 }
+
+teldatVOIPStatCdrRelOutPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Outgoing peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatVOIPStatCdrRelEntry 6 }
+
+teldatVOIPStatCdrRelCodec OBJECT-TYPE
+    SYNTAX  VOIPCodecs
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Codec used in the call."
+    ::={ teldatVOIPStatCdrRelEntry 7 }
+
+teldatVOIPStatCdrRelTxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes transmited in the call."
+    ::={ teldatVOIPStatCdrRelEntry 8 }
+
+teldatVOIPStatCdrRelRxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes received in the call."
+    ::={ teldatVOIPStatCdrRelEntry 9 }
+
+teldatVOIPStatCdrRelCause OBJECT-TYPE
+    SYNTAX  INTEGER (0..255)
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Q.850 release code."
+    ::={ teldatVOIPStatCdrRelEntry 10 }
+
+teldatVOIPStatCdrRelSetup OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Setup Time."
+    ::={ teldatVOIPStatCdrRelEntry 11 }
+
+teldatVOIPStatCdrRelConn OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Connection Time."
+    ::={ teldatVOIPStatCdrRelEntry 12 }
+
+teldatVOIPStatCdrRelDisc OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Disconnection Time."
+    ::={ teldatVOIPStatCdrRelEntry 13 }
+
+teldatVOIPStatCdrRelDur OBJECT-TYPE
+    SYNTAX  TimeInterval
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Duration Time."
+    ::={ teldatVOIPStatCdrRelEntry 14 }
+
+
+
+
+
+--
+--  NOTIFICATION DEFINITIONS
+--
+--  This section defines the traps that can be generated by the agent.
+--
+--
+
+teldatVOIPMonNotificationsPrefix    OBJECT IDENTIFIER ::= { telProdNpMonInterfVOIP 2 }
+teldatVOIPMonNotifications          OBJECT IDENTIFIER ::= { teldatVOIPMonNotificationsPrefix 0 }
+
+--
+--  Conformance Information
+--
+
+teldatVOIPMonMibConformance OBJECT IDENTIFIER ::= { telProdNpMonInterfVOIP 3 }
+teldatVOIPMonMibCompliances OBJECT IDENTIFIER ::= { teldatVOIPMonMibConformance 1 }
+teldatVOIPMonMibGroups      OBJECT IDENTIFIER ::= { teldatVOIPMonMibConformance 2 }
+
+END

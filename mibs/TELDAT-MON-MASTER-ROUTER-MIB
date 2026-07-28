@@ -1,0 +1,358 @@
+--******************************************************************************
+--
+--  TELDAT, SA.
+--
+--  Parque Tecnologico de Madrid
+--  Tres Cantos
+--  28760 MADRID
+--  Tlf: +34-918076565
+--  Fax: +34-918076521
+--  E-mail: id@teldat.com
+--
+--******************************************************************************
+--
+--	MIB privada del router maestro
+--
+--******************************************************************************
+--	HISTORIAL:
+-- 1.2  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+-- 1.1  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+--                  M.A. Pastor     warnings y errores de compilacin
+-- 1.0  01/07/04    J. Molina       Archivo procedente de mng_mib.mib
+--
+--
+--
+--	HISTORIAL DE mng_mib.mib:
+--
+--	Ver		Fecha		Autor			Comentario
+--  ======= =========== =============== ========================================
+--  1.5     11/07/03    B. Pardo        Se agregan dos variables a peticion de
+--                                      gestion para consultar el numero de
+--                                      indice de una estacion gestionada
+--                                      sabiendo su telefono
+--	1.4		04/04/02	B. Pardo        Se agrega un nuevo campo en la tabla de
+--                                      estaciones a gestionar para saber si la
+--                                      estacion se encuentra conectada a la
+--                                      RTC o la RDSI, para realizar la llamada
+--                                      como de voz o datos respectivamente
+--	1.3		23/11/01	F.J.de Pedro	Modificaciones para el C-MASTER router
+--										Se agregan dos nuevos campos en la
+--										tabla de estaciones a gestionar
+--	1.2		29/11/00	F.J.de Pedro	Tercera codificacion
+--	1.1		20/11/00	F.J.de Pedro	Segunda codificacion
+--	1.0		03/11/00	F.J.de Pedro	Codificacion inicial
+--
+--******************************************************************************
+
+--
+--******************************************************************************
+--
+--	CREACION DE NODOS
+--
+--		* Nodo equipo Master-Router
+--
+--******************************************************************************
+
+TELDAT-MASTER-ROUTER-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+	IpAddress				FROM RFC1155-SMI
+	DisplayString			FROM RFC1213-MIB
+	telproducts				FROM TELDAT-MIB
+	OBJECT-TYPE			FROM RFC-1212;
+
+master-router OBJECT IDENTIFIER ::= { telproducts 38 }
+
+--
+--******************************************************************************
+--
+--	PARAMETROS GLOBALES DE LA GESTION
+--
+--		* Numero maximo de estaciones a gestionar
+--		* Indice de la primera entrada de la tabla libre
+--
+--******************************************************************************
+
+mrMaxNumOfStations OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"Maximum number of stations that the system can manage."
+	::={ master-router 1 }
+
+mrFirstFreeEntry OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"First free entry of the stations table."
+	::={ master-router 3 }
+
+--
+--******************************************************************************
+--
+--	TABLA DE ESTACIONES A GESTIONAR
+--
+--		* Comandos
+--			- activar
+--			- borrar
+--		* Telefono de la estacion a gestionar
+--		* Direccion IP de la estacion
+--		* Estado
+--		* Numero de rings a generar
+--		* Duracion del silencio entre llamadas
+--		* Ultima liberacion
+--			- causa
+--			- diagnostico
+--		* Estacion gestora
+--			- tipo de gestion
+--			- identificacion de la estacion gestora
+--		* Error durante la generacin del patrn de llamada
+--			- cdigo de error
+--			- texto descriptivo
+--		* Temporizacin del tono de llamada
+--			- duracin del tono
+--			- tiempo entre tonos
+--      * Tipo de red remota
+--          - RTC
+--          - RDSI
+--
+--******************************************************************************
+
+mrStationsTable OBJECT-TYPE
+	SYNTAX		SEQUENCE OF MrStationsEntry
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Stations to manage"
+	::={ master-router 4 }
+
+mrStationsEntry OBJECT-TYPE
+	SYNTAX		MrStationsEntry
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Each register is an station to manage"
+	INDEX		{ stIndex }
+	::= { mrStationsTable 1 }
+
+MrStationsEntry ::= SEQUENCE
+	{
+		stCommand				INTEGER,
+		stIndex					INTEGER,
+		stTelephone				DisplayString,
+		stIpAddress				IpAddress,
+		stState					INTEGER,
+		stNumberOfRings			INTEGER,
+		stSilenceLength			INTEGER,
+		stDisconnectCause		INTEGER,
+		stDisconnectDiagnosis	INTEGER,
+		stManagementType		INTEGER,
+		stManagerIdentifier		DisplayString,
+		stError					INTEGER,
+		stDescError				DisplayString,
+		stRingTime				INTEGER,
+		stRingLap				INTEGER,
+		stRemoteNetworkType     INTEGER
+	}
+
+stCommand OBJECT-TYPE
+	SYNTAX		INTEGER
+					{
+						ok(1),
+						error(2),
+						activate(3),
+						delete(4)
+					}
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"Command and result."
+	::={ mrStationsEntry 1}
+
+stIndex OBJECT-TYPE
+	SYNTAX  	INTEGER
+	ACCESS  	read-only
+	STATUS  	mandatory
+	DESCRIPTION	"Station order inside the table"
+	::={ mrStationsEntry 2}
+
+stTelephone OBJECT-TYPE
+	SYNTAX		DisplayString(SIZE(0..15))
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"Number of telephone to call."
+	::={ mrStationsEntry 3 }
+
+stIpAddress OBJECT-TYPE
+	SYNTAX		IpAddress
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 4 }
+
+stState OBJECT-TYPE
+	SYNTAX		INTEGER
+					{
+						initial(1),
+						calling(2),
+						called(3),
+						stopped(4),
+						managing(5)
+					}
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 5 }
+
+stNumberOfRings OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 6 }
+
+stSilenceLength OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 7 }
+
+stDisconnectCause OBJECT-TYPE
+	SYNTAX		INTEGER
+					{
+						undefined(0),
+						unassigned-number(1),
+						no-route-to-the-destination(3),
+						unnacceptable-channel(6),
+						call-awarded(7),
+						normal-call-clearing(16),
+						user-busy(17),
+						no-answer-from-user(18),
+						no-answer-from-notified-user(19),
+						call-rejected(21),
+						changed-number(22),
+						destination-out-of-order(27),
+						invalid-format-number(28),
+						normal-unspecified(31),
+						no-circuit-channel-available(34),
+						network-out-of-order(38),
+						temporary-failure(41),
+						switching-equipment-congestion(42),
+						solicited-circuit-channel-no-avaible(44),
+						resources-unavailable(47),
+						quality-of-service-not-available(49),
+						bearer-capacity-not-autorized(57),
+						bearer-capacity-not-available(58),
+						service-class-not-avaible(63),
+						bearer-capacity-not-implemented(65),
+						canal-type-not-implemented(66),
+						service-not-implemented(79),
+						reference-value-invalid(81),
+						identified-channel-not-exist(82),
+						incompatible-destination(88),
+						invalid-message-unspecified(95),
+						compulsory-info-element-absent(96),
+						message-type-not-implemented(97),
+						message-not-compatible-with-state(98),
+						info-element-no-exist(99),
+						info-element-content-invalid(100),
+						message-not-compatible-with-state-2(101),
+						recovery-on-timer-expiry(102),
+						protocol-error(111),
+						interworking(127)
+					}
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 8 }
+
+stDisconnectDiagnosis OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 9 }
+
+stManagementType OBJECT-TYPE
+	SYNTAX		INTEGER
+					{
+						manual(1),
+						automatic(2)
+					}
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 10 }
+
+stManagerIdentifier OBJECT-TYPE
+	SYNTAX		DisplayString(SIZE(0..31))
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 11 }
+
+stError OBJECT-TYPE
+	SYNTAX		INTEGER
+					{
+						ok(1),
+						error(2)
+					}
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 12 }
+
+stDescError OBJECT-TYPE
+	SYNTAX		DisplayString(SIZE(0..80))
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	""
+	::={ mrStationsEntry 13 }
+
+stRingTime OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"This value and the next (stRingLap) define the ring cadence
+				of the RTC line connected to the station that must be managed
+				when a call is received. This value is the duration of the ring
+				tone in tenths of seconds."
+	::={ mrStationsEntry 14 }
+
+stRingLap OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"This value and the previous (stRingTime) define the ring
+	            cadence of the RTC line connected to the station that must be
+	            managed when a call is received. This value is the time between
+	            ring tones, in tenths of seconds."
+	::={ mrStationsEntry 15 }
+
+stRemoteNetworkType OBJECT-TYPE
+	SYNTAX		INTEGER
+					{
+						pstn(0),
+						isdn(1)
+					}
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"Network type the station is attached to: PSTN or ISDN."
+	::={ mrStationsEntry 16 }
+
+mrStationsFindGroup OBJECT IDENTIFIER ::= { master-router 5 }
+
+mrStationsFindTelephone OBJECT-TYPE
+	SYNTAX		DisplayString(SIZE(0..15))
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"Number of telephone to find in the stations table."
+	::={ mrStationsFindGroup 1 }
+
+mrStationsFindIndex OBJECT-TYPE
+	SYNTAX  	INTEGER
+	ACCESS  	read-only
+	STATUS  	mandatory
+	DESCRIPTION	"Index of the stations table corresponding to the telephone
+	             indicated in the variable mrStationsFindTelephone"
+	::={ mrStationsFindGroup 2}
+
+END

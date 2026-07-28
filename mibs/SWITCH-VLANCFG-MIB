@@ -1,0 +1,585 @@
+--MibName=rcVlanCfg
+-- *****************************************************************
+-- RAISECOM-VLAN-MIB.MIB:  Raisecom VLAN MIB file
+-- 20090320, longyang
+--
+-- Copyright (c) 1994-2004 by Raisecom, Inc.
+-- All rights reserved.
+--
+-- *****************************************************************
+SWITCH-VLANCFG-MIB  DEFINITIONS ::= BEGIN
+
+IMPORTS
+        iscomSwitch
+            FROM RAISECOM-BASE-MIB     
+        rcPortIndex                                         
+            FROM SWITCH-SYSTEM-MIB
+        RowStatus
+            FROM SNMPv2-TC
+        Vlanset, EnableVar                
+            FROM SWITCH-TC   
+        VlanIndex,VlanId,dot1qVlanIndex,VlanIdOrNone
+            FROM Q-BRIDGE-MIB
+        InetAddressType
+            FROM INET-ADDRESS-MIB 
+        InetAddress   
+            FROM INET-ADDRESS-MIB
+        MacAddress 
+            FROM SNMPv2-TC ;
+--        MODULE-IDENTITY, OBJECT-TYPE,
+--        Integer32                         FROM SNMPv2-SMI
+--        SnmpAdminString                   FROM SNMP-FRAMEWORK-MIB;
+
+
+	rcVlanCfg MODULE-IDENTITY
+        LAST-UPDATED    "201104250000Z"
+        ORGANIZATION    "Raisecom, Inc."
+        CONTACT-INFO
+                "       Raise Systems
+
+                Postal: Beijing,
+                        China
+
+                   Tel: 86-010-82884499
+
+                E-mail: support@raisecom.com"
+        DESCRIPTION
+                "Configuration of vlan object."
+                ::= { iscomSwitch 43}
+
+-- -------------------------------------------------------------
+-- groups in the SWITCH-VLANCFG MIB
+-- -------------------------------------------------------------
+
+rcVlanCfgMibObjects  OBJECT IDENTIFIER ::= { rcVlanCfg 1 }  
+
+rcVlanCfgConfig      OBJECT IDENTIFIER ::= { rcVlanCfgMibObjects 1 }
+rcVlanCfgPort        OBJECT IDENTIFIER ::= { rcVlanCfgMibObjects 2 }
+rcVlanCfgPriority    OBJECT IDENTIFIER ::= { rcVlanCfgMibObjects 3 } 
+
+rcVlanAssignmentMibObjects  OBJECT IDENTIFIER ::= { rcVlanCfg 2 }
+
+rcVlanAssignment         OBJECT IDENTIFIER ::= { rcVlanAssignmentMibObjects 1 }           
+
+rcVlanPrivateVlanMibObjects  OBJECT IDENTIFIER ::= { rcVlanCfg 3 }
+
+rcVlanPrivateVlan    OBJECT IDENTIFIER ::= { rcVlanPrivateVlanMibObjects 1 }
+
+          
+-- -------------------------------------------------------------
+-- rcVlanCfgConfig
+-- -------------------------------------------------------------          
+    rcVlanCfgSwitchMode OBJECT-TYPE
+        SYNTAX	INTEGER
+        {
+            transparent(1),
+        	dot1q-vlan(2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+           	"The switch mode of the device is transparent(1) or dot1q-vlan(2)."
+        ::= { rcVlanCfgConfig 1 } 
+                                
+ -- -------------------------------------------------------------
+-- rcVlanCfgPort
+-- -------------------------------------------------------------
+    rcVlanCfgPortTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcVlanCfgPortEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Vlan port configuration table."
+        ::= { rcVlanCfgPort 1 }
+
+    rcVlanCfgPortEntry OBJECT-TYPE
+        SYNTAX RcVlanCfgPortEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Vlan port configuration table entry."
+        INDEX { rcPortIndex }
+        ::= { rcVlanCfgPortTable 1 }
+
+    RcVlanCfgPortEntry ::= SEQUENCE {
+        rcPortMode                            INTEGER,
+        rcPortAccessVlanId                    INTEGER,
+        rcPortAccessPvidOverride              EnableVar,
+        rcPortAccessEgressVlanList            Vlanset,
+        rcPortTrunkVlanNative                 INTEGER,
+        rcPortTrunkAllowVlanList              Vlanset,
+        rcPortTrunkUntagVlanList              Vlanset,
+        rcPortRejectFrameType                 INTEGER
+     }
+
+    rcPortMode OBJECT-TYPE
+        SYNTAX  INTEGER  {
+                 access(1),
+                 trunk(2),
+                 private-vlan-promiscuous(3),
+                 private-vlan-host(4)                                
+                 }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Vlan port mode."
+        ::= { rcVlanCfgPortEntry 1 }
+
+    rcPortAccessVlanId OBJECT-TYPE
+        SYNTAX  INTEGER  (1..4094)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Access vlan ID, when port is in access mode."
+        ::= { rcVlanCfgPortEntry 2 }
+
+    rcPortAccessPvidOverride OBJECT-TYPE
+        SYNTAX  EnableVar
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+                "If enable, set all ingress packets' vlan ID  
+                to access vlan. Else, do nothing."
+        ::= { rcVlanCfgPortEntry 3 }
+
+    rcPortAccessEgressVlanList OBJECT-TYPE
+        SYNTAX  Vlanset
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Egress vlan list when port is in access mode."
+        ::= { rcVlanCfgPortEntry 4 }
+
+    rcPortTrunkVlanNative OBJECT-TYPE
+        SYNTAX  INTEGER (1..4094)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Native vlan when port is in trunk mode."
+        ::= { rcVlanCfgPortEntry 5 }
+
+    rcPortTrunkAllowVlanList OBJECT-TYPE
+        SYNTAX  Vlanset
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Allowed vlan list when port is in trunk mode."
+        ::= { rcVlanCfgPortEntry 6 }
+
+    rcPortTrunkUntagVlanList OBJECT-TYPE
+        SYNTAX  Vlanset
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Untagged vlan list when port is in trunk mode."
+        ::= { rcVlanCfgPortEntry 7 }
+        
+    rcPortRejectFrameType OBJECT-TYPE
+        SYNTAX  INTEGER  {
+                 none(1),
+                 tagged(2),
+                 untagged(3)                
+                 }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Set reject packet type."
+        ::= { rcVlanCfgPortEntry 8 }
+
+-- -------------------------------------------------------------
+-- rcVlanPriority
+-- -------------------------------------------------------------
+    rcVlanCfgPriorityTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcVlanCfgPriorityEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Vlan priority configuration table."
+        ::= { rcVlanCfgPriority 2 }
+
+    rcVlanCfgPriorityEntry OBJECT-TYPE
+        SYNTAX RcVlanCfgPriorityEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Vlan priority configuration table entry."
+        INDEX { rcVlanPriorityIndex }
+        ::= { rcVlanCfgPriorityTable 1 }
+
+    RcVlanCfgPriorityEntry ::= SEQUENCE {
+        rcVlanPriorityIndex          INTEGER,
+        rcVlanPriority               INTEGER,
+        rcVlanPriorityRowStatus      RowStatus
+     }
+
+    rcVlanPriorityIndex OBJECT-TYPE
+        SYNTAX  INTEGER  (1..4094)
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Vlan ID of priority. The range is from 1 to 4094."
+        ::= { rcVlanCfgPriorityEntry 1 }
+
+    rcVlanPriority OBJECT-TYPE
+        SYNTAX  INTEGER  (-1..7)
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+            "This object indicates the priority of the vlan."
+        ::= { rcVlanCfgPriorityEntry 2 }
+
+    rcVlanPriorityRowStatus OBJECT-TYPE
+        SYNTAX  RowStatus
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+            "This object indicates the status of this entry."
+        ::= { rcVlanCfgPriorityEntry 3 } 
+        
+
+-- -------------------------------------------------------------
+-- rcVlanAssignment
+-- -------------------------------------------------------------   
+
+rcVlanAssignBaseMacNextIndex             OBJECT-TYPE
+        SYNTAX	INTEGER
+		ACCESS	read-only
+		STATUS	current
+		DESCRIPTION
+			"The next mac-vlan association Index."
+		::=	{ rcVlanAssignment 1 } 
+
+rcVlanAssignBaseSubnetNextIndex             OBJECT-TYPE
+        SYNTAX	INTEGER
+		ACCESS	read-only
+		STATUS	current
+		DESCRIPTION
+			"The next ip-subnet-vlan association Index."
+		::=	{ rcVlanAssignment 2 } 
+		
+--------rcVlanAssignBaseMacTable-------
+rcVlanAssignBaseMacTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcVlanAssignBaseMacEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Vlan Assigning table based on mac."
+        ::= { rcVlanAssignment 3 }
+
+rcVlanAssignBaseMacEntry         OBJECT-TYPE
+        SYNTAX      RcVlanAssignBaseMacEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcVlanAssignBaseMacTable. "
+	    INDEX        { rcVlanAssignBaseMacIndex }    
+        ::={ rcVlanAssignBaseMacTable 1 }
+    
+        RcVlanAssignBaseMacEntry ::= SEQUENCE 
+        {
+    	    rcVlanAssignBaseMacIndex	      INTEGER,
+    	    rcVlanAssignBaseMacAddress        MacAddress,
+            rcVlanAssignBaseMacVlan           VlanId,
+            rcVlanAssignBaseMacVlanPriority   INTEGER,
+            rcVlanAssignBaseMacRowStatus      RowStatus
+        }
+  
+rcVlanAssignBaseMacIndex    OBJECT-TYPE
+        SYNTAX        INTEGER 
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of vlan Assigning table based on mac."
+        ::= { rcVlanAssignBaseMacEntry 1 }      
+ 
+rcVlanAssignBaseMacAddress          OBJECT-TYPE
+        SYNTAX        MacAddress
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "This object indicates the mac for source MAC based mac-vlan assigning rule."
+        ::= { rcVlanAssignBaseMacEntry 2 }
+
+rcVlanAssignBaseMacVlan          OBJECT-TYPE
+        SYNTAX        VlanId
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "This object indicates the vlan ID based mac-vlan assigning rule.When the port receives untag packet, 
+            according to source MAC address to match the MAC-VLAN entry, if succeeds,it will
+            follow the matching VLAN ID to forward the packet, if fails, using other matching 
+            rules to match; When the port receives VLAN-tagged packet, if the port allowes the 
+            packets, then normal forwarding, otherwise discarding."
+        ::= { rcVlanAssignBaseMacEntry 3 }
+
+rcVlanAssignBaseMacVlanPriority          OBJECT-TYPE
+        SYNTAX        INTEGER (-1..7)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The vlan priority for VLAN packet.The default value is -1, means no vlan priority." 
+        DEFVAL { -1 }
+        ::= { rcVlanAssignBaseMacEntry 4 }
+        
+rcVlanAssignBaseMacRowStatus  OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This object indicates mac-vlan status of this table entry."
+        ::= { rcVlanAssignBaseMacEntry 5 }  
+        
+        
+        --------rcVlanAssignBaseSubnetTable-------
+rcVlanAssignBaseSubnetTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcVlanAssignBaseSubnetEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Vlan Assigning table based on ip subnet."
+        ::= { rcVlanAssignment 4 }
+
+rcVlanAssignBaseSubnetEntry         OBJECT-TYPE
+        SYNTAX      RcVlanAssignBaseSubnetEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcVlanAssignBaseSubnetTable. "
+	    INDEX        { rcVlanAssignBaseSubnetIndex }    
+        ::={ rcVlanAssignBaseSubnetTable 1 }
+    
+        RcVlanAssignBaseSubnetEntry ::= SEQUENCE 
+        {
+    	    rcVlanAssignBaseSubnetIndex          INTEGER,
+            rcVlanAssignBaseSubnetAddressType    InetAddressType, 
+            rcVlanAssignBaseSubnetAddress        InetAddress,
+            rcVlanAssignBaseSubnetMask           InetAddress,
+            rcVlanAssignBaseSubnetVlan           VlanId,
+            rcVlanAssignBaseSubnetVlanPriority   INTEGER,
+            rcVlanAssignBasSubnetRowStatus       RowStatus 
+        }
+  
+rcVlanAssignBaseSubnetIndex    OBJECT-TYPE
+        SYNTAX        INTEGER 
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of vlan Assigning table based on ip subnet."
+        ::= { rcVlanAssignBaseSubnetEntry 1 }      
+ 
+rcVlanAssignBaseSubnetAddressType          OBJECT-TYPE
+        SYNTAX      InetAddressType {
+		unknown(0),
+		ipv4(1),
+		ipv6(2),
+		ipv4z(3),
+		ipv6z(4),
+		dns(16)
+		}
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "This object specifies the type of the IP address based ip-subnet-vlan assigning rule."
+        ::= { rcVlanAssignBaseSubnetEntry 2 }    
+        
+rcVlanAssignBaseSubnetAddress OBJECT-TYPE
+    	SYNTAX      InetAddress
+    	MAX-ACCESS  read-create
+    	STATUS      current
+    	DESCRIPTION
+            "This object indicates the IP address in an ip subnet based vlan table."
+    	::= { rcVlanAssignBaseSubnetEntry 3 }
+
+rcVlanAssignBaseSubnetMask          OBJECT-TYPE
+        SYNTAX        InetAddress
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "This object indicates the IP address mask based ip-subnet-vlan assigning rule."
+        ::= { rcVlanAssignBaseSubnetEntry 4 }
+
+rcVlanAssignBaseSubnetVlan          OBJECT-TYPE
+        SYNTAX        VlanId
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "This object indicates the vlan ID based ip-subnet-vlan assigning rule.When the port receives untag packet, 
+            according to source IP address to match the IP-VLAN entry, if succeeds,it will
+            follow the matching VLAN ID to forward the packet, if fails, using other matching 
+            rules to match; When the port receives VLAN-tagged packet, if the port allowes the 
+            packets, then normal forwarding, otherwise discarding."
+        ::= { rcVlanAssignBaseSubnetEntry 5 }
+
+rcVlanAssignBaseSubnetVlanPriority          OBJECT-TYPE
+        SYNTAX        INTEGER (-1..7)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The vlan priority for VLAN packet.The default value is -1, means no vlan priority." 
+        DEFVAL { -1 }
+        ::= { rcVlanAssignBaseSubnetEntry 6 }
+        
+rcVlanAssignBasSubnetRowStatus  OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "This object indicates ip-subnet-vlan status of this table entry."
+        ::= { rcVlanAssignBaseSubnetEntry 7 }
+
+   ---------------rcVlanAssignPortTable--------------------------  
+    rcVlanAssignPortTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcVlanAssignPortEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Vlan assign port configuration table."
+        ::= { rcVlanAssignment 5 }
+
+    rcVlanAssignPortEntry OBJECT-TYPE
+        SYNTAX RcVlanAssignPortEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Vlan assign port configuration table entry."
+        INDEX { rcPortIndex }
+        ::= { rcVlanAssignPortTable 1 }
+
+    RcVlanAssignPortEntry ::= SEQUENCE {
+        rcVlanAssignPortMacVlanEnable        EnableVar, 
+        rcVlanAssignPortSubnetVlanEnable     EnableVar,
+        rcVlanAssignPortPrecedence           INTEGER  
+     }
+ 
+    rcVlanAssignPortMacVlanEnable OBJECT-TYPE
+        SYNTAX  EnableVar
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+                "If enable, set the source mac address matched packets,s vlan ID  
+                to assigned vlan."
+        ::= { rcVlanAssignPortEntry 1 }
+
+    rcVlanAssignPortSubnetVlanEnable OBJECT-TYPE
+        SYNTAX  EnableVar
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+                "If enable, set the source ip subnet address matched packets,s vlan ID  
+                to assigned vlan."
+        ::= { rcVlanAssignPortEntry 2 }
+              
+    rcVlanAssignPortPrecedence OBJECT-TYPE
+        SYNTAX  INTEGER{
+		mac-vlan(1),
+		subnet-vlan(2)
+		}
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Assign vlan precedence."
+        ::= { rcVlanAssignPortEntry 3} 
+        
+-- -------------------------------------------------------------
+-- rcVlanPrivateVlan
+-- -------------------------------------------------------------
+--------------- rcVlanPrivateVlanTable------------------------      
+    rcVlanPrivateVlanTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcVlanPrivateVlanEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Pirvate vlan configuration table."
+        ::= { rcVlanPrivateVlan 1 }
+
+    rcVlanPrivateVlanEntry OBJECT-TYPE
+        SYNTAX RcVlanPrivateVlanEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Private vlan configuration table entry."
+        INDEX { dot1qVlanIndex }
+        ::= { rcVlanPrivateVlanTable 1 }
+
+    RcVlanPrivateVlanEntry ::= SEQUENCE {
+        rcVlanPrivateVlanType                  INTEGER, 
+        rcVlanPrivateVlanPrimaryVLAN     VlanIdOrNone  
+     }
+ 
+    rcVlanPrivateVlanType OBJECT-TYPE
+        SYNTAX  INTEGER {
+        common(0),
+        primary(1),
+        isolated(2),
+        community(3)
+        }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+                "This object indicates the private vlan type of the current vlan."
+        ::= { rcVlanPrivateVlanEntry 1 } 
+    
+    rcVlanPrivateVlanPrimaryVLAN OBJECT-TYPE
+        SYNTAX        VlanIdOrNone  
+        MAX-ACCESS    read-write 
+        STATUS        current
+        DESCRIPTION   "Thie object indicates the primary vlan associated with secondly vlan.
+        If rcVlanPrivateVlanType has the value of common(0) or primary(1), then this object 
+        has the value of 0."
+        ::= { rcVlanPrivateVlanEntry 2 }
+          
+---------------rcVlanPrivateVlanPortTable------------------------      
+    rcVlanPrivateVlanPortTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcVlanPrivateVlanPortEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Pirvate vlan port configuration table."
+        ::= { rcVlanPrivateVlan 2 }
+
+    rcVlanPrivateVlanPortEntry OBJECT-TYPE
+        SYNTAX RcVlanPrivateVlanPortEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "pirvate vlan port configuration table entry."
+        INDEX { rcPortIndex }
+        ::= { rcVlanPrivateVlanPortTable 1 }
+
+    RcVlanPrivateVlanPortEntry ::= SEQUENCE {
+        rcVlanPrivateVlanHostPortPrimaryVlan          VlanIdOrNone,  
+        rcVlanPrivateVlanHostPortSecondaryVlan        VlanId,   
+        rcVlanPrivateVlanPromPortPrimaryVlan          VlanId,   
+        rcVlanPrivateVlanPromPortSecondaryVlanList    Vlanset,   
+     }
+
+    rcVlanPrivateVlanHostPortPrimaryVlan OBJECT-TYPE
+        SYNTAX  VlanId
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION  "This object indicates the primary vlan id that the current host port associated."
+        ::= { rcVlanPrivateVlanPortEntry 1 } 
+        
+    rcVlanPrivateVlanHostPortSecondaryVlan OBJECT-TYPE
+        SYNTAX  VlanId
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION  "This object indicates the Secondary vlan id that the current host port associated."
+        ::= { rcVlanPrivateVlanPortEntry 2 }   
+          
+    rcVlanPrivateVlanPromPortPrimaryVlan OBJECT-TYPE
+        SYNTAX  VlanId
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION  "This object indicates the primary vlan id that the current promiscuous port associated."
+        ::= { rcVlanPrivateVlanPortEntry 3} 
+
+    rcVlanPrivateVlanPromPortSecondaryVlanList OBJECT-TYPE
+        SYNTAX        Vlanset  
+        MAX-ACCESS    read-write 
+        STATUS        current
+        DESCRIPTION   "This object indicates the secondary vlanlist of the current promiscuous port associated.
+        A port can join a secondary VLAN only after this secondary VLAN has been associated with 
+        a primary VLAN."
+        ::= { rcVlanPrivateVlanPortEntry 4 }
+END

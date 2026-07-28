@@ -1,0 +1,1212 @@
+SNI-BUS-MIB DEFINITIONS	::= BEGIN
+
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1995
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001
+-- Copyright (C) Fujitsu Technology Solutions GmbH 2010
+-- All rights reserved
+--
+
+IMPORTS
+	OBJECT-TYPE								FROM RFC-1212
+	mib-2, DisplayString					FROM RFC1213-MIB
+	TimeTicks, Counter,	Gauge, enterprises	FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+-- SNI Server Management MIB nodes
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+
+----------------------------------------------------------------------------------------
+--
+-- ServerView-MIB groups
+
+sniBusCommon			OBJECT IDENTIFIER	::= { sniBus 1 }
+sniBusEisa				OBJECT IDENTIFIER	::= { sniBus 2 }
+sniBusPci				OBJECT IDENTIFIER	::= { sniBus 3 }
+sniBusResource			OBJECT IDENTIFIER	::= { sniBus 4 }
+sniBusSummary			OBJECT IDENTIFIER	::= { sniBus 5 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        sniBusCommon
+-- DESCRIPTION  "This group describes common bus information data"
+--	            Implementation of this group is mandatory
+--
+--      sniBusCommon group: 1.3.6.1.4.1.231.2.10.2.2.4.1
+--
+-- **********************************************************************************************
+
+sniEisaSlots	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Number of eisa slots in the system. 0 if no EISA-Bus present."
+	::= { sniBusCommon 1 }
+
+sniIsaSlots	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Number of isa slots in the system. 0 if no ISA-Bus present."
+	::= { sniBusCommon 2 }
+
+sniPciSlots	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Number of pci slots in the system. 0 if no PCI-Bus present."
+	::= { sniBusCommon 3 }
+
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniFunctionTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of bus functions"
+--
+--      sniFunctionTable: 1.3.6.1.4.1.231.2.10.2.2.4.1.4
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniFunctionTable	OBJECT-TYPE
+SYNTAX	SEQUENCE OF SniFunctionEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	"Table of all common data for all functions"
+	::= { sniBusCommon 4 }
+
+sniFunctionEntry	OBJECT-TYPE
+SYNTAX	SniFunctionEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	" "
+INDEX	{ sniBusType, sniBusIndex, sniDeviceSlotNo, sniFunctionNo }
+	::= { sniFunctionTable 1 }
+
+SniFunctionEntry	::= SEQUENCE {
+	sniBusType			INTEGER,
+	sniBusIndex			INTEGER,
+	sniDeviceSlotNo		INTEGER,
+	sniFunctionNo		INTEGER,
+	sniDeviceType		INTEGER,
+	sniDeviceTypeName	DisplayString,
+	sniDeviceName		DisplayString,
+	sniVendorName		DisplayString,
+	sniPhysicalSlotNo	INTEGER,
+	sniAdapterSpecificData	OCTET STRING,
+	sniOsDeviceName		DisplayString,
+	sniPhysicalSlotDesignation  DisplayString,
+	sniCompLocationKey  OCTET STRING
+}
+
+sniBusType	OBJECT-TYPE
+	SYNTAX	INTEGER {
+		unknown(0),
+		isa(2),
+		eisa(3),
+		pci(5),
+		usb(6),
+		firewire(7),
+		ata(8)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Type of the bus"
+	::= { sniFunctionEntry 1 }
+
+sniBusIndex	OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Index of the bus based on 1"
+	::= { sniFunctionEntry 2 }
+
+sniDeviceSlotNo	OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Device- or Slot-number based on 0"
+	::= { sniFunctionEntry 3 }
+
+sniFunctionNo	OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Functionnumber based on 1"
+	::= { sniFunctionEntry 4 }
+
+sniDeviceType	OBJECT-TYPE
+	SYNTAX	INTEGER {
+		unknown(0),
+		diskcontroller(1),
+		tapecontroller(2),
+		cdromcontoller(3),
+		wormcontroller (4),
+		serialcontroller(5),
+		networkcontroller(6),
+		displaycontroller(7),
+		parallelcontroller(8),
+		pointercontoller(9),
+		keyboardcontroller(10),
+		audiocontroller(11),
+		othercontroller(12),
+		bridge-device(13),
+		cpu(14)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"indicates the type of device"
+	::= { sniFunctionEntry 5 }
+
+sniDeviceTypeName	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"type of device in readable form"
+	::= { sniFunctionEntry 6 }
+
+sniDeviceName	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Operating system independent name of device in readable form"
+	::= { sniFunctionEntry 7 }
+
+sniVendorName	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"manufacturer of the device in readable form"
+	::= { sniFunctionEntry 8 }
+
+sniPhysicalSlotNo	OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"indicates the physical slot the device resides in (0: onboard device, -1: not available)"
+	::= { sniFunctionEntry 9 }
+
+sniAdapterSpecificData	OBJECT-TYPE
+	SYNTAX	OCTET STRING
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Specific data for this adapter. Currently the only information defined 
+				 is the MAC address for lan adapters."
+	::= { sniFunctionEntry 10 }
+
+sniOsDeviceName	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Operating system specific display name for the device"
+	::= { sniFunctionEntry 11 }
+	
+sniPhysicalSlotDesignation	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Designation of the phyical slot where the device is plugged in"
+	::= { sniFunctionEntry 12 }
+	
+sniCompLocationKey  OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Device location key, used for identifying the component; e.g. 'TYPE_PCI&BUS_3&DEV_14&FUNC_0'"
+	::= { sniFunctionEntry 13 }
+	
+
+-- **********************************************************************************************
+--
+-- GROUP        sniBusEisa
+-- DESCRIPTION  "This group describes all EISA bus components"
+--	            Implementation of this group is optional
+--
+--      sniBusEisa group: 1.3.6.1.4.1.231.2.10.2.2.4.2
+--
+-- **********************************************************************************************
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniEisaFunctionTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all EISA bus functions"
+--
+--      sniEisaFunctionTable: 1.3.6.1.4.1.231.2.10.2.2.4.2.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniEisaFunctionTable	OBJECT-TYPE
+SYNTAX	SEQUENCE OF SniEisaFunctionEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	"Table of all eisa function entries"
+	::= { sniBusEisa 1 }
+
+sniEisaFunctionEntry	OBJECT-TYPE
+SYNTAX	SniEisaFunctionEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	" "
+INDEX	{ sniEisaBusIndex, sniEisaSlotNo, sniEisaFunctionNo }
+	::= { sniEisaFunctionTable 1 }
+
+SniEisaFunctionEntry	::= SEQUENCE {
+sniEisaBusIndex	INTEGER,
+sniEisaSlotNo	INTEGER,
+sniEisaFunctionNo	INTEGER,
+sniEisaSlotType	INTEGER,
+sniEisaConfigurationComplete
+	INTEGER,
+sniEisaType	DisplayString,
+sniEisaValid	INTEGER,
+sniEisaId	DisplayString,
+sniEisaName	DisplayString,
+sniEisaAgentType	INTEGER
+}
+
+ sniEisaBusIndex	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Index of the bus based on 1"
+	::= { sniEisaFunctionEntry 1 }
+
+sniEisaSlotNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Slot number based on 0"
+	::= { sniEisaFunctionEntry 2 }
+
+sniEisaFunctionNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Eisa function number based on 1"
+	::= { sniEisaFunctionEntry 3 }
+
+sniEisaSlotType	OBJECT-TYPE
+SYNTAX	INTEGER {
+expansion-slot(1),
+embedded-slot(2),
+virtual-slot(3),
+reserved(4)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Type of the slot"
+	::= { sniEisaFunctionEntry 4 }
+
+sniEisaConfigurationComplete	OBJECT-TYPE
+SYNTAX	INTEGER {
+true(1),
+false(2),
+unknown(3)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"True if board is completely configured"
+	::= { sniEisaFunctionEntry 5 }
+
+sniEisaType	OBJECT-TYPE
+SYNTAX	DisplayString
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Type and subtype as ASCII string"
+	::= { sniEisaFunctionEntry 6 }
+
+sniEisaValid	OBJECT-TYPE
+SYNTAX	INTEGER {
+true(1),
+false(2),
+unknown(3)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"True, if the slot contains a correctly configured eisa board."
+	::= { sniEisaFunctionEntry 7 }
+
+sniEisaId	OBJECT-TYPE
+SYNTAX	DisplayString
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"The eisa id of the board."
+	::= { sniEisaFunctionEntry 8 }
+
+sniEisaName	OBJECT-TYPE
+SYNTAX	DisplayString
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Visual name of the board."
+	::= { sniEisaFunctionEntry 9 }
+
+sniEisaAgentType	OBJECT-TYPE
+SYNTAX	INTEGER {
+other(1),
+ethernet-adapter(2),
+token-ring-adapter(3),
+fddi-adapter(4),
+hd-adapter(5),
+extended-hd-adapter(6),
+cpu(7)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	" "
+	::= { sniEisaFunctionEntry 10 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        sniBusPci
+-- DESCRIPTION  "This group describes all PCI bus components and functions"
+--	            Implementation of this group is optional
+--
+--      sniBusPci group: 1.3.6.1.4.1.231.2.10.2.2.4.3
+--
+-- **********************************************************************************************
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniPciFunctionTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all PCI bus functions"
+--
+--      sniPciFunctionTable: 1.3.6.1.4.1.231.2.10.2.2.4.3.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniPciFunctionTable	OBJECT-TYPE
+SYNTAX	SEQUENCE OF SniPciFunctionEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	"Table of all pci function entries"
+	::= { sniBusPci 1 }
+
+sniPciFunctionEntry	OBJECT-TYPE
+SYNTAX	SniPciFunctionEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	" "
+INDEX	{ sniPciBusIndex, sniPciDeviceNo, sniPciFunctionNo }
+	::= { sniPciFunctionTable 1 }
+
+SniPciFunctionEntry	::=  SEQUENCE 
+{
+	sniPciBusIndex	        INTEGER,
+	sniPciDeviceNo	        INTEGER,
+	sniPciFunctionNo	    INTEGER,
+	sniPciVendorId	        INTEGER,
+	sniPciDeviceId	        INTEGER,
+	sniPciRevisionId        INTEGER,
+	sniPciBaseClass	        INTEGER,
+	sniPciSubClass          INTEGER,
+	sniPciProgIf            INTEGER,
+	sniPciBuiltInSelfTest   INTEGER,
+	sniPciInterruptPin      INTEGER,
+	sniPciInterruptLine     INTEGER,
+	sniPciSpecificData      OCTET STRING,
+	sniPciSecondaryBusIndex INTEGER,
+	sniPciSecondaryBusType  INTEGER,
+	sniPciSubDeviceId       INTEGER,
+	sniPciSubVendorId       INTEGER,
+	sniPciVendorName		DisplayString,
+	sniPciSubVendorName     DisplayString
+}
+
+sniPciBusIndex	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Index of the bus based on 1"
+	::= { sniPciFunctionEntry 1 }
+
+sniPciDeviceNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Device number based on 0"
+	::= { sniPciFunctionEntry 2 }
+
+sniPciFunctionNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Function number based on 1"
+	::= { sniPciFunctionEntry 3 }
+
+sniPciVendorId	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Identifies the manufacturer of the device. This must be a value 
+allocated by the PCI SIG."
+	::= { sniPciFunctionEntry 4 }
+
+sniPciDeviceId	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Identifies the particular device. This value is assigned by the 
+manufacturer."
+	::= { sniPciFunctionEntry 5 }
+
+sniPciRevisionId	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Specifies the revision level of the device described by 
+sniPciDeviceId. This value is assigned by the manufacturer."
+	::= { sniPciFunctionEntry 6 }
+
+sniPciBaseClass	OBJECT-TYPE
+SYNTAX	INTEGER {
+old-type-device(0),
+mass-storage-controller(1),
+network-controller(2),
+display-controller(3),
+multimedia-device(4),
+memory-controller(5),
+bridge-device(6),
+simple-communication-controller(7),
+base-system-peripherals(8),
+input-devices(9),
+docking-stations(10),
+processors(11),
+serial-bus-controllers(12),
+unknown-device(255)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Identifies type of the device, according to the PCI classification 
+scheme."
+	::= { sniPciFunctionEntry 7 }
+
+sniPciSubClass	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Identifies the subtype, if any, of the device, according to the PCI 
+classification scheme."
+	::= { sniPciFunctionEntry 8 }
+
+sniPciProgIf	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Identifies the register-level programming interface, if any, for the 
+device, according to the PCI classification scheme."
+	::= { sniPciFunctionEntry 9 }
+
+sniPciBuiltInSelfTest	OBJECT-TYPE
+SYNTAX	INTEGER {
+built-in(1),
+not-built-in(2),
+unknown(3)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Indicates if the device does support built-in self test."
+	::= { sniPciFunctionEntry 10 }
+
+sniPciInterruptPin	OBJECT-TYPE
+SYNTAX	INTEGER {
+not-implemented(0),
+inta(1),
+intb(2),
+intc(3),
+intd(4)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Indicates which interrupt pin the PCI device uses."
+::= { sniPciFunctionEntry 11 }
+
+sniPciInterruptLine	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Indicates the input of the system interrupt controller that the 
+interrupt pin is connected to."
+::= { sniPciFunctionEntry 12 }
+
+sniPciSpecificData	OBJECT-TYPE
+SYNTAX	OCTET STRING
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"This is device specific data found in the COMMON CONFIGURATION SPACE.
+                 This field is currently not used and therefor filled with zeros."
+::= { sniPciFunctionEntry 13 }
+
+sniPciSecondaryBusIndex	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Valid only for a bridge device. This is the index of the bridge's 
+secondary bus (-1 = no bus index available; ignore this field)."
+	::= { sniPciFunctionEntry 14 }
+
+sniPciSecondaryBusType	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Valid only for a bridge device. This is the type of the bridge's secondary bus.
+    Following values are defined (according to PCI Local bus specification, Revision 2.1, values 
+    are incremented by 1):
+       00h: Unknown value; ignore this field
+       01h: Host bridge (bridge to CPU bus)
+       02h: ISA bridge
+       03h: EISA bridge
+       04h: MCA bridge
+       05h: PCI-to-PCI bridge
+       06h: PCMCIA bridge
+       07h: NuBus bridge
+       80h: Other bridge device"
+	::= { sniPciFunctionEntry 15 }
+
+sniPciSubVendorId	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Identifies the particular device. This value is assigned by the manufacturer."
+	::= { sniPciFunctionEntry 16 }
+	
+sniPciSubDeviceId	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Identifies the particular device. This value is assigned by the manufacturer."
+	::= { sniPciFunctionEntry 17 }
+
+sniPciVendorName	OBJECT-TYPE
+SYNTAX	DisplayString
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"PCI device vendor name"
+	::= { sniPciFunctionEntry 18 }
+
+sniPciSubVendorName	OBJECT-TYPE
+SYNTAX	DisplayString
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"PCI device sub vendor name"
+	::= { sniPciFunctionEntry 19 }
+
+	
+-- **********************************************************************************************
+--
+-- GROUP        sniBusResource
+-- DESCRIPTION  "This group describes all bus resources"
+--	            Implementation of this group is mandatory
+--
+--      sniBusResource group: 1.3.6.1.4.1.231.2.10.2.2.4.4
+--
+-- **********************************************************************************************
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniMemoryTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all bus memory data"
+--
+--      sniMemoryTable: 1.3.6.1.4.1.231.2.10.2.2.4.4.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniMemoryTable	OBJECT-TYPE
+SYNTAX	SEQUENCE OF SniMemoryEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	"Table of all memory entries"
+	::= { sniBusResource 1 }
+
+sniMemoryEntry	OBJECT-TYPE
+SYNTAX	SniMemoryEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	" "
+INDEX	{ sniMemBusType, sniMemBusIndex, sniMemSlotDevice, 
+sniMemFunctionNo, sniMemoryNo }
+	::= { sniMemoryTable 1 }
+
+SniMemoryEntry	::=  SEQUENCE 
+{
+	sniMemBusType         INTEGER,
+	sniMemBusIndex        INTEGER,
+	sniMemSlotDevice      INTEGER,
+	sniMemFunctionNo      INTEGER,
+	sniMemoryNo           INTEGER,
+	sniBusSharedMemory    INTEGER,
+	sniBusMemoryStart     INTEGER,
+	sniBusMemoryLength    INTEGER,
+	sniBusMemoryStartHigh INTEGER
+}
+
+sniMemBusType	OBJECT-TYPE
+SYNTAX	INTEGER {
+unknown(0),
+isa(2),
+eisa(3),
+pci(5)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Type of the bus"
+	::= { sniMemoryEntry 1 }
+
+sniMemBusIndex	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Index of the bus based on 1"
+	::= { sniMemoryEntry 2 }
+
+sniMemSlotDevice	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Slot or Device number based on 0"
+	::= { sniMemoryEntry 3 }
+
+sniMemFunctionNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Function number based on 1"
+	::= { sniMemoryEntry 4 }
+
+sniMemoryNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Memory number based on 1"
+	::= { sniMemoryEntry 5 }
+
+sniBusSharedMemory	OBJECT-TYPE
+SYNTAX	INTEGER {
+not-used(1),
+other(2),
+system(3),
+expanded(4),
+virtual(5)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Type of shared memory"
+	::= { sniMemoryEntry 6 }
+
+sniBusMemoryStart	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Start address (low DWORD part) of shared memory or 0 if not used"
+	::= { sniMemoryEntry 7 }
+
+sniBusMemoryLength	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Length of shared memory or 0 if not used"
+	::= { sniMemoryEntry 8 }
+
+sniBusMemoryStartHigh	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Start address (high DWORD part) of shared memory or 0 if not used"
+	::= { sniMemoryEntry 9 }
+
+
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniInterruptTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all bus interrupt information"
+--
+--      sniInterruptTable: 1.3.6.1.4.1.231.2.10.2.2.4.4.2
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniInterruptTable	OBJECT-TYPE
+SYNTAX	SEQUENCE OF SniInterruptEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	"Table of all interrupt entries"
+	::= { sniBusResource 2 }
+
+sniInterruptEntry	OBJECT-TYPE
+SYNTAX	SniInterruptEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	" "
+INDEX	{ sniIntBusType, sniIntBusIndex, sniIntSlotDevice, 
+sniIntFunctionNo, sniInterruptNo }
+	::= { sniInterruptTable 1 }
+
+
+
+SniInterruptEntry	::=  SEQUENCE 
+{
+	sniIntBusType          INTEGER,
+	sniIntBusIndex         INTEGER,
+	sniIntSlotDevice       INTEGER,
+	sniIntFunctionNo       INTEGER,
+	sniInterruptNo         INTEGER,
+	sniBusInterruptUsed    INTEGER,
+	sniBusInterruptLevel   INTEGER,
+	sniBusInterruptShared  INTEGER,
+	sniBusInterruptNo      INTEGER
+}
+
+sniIntBusType	OBJECT-TYPE
+SYNTAX	INTEGER {
+unknown(0),
+isa(2),
+eisa(3),
+pci(5)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Type of the bus"
+	::= { sniInterruptEntry 1 }
+
+sniIntBusIndex	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Index of the bus based on 1"
+	::= { sniInterruptEntry 2 }
+
+sniIntSlotDevice	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Slot or Device number based on 0"
+	::= { sniInterruptEntry 3 }
+
+sniIntFunctionNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Function number based on 1"
+	::= { sniInterruptEntry 4 }
+
+sniInterruptNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Interrupt number based on 1"
+	::= { sniInterruptEntry 5 }
+
+sniBusInterruptUsed	OBJECT-TYPE
+SYNTAX	INTEGER {
+true(1),
+false(2),
+unknown(3)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"True if and only if not unknown and an interrupt is used"
+	::= { sniInterruptEntry 6 }
+
+sniBusInterruptLevel	OBJECT-TYPE
+SYNTAX	INTEGER {
+other(1),
+edge-triggered(2),
+level-triggered(3)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"interrupt level"
+	::= { sniInterruptEntry 7 }
+
+sniBusInterruptShared	OBJECT-TYPE
+SYNTAX	INTEGER {
+true(1),
+false(2),
+unknown(3)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"True if and only if not unknown and an interrupt is shared"
+	::= { sniInterruptEntry 8 }
+
+sniBusInterruptNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"interrupt number used"
+	::= { sniInterruptEntry 9 }
+
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniDMATable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all bus DMA information"
+--
+--      sniDMATable: 1.3.6.1.4.1.231.2.10.2.2.4.4.3
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniDMATable	OBJECT-TYPE
+SYNTAX	SEQUENCE OF SniDMAEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	"Table of all dma entries"
+	::= { sniBusResource 3 }
+
+sniDMAEntry	OBJECT-TYPE
+SYNTAX	SniDMAEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	" "
+INDEX	{ sniDMABusType, sniDMABusIndex, sniDMASlotDevice, 
+sniDMAFunctionNo, sniDMANo }
+	::= { sniDMATable 1 }
+
+SniDMAEntry	::= SEQUENCE {
+sniDMABusType	INTEGER,
+sniDMABusIndex	INTEGER,
+sniDMASlotDevice	INTEGER,
+sniDMAFunctionNo	INTEGER,
+sniDMANo	INTEGER,
+sniBusDMAChannel	INTEGER,
+sniBusDMATiming	INTEGER,
+sniBusDMATransferSize
+	INTEGER
+}
+
+sniDMABusType	OBJECT-TYPE
+SYNTAX	INTEGER {
+unknown(0),
+isa(2),
+eisa(3),
+pci(5)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Type of the bus"
+	::= { sniDMAEntry 1 }
+
+sniDMABusIndex	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Index of the bus based on 1"
+	::= { sniDMAEntry 2 }
+
+sniDMASlotDevice	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Slot or Device number based on 0"
+	::= { sniDMAEntry 3 }
+
+sniDMAFunctionNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Function number based on 1"
+	::= { sniDMAEntry 4 }
+
+sniDMANo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"DMA number based on 1"
+	::= { sniDMAEntry 5 }
+
+sniBusDMAChannel	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"DMA channel "
+	::= { sniDMAEntry 6 }
+
+sniBusDMATiming	OBJECT-TYPE
+SYNTAX	INTEGER {
+other(1),
+default-timing(2),
+type-a-timing(3),
+type-b-timing(4)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"DMA timing"
+	::= { sniDMAEntry 7 }
+
+sniBusDMATransferSize	OBJECT-TYPE
+SYNTAX	INTEGER {
+other(1),
+bit-8(2),
+bit-16(3),
+bit-32(4)
+}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"DMA transfer size"
+	::= { sniDMAEntry 8 }
+
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniPortTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all bus I/O port information"
+--
+--      sniPortTable: 1.3.6.1.4.1.231.2.10.2.2.4.4.4
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniPortTable	OBJECT-TYPE
+SYNTAX	SEQUENCE OF SniPortEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	"Table of all port entries"
+	::= { sniBusResource 4 }
+
+sniPortEntry	OBJECT-TYPE
+SYNTAX	SniPortEntry
+ACCESS	not-accessible
+STATUS	mandatory
+DESCRIPTION	" "
+INDEX	{ sniPortBusType, sniPortBusIndex, sniPortSlotDevice, 
+sniPortFunctionNo, sniPortNo }
+	::= { sniPortTable 1 }
+
+SniPortEntry	::= SEQUENCE {
+	sniPortBusType		INTEGER,
+	sniPortBusIndex		INTEGER,
+	sniPortSlotDevice	INTEGER,
+	sniPortFunctionNo	INTEGER,
+	sniPortNo			INTEGER,
+	sniBusIOFirstPort	INTEGER,
+	sniBusIONoOfPorts	INTEGER,
+	sniBusIOPortShared	INTEGER
+}
+
+sniPortBusType	OBJECT-TYPE
+	SYNTAX	INTEGER {
+		unknown(0),
+		isa(2),
+		eisa(3),
+		pci(5)
+		}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Type of the bus"
+	::= { sniPortEntry 1 }
+
+sniPortBusIndex	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Index of the bus based on 1"
+	::= { sniPortEntry 2 }
+
+sniPortSlotDevice	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Slot or Device number based on 0"
+	::= { sniPortEntry 3 }
+
+sniPortFunctionNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Function number based on 1"
+	::= { sniPortEntry 4 }
+
+sniPortNo	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Port number based on 1"
+	::= { sniPortEntry 5 }
+
+sniBusIOFirstPort	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"First io port used"
+	::= { sniPortEntry 6 }
+
+sniBusIONoOfPorts	OBJECT-TYPE
+SYNTAX	INTEGER
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"Number of io ports used"
+	::= { sniPortEntry 7 }
+
+sniBusIOPortShared	OBJECT-TYPE
+SYNTAX	INTEGER {
+	true(1),
+	false(2),
+	unknown(3)
+	}
+
+ACCESS	read-only
+STATUS	mandatory
+DESCRIPTION	"True if io port is shared"
+	::= { sniPortEntry 8 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP        sniBusSummary
+-- DESCRIPTION  "This group describes an overview over all bus components at all buses"
+--	            Implementation of this group is optional
+--
+--      sniBusSummary group: 1.3.6.1.4.1.231.2.10.2.2.4.5
+--
+-- **********************************************************************************************
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sniBusComponentTable
+-- STATUS       mandatory
+-- DESCRIPTION  "Description of all bus I/O port information"
+--
+--      sniBusComponentTable: 1.3.6.1.4.1.231.2.10.2.2.4.5.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+sniBusComponentTable	OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniBusComponents
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION	"Table of all common data for all functions"
+	::= { sniBusSummary 1 }
+
+sniBusComponents	OBJECT-TYPE
+	SYNTAX	SniBusComponents
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION	" "
+	INDEX	{ sniBusCompBusType, sniBusCompBusNumber, sniBusCompDeviceNo }
+	::= { sniBusComponentTable 1 }
+
+SniBusComponents	::= SEQUENCE {
+	sniBusCompBusType			INTEGER,
+	sniBusCompBusNumber			INTEGER,
+	sniBusCompDeviceNo			INTEGER,
+	sniBusCompSlotNo			INTEGER,
+	sniBusCompDeviceName		DisplayString,
+	sniBusCompDeviceType		DisplayString,
+	sniBusCompEisaPciId			DisplayString
+}
+
+sniBusCompBusType	OBJECT-TYPE
+	SYNTAX	INTEGER {
+		unknown(1),
+		isa(2),
+		eisa(3),
+		pci(5)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Type of the bus (ISA, EISA, PCI)"
+	::= { sniBusComponents 1 }
+
+sniBusCompBusNumber	OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Bus number for the specified bus type (1..n)"
+	::= { sniBusComponents 2 }
+
+sniBusCompDeviceNo	OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Device number (PCI) or slot number (ISA, EISA)"
+	::= { sniBusComponents 3 }
+
+sniBusCompSlotNo	OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Physical slot number (0..n), -1 if unknown"
+	::= { sniBusComponents 4 }
+
+sniBusCompDeviceName	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Vendor and device name in readable form"
+	::= { sniBusComponents 5 }
+
+sniBusCompDeviceType	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"Device type in readable form"
+	::= { sniBusComponents 6 }
+
+sniBusCompEisaPciId	OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION	"EISA ID for EISA components, PCI vendor/device ID for PCI components (hexadecimal notation)"
+	::= { sniBusComponents 7 }
+
+
+END

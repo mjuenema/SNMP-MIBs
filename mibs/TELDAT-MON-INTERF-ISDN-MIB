@@ -1,0 +1,1083 @@
+
+
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+            -- MIB privada de Teldat
+
+
+                -- Interfaces ISDN
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.1  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+    -- 1.0  01/07/04    J. Molina       Archivo procedente de ISDN.MIB
+
+    -- Historial de ISDN.MIB:
+            -- 01-10-01  N. Villase±or  Traduccin a inglâs
+            -- 01-12-00  M.A. Pastor    Modificaciones para que pueda ser
+            --                          compilada utilizando compiladores
+            --                          distintos del de Teldat
+            -- 25-05-00  M.A. Pastor    Implementacin inicial
+    --------------------------------------------------------------------------
+TELDAT-MON-INTERF-ISDN-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            Counter
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            DisplayString
+        FROM RFC1213-MIB
+            telProdNpMonInterfNodo
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    telProdNpMonInterfIsdn  OBJECT IDENTIFIER ::= { telProdNpMonInterfNodo 1 }
+
+
+-- Grupo telProdNpMonInterfIsdn
+
+-- Incluye los parﬂmetros referentes a los interfaces ISDN. Estﬂn incluidos en
+-- la parte "NODO", pero realmente el nîmero de net que se les asigna estﬂ
+-- comprendido dentro de los correspondientes a la parte "ROUTER", ya que este
+-- tipo de interfaces aparecen al a±adir sobre RDSI los interfaces lgicos
+-- FR-Dial, PPP-Dial, o FR sobre RDSI. Si no existça una net asociada al
+-- interfaz fçsico RDSI de tipo ISDN, al a±adir uno de los interfaces comentados
+-- se crea dicha net ademﬂs de la net de tipo FR o PPP que corresponda, y se le
+-- darﬂ un nîmero de la parte "ROUTER".
+
+-- Tabla de datos generales sobre el estado de una lçnea o puerto: informacin
+-- sobre el nivel fçsico, sobre el nivel 2 (LAPD) y sobre el nivel 3 (Q931) para
+-- cada acceso bﬂsico.
+
+    telProdNpMonIfcIsdnLineStatusTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnLineStatusEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table that contains general information about the state of the line
+        or port: information about the physical layer, layer 2 (LAPD) and
+        layer 3 (Q931) for each basic access. Each entry has a table index and
+        a set of variables that give information about the state of the physical
+        layer in accordance with the I.430 standard, the link layer state
+        in accordance with the Q.931 standard, the TEI (if assigned) and
+        the state of the component of the call in accordance with the
+        Q.931 standard of the line determined by the index related to
+        the ISDN interface."
+        ::= { telProdNpMonInterfIsdn 1 }
+
+    telProdNpMonIfcIsdnLineStatusEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnLineStatusEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains an index, that is the number of the ISDN
+        basic access (line or port number) and a set of variables that show
+        the state of the physical layer in accordance with the I.430 standard,
+        the link layer state in accordance with the Q.931 standard, the TEI
+        (Terminal Equipment Identifier) if assigned and the state of the
+        component of the call in accordance with the Q.931 standard."
+        INDEX { telProdNpMonIfcIsdnLineStatusIndex }
+        ::= { telProdNpMonIfcIsdnLineStatusTable 1 }
+
+    TelProdNpMonIfcIsdnLineStatusEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnLineStatusIndex
+                INTEGER,
+            telProdNpMonIfcIsdnLineStatusISACStatus
+                DisplayString,
+            telProdNpMonIfcIsdnLineStatusLapdStatus
+                DisplayString,
+            telProdNpMonIfcIsdnLineStatusQ931Status1
+                INTEGER,
+            telProdNpMonIfcIsdnLineStatusQ931Status2
+                INTEGER
+            }
+
+    telProdNpMonIfcIsdnLineStatusIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: number of the basic access (line or port number) the entry
+        contains."
+        ::= { telProdNpMonIfcIsdnLineStatusEntry 1 }
+
+    telProdNpMonIfcIsdnLineStatusISACStatus OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It provides the state of the physical layer, in accordance with
+        the I.430 standard, of the line (or basic ISDN access) determined
+        by the index. We get one of the following strings:
+        3 Pdown: Power down. Without supply.
+        3 Pup: Power up. It has been supplied.
+        3 Pdeac: Pending deactivation. Waiting for deactivation (after it
+        has been applied).
+        4 Pact: Pending activation. Waiting for activation (after it has been
+        applied).
+        5 Unsyn: Unsynchronized. Without synchronism.
+        6 Sync: Synchronized. With synchronism.
+        7 Activ: Activated. Normal active state with layer 1 protocol activated
+        in both directions.
+        8 Lfrm: Lost framing. The ISAC-S has lost  frame synchronism and
+        is waiting for resynchronization or deactivation."
+        ::= { telProdNpMonIfcIsdnLineStatusEntry 2 }
+
+    telProdNpMonIfcIsdnLineStatusLapdStatus OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "It is the state of the link layer, in accordance with the Q.931
+        standard, of the line (or basic ISDN access) determined by the index.
+        The following possible cases can appear: (1) active line with
+        established multiframe, (2) asigned TEI, (3) not asigned TEI,
+        (4) TEI waiting for establishment, (5) TEI waiting for assignation,
+        (6) TEI establishment wait and (7) recovering by timer. In time
+        we perform a get operation of the variable we get a different
+        displaystring. It is recorded if the TEI (Terminal Equipment Identifier)
+        is assigned."
+        ::= { telProdNpMonIfcIsdnLineStatusEntry 3 }
+
+    telProdNpMonIfcIsdnLineStatusQ931Status1 OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Variable that contains the state of the call component, in accordance
+        with the Q.931 standard, of the first B channel of the line
+        (basic ISDN access) determined by the index. The possible values are:
+        (0) Null state. (No call).
+        (1) Call started. (The user request for the call setup to the network.
+        For outgoing calls).
+        (2) Overlapped dispatch. (The user has received the ack of the call
+        setup request that allows the user to send extra information about
+        the call to the network in an overlapped way. For outgoing calls).
+        (3) Outgoing call under way. (The user has received the ack that
+        contains that the network has received all the call information
+        necessary to perform the call setup. For outgoing calls).
+        (4) Delivered call. (The caller receive the indication that
+        the other end user has started the announcement. For outgoing calls).
+        (6) Present call. (The user has received a call setup request but
+        a response hasn≥t been generated yet. For incoming calls).
+        (7) Received call. (The user has indicated the announcement but hasn≥t
+        answered yet. For incoming calls).
+        (8) Connection request. (The user has answered the call and
+        is waiting for the call assignation. For incoming calls).
+        (9) Incoming call under way. (The user has acknowledged the receipt of
+        the call information necessary to perform the call setup. For incoming
+        calls).
+        (10) Active. (For incoming calls, when the network notifies the user
+        that the call has been assignated. For outgoing calls, when the user
+        receives an indication that the other end user has answered the call).
+        (11) Disconnection Request. (The user has asked the network to release
+        the connection end to end, if exists, and he is waiting for an answer).
+        (12) Disconnection Indication. (The user has received a disconnection
+        invitation because the network has disconnected the connection
+        end to end).
+        (15) Suspension Request. (The user has asked the network to interrupt
+        the call and is waiting for an answer).
+        (17) Resume request. (The user has asked the network to resume a call
+        that was previously interrupted and is waiting for an answer).
+        (19) Release request. (The user has asked the network to release and
+        is waiting for an answer).
+        (25) Overlapped Reception. (Tha user has acknowledged the receipt of
+        the call setup request from the network and is waiting for receiving
+        extra information, if exists, about the call in overlapped way.
+        For incoming calls)."
+        ::= { telProdNpMonIfcIsdnLineStatusEntry 4 }
+
+    telProdNpMonIfcIsdnLineStatusQ931Status2 OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Variable that contains the state of the call component, in accordance
+        with the Q.931 standard, of the second B channel of the line
+        (basic ISDN access) determined by the index. The possible values are:
+        (0) Null state. (No call).
+        (1) Call started. (The user request for the call setup to the network.
+        For outgoing calls).
+        (2) Overlapped dispatch. (The user has received the ack of the call
+        setup request that allows the user to send extra information about
+        the call to the network in an overlapped way. For outgoing calls).
+        (3) Outgoing call under way. (The user has received the ack that
+        contains that the network has received all the call information
+        necessary to perform the call setup. For outgoing calls).
+        (4) Delivered call. (The caller receive the indication that
+        the other end user has started the announcement. For outgoing calls).
+        (6) Present call. (The user has received a call setup request but
+        a response hasn≥t been generated yet. For incoming calls).
+        (7) Received call. (The user has indicated the announcement but hasn≥t
+        answered yet. For incoming calls).
+        (8) Connection request. (The user has answered the call and is
+        waiting for the call assignation. For incoming calls).
+        (9) Incoming call under way. (The user has acknowledged the receipt of
+        the call information necessary to perform the call setup. For incoming
+        calls).
+        (10) Active. (For incoming calls, when the network notifies the user
+        that the call has been assignated. For outgoing calls, when the user
+        receives an indication that the other end user has answered the call).
+        (11) Disconnection Request. (The user has asked the network to release
+        the connection end to end, if exists, and he is waiting for an answer).
+        (12) Disconnection Indication. (The user has received a disconnection
+        invitation because the network has disconnected the connection
+        end to end).
+        (15) Suspension Request. (The user has asked the network to interrupt
+        the call and is waiting for an answer).
+        (17) Resume request. (The user has asked the network to resume a call
+        that was previously interrupted and is waiting for an answer).
+        (19) Release request. (The user has asked the network to release and
+        is waiting for an answer).
+        (25) Overlapped Reception. (Tha user has acknowledged the receipt of
+        the call setup request from the network and is waiting for receiving
+        extra information, if exists, about the call in overlapped way.
+        For incoming calls)."
+        ::= { telProdNpMonIfcIsdnLineStatusEntry 5 }
+
+-- Tabla de estadçsticos generales para una lçnea, puerto o acceso bﬂsico ISDN.
+-- Son estadçsticos correspondientes al canal D del acceso bﬂsico que indica
+-- el çndice.
+
+    telProdNpMonIfcIsdnLineStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnLineStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "General statistics table for a line, port or basic ISDN access, whose
+        number (order number, not net or interface) indicates the index. It
+        gives information about statistics related to the D channel of this
+        basic access: number of bytes transmitted and received through it,
+        number of underruns in transmission, overflows in reception and
+        collisions occured in this channel."
+        ::= { telProdNpMonInterfIsdn 2 }
+
+    telProdNpMonIfcIsdnLineStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnLineStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry is related to a line, port or basic ISDN access, and shows
+        statistics about the number of sent and received bytes, not transmitted
+        packets due to underrun in transmission, number of overflows in reception
+        and number of collisions counted in the D channel of the basic access
+        indicated by the index."
+        INDEX { telProdNpMonIfcIsdnLineStatsIndex }
+        ::= { telProdNpMonIfcIsdnLineStatsTable 1 }
+
+    TelProdNpMonIfcIsdnLineStatsEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnLineStatsIndex
+                INTEGER,
+            telProdNpMonIfcIsdnLineStatsTxBytes
+                Counter,
+            telProdNpMonIfcIsdnLineStatsRxBytes
+                Counter,
+            telProdNpMonIfcIsdnLineStatsTxUnderrun
+                Counter,
+            telProdNpMonIfcIsdnLineStatsRxOverflow
+                Counter,
+            telProdNpMonIfcIsdnLineStatsDCollitions
+                Counter
+            }
+
+    telProdNpMonIfcIsdnLineStatsIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table Index: line, port or basic ISDN number related to the D channel
+        which statistics are shown in that table entry. The index is the
+        basic access order number, not the interface number (or net)."
+        ::= { telProdNpMonIfcIsdnLineStatsEntry 1 }
+
+    telProdNpMonIfcIsdnLineStatsTxBytes OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes transmitted through the D channel of the ISDN basic
+        access determined by the index."
+        ::= { telProdNpMonIfcIsdnLineStatsEntry 2 }
+
+    telProdNpMonIfcIsdnLineStatsRxBytes OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes received through the D channel of the ISDN basic access
+        determined by the index."
+        ::= { telProdNpMonIfcIsdnLineStatsEntry 3 }
+
+    telProdNpMonIfcIsdnLineStatsTxUnderrun OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of underruns in transmission ocurred in D channel of the
+        ISDN basic access determined by the index."
+        ::= { telProdNpMonIfcIsdnLineStatsEntry 4 }
+
+    telProdNpMonIfcIsdnLineStatsRxOverflow OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of overflows in reception ocurred in D channel of the
+        ISDN basic access determined by the index."
+        ::= { telProdNpMonIfcIsdnLineStatsEntry 5 }
+
+    telProdNpMonIfcIsdnLineStatsDCollitions OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of collisions counted ocurred in D channel of the ISDN basic
+        access determined by the index."
+        ::= { telProdNpMonIfcIsdnLineStatsEntry 6 }
+
+-- Grupo que engloba las tramas transmitidas y recibidas y los errores en el
+-- nîmero de secuencia (N(s)) contabilizados para cada acceso bﬂsico y una
+-- variable que sirve para borrar estos estadçsticos.
+
+    telProdNpMonIfcIsdnStatisticsGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfIsdn 3 }
+
+    -- Tabla de los contadores de los diferentes tipos de tramas tansmitidas y
+    -- recibidas a travâs del acceso bﬂsico ISDN indicado por el çndice.
+
+    telProdNpMonIfcIsdnFramesTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnFramesEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table gives statistics about the number of different frame types
+        that are sent or received through a line, port or ISDN basic access,
+        that will be the order number, in the node ISDN lines, that indicates
+        the index."
+        ::= { telProdNpMonIfcIsdnStatisticsGroup 1 }
+
+    telProdNpMonIfcIsdnFramesEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnFramesEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains statistics about the number of I, RR, RNR, REJ,
+        FRMR and UI frames that have been sent and received through the line,
+        port or basic access determined by the index."
+        INDEX { telProdNpMonIfcIsdnFraIndex }
+        ::= { telProdNpMonIfcIsdnFramesTable 1 }
+
+    TelProdNpMonIfcIsdnFramesEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnFraIndex
+                INTEGER,
+            telProdNpMonIfcIsdnFraITx
+                Counter,
+            telProdNpMonIfcIsdnFraIRx
+                Counter,
+            telProdNpMonIfcIsdnFraRRTx
+                Counter,
+            telProdNpMonIfcIsdnFraRRRx
+                Counter,
+            telProdNpMonIfcIsdnFraRNRTx
+                Counter,
+            telProdNpMonIfcIsdnFraRNRRx
+                Counter,
+            telProdNpMonIfcIsdnFraREJTx
+                Counter,
+            telProdNpMonIfcIsdnFraREJRx
+                Counter,
+            telProdNpMonIfcIsdnFraFRMRTx
+                Counter,
+            telProdNpMonIfcIsdnFraFRMRRx
+                Counter,
+            telProdNpMonIfcIsdnFraUITx
+                Counter,
+            telProdNpMonIfcIsdnFraUIRx
+                Counter
+            }
+
+    telProdNpMonIfcIsdnFraIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: number of the line, port or ISDN access, that will be the
+        interface order number, not the interface (or net) number."
+        ::= { telProdNpMonIfcIsdnFramesEntry 1 }
+
+    telProdNpMonIfcIsdnFraITx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of I (information) frames sent through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 2 }
+
+    telProdNpMonIfcIsdnFraIRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of I (information) frames received through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 3 }
+
+    telProdNpMonIfcIsdnFraRRTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of RR (Receive Ready) frames sent through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 4 }
+
+    telProdNpMonIfcIsdnFraRRRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of RR (Receive Ready) frames received through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 5 }
+
+    telProdNpMonIfcIsdnFraRNRTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of RNR (Receive Not Ready) frames sent through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 6 }
+
+    telProdNpMonIfcIsdnFraRNRRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of RNR (Receive Not Ready) frames received through the line
+        or port indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 7 }
+
+    telProdNpMonIfcIsdnFraREJTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of REJ (Reject) frames sent through the line or port indicated
+        by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 8 }
+
+    telProdNpMonIfcIsdnFraREJRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of REJ (Reject) frames received through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 9 }
+
+    telProdNpMonIfcIsdnFraFRMRTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of FRMR (Frame Reject) frames sent through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 10 }
+
+    telProdNpMonIfcIsdnFraFRMRRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of FRMR (Frame Reject) frames received through the line or port
+        indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 11 }
+
+    telProdNpMonIfcIsdnFraUITx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of UI (Unnumbered Information) frames sent through the line
+        or port indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 12 }
+
+    telProdNpMonIfcIsdnFraUIRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of UI (Unnumbered Information) frames received through the line
+        or port indicated by the index."
+        ::= { telProdNpMonIfcIsdnFramesEntry 13 }
+
+    -- Tabla de los contadores de errores en el nîmero de secuencia.
+
+    telProdNpMonIfcIsdnNSErrorsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnNSErrorsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table that tells about the number of errors detected in the sequence
+        number (N(s)), in a line, port or ISDN basic access, that will be
+        the order number that shows the index."
+        ::= { telProdNpMonIfcIsdnStatisticsGroup 2 }
+
+    telProdNpMonIfcIsdnNSErrorsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnNSErrorsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry indicates the number of errors detected in the sequence
+        number (N(s)), in a line, port or ISDN basic access, related to the
+        index value."
+        INDEX { telProdNpMonIfcIsdnNSErrIndex }
+        ::= { telProdNpMonIfcIsdnNSErrorsTable 1 }
+
+    TelProdNpMonIfcIsdnNSErrorsEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnNSErrIndex
+                INTEGER,
+            telProdNpMonIfcIsdnNSErrCount
+                Counter
+            }
+
+    telProdNpMonIfcIsdnNSErrIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: line, port or ISDN basic access, that will be the order
+        number of that access, and not the interface number (or net)."
+        ::= { telProdNpMonIfcIsdnNSErrorsEntry 1 }
+
+    telProdNpMonIfcIsdnNSErrCount OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of errors detected in the sequence number N(s) for the line,
+        port or ISDN basic access determined by the index."
+        ::= { telProdNpMonIfcIsdnNSErrorsEntry 2 }
+
+    -- Variable de borrado de los estadçsticos englobados en este grupo: borra
+    -- la tabla que recoge las tramas de distintos tipos transmitidas y
+    -- recibidas por un puerto, lçnea o acceso bﬂsico ISDN y la tabla de los
+    -- errores en el nîmero de secuencia N(s) contabilizados para cada una de
+    -- las lçneas. Puesto que debe darse informacin sobre el nîmero de acceso
+    -- bﬂsico cuyos estadçsticos van a borrarse, las variables de borrado se
+    -- organizarﬂn en entradas de una tabla que ademﬂs de âstas contendrﬂn el
+    -- çndice que indica el nîmero de lçnea.
+
+    telProdNpMonIfcIsdnStatsClearTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnStatsClearEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each table entry contains the deletion variable of frame and error
+        counters in the sequence number related to a line, port or basic access,
+        with the index that indicates exactly that basic access."
+        ::= { telProdNpMonIfcIsdnStatisticsGroup 3 }
+
+    telProdNpMonIfcIsdnStatsClearEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnStatsClearEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry is used to delete the counters of transmitted and received
+        frames and errors in the sequence number conrresponding to a line,
+        port or ISDN basic access. It contains an index that indicates the basic
+        access number whose statistics are going to be deleted and the deletion
+        variable itself."
+        INDEX { telProdNpMonIfcIsdnStatsClearIndex }
+        ::= { telProdNpMonIfcIsdnStatsClearTable 1 }
+
+    TelProdNpMonIfcIsdnStatsClearEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnStatsClearIndex
+                INTEGER,
+            telProdNpMonIfcIsdnStatsClear
+                INTEGER
+            }
+
+    telProdNpMonIfcIsdnStatsClearIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: number of the line, port or ISDN access, that will be
+        the order number of the access among the other accesses of the node,
+        and not the interface number (or net)."
+        ::= { telProdNpMonIfcIsdnStatsClearEntry 1 }
+
+    telProdNpMonIfcIsdnStatsClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "It resets the counters that store the number of several types of frames
+        (I, RR, RNR, REJ, FRMR, UI (LAPD only)) that are transmitted and
+        received through that line and the number of errors detected in
+        the sequence number (N(s)). It is necessary to indicate the line number
+        whose counters we want to reset, and for the set operation it only
+        admits the value 1. In a get operation we will get the result of
+        the last trial for deleting the frame counter: if it succeeded, the
+        variable takes the value 2 (ok); if the delete operation did not
+        succeed, the variable takes the value 3 (error); if nobody has tried to
+        delete the counters, the value taken will be 4 (undefined)."
+        ::= { telProdNpMonIfcIsdnStatsClearEntry 2 }
+
+-- Tabla de las llamadas activas: las llamadas que se encuentran establecidas en
+-- ese momento.
+
+    telProdNpMonIfcIsdnActiveCallsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnActiveCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of active calls: the calls already set up in that moment over any
+        ISDN interface."
+        ::= { telProdNpMonInterfIsdn 4 }
+
+    telProdNpMonIfcIsdnActiveCallsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnActiveCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry matches a call established over an ISDN interface and
+        provides information related to it: the call type (incoming, outgoing
+        or permanent), number of the caller and called TE, reference value
+        of the active call, line and channel, time and date of establishment
+        and cost if the network provides it."
+        INDEX { telProdNpMonIfcIsdnActCallsIndex }
+        ::= { telProdNpMonIfcIsdnActiveCallsTable 1 }
+
+    TelProdNpMonIfcIsdnActiveCallsEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnActCallsIndex
+                INTEGER,
+            telProdNpMonIfcIsdnActCallsType
+                INTEGER,
+            telProdNpMonIfcIsdnActCallsCalledNum
+                DisplayString,
+            telProdNpMonIfcIsdnActCallsCallingNum
+                DisplayString,
+            telProdNpMonIfcIsdnActCallsRef
+                INTEGER,
+            telProdNpMonIfcIsdnActCallsLine
+                INTEGER,
+            telProdNpMonIfcIsdnActCallsChannel
+                INTEGER,
+            telProdNpMonIfcIsdnActCallsStartTime
+                OCTET STRING,
+            telProdNpMonIfcIsdnActCallsStartDate
+                OCTET STRING,
+            telProdNpMonIfcIsdnActCallsCharge
+                INTEGER
+            }
+
+    telProdNpMonIfcIsdnActCallsIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: order number of the call determined by the entry."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 1 }
+
+    telProdNpMonIfcIsdnActCallsType OBJECT-TYPE
+        SYNTAX INTEGER{
+            incoming(1),
+            outgoing(2),
+            permanent(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call type: incoming(1), outgoing(2) or permanent(3)."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 2 }
+
+    telProdNpMonIfcIsdnActCallsCalledNum OBJECT-TYPE
+        SYNTAX DisplayString (SIZE (0..12))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the called TE."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 3 }
+
+    telProdNpMonIfcIsdnActCallsCallingNum OBJECT-TYPE
+        SYNTAX DisplayString (SIZE (0..12))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the caller TE."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 4 }
+
+    telProdNpMonIfcIsdnActCallsRef OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Reference value of active call."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 5 }
+
+    telProdNpMonIfcIsdnActCallsLine OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Line (basic access) used to establish the call."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 6 }
+
+    telProdNpMonIfcIsdnActCallsChannel OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Channel used to establish the call."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 7 }
+
+    telProdNpMonIfcIsdnActCallsStartTime OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Setup Time. They are three bytes with EBCDIC format to
+        indicate hours, minutes and seconds respectively."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 8 }
+
+    telProdNpMonIfcIsdnActCallsStartDate OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Setup Date. They are three bytes with EBCDIC format to
+        indicate day, month and year respectively."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 9 }
+
+    telProdNpMonIfcIsdnActCallsCharge OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call cost (if the network provides it)."
+        ::= { telProdNpMonIfcIsdnActiveCallsEntry 10 }
+
+-- Grupo de las llamadas liberadas. Consta de la tabla donde se almacena la
+-- informacin de todas las llamadas que ya se liberaron y de una variable que
+-- sirve para borrar âstas del buffer donde se almacenan.
+
+    telProdNpMonIfcIsdnReleasedCallsGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfIsdn 5 }
+
+    -- Tabla de las llamadas liberadas. Nos proporciona informacin sobre las
+    -- conexiones que fueron ya liberadas. Se almacenan datos relativos a las
+    -- 100 îltimas llamadas liberadas y los muestra en el mismo orden en el que
+    -- se liberaron.
+
+    telProdNpMonIfcIsdnReleasedCallsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnReleasedCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of released calls. It provides information about the connection
+        already released. It stores information about the last 100 released
+        calls and it shows the information in release order."
+        ::= { telProdNpMonIfcIsdnReleasedCallsGroup 1 }
+
+    telProdNpMonIfcIsdnReleasedCallsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnReleasedCallsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry provides information about an already released call. The
+        table only stores information about the last 100 released calls, and
+        they are shown in release order. Each entry contains the following
+        parameters: the table index that is the entry order number, or storage
+        order of the call or release order (maximum 100), line that received
+        the call release, the call type (incoming, outgoing or permanent), the
+        number of the caller and called TEs, release cause and diagnostic, setup
+        and release time and date of the call and final call cost (if the
+        network provides it)."
+        INDEX { telProdNpMonIfcIsdnRelCallsIndex }
+        ::= { telProdNpMonIfcIsdnReleasedCallsTable 1 }
+
+    TelProdNpMonIfcIsdnReleasedCallsEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnRelCallsIndex
+                INTEGER,
+            telProdNpMonIfcIsdnRelCallsLine
+                INTEGER,
+            telProdNpMonIfcIsdnRelCallsType
+                INTEGER,
+            telProdNpMonIfcIsdnRelCallsCalledNum
+                DisplayString,
+            telProdNpMonIfcIsdnRelCallsCallingNum
+                DisplayString,
+            telProdNpMonIfcIsdnRelCallsLibCause
+                INTEGER,
+            telProdNpMonIfcIsdnRelCallsLibDiagnosis
+                INTEGER,
+            telProdNpMonIfcIsdnRelCallsStartTime
+                OCTET STRING,
+            telProdNpMonIfcIsdnRelCallsEndTime
+                OCTET STRING,
+            telProdNpMonIfcIsdnRelCallsStartDate
+                OCTET STRING,
+            telProdNpMonIfcIsdnRelCallsEndDate
+                OCTET STRING,
+            telProdNpMonIfcIsdnRelCallsCharge
+                INTEGER
+            }
+
+    telProdNpMonIfcIsdnRelCallsIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: entry order corresponding to the storage order of the
+        call, or similarly, the release order. The table stores data related to
+        a maximum of 100 calls."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 1 }
+
+    telProdNpMonIfcIsdnRelCallsLine OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Line that received the call release."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 2 }
+
+    telProdNpMonIfcIsdnRelCallsType OBJECT-TYPE
+        SYNTAX INTEGER{
+            incoming(1),
+            outgoing(2),
+            permanent(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call type: incoming(1), outgoing(2) or permanent(3)."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 3 }
+
+    telProdNpMonIfcIsdnRelCallsCalledNum OBJECT-TYPE
+        SYNTAX DisplayString (SIZE (0..12))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the called TE."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 4 }
+
+    telProdNpMonIfcIsdnRelCallsCallingNum OBJECT-TYPE
+        SYNTAX DisplayString (SIZE (0..12))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the caller TE."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 5 }
+
+    telProdNpMonIfcIsdnRelCallsLibCause OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call release reason. It is a decimal number that refers to a concrete
+        release cause. The number traslation, that means, to be able to know the
+        release reason through the numbers, constitutes the job of the table
+        telProdNpMonIfcIsdnLibCausesTable."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 6 }
+
+    telProdNpMonIfcIsdnRelCallsLibDiagnosis OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Release diagnostic (in decimal)."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 7 }
+
+    telProdNpMonIfcIsdnRelCallsStartTime OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Setup Time. They are three bytes with EBCDIC format to
+        indicate hours, minutes and seconds respectively."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 8 }
+
+    telProdNpMonIfcIsdnRelCallsEndTime OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Release Time: they are three bytes with EBCDIC format to
+        indicate hours, minutes and seconds respectively."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 9 }
+
+    telProdNpMonIfcIsdnRelCallsStartDate OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Setup Date. They are three bytes with EBCDIC format to
+        indicate day, month and year respectively."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 10 }
+
+    telProdNpMonIfcIsdnRelCallsEndDate OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Release Date. They are three bytes with EBCDIC format to
+        indicate day, month and year respectively."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 11 }
+
+    telProdNpMonIfcIsdnRelCallsCharge OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Cost when call ends (if the network provides it)."
+        ::= { telProdNpMonIfcIsdnReleasedCallsEntry 12 }
+
+    -- Variable de borrado de la tabla de llamadas liberadas: su finalidad es
+    -- borrar las llamadas del buffer de llamadas liberadas.
+
+    telProdNpMonIfcIsdnReleasedCallsClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable is used to delete all the table entries corresponding to
+        released calls and remove them from the buffer where the information
+        about released calls is stored. To delete, this variable must be set
+        to 1. The variable cannot take any other value. In a get operation, the
+        variable takes the value 2 (ok) if the last delete operation succeeded,
+        3 (error) if an error occurred, and 4 (undefined) if nobody has tried
+        yet to perform a delete operation."
+        ::= { telProdNpMonIfcIsdnReleasedCallsGroup 2 }
+
+-- Tabla de las causas de liberacin de llamadas. Permite interpretar las causas
+-- de liberacin de llamadas a partir de un cdigo numârico que es el que
+-- aparece en la informacin sobre las llamadas liberadas para indicar dicha
+-- causa.
+
+    telProdNpMonIfcIsdnLibCausesTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcIsdnLibCausesEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of call release reasons. It allows to translate the call release
+        reasons from a numeric code that appears in the information about
+        released calls to indicate the release reason."
+        ::= { telProdNpMonInterfIsdn 6 }
+
+    telProdNpMonIfcIsdnLibCausesEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcIsdnLibCausesEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry is related to a possible reason for call releasing. It has
+        a number that references the reasons and from this number we can know
+        the reason why the call was released (table index), and the release
+        reason itself that can be derived from the interpretation of the numeric
+        code given by the index."
+        INDEX { telProdNpMonIfcIsdnLibCausesIndex }
+        ::= { telProdNpMonIfcIsdnLibCausesTable 1 }
+
+    TelProdNpMonIfcIsdnLibCausesEntry ::=
+        SEQUENCE {
+            telProdNpMonIfcIsdnLibCausesIndex
+                INTEGER,
+            telProdNpMonIfcIsdnLibCausesDisplay
+                DisplayString
+            }
+
+    telProdNpMonIfcIsdnLibCausesIndex OBJECT-TYPE
+        SYNTAX INTEGER(0..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: numeric code that appears inside the information about
+        released calls and that is used to derive the release reason."
+        ::= { telProdNpMonIfcIsdnLibCausesEntry 1 }
+
+    telProdNpMonIfcIsdnLibCausesDisplay OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Call Release Reason determined by the numeric code given by the index.
+        It is the real information contained in the table about released calls.
+        The correspondence between the numeric code and the cause is as follows:
+        (1) No attributed number,
+        (3) No route to destiny,
+        (6) Unacceptable channel,
+        (7) Call over already established channel,
+        (16) Normal Call Release,
+        (17) Busy user,
+        (18) User do not answer,
+        (19) Warned user. No answer from user,
+        (21) Refused call,
+        (22) Changed number,
+        (27) Destiny out of service,
+        (28) Non valid number format,
+        (31) Normal release,
+        (34) Non available circuit or channel,
+        (38) Network out of service,
+        (41) Temporal failure,
+        (42) Congestion in conmutation node,
+        (44) Circuit demanded or not available channel,
+        (47) Not available resources,
+        (49) Non available quality of service,
+        (57) Non authorized carrier capacity,
+        (58) Non available carrier capacity,
+        (63) Non available service class or option,
+        (65) Non performed carrier capacity,
+        (66) Non performed channel type,
+        (79) Non performed service or option,
+        (81) Non valid call reference value,
+        (82) Non-existent identified channel,
+        (88) Incompatible destiny,
+        (95) Non valid message,
+        (96) Mandatory information element missing,
+        (97) Type of missing message,
+        (98) Missing or not implanted message,
+        (99) Information element missing,
+        (100) Non valid information element content,
+        (101) Incompatible message with call state,
+        (102) Recovery after temporizer expiration,
+        (111) Protocol error,
+        (127) Interworking."
+        ::= { telProdNpMonIfcIsdnLibCausesEntry 2 }
+
+END

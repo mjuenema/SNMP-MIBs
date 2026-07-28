@@ -1,0 +1,773 @@
+--MibName=rcQinQ
+-- *****************************************************************
+-- RAISECOM-QINQ-MIB.mib:   Raisecom QinQ MIB file 
+--
+-- Copyright (c) 1994-2004 by Raisecom, Inc.
+-- All rights reserved.
+--
+-- *****************************************************************
+RAISECOM-QINQ-MIB  DEFINITIONS ::= BEGIN
+
+IMPORTS
+        iscomSwitch                       FROM RAISECOM-BASE-MIB
+        RowStatus                         FROM SNMPv2-TC
+        Vlanset, EnableVar                FROM SWITCH-TC
+        rcPortIndex          		      FROM SWITCH-SYSTEM-MIB
+        MacAddress                        FROM SNMPv2-TC; 
+ 
+rcQinQ             OBJECT IDENTIFIER ::= { iscomSwitch 42 }
+
+rcQinQCfg          MODULE-IDENTITY
+    LAST-UPDATED   "200901190000Z"
+    ORGANIZATION   "Raisecom, Inc."
+    CONTACT-INFO  
+                "       Raise Systems
+                        
+                Postal: Beijing,
+                        China
+
+                   Tel: 86-010-82884499
+
+                E-mail: wangjing_rj@raisecom.com"
+    DESCRIPTION
+        "This MIB module defines objects to QinQ "
+        REVISION   "200901190000Z"
+        DESCRIPTION
+            "The initial revision of this MIB."
+        ::={ rcQinQ 1 } 
+
+-- -------------------------------------------------------------
+-- groups in the rcQinQ MIB     rcQinQDot1q
+-- -------------------------------------------------------------
+rcQinQDot1q                   OBJECT IDENTIFIER ::= { rcQinQCfg 1 }
+
+rcQinQDtOuterTpid             OBJECT-TYPE
+        SYNTAX INTEGER (1536..65535)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "TPID of outer tag."
+        ::= { rcQinQDot1q 1 }
+
+rcQinQPortTable               OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcQinQPortEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "QinQ port table"
+        ::= { rcQinQDot1q 2 }
+
+rcQinQPortEntry               OBJECT-TYPE
+        SYNTAX      RcQinQPortEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcQinQPortTable. It contains
+            QinQ status in each interface port."
+	    INDEX        { rcPortIndex }    
+        ::={ rcQinQPortTable 1 }
+    
+        RcQinQPortEntry ::= SEQUENCE
+        {
+    	    rcQinQStatus	         INTEGER,
+    	    rcQinQPortDtOuterTpid  	 INTEGER ,
+    	    rcQinQPortCosOverride    EnableVar, 
+    	    rcQinQPortVlanMapMissDrop EnableVar
+    	    
+        }
+
+rcQinQStatus             OBJECT-TYPE
+        SYNTAX INTEGER  {
+                 none(1),
+                 dot1q-tunnel(2),
+                 double-tagging(3)
+                 }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Port QinQ mode."
+        ::= { rcQinQPortEntry 1 }    
+        
+rcQinQPortDtOuterTpid             OBJECT-TYPE
+        SYNTAX INTEGER (1536..65535)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "TPID of outer tag on ports."
+        ::= { rcQinQPortEntry 2 }    
+        
+rcQinQPortCosOverride         OBJECT-TYPE 
+         SYNTAX  EnableVar
+         MAX-ACCESS read-write
+         STATUS current
+         DESCRIPTION
+            "enable or disable cos override "  
+         DEFVAL  { disable }
+        ::= { rcQinQPortEntry 3}        
+        
+rcQinQPortVlanMapMissDrop         OBJECT-TYPE 
+         SYNTAX  EnableVar
+         MAX-ACCESS read-write
+         STATUS current
+         DESCRIPTION
+            "Enable or disable Port vlan-mapping-miss drop"  
+         DEFVAL  { disable }
+        ::= { rcQinQPortEntry 4} 
+
+
+
+rcQinQDtInnerTpid             OBJECT-TYPE
+        SYNTAX INTEGER (1536..65535)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "TPID of Inner tag."
+        ::= { rcQinQDot1q 3 } 
+
+-- -------------------------------------------------------------
+-- groups in the rcQinQ MIB       rcQinQVlanMap
+-- -------------------------------------------------------------
+
+rcQinQVlanMap                  OBJECT IDENTIFIER ::= { rcQinQCfg 2 }
+
+rcQinQVlanMapNextIndex             OBJECT-TYPE
+        SYNTAX INTEGER (0..65535)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Index of vlan map table."
+        ::= { rcQinQVlanMap 1 } 
+ 
+rcQinQVlanMapEnableStatus             OBJECT-TYPE
+        SYNTAX EnableVar
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Vlan mapping enable status."
+        ::= { rcQinQVlanMap 3 }
+
+rcQinQVlanMapPortTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcQinQVlanMapPortEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Vlan mapping table of port."
+        ::= { rcQinQVlanMap 2 }
+
+rcQinQVlanMapPortEntry         OBJECT-TYPE
+        SYNTAX      RcQinQVlanMapPortEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcQinQVlanMapPortTable. "
+	    INDEX        { rcPortIndex, rcQinQVlanMapIndex }    
+        ::={ rcQinQVlanMapPortTable 1 }
+    
+        RcQinQVlanMapPortEntry ::= SEQUENCE 
+        {
+    	    rcQinQVlanMapIndex	      INTEGER,
+    	    rcQinQVlanMapCeVlanList   Vlanset,
+            rcQinQVlanMapPeVlanList   Vlanset,
+            rcQinQVlanMapInnerVlanId  INTEGER,
+            rcQinQVlanMapOuterVlanId  INTEGER,
+            rcQinQVlanMapMode         INTEGER,
+            rcQinQVlanMapHwStatus     EnableVar,
+            rcQinQVlanMapRowStatus    RowStatus,
+            rcQinQVlanMapID	          INTEGER,
+            rcQinqVlanMapInnerMode    INTEGER,
+            rcQinQVlanMapOuterMode    INTEGER,
+            rcQinQVlanMapCeVlanCos    INTEGER,
+            rcQinQVlanMapPeVlanCos    INTEGER,
+            rcQinQVlanMapInnerVlanCos INTEGER,  
+            rcQinQVlanMapOuterVlanCos INTEGER,
+            rcQinQVlanMapLocalPriority INTEGER       
+        }
+  
+rcQinQVlanMapIndex    OBJECT-TYPE
+        SYNTAX        INTEGER (1..65535)
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of vlan mapping table."
+        ::= { rcQinQVlanMapPortEntry 1 }      
+ 
+rcQinQVlanMapCeVlanList          OBJECT-TYPE
+        SYNTAX        Vlanset
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Customer vlan list for translation."
+        ::= { rcQinQVlanMapPortEntry 2 }
+
+rcQinQVlanMapPeVlanList          OBJECT-TYPE
+        SYNTAX        Vlanset
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Provider vlan list for translation."
+        ::= { rcQinQVlanMapPortEntry 3 }
+
+rcQinQVlanMapInnerVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (1..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The vlan ID for customer vlan list to translate."
+        ::= { rcQinQVlanMapPortEntry 4 }
+
+rcQinQVlanMapOuterVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (1..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The vlan ID for provider vlan list to translate."
+        ::= { rcQinQVlanMapPortEntry 5 }
+
+rcQinQVlanMapMode     OBJECT-TYPE
+        SYNTAX        INTEGER {
+                      other(1),
+                      add(2),
+                      ingress-translate(3),
+                      egress-translate(4), 
+                      both-translate(5)
+                      }
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The mode of vlan mapping type."
+        ::= { rcQinQVlanMapPortEntry 6 }
+ 
+rcQinQVlanMapHwStatus     OBJECT-TYPE
+        SYNTAX        EnableVar
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The vlan mapping whether set in hardware or not."
+        ::= { rcQinQVlanMapPortEntry 7 }
+
+rcQinQVlanMapRowStatus  OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry."
+        ::= { rcQinQVlanMapPortEntry 8 }
+
+rcQinQVlanMapID  OBJECT-TYPE
+        SYNTAX      INTEGER (0..65535)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The vlan mapping rule ID."
+        ::= { rcQinQVlanMapPortEntry 9 }
+
+rcQinqVlanMapInnerMode  OBJECT-TYPE
+        SYNTAX      INTEGER {
+                    other(1),
+                    translate(2),
+                    remove(3),
+                    tagged(4),
+                    unchanged(5)
+                    }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The vlan mapping operation of inner tag."
+        ::= { rcQinQVlanMapPortEntry 10 }
+
+rcQinQVlanMapOuterMode  OBJECT-TYPE
+        SYNTAX      INTEGER {
+                    other(1),
+                    translate(2),
+                    remove(3),
+                    tagged(4),
+                    unchanged(5)
+                    }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The vlan mapping operation of outer tag."
+        ::= { rcQinQVlanMapPortEntry 11 } 
+
+rcQinQVlanMapCeVlanCos  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "COS of customer vlan for translation."
+        ::= { rcQinQVlanMapPortEntry 12 }    
+        
+rcQinQVlanMapPeVlanCos  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "COS of Provider vlan for translation."
+        ::= { rcQinQVlanMapPortEntry 13 } 
+        
+rcQinQVlanMapInnerVlanCos  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The COS for customer vlan to translate."
+        ::= { rcQinQVlanMapPortEntry 14 }  
+        
+rcQinQVlanMapOuterVlanCos  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The COS for Provider vlan to translate."
+        ::= { rcQinQVlanMapPortEntry 15 }      
+        
+rcQinQVlanMapLocalPriority  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The Local priority for provider vlan list to map."
+        ::= { rcQinQVlanMapPortEntry 16 }    
+rcQinQVlanMapSrcMacBasedMap           OBJECT IDENTIFIER ::= { rcQinQCfg 3 }
+
+--------rcQinQVlanMapSrcMacBasedTable-------
+rcQinQVlanMapSrcMacBasedTableNextIndex       OBJECT-TYPE
+        SYNTAX INTEGER (0..65535)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Next index of source MAC based qinq vlan mapping table."
+        ::= { rcQinQVlanMapSrcMacBasedMap 1 }
+
+rcQinQVlanMapSrcMacBasedTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcQinQVlanMapSrcMacBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Source MAC based qinq vlan mapping table."
+        ::= { rcQinQVlanMapSrcMacBasedMap 2 }
+
+rcQinQVlanMapSrcMacBasedEntry         OBJECT-TYPE
+        SYNTAX      RcQinQVlanMapSrcMacBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcQinQVlanMapSrcMacBasedTable. "
+	    INDEX   { rcQinQVlanMapSrcMacBasedIndex }    
+        ::={ rcQinQVlanMapSrcMacBasedTable 1 }
+    
+        RcQinQVlanMapSrcMacBasedEntry ::= SEQUENCE 
+        {
+    	    rcQinQVlanMapSrcMacBasedIndex	      INTEGER,
+    	    rcQinQVlanMapSrcMacBasedMac           MacAddress,
+            rcQinQVlanMapSrcMacBasedMacMask       MacAddress,
+            rcQinQVlanMapSrcMacBasedOuterVlanId   INTEGER,
+            rcQinQVlanMapSrcMacBasedOuterCos      INTEGER,
+            rcQinQVlanMapSrcMacBasedRowStatus     RowStatus		
+        }
+  
+rcQinQVlanMapSrcMacBasedIndex    OBJECT-TYPE
+        SYNTAX        INTEGER (1..65535)
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of source MAC based QinQ mapping table."
+        ::= { rcQinQVlanMapSrcMacBasedEntry 1 }      
+ 
+rcQinQVlanMapSrcMacBasedMac          OBJECT-TYPE
+        SYNTAX        MacAddress
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Source MAC address for source MAC based QinQ mapping rule."
+        ::= { rcQinQVlanMapSrcMacBasedEntry 2 }
+
+rcQinQVlanMapSrcMacBasedMacMask          OBJECT-TYPE
+        SYNTAX        MacAddress
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Source MAC mask for source MAC based QinQ mapping rule."
+        ::= { rcQinQVlanMapSrcMacBasedEntry 3 }
+
+rcQinQVlanMapSrcMacBasedOuterVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (1..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The outer vlan id to be added."
+        ::= { rcQinQVlanMapSrcMacBasedEntry 4 } 
+
+rcQinQVlanMapSrcMacBasedOuterCos  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The outer vlan cos to be added."
+        ::= { rcQinQVlanMapSrcMacBasedEntry 5 }
+                
+rcQinQVlanMapSrcMacBasedRowStatus  OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry."
+        ::= { rcQinQVlanMapSrcMacBasedEntry 6 }    
+                                   
+                                   
+rcQinQVlanMapEtherTypeBasedMap          OBJECT IDENTIFIER ::= { rcQinQCfg 4 }
+
+----------rcQinQVlanMapEtherTypeBasedTable---------
+rcQinQVlanMapEtherTypeBasedTableNextIndex   OBJECT-TYPE
+        SYNTAX INTEGER (0..65535)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Next index of ethertype based qinq mapping table."
+        ::= { rcQinQVlanMapEtherTypeBasedMap 1 }
+
+rcQinQVlanMapEtherTypeBasedTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcQinQVlanMapEtherTypeBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Ethertype based qinq mapping table."
+        ::= { rcQinQVlanMapEtherTypeBasedMap 2 }
+
+rcQinQVlanMapEtherTypeBasedEntry         OBJECT-TYPE
+        SYNTAX      RcQinQVlanMapEtherTypeBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcQinQVlanMapEtherTypeBasedTable. "
+	    INDEX        { rcPortIndex, rcQinQVlanMapEtherTypeBasedIndex }    
+        ::={ rcQinQVlanMapEtherTypeBasedTable 1 }
+    
+        RcQinQVlanMapEtherTypeBasedEntry ::= SEQUENCE 
+        {
+    	    rcQinQVlanMapEtherTypeBasedIndex	     INTEGER,
+    	    rcQinQVlanMapEtherTypeBasedEtherType     INTEGER,
+            rcQinQVlanMapEtherTypeBasedOuterVlanId   INTEGER,
+            rcQinQVlanMapEtherTypeBasedOuterCos      INTEGER,
+            rcQinQVlanMapEtherTypeBasedRowStatus     RowStatus		
+        }
+  
+rcQinQVlanMapEtherTypeBasedIndex    OBJECT-TYPE
+        SYNTAX        INTEGER (1..65535)
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of ethertype based QinQ mapping table."
+        ::= { rcQinQVlanMapEtherTypeBasedEntry 1 }      
+ 
+rcQinQVlanMapEtherTypeBasedEtherType          OBJECT-TYPE
+        SYNTAX        INTEGER
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Ethertype for ethertype based QinQ mapping rule."
+        ::= { rcQinQVlanMapEtherTypeBasedEntry 2 }
+
+rcQinQVlanMapEtherTypeBasedOuterVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (1..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The outer vlan id to be added."
+        ::= { rcQinQVlanMapEtherTypeBasedEntry 3 } 
+
+rcQinQVlanMapEtherTypeBasedOuterCos  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The outer vlan cos to be added."
+        ::= { rcQinQVlanMapEtherTypeBasedEntry 4 }
+        
+rcQinQVlanMapEtherTypeBasedRowStatus  OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry."
+        ::= { rcQinQVlanMapEtherTypeBasedEntry 5 } 
+ 
+rcQinQVlanMapSrcIpBasedMap      OBJECT IDENTIFIER ::= { rcQinQCfg 5 }
+
+-------rcQinQVlanMapSrcIpBasedTable-------
+rcQinQVlanMapSrcIpBasedTableNextIndex             OBJECT-TYPE
+        SYNTAX INTEGER (0..65535)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Next index of source IP based qinq vlan mapping table."
+        ::= { rcQinQVlanMapSrcIpBasedMap 1 }
+
+rcQinQVlanMapSrcIpBasedTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcQinQVlanMapSrcIpBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Source IP based qinq vlan mapping table."
+        ::= { rcQinQVlanMapSrcIpBasedMap 2 }
+
+rcQinQVlanMapSrcIpBasedEntry         OBJECT-TYPE
+        SYNTAX      RcQinQVlanMapSrcIpBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcQinQVlanMapSrcIpBasedTable. "
+	    INDEX        { rcQinQVlanMapSrcIpBasedIndex }    
+        ::={ rcQinQVlanMapSrcIpBasedTable 1 }
+    
+        RcQinQVlanMapSrcIpBasedEntry ::= SEQUENCE 
+        {
+    	    rcQinQVlanMapSrcIpBasedIndex	     INTEGER,
+    	    rcQinQVlanMapSrcIpBasedIp            IpAddress,
+            rcQinQVlanMapSrcIpBasedIpMask        IpAddress,
+            rcQinQVlanMapSrcIpBasedOuterVlanId   INTEGER,
+            rcQinQVlanMapSrcIpBasedOuterCos      INTEGER,
+            rcQinQVlanMapSrcIpBasedRowStatus     RowStatus		
+        }
+  
+rcQinQVlanMapSrcIpBasedIndex    OBJECT-TYPE
+        SYNTAX        INTEGER (1..65535)
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of source IP based QinQ mapping table."
+        ::= { rcQinQVlanMapSrcIpBasedEntry 1 }      
+ 
+rcQinQVlanMapSrcIpBasedIp          OBJECT-TYPE
+        SYNTAX        IpAddress
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Source IP address for source IP based QinQ mapping rule."
+        ::= { rcQinQVlanMapSrcIpBasedEntry 2 }
+
+rcQinQVlanMapSrcIpBasedIpMask          OBJECT-TYPE
+        SYNTAX        IpAddress
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Source IP mask for source IP based QinQ mapping rule."
+        ::= { rcQinQVlanMapSrcIpBasedEntry 3 }
+
+rcQinQVlanMapSrcIpBasedOuterVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (1..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The outer vlan id to be added."
+        ::= { rcQinQVlanMapSrcIpBasedEntry 4 } 
+
+rcQinQVlanMapSrcIpBasedOuterCos  OBJECT-TYPE
+        SYNTAX      INTEGER (0..7)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The outer vlan cos to be added."
+        ::= { rcQinQVlanMapSrcIpBasedEntry 5 }
+                
+rcQinQVlanMapSrcIpBasedRowStatus  OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry."
+        ::= { rcQinQVlanMapSrcIpBasedEntry 6 }
+
+rcQinQVlanTransAclBasedMap      OBJECT IDENTIFIER ::= { rcQinQCfg 6 }
+
+--------rcQinQVlanTransAclBasedTable-------
+rcQinQVlanTransAclBasedTableNextIndex             OBJECT-TYPE
+        SYNTAX INTEGER (0..65535)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Next index of ACL based vlan translate table."
+        ::= { rcQinQVlanTransAclBasedMap 1 }
+
+rcQinQVlanTransAclBasedTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcQinQVlanTransAclBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "ACL based vlan translating table."
+        ::= { rcQinQVlanTransAclBasedMap 2 }
+
+rcQinQVlanTransAclBasedEntry         OBJECT-TYPE
+        SYNTAX      RcQinQVlanTransAclBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcQinQVlanTransAclBasedTable. "
+	    INDEX        { rcPortIndex, rcQinQVlanTransAclBasedIndex }    
+        ::={ rcQinQVlanTransAclBasedTable 1 }
+    
+        RcQinQVlanTransAclBasedEntry ::= SEQUENCE 
+        {
+    	    rcQinQVlanTransAclBasedIndex	        INTEGER,
+    	    rcQinQVlanTransAclBasedInnerVlanId      INTEGER,
+            rcQinQVlanTransAclBasedOuterVlanId      INTEGER,
+            rcQinQVlanTransAclBasedInnerCos         INTEGER,
+            rcQinQVlanTransAclBasedOuterCos         INTEGER,
+            rcQinQVlanTransAclBasedHwStatus         EnableVar,
+            rcQinqVlanTransAclBasedRuleId           INTEGER,
+            rcQinQVlanTransAclBasedRowStatus        RowStatus	
+        }
+  
+rcQinQVlanTransAclBasedIndex    OBJECT-TYPE
+        SYNTAX        INTEGER (1..65535)
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of ACL based vlan translating table."
+        ::= { rcQinQVlanTransAclBasedEntry 1 }      
+ 
+rcQinQVlanTransAclBasedInnerVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (0..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Inner vlan ID to be translated on ACL, default 0 means inner vlan ID is not translated."
+        ::= { rcQinQVlanTransAclBasedEntry 2 }
+
+rcQinQVlanTransAclBasedOuterVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (0..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Outer vlan ID to be translated on ACL, default 0 means outer vlan ID is not translated."
+        ::= { rcQinQVlanTransAclBasedEntry 3 }
+
+rcQinQVlanTransAclBasedInnerCos          OBJECT-TYPE
+        SYNTAX        INTEGER (-1..7)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Inner cos value to be translated on ACL, default -1 means inner cos is not translated."
+        ::= { rcQinQVlanTransAclBasedEntry 4 }
+        
+rcQinQVlanTransAclBasedOuterCos          OBJECT-TYPE
+        SYNTAX        INTEGER (-1..7)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Outer cos value to be translated on ACL, default -1 means outer cos is not translated."
+        ::= { rcQinQVlanTransAclBasedEntry 5 } 
+        
+rcQinQVlanTransAclBasedHwStatus         OBJECT-TYPE
+        SYNTAX      EnableVar
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The vlan translating whether set in hardware or not."
+        ::= { rcQinQVlanTransAclBasedEntry 6 }
+        
+rcQinqVlanTransAclBasedRuleId         OBJECT-TYPE
+        SYNTAX      INTEGER (0..399)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "ACL rule ID which vlan translating based on."
+        ::= { rcQinQVlanTransAclBasedEntry 7 }
+        
+rcQinQVlanTransAclBasedRowStatus         OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry."
+        ::= { rcQinQVlanTransAclBasedEntry 8 }
+
+rcQinQVlanAddAclBasedMap       OBJECT IDENTIFIER ::= { rcQinQCfg 7 }
+
+-------rcQinQVlanMapAclBasedTable--------
+rcQinQVlanMapAclBasedTableNextIndex             OBJECT-TYPE
+        SYNTAX INTEGER (0..65535)
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "Next index of ACL based vlan map table."
+        ::= { rcQinQVlanAddAclBasedMap 1 }
+
+rcQinQVlanMapAclBasedTable         OBJECT-TYPE
+        SYNTAX      SEQUENCE OF RcQinQVlanMapAclBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "ACL based vlan mapping table."
+        ::= { rcQinQVlanAddAclBasedMap 2 }
+
+rcQinQVlanMapAclBasedEntry         OBJECT-TYPE
+        SYNTAX      RcQinQVlanMapAclBasedEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry in the rcQinQVlanMapAclBasedTable. "
+	    INDEX        { rcPortIndex, rcQinQVlanMapAclBasedIndex }    
+        ::={ rcQinQVlanMapAclBasedTable 1 }
+    
+        RcQinQVlanMapAclBasedEntry ::= SEQUENCE 
+        {
+    	    rcQinQVlanMapAclBasedIndex   	     INTEGER,
+    	    rcQinqVlanMapAclRuleId               INTEGER,
+            rcQinQVlanMapAclBasedHwStatus        EnableVar,
+            rcQinQVlanMapAclBasedOuterVlanId     INTEGER,
+            rcQinQVlanMapAclBasedOuterCos        INTEGER,
+            rcQinQVlanMapAclBasedRowStatus       RowStatus		
+        }
+  
+rcQinQVlanMapAclBasedIndex    OBJECT-TYPE
+        SYNTAX        INTEGER (1..65535)
+        MAX-ACCESS    not-accessible
+        STATUS        current
+        DESCRIPTION
+            "Index of ACL based vlan mapping table."
+        ::= { rcQinQVlanMapAclBasedEntry 1 }      
+ 
+rcQinqVlanMapAclRuleId          OBJECT-TYPE
+        SYNTAX        INTEGER (0..399)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "ACL rule ID which vlan mapping based on."
+        ::= { rcQinQVlanMapAclBasedEntry 2 }
+
+rcQinQVlanMapAclBasedHwStatus          OBJECT-TYPE
+        SYNTAX        EnableVar
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "The vlan mapping whether set in hardware or not."
+        ::= { rcQinQVlanMapAclBasedEntry 3 }
+
+rcQinQVlanMapAclBasedOuterVlanId          OBJECT-TYPE
+        SYNTAX        INTEGER (1..4094)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Outer vlan ID to be added on ACL."
+        ::= { rcQinQVlanMapAclBasedEntry 4 } 
+
+rcQinQVlanMapAclBasedOuterCos          OBJECT-TYPE
+        SYNTAX        INTEGER (0..7)
+        MAX-ACCESS    read-create
+        STATUS        current
+        DESCRIPTION
+            "Outer CoS to be added on ACL."
+        ::= { rcQinQVlanMapAclBasedEntry 5 } 
+                
+rcQinQVlanMapAclBasedRowStatus  OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry."
+        ::= { rcQinQVlanMapAclBasedEntry 6 } 
+ 
+END
+
+ 

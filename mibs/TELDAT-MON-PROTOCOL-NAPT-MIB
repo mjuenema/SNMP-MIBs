@@ -1,0 +1,417 @@
+
+
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: (34-1)8076565
+
+                -- Fax: (34-1)8076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+
+                -- Protocolo NAPT
+
+
+    -- Historial:
+    --      07/02/14  M.A. Pastor   XH 3523. Errors with HP Openview 9.20
+    -- 1.0  01/07/04  J. Molina     Fichero procedente del fichero IP.mib
+
+
+    -- Historial del fichero IP.mib:
+    -- 01-10-01  N. Villase±or  Traduccin a inglâs
+    -- 01-12-00  M.A. Pastor    Modificaciones para que pueda ser
+    --                          compilada utilizando compiladores
+    --                          distintos del de Teldat
+    -- 04-05-00  M.A. Pastor    Implementacin inicial
+    --------------------------------------------------------------------------
+
+TELDAT-MON-PROTOCOL-NAPT-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            IpAddress, Counter
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            DisplayString
+        FROM RFC1213-MIB
+            telProdNpMonProtIP
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+-- Grupo telProdNpMonProtIP
+-- Grupo de variables de monitorizacin del NAT de puertos.
+
+    telProdNpMonProtIPNAPTMonit OBJECT IDENTIFIER ::= { telProdNpMonProtIP 11 }
+
+    -- Tabla de conexiones del NAPT en las que se produce un cambio de puerto:
+    -- NAT de puertos.
+
+    telProdNpMonProtIPNAPTTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPNAPTEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "NAPT connections table: Network Address Port Translation."
+        ::= { telProdNpMonProtIPNAPTMonit 1 }
+
+    telProdNpMonProtIPNAPTEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPNAPTEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry is a NAPT connection in which a change of ports is performed
+        (NAT of ports). It consists of an index that shows the position of
+        the entry in the table, the source address, the source port,
+        the new port to which it has been translated, the time passed since
+        that entry was used for the last time and the delta values."
+        INDEX { telProdNpMonProtIPNAPTIndex }
+
+        ::= { telProdNpMonProtIPNAPTTable 1 }
+
+    TelProdNpMonProtIPNAPTEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPNAPTIndex
+                INTEGER,
+            telProdNpMonProtIPNAPTSrcAddr
+                IpAddress,
+            telProdNpMonProtIPNAPTSrcPort
+                INTEGER,
+            telProdNpMonProtIPNAPTNewPort
+                INTEGER,
+            telProdNpMonProtIPNAPTAge
+                INTEGER,
+            telProdNpMonProtIPNAPTDeltFst
+                INTEGER,
+            telProdNpMonProtIPNAPTDeltSnd
+                INTEGER
+            }
+
+    telProdNpMonProtIPNAPTIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: position of the entry (NAPT connection)."
+        ::= { telProdNpMonProtIPNAPTEntry 1 }
+
+    telProdNpMonProtIPNAPTSrcAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source IP address."
+        ::= { telProdNpMonProtIPNAPTEntry 2 }
+
+    telProdNpMonProtIPNAPTSrcPort OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source port."
+        ::= { telProdNpMonProtIPNAPTEntry 3 }
+
+    telProdNpMonProtIPNAPTNewPort OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "New port: the port assigned after the translation. In the case
+        the index and port number were different, this variable would take
+        the value 0."
+        ::= { telProdNpMonProtIPNAPTEntry 4 }
+
+    telProdNpMonProtIPNAPTAge OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Time to live of the entry before being deleted."
+        ::= { telProdNpMonProtIPNAPTEntry 5 }
+
+    telProdNpMonProtIPNAPTDeltFst OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First parameter related to the deltas. The deltas show the difference
+        in the number of bytes that exist in the packets before and after the
+        port and address translation in FTP connections. FTP connections
+        are not clear thus they require changes inside the packets exchanged
+        during the connection."
+        ::= { telProdNpMonProtIPNAPTEntry 6 }
+
+    telProdNpMonProtIPNAPTDeltSnd OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First parameter related to the deltas. The deltas show the difference
+        in the number of bytes that exist in the packets before and after the
+        port and address translation in FTP connections. FTP connections
+        are not clear thus they require changes inside the packets exchanged
+        during the connection."
+        ::= { telProdNpMonProtIPNAPTEntry 7 }
+
+    -- Tabla de las conexiones que no utilizan puertos y por tanto no aparecen
+    -- en la tabla de conexiones en las que se ha producido cambio de puertos.
+    -- En estas conexiones se produce un cambio en los identificadores de
+    -- conexiones. Pertenece al NAPT.
+
+    telProdNpMonProtIPNAPTConnTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPNAPTConnEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of the connections that do not use port and therefore they do not
+        appear in the table of connections in which a port translation has
+        occured. In these connections there is a change in the connection
+        identifier. It belongs to NAPT."
+        ::= { telProdNpMonProtIPNAPTMonit 2 }
+
+    telProdNpMonProtIPNAPTConnEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPNAPTConnEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry is one of the connections that do not use ports and
+        therefore do not appear in the connections table with port change.
+        There is a change in the connection identifier. It consists of an index
+        that shows the entry position inside the table, the source address,
+        the source identifier, the new assigned identifier and the time passed
+        since the connection was used for the last time."
+        INDEX { telProdNpMonProtIPNAPTConnIndex }
+        ::= { telProdNpMonProtIPNAPTConnTable 1 }
+
+    TelProdNpMonProtIPNAPTConnEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPNAPTConnIndex
+                INTEGER,
+            telProdNpMonProtIPNAPTConnSrcAddr
+                IpAddress,
+            telProdNpMonProtIPNAPTConnSrcIdent
+                INTEGER,
+            telProdNpMonProtIPNAPTConnNewIdent
+                INTEGER,
+            telProdNpMonProtIPNAPTConnAge
+                INTEGER
+            }
+
+    telProdNpMonProtIPNAPTConnIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Table index: position of the current entry. Each entry keeps
+        information about one of the connections with identifier change. This
+        connections do not use ports thus it is impossible to change them and
+        therefore they don≥t generate an entry in the table that keeps the
+        connections with port translation."
+        ::= { telProdNpMonProtIPNAPTConnEntry 1 }
+
+    telProdNpMonProtIPNAPTConnSrcAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source IP address."
+        ::= { telProdNpMonProtIPNAPTConnEntry 2 }
+
+    telProdNpMonProtIPNAPTConnSrcIdent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source identifier (or initial)."
+        ::= { telProdNpMonProtIPNAPTConnEntry 3 }
+
+    telProdNpMonProtIPNAPTConnNewIdent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "New assigned identifier."
+        ::= { telProdNpMonProtIPNAPTConnEntry 4 }
+
+    telProdNpMonProtIPNAPTConnAge OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Time to live of the entry before being deleted."
+        ::= { telProdNpMonProtIPNAPTConnEntry 5 }
+
+    -- Grupo de las variables que proporcionan informacin sobre la memoria
+    -- reservada para las estructuras necesarias para hacer NAT de puertos y de
+    -- conexiones, es decir, estructuras puerto-direccin, estructuras
+    -- identificador-direccin, estructuras de puertos y estructuras de
+    -- identificadores, y las que permiten saber el nîmero de estas estructuras
+    -- que estan siendo usadas en cierto instante.
+
+    telProdNpMonProtIPNAPTMemory OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIPNAPTMonit 3 }
+
+    telProdNpMonProtIPNAPTMemResPortAddrs OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of port-address structures reserved."
+        ::= { telProdNpMonProtIPNAPTMemory 1 }
+
+    telProdNpMonProtIPNAPTMemUsedPorts OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of port-address structures used."
+        ::= { telProdNpMonProtIPNAPTMemory 2 }
+
+    telProdNpMonProtIPNAPTMemReservPorts OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of port structures reserved."
+        ::= { telProdNpMonProtIPNAPTMemory 3 }
+
+    telProdNpMonProtIPNAPTMemResIdentAddrs OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of identifier-address structures reserved."
+        ::= { telProdNpMonProtIPNAPTMemory 4 }
+
+    telProdNpMonProtIPNAPTMemUsedIdent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of identifier-address structures used."
+        ::= { telProdNpMonProtIPNAPTMemory 5 }
+
+    telProdNpMonProtIPNAPTMemReservIdent OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of identifier structures reserved."
+        ::= { telProdNpMonProtIPNAPTMemory 6 }
+
+    -- Grupo de variables que contienen informacin sobre los puertos usados y
+    -- los puertos disponibles para hacer NAT de puertos.
+
+    telProdNpMonProtIPNAPTPortInfo OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIPNAPTMonit 4 }
+
+    telProdNpMonProtIPNAPTPortInfUsed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of ports used."
+        ::= { telProdNpMonProtIPNAPTPortInfo 1 }
+
+    telProdNpMonProtIPNAPTPortInfFree OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of free ports."
+        ::= { telProdNpMonProtIPNAPTPortInfo 2 }
+
+    -- Grupo de variables que contienen informacin sobre los identificadores de
+    -- las conexiones en las que se tiene que cambiar el identificador.
+
+    telProdNpMonProtIPNAPTIdentInfo OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIPNAPTMonit 5 }
+
+    telProdNpMonProtIPNAPTIdentInfUsed OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of interfaces used."
+        ::= { telProdNpMonProtIPNAPTIdentInfo 1 }
+
+    telProdNpMonProtIPNAPTIdentInfFree OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of free interfaces."
+        ::= { telProdNpMonProtIPNAPTIdentInfo 2 }
+
+    -- Grupo de las variables que proporcionan los estadçsticos del NAPT.
+
+    telProdNpMonProtIPNAPTStats OBJECT IDENTIFIER
+    ::= { telProdNpMonProtIPNAPTMonit 6 }
+
+    telProdNpMonProtIPNAPTStatsBadVers OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Not processed packets due to wrong version."
+        ::= { telProdNpMonProtIPNAPTStats 1 }
+
+    telProdNpMonProtIPNAPTStatsBadAddrSize OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Not processed packets due to wrong header length."
+        ::= { telProdNpMonProtIPNAPTStats 2 }
+
+    telProdNpMonProtIPNAPTStatsBadChecksum OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Not processed packets due to wrong checksum."
+        ::= { telProdNpMonProtIPNAPTStats 3 }
+
+    telProdNpMonProtIPNAPTStatsBadTcpCheck OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Not processed packets due to wrong tcp checksum."
+        ::= { telProdNpMonProtIPNAPTStats 4 }
+
+    telProdNpMonProtIPNAPTStatsPortsOutRange OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Not processed packets as the received port is out of range."
+        ::= { telProdNpMonProtIPNAPTStats 5 }
+
+    telProdNpMonProtIPNAPTStatsIdentOutRange OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Not processed packets as the identifier is out of range."
+        ::= { telProdNpMonProtIPNAPTStats 6 }
+
+    telProdNpMonProtIPNAPTStatsAddrDiff OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Not processed packets as IP address is different from the PPP
+        interface address."
+        ::= { telProdNpMonProtIPNAPTStats 7 }
+
+END

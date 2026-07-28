@@ -1,0 +1,2243 @@
+-- ============================================================================
+-- Copyright (c) 2004-2013 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
+--
+-- Description:  DHCPv4 mib for server and relay
+-- Reference:
+-- Version:      V1.0
+-- History:
+-- V1.0 The initial version, created by lilin, 2012.5.24
+-- ============================================================================
+HH3C-DHCP4-MIB DEFINITIONS ::= BEGIN
+
+-- ============================================================================
+-- Imported varibles and types
+-- ============================================================================
+IMPORTS
+    TruthValue, RowStatus, MacAddress
+        FROM SNMPv2-TC
+    OBJECT-TYPE, MODULE-IDENTITY, Integer32,
+    TimeTicks, Counter64, Unsigned32
+        FROM SNMPv2-SMI
+    ifIndex, InterfaceIndexOrZero
+        FROM IF-MIB
+    InetAddressIPv4
+        FROM INET-ADDRESS-MIB
+    hh3cCommon
+        FROM HH3C-OID-MIB;
+
+
+-- ============================================================================
+-- Module identity
+-- ============================================================================
+hh3cDhcp4 MODULE-IDENTITY
+    LAST-UPDATED "201205240000Z"            -- May 24th, 2012 at 00:00 GMT
+    ORGANIZATION
+        "Hangzhou H3C Technologies Co., Ltd."
+    CONTACT-INFO
+        "Platform Team H3C Technologies Co., Ltd.
+         Hai-Dian District Beijing P.R. China
+         http://www.h3c.com
+         Zip: 100085"
+    DESCRIPTION "DHCPv4 MIB"
+    REVISION
+        "201205240000Z"
+    DESCRIPTION
+        "The private MIB file includes the DHCPv4 server and relay profile."
+    ::= { hh3cCommon 122 }
+
+-- =============================================================================
+-- DHCP server scalar objects definition.
+-- =============================================================================
+    hh3cDhcpServer2ScalarObjects OBJECT IDENTIFIER ::= { hh3cDhcp4 1 }
+
+-- =============================================================================
+-- hh3cDhcpServer2ScalarObjects: hh3cDhcpServer2ConfigGroup
+-- =============================================================================
+    hh3cDhcpServer2ConfigGroup OBJECT IDENTIFIER ::= { hh3cDhcpServer2ScalarObjects 1 }
+
+    hh3cDhcpServer2Enabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If the value of this object is 'true', the DHCP service is enabled."
+        DEFVAL { false }
+        ::= { hh3cDhcpServer2ConfigGroup 1 }
+
+    hh3cDhcpServer2AlwaysBroadcast OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "When the value of this object is set to 'true',
+             the DHCP server always uses broadcast to reply the client."
+        DEFVAL { false }
+        ::= { hh3cDhcpServer2ConfigGroup 2 }
+
+    hh3cDhcpServer2IgnoreBootp OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "When the value of this object is set to 'true',
+             the DHCP server ignores BOOTP requests."
+        DEFVAL { false }
+        ::= { hh3cDhcpServer2ConfigGroup 3 }
+
+    hh3cDhcpServer2BootpReplyRfc1048 OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "When the value of this object is set to 'true',
+             the DHCP server use RFC 1048 format to reply to
+             BOOTP requests."
+        DEFVAL { false }
+        ::= { hh3cDhcpServer2ConfigGroup 4 }
+
+    hh3cDhcpServer2Opt82Enabled OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "When the value of this object is set to 'true',
+             the DHCP server handles dhcp option 82."
+        DEFVAL { true }
+        ::= { hh3cDhcpServer2ConfigGroup 5 }
+
+    hh3cDhcpServer2PingNumber OBJECT-TYPE
+        SYNTAX      Unsigned32(0..10)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The number of ping packets sent out."
+        DEFVAL { 1 }
+        ::= { hh3cDhcpServer2ConfigGroup 6 }
+
+    hh3cDhcpServer2PingTimeout OBJECT-TYPE
+        SYNTAX      Unsigned32(0..10000)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The delay for the reply of a ping packet in
+             milliseconds."
+        DEFVAL { 500 }
+        ::= { hh3cDhcpServer2ConfigGroup 7 }
+
+-- =============================================================================
+-- hh3cDhcpServer2ScalarObjects: hh3cDhcpServer2StatGroup
+-- =============================================================================
+    hh3cDhcpServer2StatGroup     OBJECT IDENTIFIER ::= { hh3cDhcpServer2ScalarObjects 2 }
+
+    hh3cDhcpServer2BadNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the bad packets received."
+        ::= { hh3cDhcpServer2StatGroup 1 }
+
+    hh3cDhcpServer2BootpRequestNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the BOOTP Request packets
+             received from DHCP clients."
+        ::= { hh3cDhcpServer2StatGroup 2 }
+
+    hh3cDhcpServer2DiscoverNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Discover packets
+             received from the DHCP clients."
+        ::= { hh3cDhcpServer2StatGroup 3 }
+
+    hh3cDhcpServer2RequestNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Request packets
+             received from the DHCP clients."
+        ::= { hh3cDhcpServer2StatGroup 4 }
+
+    hh3cDhcpServer2DeclineNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Decline packets
+             received from the DHCP clients."
+        ::= { hh3cDhcpServer2StatGroup 5 }
+
+    hh3cDhcpServer2ReleaseNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Release packets
+             received from the DHCP clients."
+        ::= { hh3cDhcpServer2StatGroup 6 }
+
+    hh3cDhcpServer2InformNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Inform packets
+             received from the DHCP clients."
+        ::= { hh3cDhcpServer2StatGroup 7 }
+
+    hh3cDhcpServer2BootpReplyNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the BOOTP Reply packets
+             sent by the DHCP server."
+        ::= { hh3cDhcpServer2StatGroup 8 }
+
+    hh3cDhcpServer2OfferNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Offer packets
+             sent by the DHCP server."
+        ::= { hh3cDhcpServer2StatGroup 9 }
+
+    hh3cDhcpServer2AckNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Ack packets
+             sent by the DHCP server."
+        ::= { hh3cDhcpServer2StatGroup 10 }
+
+    hh3cDhcpServer2NakNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Nak packets
+             sent by the DHCP server."
+        ::= { hh3cDhcpServer2StatGroup 11 }
+
+    hh3cDhcpServer2TotalPoolUsage OBJECT-TYPE
+        SYNTAX      Unsigned32(0..100)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The percentage of ip addresses in use
+             of all DHCP server pools."
+        ::= { hh3cDhcpServer2StatGroup 12 }
+
+    hh3cDhcpServer2PoolNumber OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of DHCP server pools."
+        ::= { hh3cDhcpServer2StatGroup 13 }
+
+    hh3cDhcpServer2ConflictNum OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of conflict ip in all
+             DHCP server pools."
+        ::= { hh3cDhcpServer2StatGroup 14 }
+
+    hh3cDhcpServer2AutoBindNum OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of auto binding ip in
+             DHCP server pools."
+        ::= { hh3cDhcpServer2StatGroup 15 }
+
+    hh3cDhcpServer2ManualBindNum OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of manual binding ip in
+             DHCP server pools."
+        ::= { hh3cDhcpServer2StatGroup 16 }
+
+    hh3cDhcpServer2ExpiredBindNum OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of expired binding ip in
+             DHCP server pools."
+        ::= { hh3cDhcpServer2StatGroup 17 }
+
+-- =============================================================================
+-- DHCP server table definition.
+-- =============================================================================
+    hh3cDhcpServer2Tables OBJECT IDENTIFIER ::= { hh3cDhcp4 2 }
+
+-- =============================================================================
+-- 1st Table of hh3cDhcpServer2Tables: hh3cDhcpServer2PoolTable
+-- =============================================================================
+    hh3cDhcpServer2PoolTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2PoolEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table containing DHCP server pool configurations."
+        ::= { hh3cDhcpServer2Tables 1 }
+
+    hh3cDhcpServer2PoolEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2PoolEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry containing DHCP server pool configurations."
+        INDEX { hh3cDhcpServer2PoolIndex }
+        ::= { hh3cDhcpServer2PoolTable 1 }
+
+    Hh3cDhcpServer2PoolEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2PoolIndex                    Unsigned32,
+                hh3cDhcpServer2PoolName                     OCTET STRING,
+                hh3cDhcpServer2PoolVpnName                  OCTET STRING,
+                hh3cDhcpServer2PoolNetwork                  InetAddressIPv4,
+                hh3cDhcpServer2PoolNetworkMask              InetAddressIPv4,
+                hh3cDhcpServer2PoolStartAddr                InetAddressIPv4,
+                hh3cDhcpServer2PoolEndAddr                  InetAddressIPv4,
+                hh3cDhcpServer2PoolLeaseDay                 Integer32,
+                hh3cDhcpServer2PoolLeaseHour                Integer32,
+                hh3cDhcpServer2PoolLeaseMinute              Integer32,
+                hh3cDhcpServer2PoolLeaseSecond              Integer32,
+                hh3cDhcpServer2PoolLeaseUnlimit             TruthValue,
+                hh3cDhcpServer2PoolLeaseTime                TimeTicks,
+                hh3cDhcpServer2PoolDomainName               OCTET STRING,
+                hh3cDhcpServer2PoolGatewayIP                OCTET STRING,
+                hh3cDhcpServer2PoolDNSIP                    OCTET STRING,
+                hh3cDhcpServer2PoolPrimaryDNSIP             InetAddressIPv4,
+                hh3cDhcpServer2PoolSecondDNSIP              InetAddressIPv4,
+                hh3cDhcpServer2PoolNetbiosType              INTEGER,
+                hh3cDhcpServer2PoolNbnsIP                   OCTET STRING,
+                hh3cDhcpServer2PoolBootFileName             OCTET STRING,
+                hh3cDhcpServer2PoolBimsIP                   InetAddressIPv4,
+                hh3cDhcpServer2PoolBimsPort                 Unsigned32,
+                hh3cDhcpServer2PoolBimsKeyStr               OCTET STRING,
+                hh3cDhcpServer2PoolNextServer               InetAddressIPv4,
+                hh3cDhcpServer2PoolTftpDomName              OCTET STRING,
+                hh3cDhcpServer2PoolTftpIP                   InetAddressIPv4,
+                hh3cDhcpServer2PoolVoiceAsIP                InetAddressIPv4,
+                hh3cDhcpServer2PoolVoiceFailIP              InetAddressIPv4,
+                hh3cDhcpServer2PoolVoiceFailStr             OCTET STRING,
+                hh3cDhcpServer2PoolVoiceNCPIP               InetAddressIPv4,
+                hh3cDhcpServer2PoolVoiceVlanId              Unsigned32,
+                hh3cDhcpServer2PoolVoiceVlanEnbl            TruthValue,
+                hh3cDhcpServer2PoolRowStatus                RowStatus
+            }
+
+    hh3cDhcpServer2PoolIndex OBJECT-TYPE
+        SYNTAX      Unsigned32(1..4294967295)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "DHCP server pool index."
+        ::= { hh3cDhcpServer2PoolEntry 1 }
+
+    hh3cDhcpServer2PoolName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..63))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "DHCP server pool name."
+        ::= { hh3cDhcpServer2PoolEntry 2 }
+
+    hh3cDhcpServer2PoolVpnName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..31))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Name of the VPN instance that the DHCP pool binds to.
+             Setting the value of this object to a zero-length string means
+             setting the VPN of this pool to the public network.
+             Once this object is created, the value of this object could
+             NOT be modified."
+        ::= { hh3cDhcpServer2PoolEntry 3 }
+
+    hh3cDhcpServer2PoolNetwork OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Network ip of a DHCP pool.
+             Setting the value of this object to 0.0.0.0 means
+             cancellation of the value of hh3cDhcpServer2PoolNetwork
+             and hh3cDhcpServer2PoolNetworkMask."
+        ::= { hh3cDhcpServer2PoolEntry 4 }
+
+    hh3cDhcpServer2PoolNetworkMask OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Net mask of a DHCP pool network.
+            The SET operation to this object ought to be with
+            the SET of hh3cDhcpServer2PoolNetwork together,
+            and any SET operation alone to this object will be
+            regarded as an invalid operation."
+        ::= { hh3cDhcpServer2PoolEntry 5 }
+
+    hh3cDhcpServer2PoolStartAddr OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Start IP of an address range of the DHCP pool.
+             Setting the value of this object to 0.0.0.0 means
+             cancellation of the value of
+             hh3cDhcpServer2PoolStartAddr and
+             hh3cDhcpServer2PoolEndAddr."
+        ::= { hh3cDhcpServer2PoolEntry 6 }
+
+    hh3cDhcpServer2PoolEndAddr OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "End ip of an address range of the DHCP pool,
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolStartAddr together,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        ::= { hh3cDhcpServer2PoolEntry 7 }
+
+    hh3cDhcpServer2PoolLeaseDay OBJECT-TYPE
+        SYNTAX      Integer32(0..365)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Number of days of the lease.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolLeaseHour,
+             hh3cDhcpServer2PoolLeaseMinute,
+             hh3cDhcpServer2PoolLeaseSecond together,
+             and any SET operation alone to any of these objects
+             will be regarded as an invalid operation.
+             These objects could not be SET to 0 simultaneously."
+        DEFVAL { 1 }
+        ::= { hh3cDhcpServer2PoolEntry 8 }
+
+    hh3cDhcpServer2PoolLeaseHour OBJECT-TYPE
+        SYNTAX      Integer32(0..23)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Number of hours of the lease."
+        DEFVAL { 0 }
+        ::= { hh3cDhcpServer2PoolEntry 9 }
+
+    hh3cDhcpServer2PoolLeaseMinute OBJECT-TYPE
+        SYNTAX      Integer32(0..59)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Number of minutes of the lease."
+        DEFVAL { 0 }
+        ::= { hh3cDhcpServer2PoolEntry 10 }
+
+    hh3cDhcpServer2PoolLeaseSecond OBJECT-TYPE
+        SYNTAX      Integer32(0..59)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Number of seconds of the lease."
+        DEFVAL { 0 }
+        ::= { hh3cDhcpServer2PoolEntry 11 }
+
+    hh3cDhcpServer2PoolLeaseUnlimit OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "A flag denoting that the lease of
+             a pool is unlimited."
+        DEFVAL { false }
+        ::= { hh3cDhcpServer2PoolEntry 12 }
+
+    hh3cDhcpServer2PoolLeaseTime OBJECT-TYPE
+        SYNTAX      TimeTicks
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Number of timeticks of the lease."
+        ::= { hh3cDhcpServer2PoolEntry 13 }
+
+    hh3cDhcpServer2PoolDomainName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..50))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Domain name for DHCP clients.
+             If the object is SET to a zero-length string, the
+             configuration of the domain name is removed."
+        ::= { hh3cDhcpServer2PoolEntry 14 }
+
+    hh3cDhcpServer2PoolGatewayIP OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..127))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "String of gateway ip addresses for DHCP clients.
+             Since at most 8 gateway addresses can be configured
+             for a pool, a string is defined to get or configure
+             8 ip at a time.
+             The ip addresses are split by a blank character.
+             If the object is SET to a zero-length string, the
+             configuration of the gateway address is removed."
+        ::= { hh3cDhcpServer2PoolEntry 15 }
+
+    hh3cDhcpServer2PoolDNSIP OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..127))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "String of DNS server ip addresses for DHCP clients.
+             Since at most 8 DNS server addresses can be configured
+             for a pool, a string is defined to get or configure 8
+             ip at a time.
+             The ip addresses are split by a blank character.
+             If the object is SET to a zero-length string, the
+             configuration of the DNS address is removed."
+        ::= { hh3cDhcpServer2PoolEntry 16 }
+
+    hh3cDhcpServer2PoolPrimaryDNSIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The primary DNS server IP address to be assigned to
+             the client."
+        ::= { hh3cDhcpServer2PoolEntry 17 }
+
+    hh3cDhcpServer2PoolSecondDNSIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The secondary DNS server IP address to be assigned to
+             the client."
+        ::= { hh3cDhcpServer2PoolEntry 18 }
+
+    hh3cDhcpServer2PoolNetbiosType OBJECT-TYPE
+        SYNTAX      INTEGER
+            {
+                null(0),
+                bnode(1),
+                pnode(2),
+                mnode(4),
+                hnode(8)
+            }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "NetBios node type for DHCP clients."
+        DEFVAL { null }
+        ::= { hh3cDhcpServer2PoolEntry 19 }
+
+    hh3cDhcpServer2PoolNbnsIP OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..127))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "String of NetBios server ip addresses for DHCP
+             clients.
+             Since at most 8 NetBios server addresses can be
+             configured for a pool, a string is defined to get
+             or configure 8 IP at a time.
+             The ip addresses are split by a blank character.
+             If the object is SET to a zero-length string, the
+             configuration of the NBNS address is removed."
+        ::= { hh3cDhcpServer2PoolEntry 20 }
+
+    hh3cDhcpServer2PoolBootFileName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..63))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "String of boot file name for DHCP clients.
+             If the object is SET to a zero-length string, the
+             configuration of the boot file name is removed."
+        ::= { hh3cDhcpServer2PoolEntry 21 }
+
+    hh3cDhcpServer2PoolBimsIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "BIMS server ip address.
+             If the object is SET to 0.0.0.0, the configuration of BIMS
+             server ip address, BIMS server port number, and BIMS
+             server key string is removed.
+             If the object is SET to non-zero, hh3cDhcpServer2PoolBimsPort
+             and hh3cDhcpServer2PoolBimsKeyStr
+             must be SET at the same time."
+        ::= { hh3cDhcpServer2PoolEntry 22 }
+
+    hh3cDhcpServer2PoolBimsPort OBJECT-TYPE
+        SYNTAX      Unsigned32(0..65534)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "BIMS server port number.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolBimsIPAddr and
+             hh3cDhcpServer2PoolBimsKeyStr together,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        ::= { hh3cDhcpServer2PoolEntry 23 }
+
+    hh3cDhcpServer2PoolBimsKeyStr  OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..16))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "BIMS server key string.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolBimsIPAddr and
+             hh3cDhcpServer2PoolBimsPort together,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        ::= { hh3cDhcpServer2PoolEntry 24 }
+
+    hh3cDhcpServer2PoolNextServer OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Next DHCP server ip address for dhcp clients.
+             If the object is SET to 0.0.0.0, the configuration
+             of the next server address is removed."
+        ::= { hh3cDhcpServer2PoolEntry 25 }
+
+    hh3cDhcpServer2PoolTftpDomName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..63))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "String of TFTP server domain name for DHCP clients.
+             If the object is SET to a zero-length string, the
+             configuration of the TFTP domain name is removed."
+        ::= { hh3cDhcpServer2PoolEntry 26 }
+
+    hh3cDhcpServer2PoolTftpIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "TFTP server ip address for dhcp clients.
+             If the object is SET to 0.0.0.0, the configuration
+             of the TFTP server address is removed."
+        ::= { hh3cDhcpServer2PoolEntry 27 }
+
+    hh3cDhcpServer2PoolVoiceAsIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Voice backup server ip address for dhcp clients.
+             If the object is SET to 0.0.0.0, the configuration
+             of voice backup server ip address is removed."
+        ::= { hh3cDhcpServer2PoolEntry 28 }
+
+    hh3cDhcpServer2PoolVoiceFailIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Voice failover ip address for dhcp clients.
+             If the object is SET to 0.0.0.0, the configuration
+             of hh3cDhcpServer2PoolVoiceFailIP and
+             hh3cDhcpServer2PoolVoiceFailStr is removed."
+        ::= { hh3cDhcpServer2PoolEntry 29 }
+
+    hh3cDhcpServer2PoolVoiceFailStr OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..39))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Voice failover dialer string for dhcp clients.
+             The characters in the string must be '0' ~ '9',or '*'.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolVoiceFailIP together,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        ::= { hh3cDhcpServer2PoolEntry 30 }
+
+    hh3cDhcpServer2PoolVoiceNCPIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Voice network calling processing ip address for dhcp clients.
+             If the object is SET to 0.0.0.0, the configuration of
+             voice network calling processing ip address is removed."
+        ::= { hh3cDhcpServer2PoolEntry 31 }
+
+    hh3cDhcpServer2PoolVoiceVlanId OBJECT-TYPE
+        SYNTAX      Unsigned32(2..4094 | 65535)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Voice vlan index for dhcp clients.
+             If the value of this object is set to 65535,
+             the configuration of hh3cDhcpServer2PoolVoiceVlanId and
+             hh3cDhcpServer2PoolVoiceVlanEnbl will be deleted."
+        ::= { hh3cDhcpServer2PoolEntry 32 }
+
+    hh3cDhcpServer2PoolVoiceVlanEnbl OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Enable status of the specified voice vlan for dhcp clients.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolVoiceVlanId together,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        DEFVAL { false }
+        ::= { hh3cDhcpServer2PoolEntry 33 }
+
+    hh3cDhcpServer2PoolRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2PoolEntry 34 }
+
+-- ==============================================================================
+-- 2nd Table of hh3cDhcpServer2Tables: hh3cDhcpServer2IfApplyPoolTable
+-- ==============================================================================
+    hh3cDhcpServer2IfApplyPoolTable  OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2IfApplyPoolEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for applying ip pool on interfaces."
+        ::= { hh3cDhcpServer2Tables 2 }
+
+    hh3cDhcpServer2IfApplyPoolEntry  OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2IfApplyPoolEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for applying a DHCP pool on the interface."
+        INDEX { ifIndex }
+        ::= { hh3cDhcpServer2IfApplyPoolTable 1 }
+
+    Hh3cDhcpServer2IfApplyPoolEntry ::=
+        SEQUENCE
+        {
+            hh3cDhcpServer2IfApplyPoolName OCTET STRING
+        }
+
+    hh3cDhcpServer2IfApplyPoolName    OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..63))
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The name of the IP pool that apply to the interface.
+             If the value is set to a zero-length string, the configuration
+             will be deleted."
+        ::= { hh3cDhcpServer2IfApplyPoolEntry 1 }
+
+-- =============================================================================
+-- 3rd Table of hh3cDhcpServer2Tables: hh3cDhcpServer2PoolSecNwTable
+-- =============================================================================
+    hh3cDhcpServer2PoolSecNwTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2PoolSecNwEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table containing the secondary network configuration of
+             dhcp pools."
+        ::= { hh3cDhcpServer2Tables 3 }
+
+    hh3cDhcpServer2PoolSecNwEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2PoolSecNwEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry containing the objects for configuring
+             the secondary network to DHCP pools."
+        INDEX
+            {
+                hh3cDhcpServer2PoolIndex,
+                hh3cDhcpServer2PoolSecNw,
+                hh3cDhcpServer2PoolSecNwMask
+            }
+        ::= { hh3cDhcpServer2PoolSecNwTable 1 }
+
+    Hh3cDhcpServer2PoolSecNwEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2PoolSecNw                InetAddressIPv4,
+                hh3cDhcpServer2PoolSecNwMask            InetAddressIPv4,
+                hh3cDhcpServer2PoolSecNwGwIP            OCTET STRING,
+                hh3cDhcpServer2PoolSecNwStatus          RowStatus
+            }
+
+    hh3cDhcpServer2PoolSecNw OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Network ip of a DHCP pool."
+        ::= { hh3cDhcpServer2PoolSecNwEntry 1 }
+
+    hh3cDhcpServer2PoolSecNwMask OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Net mask of a DHCP pool network."
+        ::= { hh3cDhcpServer2PoolSecNwEntry 2 }
+
+    hh3cDhcpServer2PoolSecNwGwIP OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..127))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "String of gateway ip addresses for DHCP clients.
+             Since at most 8 gateway addresses can be configured
+             for a secondary network, a string is defined to get
+             or configure 8 ip at a time.
+             The ip addresses are split by a blank character.
+             If the object is SET to a zero-length string, the configuration
+             of the gateway address is removed."
+        ::= { hh3cDhcpServer2PoolSecNwEntry 3 }
+
+    hh3cDhcpServer2PoolSecNwStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2PoolSecNwEntry 4 }
+
+-- =============================================================================
+-- 4th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2PoolClassTable
+-- =============================================================================
+    hh3cDhcpServer2PoolClassTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2PoolClassEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table containing address range of the dhcp
+             server pool for user classes."
+        ::= { hh3cDhcpServer2Tables 4 }
+
+    hh3cDhcpServer2PoolClassEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2PoolClassEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry containing address range of dhcp pools
+             for user classes."
+        INDEX { hh3cDhcpServer2PoolIndex, hh3cDhcpServer2PoolClassName }
+        ::= { hh3cDhcpServer2PoolClassTable 1 }
+
+    Hh3cDhcpServer2PoolClassEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2PoolClassName            OCTET STRING,
+                hh3cDhcpServer2PoolClassStart           InetAddressIPv4,
+                hh3cDhcpServer2PoolClassEnd             InetAddressIPv4,
+                hh3cDhcpServer2PoolClassStatus          RowStatus
+            }
+
+    hh3cDhcpServer2PoolClassName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..63))
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "User class name."
+        ::= { hh3cDhcpServer2PoolClassEntry 1 }
+
+    hh3cDhcpServer2PoolClassStart OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Start address of an address range for a dhcp user class."
+        ::= { hh3cDhcpServer2PoolClassEntry 2 }
+
+    hh3cDhcpServer2PoolClassEnd OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "End address of an address range for a dhcp user class.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolClassStart together,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        ::= { hh3cDhcpServer2PoolClassEntry 3 }
+
+    hh3cDhcpServer2PoolClassStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2PoolClassEntry 4 }
+
+-- =============================================================================
+-- 5th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2PoolStaticTable
+-- =============================================================================
+    hh3cDhcpServer2PoolStaticTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2PoolStaticEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table containing the static binding configurations
+             of dhcp pools."
+        ::= { hh3cDhcpServer2Tables 5 }
+
+    hh3cDhcpServer2PoolStaticEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2PoolStaticEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry containing the objects for configuring
+             the static binding to DHCP pools."
+        INDEX { hh3cDhcpServer2PoolIndex, hh3cDhcpServer2PoolStaticIP}
+        ::= { hh3cDhcpServer2PoolStaticTable 1 }
+
+    Hh3cDhcpServer2PoolStaticEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2PoolStaticIP          InetAddressIPv4,
+                hh3cDhcpServer2PoolStaticMask        InetAddressIPv4,
+                hh3cDhcpServer2PoolStaticCID         OCTET STRING,
+                hh3cDhcpServer2PoolStaticHAddr       OCTET STRING,
+                hh3cDhcpServer2PoolStaticHType       INTEGER,
+                hh3cDhcpServer2PoolStaticStatus      RowStatus
+            }
+
+    hh3cDhcpServer2PoolStaticIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Ip address of a static binding of a DHCP pool."
+        ::= { hh3cDhcpServer2PoolStaticEntry 1 }
+
+    hh3cDhcpServer2PoolStaticMask OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Net mask of ip address of a static binding.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolStaticClientId or
+             hh3cDhcpServer2PoolStaticHardType and
+             hh3cDhcpServer2PoolStaticHardAddr,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        ::= { hh3cDhcpServer2PoolStaticEntry 2 }
+
+    hh3cDhcpServer2PoolStaticCID OBJECT-TYPE
+        SYNTAX     OCTET STRING(SIZE(0|4..254))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Client identifier of a DHCP static binding."
+        ::= { hh3cDhcpServer2PoolStaticEntry 3 }
+
+    hh3cDhcpServer2PoolStaticHAddr OBJECT-TYPE
+        SYNTAX     OCTET STRING(SIZE(0|4..79))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Hardware address of a static binding of the DHCP
+             pool."
+        ::= { hh3cDhcpServer2PoolStaticEntry 4 }
+
+    hh3cDhcpServer2PoolStaticHType OBJECT-TYPE
+        SYNTAX     INTEGER
+            {
+                ethernet(1),
+                tokenRing(2)
+            }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Hardware address type of a static binding of the
+             DHCP pool.
+             The SET operation to this object ought to be with
+             the SET of hh3cDhcpServer2PoolStaticHAddr,
+             and any SET operation alone to this object will be
+             regarded as an invalid operation."
+        DEFVAL { ethernet }
+        ::= { hh3cDhcpServer2PoolStaticEntry 5 }
+
+    hh3cDhcpServer2PoolStaticStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2PoolStaticEntry 6 }
+
+-- =============================================================================
+-- 6th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2PoolOptionTable
+-- =============================================================================
+    hh3cDhcpServer2PoolOptionTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2PoolOptionEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for configuring options to DHCP pools."
+        ::= { hh3cDhcpServer2Tables 6 }
+
+    hh3cDhcpServer2PoolOptionEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2PoolOptionEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry containing the objects for configuring
+             options to DHCP pools."
+        INDEX { hh3cDhcpServer2PoolIndex, hh3cDhcpServer2PoolOptCode }
+        ::= { hh3cDhcpServer2PoolOptionTable 1 }
+
+    Hh3cDhcpServer2PoolOptionEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2PoolOptCode         Integer32,
+                hh3cDhcpServer2PoolOptType         INTEGER,
+                hh3cDhcpServer2PoolOptAscii        OCTET STRING,
+                hh3cDhcpServer2PoolOptHexStr       OCTET STRING,
+                hh3cDhcpServer2PoolOptIPStr        OCTET STRING,
+                hh3cDhcpServer2PoolOptRowStatus    RowStatus
+            }
+
+    hh3cDhcpServer2PoolOptCode OBJECT-TYPE
+        SYNTAX      Integer32(2..254)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Option code."
+        ::= { hh3cDhcpServer2PoolOptionEntry 1 }
+
+    hh3cDhcpServer2PoolOptType OBJECT-TYPE
+        SYNTAX      INTEGER
+            {
+                ascii(1),
+                hex(2),
+                ip(3)
+            }
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Option type."
+        ::= { hh3cDhcpServer2PoolOptionEntry 2 }
+
+    hh3cDhcpServer2PoolOptAscii OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..255))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Ascii string of an option."
+        ::= { hh3cDhcpServer2PoolOptionEntry 3 }
+
+    hh3cDhcpServer2PoolOptHexStr OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..510))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Hex string of an option.
+             The length of the string must be even."
+        ::= { hh3cDhcpServer2PoolOptionEntry 4 }
+
+    hh3cDhcpServer2PoolOptIPStr OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..127))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "IP string of an option.
+             1 to 8 ip addresses can be configured simultaneously.
+             The ip addresses are split by a blank character."
+        ::= { hh3cDhcpServer2PoolOptionEntry 5 }
+
+    hh3cDhcpServer2PoolOptRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.
+             Three actions are used: active, createAndGo, destroy."
+        ::= { hh3cDhcpServer2PoolOptionEntry 6 }
+
+--  ============================================================================
+-- 7th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2PoolForbidTable
+-- =============================================================================
+    hh3cDhcpServer2PoolForbidTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2PoolForbidEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for configuring forbidden ip for a dhcp server pool to DHCP server."
+        ::= { hh3cDhcpServer2Tables 7 }
+
+    hh3cDhcpServer2PoolForbidEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2PoolForbidEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for configuring forbidden ip to DHCP server."
+        INDEX { hh3cDhcpServer2PoolIndex, hh3cDhcpServer2PoolForbidIP }
+        ::= { hh3cDhcpServer2PoolForbidTable 1 }
+
+    Hh3cDhcpServer2PoolForbidEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2PoolForbidIP             InetAddressIPv4,
+                hh3cDhcpServer2PoolForbidStatus         RowStatus
+            }
+
+    hh3cDhcpServer2PoolForbidIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Forbidden ip of the DHCP pool."
+        ::= { hh3cDhcpServer2PoolForbidEntry 1 }
+
+    hh3cDhcpServer2PoolForbidStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2PoolForbidEntry 2 }
+
+--  ============================================================================
+-- 8th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2ClassTable
+-- =============================================================================
+    hh3cDhcpServer2ClassTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2ClassEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for configuring user class to DHCP server."
+        ::= { hh3cDhcpServer2Tables 8 }
+
+    hh3cDhcpServer2ClassEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2ClassEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for configuring user class to DHCP server."
+        INDEX { hh3cDhcpServer2ClassName }
+        ::= { hh3cDhcpServer2ClassTable 1 }
+
+    Hh3cDhcpServer2ClassEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2ClassName           OCTET STRING,
+                hh3cDhcpServer2ClassRowStatus      RowStatus
+            }
+
+    hh3cDhcpServer2ClassName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..63))
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "DHCP user class name."
+        ::= { hh3cDhcpServer2ClassEntry 1 }
+
+    hh3cDhcpServer2ClassRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2ClassEntry 2 }
+
+--  ============================================================================
+-- 9th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2RuleTable
+-- =============================================================================
+    hh3cDhcpServer2RuleTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2RuleEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for configuring rules used to match DHCP users."
+        ::= { hh3cDhcpServer2Tables 9 }
+
+    hh3cDhcpServer2RuleEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2RuleEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for configuring rules used to match DHCP users."
+        INDEX
+            {
+                hh3cDhcpServer2ClassName,
+                hh3cDhcpServer2RuleNumber
+            }
+        ::= { hh3cDhcpServer2RuleTable 1 }
+
+    Hh3cDhcpServer2RuleEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2RuleNumber           Integer32,
+                hh3cDhcpServer2RuleOptCode          Integer32,
+                hh3cDhcpServer2RuleOptHexStr        OCTET STRING,
+                hh3cDhcpServer2RuleOptMask          OCTET STRING,
+                hh3cDhcpServer2RuleOptOffset        Integer32,
+                hh3cDhcpServer2RuleOptLength        Integer32,
+                hh3cDhcpServer2RuleRowStatus        RowStatus
+            }
+
+    hh3cDhcpServer2RuleNumber OBJECT-TYPE
+        SYNTAX      Integer32(1..16)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Rule number."
+        ::= { hh3cDhcpServer2RuleEntry 1 }
+
+    hh3cDhcpServer2RuleOptCode OBJECT-TYPE
+        SYNTAX      Integer32(1..254)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Option code."
+        ::= { hh3cDhcpServer2RuleEntry 2 }
+
+    hh3cDhcpServer2RuleOptHexStr OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..510))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Hex string of an option.
+             The length of the string must be even."
+        ::= { hh3cDhcpServer2RuleEntry 3 }
+
+    hh3cDhcpServer2RuleOptMask OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..510))
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The mask of options used to match options.
+             The length of this object must be same
+             with hh3cDhcpServer2RuleOptHexStr."
+        ::= { hh3cDhcpServer2RuleEntry 4 }
+
+    hh3cDhcpServer2RuleOptOffset OBJECT-TYPE
+        SYNTAX      Integer32(0..254)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The offset of options used to match users."
+        ::= { hh3cDhcpServer2RuleEntry 5 }
+
+    hh3cDhcpServer2RuleOptLength OBJECT-TYPE
+        SYNTAX      Integer32(0..255)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "The length used to match user options."
+        ::= { hh3cDhcpServer2RuleEntry 6 }
+
+    hh3cDhcpServer2RuleRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2RuleEntry 7 }
+
+--  ============================================================================
+-- 10th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2ForbidTable
+-- =============================================================================
+    hh3cDhcpServer2ForbidTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2ForbidEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for configuring forbidden ip range to DHCP server."
+        ::= { hh3cDhcpServer2Tables 10 }
+
+    hh3cDhcpServer2ForbidEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2ForbidEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for configuring forbidden ip range to DHCP server."
+        INDEX
+            {
+                hh3cDhcpServer2ForbidVpnName,
+                hh3cDhcpServer2ForbidStart,
+                hh3cDhcpServer2ForbidEnd
+            }
+        ::= { hh3cDhcpServer2ForbidTable 1 }
+
+    Hh3cDhcpServer2ForbidEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2ForbidVpnName      OCTET STRING,
+                hh3cDhcpServer2ForbidStart        InetAddressIPv4,
+                hh3cDhcpServer2ForbidEnd          InetAddressIPv4,
+                hh3cDhcpServer2ForbidRowStatus    RowStatus
+            }
+
+    hh3cDhcpServer2ForbidVpnName OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..31))
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Name of the VPN instance that the forbidden ip range
+             binds to.
+             If the value of this object is 0x1, the network that
+             the forbidden ip range belongs to is the public network."
+        ::= { hh3cDhcpServer2ForbidEntry 1 }
+
+    hh3cDhcpServer2ForbidStart OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Start ip of forbidden ip range."
+        ::= { hh3cDhcpServer2ForbidEntry 2 }
+
+    hh3cDhcpServer2ForbidEnd OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "End ip of forbidden ip range."
+        ::= { hh3cDhcpServer2ForbidEntry 3 }
+
+    hh3cDhcpServer2ForbidRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpServer2ForbidEntry 4 }
+
+--  ============================================================================
+-- 11th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2FreeTable
+-- =============================================================================
+    hh3cDhcpServer2FreeTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2FreeEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for displaying free ip range for DHCP server."
+        ::= { hh3cDhcpServer2Tables 11 }
+
+    hh3cDhcpServer2FreeEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2FreeEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for displaying free ip range for DHCP server."
+        INDEX
+            {
+                hh3cDhcpServer2PoolIndex,
+                hh3cDhcpServer2FreeStart
+            }
+        ::= { hh3cDhcpServer2FreeTable 1 }
+
+    Hh3cDhcpServer2FreeEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2FreeStart             InetAddressIPv4,
+                hh3cDhcpServer2FreeEnd               InetAddressIPv4
+            }
+
+    hh3cDhcpServer2FreeStart OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Start ip of free ip range."
+        ::= { hh3cDhcpServer2FreeEntry 1 }
+
+    hh3cDhcpServer2FreeEnd OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "End ip of free ip range."
+        ::= { hh3cDhcpServer2FreeEntry 2 }
+
+--  ============================================================================
+-- 12th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2ConflictTable
+-- =============================================================================
+    hh3cDhcpServer2ConflictTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpServer2ConflictEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for displaying the information of conflict
+             ip for DHCP server."
+        ::= { hh3cDhcpServer2Tables 12 }
+
+    hh3cDhcpServer2ConflictEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2ConflictEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for displaying the information of
+             conflict ip for DHCP server."
+        INDEX { hh3cDhcpServer2PoolIndex, hh3cDhcpServer2ConflictIP }
+        ::= { hh3cDhcpServer2ConflictTable 1 }
+
+    Hh3cDhcpServer2ConflictEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2ConflictIP            InetAddressIPv4,
+                hh3cDhcpServer2ConflictType          INTEGER,
+                hh3cDhcpServer2ConflictTime          OCTET STRING,
+                hh3cDhcpServer2ConflictRowStatus     RowStatus
+            }
+
+    hh3cDhcpServer2ConflictIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Conflict ip."
+        ::= { hh3cDhcpServer2ConflictEntry 1 }
+
+    hh3cDhcpServer2ConflictType OBJECT-TYPE
+        SYNTAX      INTEGER
+            {
+                detectByServer(1),
+                detectByClient(2)
+            }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Type of the detection of conflict ip.
+             'detectByServer' denotes that the conflict is detected
+             by dhcp server.
+             'detectByClient' denotes that the conflict is detected
+             by dhcp client."
+        ::= { hh3cDhcpServer2ConflictEntry 2 }
+
+    hh3cDhcpServer2ConflictTime OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..19))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Time when the conflict is detected.
+             The structure of the OCTET STRING is
+             month/day/year hour:munite:second
+             (MM/DD/YYYY hh:mm:ss)."
+        ::= { hh3cDhcpServer2ConflictEntry 3 }
+
+    hh3cDhcpServer2ConflictRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Only destroy action is allow to use."
+        ::= { hh3cDhcpServer2ConflictEntry 4 }
+
+-- =============================================================================
+-- 13th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2ExpiredTable
+-- =============================================================================
+    hh3cDhcpServer2ExpiredTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF Hh3cDhcpServer2ExpiredEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "A table for displaying the information of expired ip
+             for DHCP Server pools. "
+        ::= { hh3cDhcpServer2Tables 13 }
+
+    hh3cDhcpServer2ExpiredEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2ExpiredEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry of objects for displaying information
+             of expired ip for DHCP server pools."
+        INDEX { hh3cDhcpServer2PoolIndex, hh3cDhcpServer2ExpiredIP }
+        ::= { hh3cDhcpServer2ExpiredTable 1 }
+
+    Hh3cDhcpServer2ExpiredEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2ExpiredIP                  InetAddressIPv4,
+                hh3cDhcpServer2ExpiredClientId            OCTET STRING,
+                hh3cDhcpServer2ExpiredTime                OCTET STRING,
+                hh3cDhcpServer2ExpiredRowStatus           RowStatus
+            }
+
+    hh3cDhcpServer2ExpiredIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Expired ip address."
+        ::= { hh3cDhcpServer2ExpiredEntry 1 }
+
+    hh3cDhcpServer2ExpiredClientId OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(4..254))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Client-identifier or hardware address."
+        ::= { hh3cDhcpServer2ExpiredEntry 2 }
+
+    hh3cDhcpServer2ExpiredTime OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..19))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Expired time.
+             The structure of the OCTET STRING is
+             month/day/year hour:munite:second
+             (MM/DD/YYYY hh:mm:ss)."
+        ::= { hh3cDhcpServer2ExpiredEntry 3 }
+
+    hh3cDhcpServer2ExpiredRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Only destroy action is allow to use."
+        ::= { hh3cDhcpServer2ExpiredEntry 4 }
+
+-- =============================================================================
+-- 14th Table of hh3cDhcpServer2Tables: hh3cDhcpServer2IPInUseTable
+-- =============================================================================
+    hh3cDhcpServer2IPInUseTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF Hh3cDhcpServer2IPInUseEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "A table for displaying the information of ip in use
+             for DHCP Server pools. "
+        ::= { hh3cDhcpServer2Tables 14 }
+
+    hh3cDhcpServer2IPInUseEntry OBJECT-TYPE
+        SYNTAX      Hh3cDhcpServer2IPInUseEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry of objects for displaying information
+             of ip in use for DHCP server pools."
+        INDEX { hh3cDhcpServer2PoolIndex, hh3cDhcpServer2IPInUseIP }
+        ::= { hh3cDhcpServer2IPInUseTable 1 }
+
+    Hh3cDhcpServer2IPInUseEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpServer2IPInUseIP                  InetAddressIPv4,
+                hh3cDhcpServer2IPInUseClientId            OCTET STRING,
+                hh3cDhcpServer2IPInUseHardAddr            OCTET STRING,
+                hh3cDhcpServer2IPInUseHardType            INTEGER,
+                hh3cDhcpServer2IPInUseVlanId              Unsigned32,
+                hh3cDhcpServer2IPInUseEndLease            OCTET STRING,
+                hh3cDhcpServer2IPInUseType                INTEGER,
+                hh3cDhcpServer2IPInUseIfIndex             InterfaceIndexOrZero,
+                hh3cDhcpServer2IPInUseRowStatus           RowStatus
+            }
+
+    hh3cDhcpServer2IPInUseIP OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "Ip address in use."
+        ::= { hh3cDhcpServer2IPInUseEntry 1 }
+
+    hh3cDhcpServer2IPInUseClientId OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0|4..254))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Client identifier."
+        ::= { hh3cDhcpServer2IPInUseEntry 2 }
+
+    hh3cDhcpServer2IPInUseHardAddr OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0|4..79))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Hardware address."
+        ::= { hh3cDhcpServer2IPInUseEntry 3 }
+
+    hh3cDhcpServer2IPInUseHardType OBJECT-TYPE
+        SYNTAX      INTEGER
+            {
+                default(1),
+                ethernet(2),
+                tokenRing(3)
+            }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Hardware address type."
+        ::= { hh3cDhcpServer2IPInUseEntry 4 }
+
+    hh3cDhcpServer2IPInUseVlanId OBJECT-TYPE
+        SYNTAX      Unsigned32(1..4094|65535)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "User's vlan ID.
+             65535 means that a client doesn't have vlan ID or have an
+             invalid vlan ID."
+        ::= { hh3cDhcpServer2IPInUseEntry 5 }
+
+    hh3cDhcpServer2IPInUseEndLease OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..19))
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "End time of lease.
+             The structure of the OCTET STRING is
+             month/day/year hour:munite:second
+             (MM/DD/YYYY hh:mm:ss)."
+        ::= { hh3cDhcpServer2IPInUseEntry 6 }
+
+    hh3cDhcpServer2IPInUseType OBJECT-TYPE
+        SYNTAX      INTEGER
+            {
+                staticUnallocated(1),
+                staticOffered(2),
+                staticCommitted(3),
+                autoOffered(4),
+                autoCommitted(5)
+            }
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Type of binding."
+        ::= { hh3cDhcpServer2IPInUseEntry 7 }
+
+    hh3cDhcpServer2IPInUseIfIndex OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "Interface index information.
+             If the value of this object is zero,
+             the interface is unknown."
+        ::= { hh3cDhcpServer2IPInUseEntry 8 }
+
+    hh3cDhcpServer2IPInUseRowStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "RowStatus.  Only destroy action is allow to use."
+        ::= { hh3cDhcpServer2IPInUseEntry 9 }
+
+-- =============================================================================
+-- DHCP relay scalar object definition begin
+-- =============================================================================
+    hh3cDhcpRelay2ScalarObjects   OBJECT IDENTIFIER ::= { hh3cDhcp4 3 }
+
+-- =============================================================================
+-- hh3cDhcpRelay2ScalarObjects: hh3cDhcpRelay2ConfigGroup
+-- =============================================================================
+    hh3cDhcpRelay2ConfigGroup  OBJECT IDENTIFIER ::= { hh3cDhcpRelay2ScalarObjects 1 }
+
+    hh3cDhcpRelay2UserInfoRecord OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If the value is 'true', user information will be recorded."
+        DEFVAL { false }
+        ::= { hh3cDhcpRelay2ConfigGroup 1 }
+
+    hh3cDhcpRelay2UserInfoRefresh OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If the value is 'true', user information will be refreshed
+             on timer."
+        DEFVAL { true }
+        ::= { hh3cDhcpRelay2ConfigGroup 2 }
+
+    hh3cDhcpRelay2UserInfoFlushTime OBJECT-TYPE
+        SYNTAX      Unsigned32(0..120)
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "User information refresh interval in seconds.
+             If the value of the object is SET to 0, the interval is
+             calculated automatically by the number of user
+             information entries."
+        DEFVAL { 0 }
+        ::= { hh3cDhcpRelay2ConfigGroup 3 }
+
+    hh3cDhcpRelay2ReleaseAddr   OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..47))
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "User address to be released.
+             The structure of the OCTET STRING is
+             IP address:VPN name.
+             If the VPN instance name is NOT specified,
+             the IP address is in public network."
+        ::= { hh3cDhcpRelay2ConfigGroup 4 }
+
+-- =============================================================================
+-- hh3cDhcpRelay2ScalarObjects: hh3cDhcpRelay2StatisticsGroup
+-- =============================================================================
+    hh3cDhcpRelay2StatisticsGroup  OBJECT IDENTIFIER ::= { hh3cDhcpRelay2ScalarObjects 2 }
+
+    hh3cDhcpRelay2RxClientNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the packets received from DHCP
+             clients by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 1 }
+
+    hh3cDhcpRelay2TxClientNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the packets transmitted to
+             DHCP clients by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 2 }
+
+    hh3cDhcpRelay2RxServerNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the packets received from
+             DHCP Servers by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 3 }
+
+    hh3cDhcpRelay2TxServerNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the packets transmitted to
+             DHCP Servers by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 4 }
+
+    hh3cDhcpRelay2BadNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the bad packets received."
+        ::= { hh3cDhcpRelay2StatisticsGroup 5 }
+
+    hh3cDhcpRelay2BootpRequestNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the BOOTP Request packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 6 }
+
+    hh3cDhcpRelay2DiscoverNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Discover packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 7 }
+
+    hh3cDhcpRelay2RequestNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Request packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 8 }
+
+    hh3cDhcpRelay2DeclineNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Decline packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 9 }
+
+    hh3cDhcpRelay2ReleaseNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Release packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 10 }
+
+    hh3cDhcpRelay2InformNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Inform packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 11 }
+
+    hh3cDhcpRelay2BootpReplyNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the BOOTP Reply packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 12 }
+
+    hh3cDhcpRelay2OfferNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Offer packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 13 }
+
+    hh3cDhcpRelay2AckNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Ack packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 14 }
+
+    hh3cDhcpRelay2NakNum OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The total number of the DHCP Nak packets handled
+             by DHCP relay."
+        ::= { hh3cDhcpRelay2StatisticsGroup 15 }
+
+-- =============================================================================
+-- DHCP relay table definition.
+-- =============================================================================
+    hh3cDhcpRelay2Tables OBJECT IDENTIFIER ::= { hh3cDhcp4 4 }
+
+-- =============================================================================
+-- 1st Table of hh3cDhcpRelay2Tables: hh3cDhcpRelay2IfConfigTable
+-- =============================================================================
+    hh3cDhcpRelay2IfConfigTable  OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpRelay2IfConfigEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for configuring relay functions for interfaces."
+        ::= { hh3cDhcpRelay2Tables 1 }
+
+    hh3cDhcpRelay2IfConfigEntry  OBJECT-TYPE
+        SYNTAX      Hh3cDhcpRelay2IfConfigEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for configuring relay functions for an interface."
+        INDEX { ifIndex }
+        ::= { hh3cDhcpRelay2IfConfigTable 1 }
+
+    Hh3cDhcpRelay2IfConfigEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpRelay2IfSelectRelay              TruthValue,
+                hh3cDhcpRelay2IfCheckMac                 TruthValue,
+                hh3cDhcpRelay2IfOpt82Enable              TruthValue,
+                hh3cDhcpRelay2IfOpt82Strategy            INTEGER,
+                hh3cDhcpRelay2IfOpt82CIDMode             INTEGER,
+                hh3cDhcpRelay2IfOpt82CIDNodeType         INTEGER,
+                hh3cDhcpRelay2IfOpt82CIDNodeStr          OCTET STRING,
+                hh3cDhcpRelay2IfOpt82CIDStr              OCTET STRING,
+                hh3cDhcpRelay2IfOpt82CIDFormat           INTEGER,
+                hh3cDhcpRelay2IfOpt82RIDMode             INTEGER,
+                hh3cDhcpRelay2IfOpt82RIDStr              OCTET STRING,
+                hh3cDhcpRelay2IfOpt82RIDFormat           INTEGER
+            }
+
+    hh3cDhcpRelay2IfSelectRelay    OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If the value is 'true', the DHCP relay function
+             would be enabled on this interface."
+        DEFVAL      { false }
+        ::= { hh3cDhcpRelay2IfConfigEntry 1 }
+
+    hh3cDhcpRelay2IfCheckMac    OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If the value is 'true', the function of checking MAC address
+             of packets received from the interface would be enabled."
+        DEFVAL      { false }
+        ::= { hh3cDhcpRelay2IfConfigEntry 2 }
+
+    hh3cDhcpRelay2IfOpt82Enable OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "If DHCP relay supports option 82 functions, the
+             value is 'true'.
+             If DHCP relay does not support option 82 functions,
+             the value is 'false'."
+        DEFVAL      { false }
+        ::= { hh3cDhcpRelay2IfConfigEntry 3 }
+
+    hh3cDhcpRelay2IfOpt82Strategy     OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+            drop(1),
+            keep(2),
+            replace(3)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The strategies of DHCP relay handling option 82.
+
+             'drop' indicates DHCP relay discarding the request
+             packet including option 82.
+
+             'keep' indicates DHCP relay accepting the request
+             packet without any change of the option 82.
+
+             'replace' indicates DHCP relay accepting the
+             request packet on condition that it generates a new
+             option 82 to replace the original one."
+        DEFVAL      { replace }
+        ::= { hh3cDhcpRelay2IfConfigEntry 4 }
+
+    hh3cDhcpRelay2IfOpt82CIDMode OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+            normal(1),
+            verbose(2),
+            userDefine(3)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The mode of DHCP relay option 82 circuit id.
+             'normal' is the standard mode.
+             'verbose' is the detailed mode.
+             'userDefine' is the user-defined mode.
+             If the value of this object is set to 'verbose',
+             hh3cDhcpRelay2IfOpt82CIDNodeType and
+             hh3cDhcpRelay2IfOpt82CIDNodeStr could be set
+             simultaneously.
+             If the value of this object is set to 'userDefine',
+             hh3cDhcpRelay2IfOpt82CIDStr must be set simultaneously."
+        DEFVAL      { normal }
+        ::= { hh3cDhcpRelay2IfConfigEntry 5 }
+
+    hh3cDhcpRelay2IfOpt82CIDNodeType OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+            invalid(1),
+            mac(2),
+            sysname(3),
+            userDefine(4)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "Type of access node identifier.
+             The value can be set by user only when the value
+             of hh3cDhcpRelay2Opt82IfCIDMode is set with 'verbose'.
+
+             If the value of hh3cDhcpRelay2Opt82IfCIDMode is NOT
+             'verbose', the value is automatically set with
+             'invalid'. the value cannot be set with 'invalid' by user.
+
+             'mac' indicates that the node identifier is
+             filled in with the mac of DHCP relay input interface.
+             If the value of hh3cDhcpRelay2Opt82IfCIDMode
+             is set with 'verbose', the value is automatically
+             set with 'mac'.
+
+             'sysname' indicates that the node identifier
+             is filled in with the sysname of the DHCP relay device.
+
+             'userDefine' indicates that the node identifier
+             is filled in with the string defined by user.
+
+             If the value is set with 'userDefine', the value of
+             hh3cDhcpRelay2Opt82IfCIDNodeStr must be set
+             simultaneously."
+        DEFVAL      { invalid }
+        ::= { hh3cDhcpRelay2IfConfigEntry 6 }
+
+    hh3cDhcpRelay2IfOpt82CIDNodeStr      OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0..50))
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+             "The string defined by user to fill in the
+              node identifier in the verbose mode.
+
+              If the value of hh3cDhcpRelay2IfOpt82CIDMode is NOT 'verbose',
+              or the value of hh3cDhcpRelay2IfOpt82CIDNodeType is
+              NOT 'userDefine', it is set with a zero-length string
+              automatically and can not be modified by user.
+
+              It must be set with a non-zero length string
+              when the value of hh3cDhcpRelay2IfOpt82CIDNodeType
+              is set with 'userDefine' and the value of
+              hh3cDhcpRelay2IfOpt82CIDMode is set with 'verbose'."
+        ::= { hh3cDhcpRelay2IfConfigEntry 7 }
+
+    hh3cDhcpRelay2IfOpt82CIDStr      OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(0|3..63))
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The string defined by user to fill in the
+             option 82 user-define format.
+             If the value of hh3cDhcpRelay2IfOpt82CIDMode is
+             NOT 'userDefine', it is set with a zero-length string
+             automatically and cannot be modified by user.
+             It must be set with a non-zero length string
+             when the value of hh3cDhcpRelay2IfOpt82CIDMode
+             is set with 'userDefine'."
+        ::= { hh3cDhcpRelay2IfConfigEntry 8 }
+
+    hh3cDhcpRelay2IfOpt82CIDFormat    OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+            hex(1),
+            ascii(2),
+            mix(3)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The format of DHCP relay option 82 circuit id in
+             'normal' mode or 'verbose' mode.
+             'hex' is the hex format.
+             'ascii' is the ascii format.
+             'mix' is the mixed format.
+             If the value of hh3cDhcpRelay2IfOpt82CIDMode is
+             'userDefine', the circuit id will be
+             filled in ascii format automatically."
+        DEFVAL      { mix }
+        ::= { hh3cDhcpRelay2IfConfigEntry 9 }
+
+    hh3cDhcpRelay2IfOpt82RIDMode OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+            normal(1),
+            sysname(2),
+            userDefine(3)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The mode of DHCP relay option 82 remote id.
+             'normal' is the standard mode.
+             'sysname' is the sysname mode.
+             'userDefine' is the user-defined mode."
+        DEFVAL      { normal }
+        ::= { hh3cDhcpRelay2IfConfigEntry 10 }
+
+    hh3cDhcpRelay2IfOpt82RIDStr  OBJECT-TYPE
+        SYNTAX      OCTET STRING (SIZE(0..63))
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The string defined by user to fill in the
+             remote id user-defined format.
+             If the value of hh3cDhcpRelay2IfOpt82RIDMode is
+             'normal' or 'sysname', it is set with a zero-length string
+             automatically and cannot be modified by user.
+             It must be set with a non-zero length string
+             when the value of hh3cDhcpRelay2IfOpt82RIDMode
+             is set with 'userDefine'."
+        ::= { hh3cDhcpRelay2IfConfigEntry 11 }
+
+    hh3cDhcpRelay2IfOpt82RIDFormat    OBJECT-TYPE
+        SYNTAX      INTEGER
+        {
+            hex(1),
+            ascii(2)
+        }
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION
+            "The format of DHCP relay option 82 remote id
+             in 'normal' mode.
+             'hex' is the hex format.
+             'ascii' is the ascii format.
+             If the value of hh3cDhcpRelay2IfOpt82RIDMode is
+             'sysname' or 'userDefine', the remote id will be
+             filled in ascii format automatically."
+        DEFVAL      { hex }
+        ::= { hh3cDhcpRelay2IfConfigEntry 12 }
+
+-- =============================================================================
+-- 2nd Table of hh3cDhcpRelay2Tables: hh3cDhcpRelay2SrvAddrTable
+-- =============================================================================
+    hh3cDhcpRelay2SrvAddrTable  OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpRelay2SrvAddrEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table for configuring a DHCP
+             server address on the interface."
+        ::= { hh3cDhcpRelay2Tables 2 }
+
+    hh3cDhcpRelay2SrvAddrEntry  OBJECT-TYPE
+        SYNTAX      Hh3cDhcpRelay2SrvAddrEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry for configuring a DHCP
+             server address on the interface."
+        INDEX
+            {
+                ifIndex,
+                hh3cDhcpRelay2SrvAddrIP
+            }
+        ::= { hh3cDhcpRelay2SrvAddrTable 1 }
+
+    Hh3cDhcpRelay2SrvAddrEntry ::=
+        SEQUENCE
+            {
+                hh3cDhcpRelay2SrvAddrIP                InetAddressIPv4,
+                hh3cDhcpRelay2SrvAddrRowStatus         RowStatus
+            }
+
+    hh3cDhcpRelay2SrvAddrIP    OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "Ip address of DHCP server."
+        ::= { hh3cDhcpRelay2SrvAddrEntry 1 }
+
+    hh3cDhcpRelay2SrvAddrRowStatus    OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry.
+             Three actions are used: active,
+             createAndGo, destroy."
+        ::= { hh3cDhcpRelay2SrvAddrEntry 2 }
+
+-- =============================================================================
+-- 3rd Table of hh3cDhcpRelay2Tables: hh3cDhcpRelay2UserInfoTable
+-- =============================================================================
+    hh3cDhcpRelay2UserInfoTable   OBJECT-TYPE
+        SYNTAX      SEQUENCE OF Hh3cDhcpRelay2UserInfoEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "A table containing the user information of DHCP client."
+        ::= { hh3cDhcpRelay2Tables 3 }
+
+    hh3cDhcpRelay2UserInfoEntry  OBJECT-TYPE
+        SYNTAX      Hh3cDhcpRelay2UserInfoEntry
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "An entry containing the user information of DHCP client."
+        INDEX
+        {
+            hh3cDhcpRelay2UserInfoVpnIndex,
+            hh3cDhcpRelay2UserInfoIpAddr
+        }
+        ::= { hh3cDhcpRelay2UserInfoTable 1 }
+
+    Hh3cDhcpRelay2UserInfoEntry   ::=
+        SEQUENCE
+        {
+            hh3cDhcpRelay2UserInfoVpnIndex      Unsigned32,
+            hh3cDhcpRelay2UserInfoIpAddr        InetAddressIPv4,
+            hh3cDhcpRelay2UserInfoMacAddr       MacAddress,
+            hh3cDhcpRelay2UserInfoIfIndex       InterfaceIndexOrZero,
+            hh3cDhcpRelay2UserInfoRowStatus     RowStatus
+        }
+
+    hh3cDhcpRelay2UserInfoVpnIndex OBJECT-TYPE
+        SYNTAX      Unsigned32(0 .. 65534)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION
+            "VPN index of the DHCP client."
+        ::= { hh3cDhcpRelay2UserInfoEntry 1 }
+
+    hh3cDhcpRelay2UserInfoIpAddr     OBJECT-TYPE
+        SYNTAX      InetAddressIPv4
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "DHCP client's ip address."
+        ::= { hh3cDhcpRelay2UserInfoEntry 2 }
+
+    hh3cDhcpRelay2UserInfoMacAddr    OBJECT-TYPE
+        SYNTAX      MacAddress
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "DHCP client's mac address."
+        ::= { hh3cDhcpRelay2UserInfoEntry 3 }
+
+    hh3cDhcpRelay2UserInfoIfIndex      OBJECT-TYPE
+        SYNTAX      InterfaceIndexOrZero
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+            "The index of the interface that DHCP client adhered to.
+             0 means that no interface information is recorded in the
+             user information entry."
+        ::= { hh3cDhcpRelay2UserInfoEntry 4 }
+
+    hh3cDhcpRelay2UserInfoRowStatus     OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Operation status of this table entry.
+             Only destroy action is allow to use."
+        ::= { hh3cDhcpRelay2UserInfoEntry 5 }
+
+END

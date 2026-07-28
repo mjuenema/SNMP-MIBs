@@ -1,0 +1,4378 @@
+TROPIC-SYSTEM-MIB DEFINITIONS ::= BEGIN
+
+-- (c) Copyright 2016 Nokia.  All rights reserved.
+-- This software is the confidential and proprietary property of
+-- Nokia and may only be used in accordance with the
+-- terms of the license agreement provided with this software.
+
+  IMPORTS
+      SnmpAdminString                         FROM SNMP-FRAMEWORK-MIB
+      OBJECT-TYPE, MODULE-IDENTITY,
+      IpAddress,
+      Unsigned32, Integer32, Counter32        FROM SNMPv2-SMI
+      MODULE-COMPLIANCE, OBJECT-GROUP         FROM SNMPv2-CONF
+      TEXTUAL-CONVENTION,
+      DateAndTime, TruthValue, RowStatus      FROM SNMPv2-TC
+      ifIndex                                 FROM IF-MIB
+      AluWdmEnabledDisabled,
+      TropicResetType,
+      AluWdmTransferProtocol,
+      AluWdmCardCapacity,
+      TnCommand                               FROM TROPIC-TC
+      TnSwitchID                              FROM TN-TC-MIB
+      snmpTargetAddrEntry                     FROM SNMP-TARGET-MIB
+      tnNetIfIndex                            FROM TROPIC-L1SERVICE-MIB
+      tnSystemModules, tnSystemMIB            FROM TROPIC-GLOBAL-REG;
+
+  tnSystemMibModule MODULE-IDENTITY
+      LAST-UPDATED    "201604011200Z"
+      ORGANIZATION    "Nokia"
+      CONTACT-INFO    "Nokia
+                       Postal: 600 March Rd.
+                       Kanata, Ontario
+                       Canada K2K 2E6
+
+                       Phone: +1 613 591 3600
+                       Fax:   +1 613 591 3680"
+
+      DESCRIPTION "The system MIB for Nokia network elements."
+
+      REVISION    "200802161200Z"
+      DESCRIPTION "1) Added the backup and restore file CRC attribute.
+                   2) Updated the system MIB description.
+                   3) Increased the backup and restore path to 255
+                      characters.
+                   4) Added date to the backup and restore timestamp
+                      attribute description."
+
+      REVISION    "200804051200Z"
+      DESCRIPTION "Added tnSysBackupAndRestoreRemotePort."
+
+      REVISION    "200805291200Z"
+      DESCRIPTION "Updated the tnSysNtpServerIndex description."
+
+      REVISION    "200810101200Z"
+      DESCRIPTION "Change size of tnSysNtpTimeOffsetTimeZone from
+                   (0..10) to (0..128)."
+
+      REVISION    "200810141200Z"
+      DESCRIPTION "Added restoreForceFromRemote(4) to
+                   tnSysBackupAndRestoreCommand."
+
+      REVISION    "200902271200Z"
+      DESCRIPTION "Used AluWdmEnabledDisabled common enum in SNMPv2-TC."
+
+      REVISION    "200903031200Z"
+      DESCRIPTION "Used AluWdmEnabledDisabled common enum in TROPIC-TC."
+
+      REVISION    "200904071200Z"
+      DESCRIPTION "Added security MIB attributes to tnSysBasics."
+
+      REVISION    "200904071200Z"
+      DESCRIPTION "Updated description and added range values to Security
+                   MIB attributes."
+
+      REVISION    "200904281200Z"
+      DESCRIPTION "1) Defined tnSysNtpDriftString and tnSysNtpTimeOffsetString
+                      to replace tnSysNtpDrift and tnSysNtpTimeOffset,
+                      respectively.
+                   2) Marked the following as deprecated:
+                      tnSysNtpDrift
+                      tnSysNtpTimeOffset."
+
+      REVISION    "200904301200Z"
+      DESCRIPTION "1) Marked tnSysMinPasswordLength and
+                      tnSysMaxPasswordLength as obsolete.
+                   2) Moved recently defined security related MIB
+                      attributes from tnSysBasics to tnUserMgmtGlobal
+                      (in TROPIC-USERMGMT-MIB)."
+
+      REVISION    "200905051200Z"
+      DESCRIPTION "Added tnSysExtendedTemperatureRange for PSS-1 ETR."
+
+      REVISION    "200907221200Z"
+      DESCRIPTION "Added tnSysTemperatureInCelsius."
+
+      REVISION    "201001071200Z"
+      DESCRIPTION "Added tnSysConfiguredSnmpSource."
+
+      REVISION    "201001111200Z"
+      DESCRIPTION "Updated description for tnSysConfiguredSnmpSource."
+
+      REVISION    "201006221200Z"
+      DESCRIPTION "Added tnSysSecurity attributes."
+
+      REVISION    "201010181200Z"
+      DESCRIPTION "Marked the following as obsolete:
+                   tnSysDiscoveryTFTPServer
+                   tnSysDiscoveryNMSMask
+                   tnSysFeatureWavelengthTracker."
+
+      REVISION    "201011111200Z"
+      DESCRIPTION "Added tnSysName."
+
+      REVISION    "201103151200Z"
+      DESCRIPTION "1) Marked tnSysSslCertTransferStatus as obsolete.
+                   2) Updated range of tnSysSslKeyModulus to (512, 2048).
+                   3) Defined AluWdmSslOperationStatus.
+                   4) Added the following SSL attributes:
+                      tnSysSslCsrUploadStatus,
+                      tnSysSslCertDownloadStatus,
+                      tnSysSslCertInstallStatus,
+                      tnSysSslCsrGenerationStatus."
+
+      REVISION    "201103171200Z"
+      DESCRIPTION "Added the following tables:
+                   tnSysIpAclSysDefault,
+                   tnSysIpAclPatternTable,
+                   tnSysIpAclFilterTable,
+                   tnSysIpAclInterfaceTable."
+
+      REVISION    "201103281200Z"
+      DESCRIPTION "Added tnSysTransferLog attributes."
+
+      REVISION    "201104251200Z"
+      DESCRIPTION "1) Added tnSysNtpClockMode.
+                   2) Added tnSysNtpServerIdStatsTable."
+
+      REVISION    "201105231200Z"
+      DESCRIPTION "1) Added tnSysEquipmentControllerCapacity.
+                   2) Added DEFVAL for the following attributes:
+                      tnSysRingID, 0
+                      tnSysNetworkElementID, 0
+                      tnSysAINSDebounceTime, 600
+                      tnSysWavelengthTrackerWaveKeySpace, 0."
+
+      REVISION    "201106031200Z"
+      DESCRIPTION "1) Added the following attributes:
+                      tnSysFirstLevelControllerCapacity
+                      tnSysMatrix0CompactCapacity
+                      tnSysUniversalMatrixFirstLevelControllerCapacity.
+                   2) Added status strings for tnSysBackupAndRestoreStatus."
+
+      REVISION    "201106211200Z"
+      DESCRIPTION "1) Added the following scalars:
+                      tnSysTimeOffsetTimeZone.
+                      tnSysLastOperationTimeStamp
+                      tnSysOperationPercentCompleted.
+                   2) Marked the following NTP scalars as deprecated:
+                      tnSysNtpTimeOffsetHours
+                      tnSysNtpTimeOffsetMinutes
+                      tnSysNtpTimeOffsetTimeZone
+                      tnSysNtpScale
+                      tnSysNtpDaylightSavingsTimeConfigured."
+
+      REVISION    "201108121200Z"
+      DESCRIPTION "1) Updated description of the following attributes:
+                      tnSysDiscoveryServerPassword
+                      tnSysBackupAndRestorePassword
+                      tnSysSslCertTransferRemotePassword
+                      tnSysTransferLogPassword.
+                   2) Marked the following NTP scalars as obsolete:
+                      tnSysNtpTimeOffsetHours
+                      tnSysNtpTimeOffsetMinutes
+                      tnSysNtpTimeOffsetTimeZone
+                      tnSysNtpScale
+                      tnSysNtpDaylightSavingsTimeConfigured."
+
+      REVISION    "201109301200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysConfiguredOcsIpAddress
+                   tnSysFeatureFastServiceSetup."
+
+      REVISION    "201110241200Z"
+      DESCRIPTION "Added the following scalar:
+                   tnSysIpAclPatternSrcPort."
+
+      REVISION    "201201121200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysFtpServerEnabled
+                   tnSysFtpServerUserId
+                   tnSysFtpServerPassword."
+
+      REVISION    "201202161200Z"
+      DESCRIPTION "Added the following scalar:
+                   tnSysSwitchId."
+
+      REVISION    "201205181200Z"
+      DESCRIPTION "Marked the following as obsolete:
+                   tnSysNtpDrift
+                   tnSysNtpTimeOffset."
+
+      REVISION    "201301161200Z"
+      DESCRIPTION "1) Added tnSysNtpServerAuthenticationTable.
+                   2) Added the following to tnSysNtpServerTable:
+                      tnSysNtpServerKeyIndex.
+                   3) Added the following to tnSysNtpServerIdStatsTable:
+                      tnSysNtpServerIdStatsKeyIndex."
+
+      REVISION    "201301201200Z"
+      DESCRIPTION "1) Added the following to tnSysIpAclPatternTable:
+                      tnSysIpAclPatternSystemDefault.
+                   2) Added the following to tnSysIpAclFilterTable:
+                      tnSysIpAclFilterSystemDefault.
+                   3) Added the following to tnSysIpAclInterfaceTable:
+                      tnSysIpAclInterfaceSystemDefault."
+
+      REVISION    "201301311200Z"
+      DESCRIPTION "Added the following table:
+                   tnSysIpAclNetIfFilterTable."
+
+      REVISION    "201303061200Z"
+      DESCRIPTION "1) Added the following to tnSysSecureMode:
+                      fips(4).
+                   2) Added the following to tnSysSecurityMode:
+                      fips(3)."
+
+      REVISION    "201303201200Z"
+      DESCRIPTION "1) Changed DESCRIPTION of tnSysDiscoveryMask from
+                      stage2(1), -- links       (unsupported)
+                      to
+                      stage2(1), -- ftp discovery.
+                   2) Added the following scalar:
+                      tnSysFipsSquelchMode."
+
+      REVISION    "201204171200Z"
+      DESCRIPTION "1) Added the following to tnSysTransferLogType:
+                      ualPartial(8).
+                   2) Added the following to tnSysTransferLogLastCommand:
+                      ualPartial(5).
+                   3) Added the following scalars:
+                      tnSysTransferLogWindowStart
+                      tnSysTransferLogWindowStop."
+
+      REVISION    "201304191200Z"
+      DESCRIPTION "Added the following to tnSysLoggingCLI and
+                   tnSysLoggingSNMP:
+                   level6Read(11),  -- crypto
+                   level6Write(12)  -- crypto."
+
+      REVISION    "201311201200Z"
+      DESCRIPTION "Added the following Table:
+                   tnNeDiscoveryTable."
+
+      REVISION    "201402261200Z"
+      DESCRIPTION "1) Marked the following as obsolete:
+                      tnSysOperationPercentCompleted
+                      tnSysLastOperationTimeStamp
+                      tnSysBackupAndRestoreRemotePort
+                      tnSysFeatureNetworkElementFaultCorrelation.
+                   2) Added DEFVAL to attributes."
+
+      REVISION    "201403041200Z"
+      DESCRIPTION "Added the following Table:
+                   tnSysOtdrScanSystemProfileTable."
+
+      REVISION    "201403301200Z"
+      DESCRIPTION "1) Changed SYNTAX of the following from (SIZE(0..255))
+                      to (SIZE(0..128)):
+                      tnSysDiscoveryServerUserId
+                      tnSysDiscoveryServerPassword
+                      tnSysBackupAndRestoreRemotePath
+                      tnSysBackupAndRestoreUserId
+                      tnSysBackupAndRestorePassword
+                      tnSysFtpServerUserId
+                      tnSysFtpServerPassword
+                      tnNeDiscoveryServerUserId
+                      tnNeDiscoveryServerPassword.
+                   2) Changed SYNTAX of the following from (SIZE(0..255))
+                      to (SIZE(0..32)):
+                      tnSysTransferLogUserId
+                      tnSysTransferLogPassword."
+
+      REVISION    "201404231200Z"
+      DESCRIPTION "1) Added the following to tnSysBasics:
+                      tnSysOtdrListOfFileNames
+                      tnSysOtdrFileCounts.
+                   2) Added the following to tnSysOtdrScanTransfer:
+                      tnSysOtdrScanTransferRemoteHostIp
+                      tnSysOtdrScanTransferCommand
+                      tnSysOtdrScanTransferRemotePath
+                      tnSysOtdrScanTransferStatus
+                      tnSysOtdrScanTransferFilename
+                      tnSysOtdrScanTransferProtocol
+                      tnSysOtdrScanTransferUserId
+                      tnSysOtdrScanTransferPassword."
+
+      REVISION    "201502201200Z"
+      DESCRIPTION "1) Added the following table:
+                      tnSshKeyTable.
+                   2) Updated the default value and description
+                      for tnSysSshKeyModulus."
+
+      REVISION    "201507131200Z"
+      DESCRIPTION "1) Added the following table:
+                      tnClusterTable."
+
+      REVISION    "201507121200Z"
+      DESCRIPTION "1)Changed the SYNTAX and removed the DEFVAL of the following:
+                      tnClusterRowStatus.
+                   2)Changed the MAX-ACCESS of the following:
+                      tnClusterFarEndNode"
+
+      REVISION    "201509161200Z"
+      DESCRIPTION "1) Added the following to tnSysBasics:
+                      tnSysAltitude."
+
+      REVISION    "201509301200Z"
+      DESCRIPTION "1) Added the following to tnClusterTable:
+                      tnClusterlinkStatus."
+
+      REVISION    "201511171200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysConfiguredOcs2IpAddress
+                   tnSysConfiguredOcs3IpAddress."
+
+      REVISION    "201512031200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysOcs1LinkStatus
+                   tnSysOcs2LinkStatus
+                   tnSysOcs3LinkStatus."
+
+      REVISION    "201512101200Z"
+      DESCRIPTION "Added the following to tnSysBasics:
+                   tnSysThermalShutdownAutotimer."
+
+      REVISION    "201512171200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysConfiguredRadiusSource." 
+
+      REVISION    "201601271200Z"
+      DESCRIPTION "Changed the range of tnSysThermalShutdownAutotimer:
+                   From (0..3600) To (-1..3600)."
+
+      REVISION    "201602011200Z"
+      DESCRIPTION "Added tnSysPmFetchBulk attributes."
+
+      REVISION    "201602261200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysConfiguredLoopbackIp1
+                   tnSysConfiguredLoopbackIp1SubnetMask
+                   tnSysConfiguredSnmpSource1
+                   tnSysConfiguredRadiusSource1."
+
+      REVISION    "201603021200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysPmFetchBulkShelfNum."
+
+      REVISION    "201603041200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysLoopbackIpAddress1,
+                   tnSysLoopbackIp1SubnetMask"
+
+      REVISION    "201603301200Z"
+      DESCRIPTION "1) Added the following to tnSysSecureMode:
+                      anssi(5). 
+                   2) Added the following to tnSysSecurityMode:
+                      anssi(4)."
+
+      REVISION    "201604011200Z"
+      DESCRIPTION "Added the following scalars:
+                   tnSysDisplayShelfLabel." 
+
+      ::= { tnSystemModules 1 }
+
+  tnSystemConf                  OBJECT IDENTIFIER ::= { tnSystemMIB 1 }
+  tnSystemGroups                OBJECT IDENTIFIER ::= { tnSystemConf 1 }
+  tnSystemCompliances           OBJECT IDENTIFIER ::= { tnSystemConf 2 }
+  tnSystemObjs                  OBJECT IDENTIFIER ::= { tnSystemMIB 2 }
+  tnSysBasics                   OBJECT IDENTIFIER ::= { tnSystemObjs 1 }
+  tnSysControlNetwork           OBJECT IDENTIFIER ::= { tnSystemObjs 2 }
+  tnSysRedundancy               OBJECT IDENTIFIER ::= { tnSystemObjs 3 }
+  tnSysDiscovery                OBJECT IDENTIFIER ::= { tnSystemObjs 4 }
+  tnSysLogging                  OBJECT IDENTIFIER ::= { tnSystemObjs 5 }
+  tnSysBackupAndRestore         OBJECT IDENTIFIER ::= { tnSystemObjs 6 }
+  tnSysNtp                      OBJECT IDENTIFIER ::= { tnSystemObjs 7 }
+  tnSysNtpServers               OBJECT IDENTIFIER ::= { tnSystemObjs 8 }
+  tnSnmpTargetAddresses         OBJECT IDENTIFIER ::= { tnSystemObjs 9 }
+  tnSyslog                      OBJECT IDENTIFIER ::= { tnSystemObjs 10 }
+  tnSysTiming                   OBJECT IDENTIFIER ::= { tnSystemObjs 11 }
+  tnSysFeatures                 OBJECT IDENTIFIER ::= { tnSystemObjs 12 }
+  tnSysFaultCorrelation         OBJECT IDENTIFIER ::= { tnSystemObjs 13 }
+  tnSysErrorHandling            OBJECT IDENTIFIER ::= { tnSystemObjs 14 }
+  tnSysSecurity                 OBJECT IDENTIFIER ::= { tnSystemObjs 15 }
+  tnSysSsh                      OBJECT IDENTIFIER ::= { tnSysSecurity 2 }
+  tnSysSsl                      OBJECT IDENTIFIER ::= { tnSysSecurity 3 }
+  tnSysTransferLog              OBJECT IDENTIFIER ::= { tnSystemObjs 16 }
+  tnSysAccessControlList        OBJECT IDENTIFIER ::= { tnSystemObjs 17 }
+  tnSysIpAclSysDefault          OBJECT IDENTIFIER ::= { tnSysAccessControlList 1 }
+  tnSysNtpServerIdStats         OBJECT IDENTIFIER ::= { tnSystemObjs 18 }
+  tnSysFtpServer                OBJECT IDENTIFIER ::= { tnSystemObjs 19 }
+  tnSysNtpServerAuthentication  OBJECT IDENTIFIER ::= { tnSystemObjs 20 }
+  tnNeDiscovery                 OBJECT IDENTIFIER ::= { tnSystemObjs 21 }
+  tnSysOtdrScan                 OBJECT IDENTIFIER ::= { tnSystemObjs 22 }
+  tnSysOtdrScanSystemProfile    OBJECT IDENTIFIER ::= { tnSysOtdrScan 1 }
+  tnSysOtdrScanTransfer         OBJECT IDENTIFIER ::= { tnSysOtdrScan 2 }
+  tnSysKey                      OBJECT IDENTIFIER ::= { tnSysSecurity 4 }
+  tnClusterObjs                 OBJECT IDENTIFIER ::= { tnSystemObjs 23 }
+  tnSysPmFetchBulk              OBJECT IDENTIFIER ::= { tnSystemObjs 24 }
+
+--------------------------------------------------------------------------------
+-- Type Definitions
+--------------------------------------------------------------------------------
+    TropicSysTimingReferenceQuality ::= TEXTUAL-CONVENTION
+        STATUS         current
+        DESCRIPTION    ""
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         prs(2),       -- SONET, Stratum 1 Traceable
+                         stu(3),       -- SONET, Synchronized - Traceability Unknown
+                         st2(4),       -- SONET, Stratum 2 Traceable
+                         tnc(5),       -- SONET, Transit Node Clock Traceable
+                         st3e(6),      -- SONET, Stratum 3E Traceable
+                         st3(7),       -- SONET, Stratum 3 Traceable
+                         smc(8),       -- SONET, SONET Minimum Clock Traceable
+                         st4(9),       -- SONET, Stratum 4 Traceable
+                         dus(10),      -- SONET, DON'T USE for Synchronization
+                         prc(11),      -- SDH, PRC Clock G.811
+                         ssua(12),     -- SDH, Type I or V SSU clock G.812
+                         ssub(13),     -- SDH, Type VI SSU clock G.812
+                         sec(14),      -- SDH, SEC clock G.813 option 1
+                         dnu(15)       -- SDH, DON'T USE for Synchronization
+                       }
+
+    TropicSysTimingReferenceTimingMode ::= TEXTUAL-CONVENTION
+        STATUS         current
+        DESCRIPTION    ""
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         external(2),
+                         line(3),
+                         through(4),
+                         loop(5),
+                         local(6)
+                       }
+
+    AluWdmSslOperationStatus ::= TEXTUAL-CONVENTION
+        STATUS         current
+        DESCRIPTION    "SSL operation status."
+        SYNTAX         INTEGER {
+                         completed(1),
+                         inProgress(2),
+                         failed(3),
+                         none(4)
+                       }
+
+    AluWdmTransferStatus ::= TEXTUAL-CONVENTION
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the status of the
+                        previously executed transfer command operation."
+        SYNTAX         INTEGER {
+                         none(1),
+                         completed(2),
+                         inProgress(3),
+                         failure(4),
+                         failTimeout(5)
+                       }
+
+    AluWdmOcsLinkStatus ::= TEXTUAL-CONVENTION
+        STATUS         current
+        DESCRIPTION    "OCS node link status."
+        SYNTAX         INTEGER {
+                         up(1),
+                         down(2),
+                         notConnected(3)
+                       }
+
+--------------------------------------------------------------------------------
+-- Object Definitions
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+--  Basics
+--------------------------------------------------------------------------------
+    tnSysDescr OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "System's Description."
+        DEFVAL         { "" }
+        ::= { tnSysBasics 1 }
+
+    tnSysTelnetPort OBJECT-TYPE
+        SYNTAX         Unsigned32 (1..65535)
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "System's Telnet Port."
+        DEFVAL         { 23 }
+        ::= { tnSysBasics 2 }
+
+    tnSysHttpPort OBJECT-TYPE
+        SYNTAX         Unsigned32 (1..65535)
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "System's Http Port."
+        DEFVAL         { 80 }
+        ::= { tnSysBasics 3 }
+
+    tnSysDateAndTime OBJECT-TYPE
+        SYNTAX         DateAndTime
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "System's Date and Time."
+        ::= { tnSysBasics 4 }
+
+    tnSysReset OBJECT-TYPE
+        SYNTAX         TropicResetType
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "System reset."
+        DEFVAL         { noCmd }
+        ::= { tnSysBasics 5 }
+
+    tnSysMIBVersion OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The current version of the Nokia
+                        proprietary MIBs."
+        ::= { tnSysBasics 6 }
+
+    tnSysRingID OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Current configurable range: 0 to 62."
+        DEFVAL         { 0 }
+        ::= { tnSysBasics 7 }
+
+    tnSysNetworkElementID OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Current configurable range: 0 to 30."
+        DEFVAL         { 0 }
+        ::= { tnSysBasics 8 }
+
+    tnSysAINSDebounceTime OBJECT-TYPE
+        SYNTAX         Unsigned32
+        UNITS          "seconds"
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attribute must be set in multiples of 60s.
+
+                        Current configurable range: 1m to 96h 0m."
+        DEFVAL         { 600 }
+        ::= { tnSysBasics 9 }
+
+    tnSysSonetSdhMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         sonet(1),
+                         sdh(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Sonet/SDH Mode."
+        DEFVAL         { sonet }
+        ::= { tnSysBasics 10 }
+
+    tnSysAlarmReportingControl OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         released(2),
+                         indefiniteInhibition(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Alarm reporting control."
+        DEFVAL         { indefiniteInhibition }
+        ::= { tnSysBasics 11 }
+
+    tnSysWavelengthTrackerWaveKeySpace OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Current configurable range: 0 to 255."
+        DEFVAL         { 0 }
+        ::= { tnSysBasics 12 }
+
+    tnSysSecureMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         nonSecure(2),
+                         secure(3),
+                         fips(4),
+                         anssi(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Secure mode inherited from 1696R.  For 1830
+                        secure mode, use tnSysSecurityMode."
+        DEFVAL         { nonSecure }
+        ::= { tnSysBasics 13 }
+
+--    obsolete
+--    tnSysMinPasswordLength OBJECT-TYPE ::= { tnSysBasics 14 }
+--    tnSysMaxPasswordLength OBJECT-TYPE ::= { tnSysBasics 15 }
+
+    tnSysExtendedTemperatureRange OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Extended temperature range for 1830 PSS-1."
+        DEFVAL         { true }
+        ::= { tnSysBasics 16 }
+
+    tnSysTemperatureInCelsius OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { true }
+        ::= { tnSysBasics 17 }
+
+    tnSysName OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This is to replace sysName, so that the system ID
+                        may have characters outside of those supported by
+                        DisplayString."
+        DEFVAL         { "" }
+        ::= { tnSysBasics 18 }
+
+    tnSysEquipmentControllerCapacity OBJECT-TYPE
+        SYNTAX         AluWdmCardCapacity
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The capacity of the storage medium of the
+                        Equipment Controller cards in the node."
+        DEFVAL         { unknownCapacity }
+        ::= { tnSysBasics 19 }
+
+    tnSysFirstLevelControllerCapacity OBJECT-TYPE
+        SYNTAX         AluWdmCardCapacity
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The capacity of the storage medium of the
+                        First Level Controller cards in the node."
+        DEFVAL         { unknownCapacity }
+        ::= { tnSysBasics 20 }
+
+    tnSysMatrix0CompactCapacity OBJECT-TYPE
+        SYNTAX         AluWdmCardCapacity
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The capacity of the storage medium of the
+                        Matrix0 Compact cards in the node."
+        DEFVAL         { unknownCapacity }
+        ::= { tnSysBasics 21 }
+
+    tnSysUniversalMatrixFirstLevelControllerCapacity OBJECT-TYPE
+        SYNTAX         AluWdmCardCapacity
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The capacity of the storage medium of the
+                        Universal Matrix First Level Controller
+                        cards in the node."
+        DEFVAL         { unknownCapacity }
+        ::= { tnSysBasics 22 }
+
+    tnSysTimeOffsetTimeZone OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysBasics 23 }
+
+--    obsolete
+--    tnSysOperationPercentCompleted OBJECT-TYPE ::= { tnSysBasics 24 }
+--    tnSysLastOperationTimeStamp OBJECT-TYPE ::= { tnSysBasics 25 }
+
+    tnSysSwitchId OBJECT-TYPE
+        SYNTAX         TnSwitchID
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An identifier that uniquely identifies a switching
+                        domain on the PSS."
+        ::= { tnSysBasics 26 }
+
+    tnSysFipsSquelchMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         nonFips(1),
+                         fips(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "FIPS Squelch mode.  If set to FIPS, it causes
+                        transmission loss on all encrypted links if
+                        FIPS selftest fails."
+        DEFVAL         { nonFips }
+        ::= { tnSysBasics 27 }
+
+    tnSysOtdrListOfFileNames OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..2047))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This contains a list of all the OTDR file names
+                        that are stored on NE.  The maximum number of
+                        files is 32.  The file names are separated by
+                        newlines.  The format of a file name is:
+
+                        Filenamewhichis34charslong_sh_sl_pt_yyyymmdd_hr-min-sec
+
+                        Here is an example:
+
+                        profile1_1_6_1_20140416_21-20-3."
+        ::= { tnSysBasics 28 }
+
+    tnSysOtdrFileCounts OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This returns the number of files under OTDR."
+        ::= { tnSysBasics 29 }
+
+    tnSysAltitude OBJECT-TYPE
+        SYNTAX         Unsigned32(0..8000)
+        UNITS          "meters"
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This is used for FAN control and for filter clogging rate calculation."
+        DEFVAL         { 0 }
+        ::= { tnSysBasics 30 }
+
+    tnSysThermalShutdownAutotimer OBJECT-TYPE
+        SYNTAX         INTEGER(-1..3600)
+        UNITS          "seconds"
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Configures the time when the mode of thermal is automatically restarted."
+        DEFVAL         { 900 }
+        ::= { tnSysBasics 31 }
+
+    tnSysDisplayShelfLabel OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSysBasics 32 }
+
+--------------------------------------------------------------------------------
+--  Control Network
+--------------------------------------------------------------------------------
+    tnSysIpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "System's IP Address."
+        DEFVAL         { "172.16.1.1" }
+        ::= { tnSysControlNetwork 1 }
+
+    tnSysSubnetMask OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Subnet Mask."
+        DEFVAL         { "255.255.255.255" }
+        ::= { tnSysControlNetwork 2 }
+
+    tnSysConfiguredIpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "172.16.1.1" }
+        ::= { tnSysControlNetwork 3 }
+
+    tnSysConfiguredSubnetMask OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "255.255.255.255" }
+        ::= { tnSysControlNetwork 4 }
+
+    tnSysConfiguredSnmpSource OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "When set to false, SNMP requests can be made
+                        using any of the NEs interface IP addresses or
+                        Loopback IP address.  The source IP address in
+                        SNMP trap/reply messages shall be the interface
+                        IP address on which the packet leaves the NE.
+                        Hence it is the SNMP clients responsibility to
+                        be able to associate an NE with multiple IP
+                        addresses.
+
+                        When set to true, SNMP requests can be made
+                        using ONLY the NEs Loopback IP address.  The
+                        source IP address in SNMP trap/reply messages
+                        shall be fixed as the Loopback IP.  Hence SNMP
+                        clients need only have a single association to
+                        the NEs Loopback IP address."
+        DEFVAL         { false }
+        ::= { tnSysControlNetwork 5 }
+
+    tnSysConfiguredOcsIpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Optical Cross-connect System (OCS) IP address.
+
+                        R9.0:
+                        we now support two OCS Nodes(WDMx2OCS) and
+                        this mib is meant for OCS node"
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysControlNetwork 6 }
+
+    tnSysConfiguredOcs2IpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Optical Cross-connect System (OCS) IP address.
+
+                        R9.0:
+                        we now support upto three OCS Nodes(WDMx3OCS) and
+                        this mib is meant for 2nd OCS node."
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysControlNetwork 7 }
+
+    tnSysConfiguredOcs3IpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Optical Cross-connect System (OCS) IP address.
+ 
+                        R9.0:
+                        we now support upto three OCS Nodes(WDMx3OCS) and
+                        this mib is meant for 3rd OCS node."
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysControlNetwork 8 }
+
+    tnSysOcs1LinkStatus OBJECT-TYPE
+        SYNTAX         AluWdmOcsLinkStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Shows the link status of 1st Optical Cross-connect
+                        System(OCS)."
+        ::= { tnSysControlNetwork 9 }
+
+    tnSysOcs2LinkStatus OBJECT-TYPE
+        SYNTAX         AluWdmOcsLinkStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Shows the link status of 2nd Optical Cross-connect
+                        System(OCS)."
+        ::= { tnSysControlNetwork 10 }
+
+    tnSysOcs3LinkStatus OBJECT-TYPE
+        SYNTAX         AluWdmOcsLinkStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Shows the link status of 3rd Optical Cross-connect
+                        System(OCS)."
+        ::= { tnSysControlNetwork 11 }
+
+    tnSysConfiguredRadiusSource OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "When set to true, the radius client will only use 
+                        the Loopback IP."
+        DEFVAL         { false }
+        ::= { tnSysControlNetwork 12 }
+
+    tnSysConfiguredLoopbackIp1 OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysControlNetwork 13 }
+
+    tnSysConfiguredLoopbackIp1SubnetMask OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysControlNetwork 14 }
+
+    tnSysConfiguredSnmpSource1 OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "When set to false, SNMP requests can be made
+                        using any of the NEs interface IP addresses or
+                        Loopback IP address.  The source IP address in
+                        SNMP trap/reply messages shall be the interface
+                        IP address on which the packet leaves the NE.
+                        Hence it is the SNMP clients responsibility to
+                        be able to associate an NE with multiple IP
+                        addresses.
+
+                        When set to true, SNMP requests can be made
+                        using ONLY the NEs Loopback IP1 address.  The
+                        source IP address in SNMP trap/reply messages
+                        shall be fixed as the Loopback IP1.  Hence SNMP
+                        clients need only have a single association to
+                        the NEs Loopback IP1 address."
+        DEFVAL         { false }
+        ::= { tnSysControlNetwork 15 }
+
+    tnSysConfiguredRadiusSource1 OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "When set to true, the radius client will only use
+                        the Loopback IP1."
+        DEFVAL         { false }
+        ::= { tnSysControlNetwork 16 }
+
+    tnSysLoopbackIpAddress1 OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysControlNetwork 17 }
+
+    tnSysLoopbackIp1SubnetMask OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysControlNetwork 18 }
+
+--------------------------------------------------------------------------------
+--  Redundancy
+--------------------------------------------------------------------------------
+    tnSysRedundancyDbSynchState OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         notSynched(1),
+                         synched(2),
+                         synching(3),
+                         unSynchable(4),
+                         synchFailure(5),
+                         schemaTesting(6)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { notSynched }
+        ::= { tnSysRedundancy 1 }
+
+    tnSysRedundancyDbResynch OBJECT-TYPE
+        SYNTAX         TnCommand
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { noCmd }
+        ::= { tnSysRedundancy 2 }
+
+    tnSysRedundancyDbAudit OBJECT-TYPE
+        SYNTAX         TnCommand
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { noCmd }
+        ::= { tnSysRedundancy 3 }
+
+    tnSysRedundancyDbClear OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         execute(2),
+                         executeAndClearSonetSdhMode(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { noCmd }
+        ::= { tnSysRedundancy 4 }
+
+    tnSysRedundancyActiveCCSlot OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 1 }
+        ::= { tnSysRedundancy 5 }
+
+    tnSysRedundancyDbInvalid OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSysRedundancy 6 }
+
+    tnSysRedundancyMateCCReadyToProtect OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSysRedundancy 7 }
+
+--------------------------------------------------------------------------------
+--  System Discovery
+--------------------------------------------------------------------------------
+--    obsolete
+--    tnSysDiscoveryTFTPServer OBJECT-TYPE ::= { tnSysDiscovery 1 }
+
+    tnSysDiscoveryFilename OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "./remote-file" }
+        ::= { tnSysDiscovery 2 }
+
+    tnSysDiscoveryMask OBJECT-TYPE
+        SYNTAX         BITS {
+                         stage1(0), -- equipment   (unsupported)
+                         stage2(1), -- ftp discovery
+                         stage3(2), -- alarms      (alarm config)
+                         stage4(3), -- alarms      (active alarms)
+                         stage5(4), -- statistics  (binned counts)
+                         stage6(5), -- statistics  (raw counts)
+                         stage7(6)  -- statistics  (TCAs)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "For a newly commissioned network element, the
+                        default bit set is stage5."
+        DEFVAL         { stage5 }
+        ::= { tnSysDiscovery 3 }
+
+    tnSysDiscoveryControl OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         start(2),
+                         abort(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Controls the Discovery, i.e., starts or aborts it."
+        DEFVAL         { noCmd }
+        ::= { tnSysDiscovery 4 }
+
+    tnSysDiscoveryStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         idle(1),
+                         inProgress(2),
+                         completedSuccessfully(3),
+                         failed(4),
+                         aborted(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { idle }
+        ::= { tnSysDiscovery 5 }
+
+    tnSysDiscoveryErrorCode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noError(1),
+                         unknown(2),
+                         timeout(3),
+                         serverError(4),
+                         networkError(5),
+                         fileSystemError(6),
+                         statsBinsRolled(7)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { noError }
+        ::= { tnSysDiscovery 6 }
+
+--    obsolete
+--    tnSysDiscoveryNMSMask OBJECT-TYPE ::= { tnSysDiscovery 7 }
+
+    tnSysDiscoveryBinnedStatsInterval OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 0 }
+        ::= { tnSysDiscovery 8 }
+
+    tnSysDiscoveryBinnedStatsBin OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 0 }
+        ::= { tnSysDiscovery 9 }
+
+    tnSysDiscoveryServerProtocol OBJECT-TYPE
+        SYNTAX         AluWdmTransferProtocol
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attributes indicates the server protocol."
+        DEFVAL         { tftp }
+        ::= { tnSysDiscovery 10 }
+
+    tnSysDiscoveryServerIp OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysDiscovery 11 }
+
+    tnSysDiscoveryServerUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The userId used to access the server."
+        DEFVAL         { "" }
+        ::= { tnSysDiscovery 12 }
+
+    tnSysDiscoveryServerPassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The password used to access the server.
+
+                        When read, this attribute will return an empty
+                        string if the password has not been set and
+                        '********' if it has been set."
+        DEFVAL         { "" }
+        ::= { tnSysDiscovery 13 }
+
+--------------------------------------------------------------------------------
+--  Logging
+--------------------------------------------------------------------------------
+    tnSysLoggingCLI OBJECT-TYPE
+        SYNTAX         BITS {
+                         disableAllLogging(0),
+                         level1Read(1),
+                         level1Write(2),
+                         level2Read(3),   -- admin
+                         level2Write(4),  -- admin
+                         level3Read(5),   -- provisioner
+                         level3Write(6),  -- provisioner
+                         level4Read(7),   -- service
+                         level4Write(8),  -- service
+                         level5Read(9),   -- observer
+                         level5Write(10), -- observer
+                         level6Read(11),  -- crypto
+                         level6Write(12)  -- crypto
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Each bit represents whether the appropriate
+                        logging is activated for each CLI security
+                        level."
+        ::= { tnSysLogging 1 }
+
+    tnSysLoggingSNMP OBJECT-TYPE
+        SYNTAX         BITS {
+                         disableAllLogging(0),
+                         level1Read(1),   -- nms
+                         level1Write(2),  -- nms
+                         level2Read(3),   -- admin
+                         level2Write(4),  -- admin
+                         level3Read(5),   -- provisioner
+                         level3Write(6),  -- provisioner
+                         level4Read(7),   -- service
+                         level4Write(8),  -- service
+                         level5Read(9),   -- observer
+                         level5Write(10), -- observer
+                         level6Read(11),  -- crypto
+                         level6Write(12)  -- crypto
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Each bit represents whether the appropriate
+                        logging is activated for each SNMP security
+                        level."
+        ::= { tnSysLogging 2 }
+
+--------------------------------------------------------------------------------
+--  Backup And Restore
+--------------------------------------------------------------------------------
+    tnSysBackupAndRestoreCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         backupToRemote(2),
+                         restoreFromRemote(3),
+                         restoreForceFromRemote(4)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { noCmd }
+        ::= { tnSysBackupAndRestore 1 }
+
+    tnSysBackupAndRestoreRemoteHostIp OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysBackupAndRestore 2 }
+
+    tnSysBackupAndRestoreRemotePath OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "" }
+        ::= { tnSysBackupAndRestore 3 }
+
+    tnSysBackupAndRestoreStatus OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the status of the
+                        previously executed tnSysBackupAndRestoreCommand
+                        operation.  Here are the status strings:
+
+                        * Success
+                        * Failed - no such record instance
+                        * Failed - timed out
+                        * Failed - invalid record size
+                        * Failed - invalid record type
+                        * Remote backup in progress
+                        * Remote restore in progress
+                        * Failed - remote path exceeds the max length
+                            of 127 characters
+                        * Failed - for restore the remote path must
+                            specify a file
+                        * Failed - restored database was corrupt or
+                            was created on a different node
+                        * Failed - cannot backup or restore while
+                            operation already in progress
+                        * Failed - backup or restore failed to complete
+                            due to a reset
+                        * Failed - restored database missing GMRE
+                            database (forced to override)
+                        * Failed - local error
+                        * Failed - network error
+                        * Failed - Remote server error
+                        * Failed - invalid database backup file
+                        * Failed - Invalid remote server IP address not set
+                        * Failed - Error
+                        * Failed - Authorization failed
+                        * Failed - File permission(s) failed
+                        * Failed - <Unknown database error code>"
+        DEFVAL         { "" }
+        ::= { tnSysBackupAndRestore 4 }
+
+    tnSysBackupAndRestoreLastBackupFilename OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the filename for the
+                        last backup performed on the node.  If none
+                        exists, this attribute will return an empty
+                        string.  If a backup is in progress, this
+                        attribute will return an empty string."
+        DEFVAL         { "" }
+        ::= { tnSysBackupAndRestore 5 }
+
+    tnSysBackupAndRestoreLastCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCommand(1),
+                         unknown(2),
+                         backupToRemote(3),
+                         restoreFromRemote(4)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This is the last backup and restore command
+                        executed.  If the last operation is unknown,
+                        the value of this attribute will be unknown.
+                        If a backup and restore command has not been
+                        executed since the last node reset, the value
+                        of this attribute will be noCommand."
+        DEFVAL         { noCommand }
+        ::= { tnSysBackupAndRestore 6 }
+
+    tnSysBackupAndRestorePercentCompleted OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The percent completion of the previously
+                        executed operation."
+        DEFVAL         { 0 }
+        ::= { tnSysBackupAndRestore 7 }
+
+    tnSysBackupAndRestoreLastBackupFileTimeStamp OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The date and time when the last backup was
+                        completed."
+        DEFVAL         { 0 }
+        ::= { tnSysBackupAndRestore 8 }
+
+    tnSysBackupAndRestoreProtocol OBJECT-TYPE
+        SYNTAX         AluWdmTransferProtocol
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attributes indicates the database Backup
+                        and restore protocol."
+        DEFVAL         { tftp }
+        ::= { tnSysBackupAndRestore 9 }
+
+    tnSysBackupAndRestoreUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The userId used to access the backup and restore
+                        server."
+        DEFVAL         { "" }
+        ::= { tnSysBackupAndRestore 10 }
+
+    tnSysBackupAndRestorePassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The password used to access the backup and
+                        restore server.
+
+                        When read, this attribute will return an empty
+                        string if the password has not been set and
+                        '********' if it has been set."
+        DEFVAL         { "" }
+        ::= { tnSysBackupAndRestore 11 }
+
+    tnSysBackupAndRestoreLastBackupFileCrc OBJECT-TYPE
+        SYNTAX         SnmpAdminString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "32-bit Cyclic Redundancy Code calculated over
+                        the backed-up data."
+        DEFVAL         { "" }
+        ::= { tnSysBackupAndRestore 12 }
+
+--    obsolete
+--    tnSysBackupAndRestoreRemotePort OBJECT-TYPE ::= { tnSysBackupAndRestore 13 }
+
+--------------------------------------------------------------------------------
+-- NTP - Network Time Protocol
+--------------------------------------------------------------------------------
+    tnSysNtpEnable OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "To enable or disable NTP client."
+        DEFVAL         { false }
+        ::= { tnSysNtp 1 }
+
+--    obsolete
+--    tnSysNtpTimeOffsetHours OBJECT-TYPE ::= { tnSysNtp 2 }
+--    tnSysNtpTimeOffsetMinutes OBJECT-TYPE ::= { tnSysNtp 3 }
+--    tnSysNtpTimeOffsetTimeZone OBJECT-TYPE ::= { tnSysNtp 4 }
+--    tnSysNtpDrift OBJECT-TYPE ::= { tnSysNtp 5 }
+--    tnSysNtpTimeOffset OBJECT-TYPE ::= { tnSysNtp 6 }
+--    tnSysNtpScale OBJECT-TYPE ::= { tnSysNtp 7 }
+
+    tnSysNtpSynched OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSysNtp 8 }
+
+    tnSysNtpServerCurrentIpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysNtp 9 }
+
+--    obsolete
+--    tnSysNtpDaylightSavingsTimeConfigured OBJECT-TYPE ::= { tnSysNtp 10 }
+
+    tnSysNtpDriftString OBJECT-TYPE
+        SYNTAX         OCTET STRING
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtp 11 }
+
+    tnSysNtpTimeOffsetString OBJECT-TYPE
+        SYNTAX         OCTET STRING
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtp 12 }
+
+    tnSysNtpClockMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         freeRun(1),
+                         holdOver(2),
+                         sync(3),
+                         syncRed(4)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "NTP clock mode."
+        DEFVAL         { freeRun }
+        ::= { tnSysNtp 13 }
+
+--------------------------------------------------------------------------------
+-- NTP Servers
+--------------------------------------------------------------------------------
+    tnSysNtpServerTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysNtpServerEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServers 1 }
+
+    tnSysNtpServerEntry OBJECT-TYPE
+        SYNTAX         TnSysNtpServerEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnSysNtpServerIndex }
+        ::= { tnSysNtpServerTable 1 }
+
+    TnSysNtpServerEntry ::= SEQUENCE {
+        tnSysNtpServerIndex         Unsigned32,
+        tnSysNtpServerIpAddress     IpAddress,
+        tnSysNtpServerRowStatus     RowStatus,
+        tnSysNtpServerKeyIndex      Unsigned32
+    }
+
+    tnSysNtpServerIndex OBJECT-TYPE
+        SYNTAX         Unsigned32 (1..4)
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "For the 1830 PSS-32, the maximum number of
+                        supported servers is 3."
+        ::= { tnSysNtpServerEntry 1 }
+
+    tnSysNtpServerIpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "This attribute is configurable only when the
+                        row status has been set to createAndGo."
+        ::= { tnSysNtpServerEntry 2 }
+
+    tnSysNtpServerRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerEntry 3 }
+
+    tnSysNtpServerKeyIndex OBJECT-TYPE
+        SYNTAX         Unsigned32 (0..65535)
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerEntry 4 }
+
+--------------------------------------------------------------------------------
+--  SNMP Target Addresses
+--------------------------------------------------------------------------------
+    tnSnmpTargetAddrTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSnmpTargetAddrEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSnmpTargetAddresses 1 }
+
+    tnSnmpTargetAddrEntry OBJECT-TYPE
+        SYNTAX         TnSnmpTargetAddrEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        AUGMENTS    { snmpTargetAddrEntry }
+        ::= { tnSnmpTargetAddrTable 1 }
+
+    TnSnmpTargetAddrEntry ::= SEQUENCE {
+        tnSnmpTargetAddrNmsStationGroupId Unsigned32
+    }
+
+    tnSnmpTargetAddrNmsStationGroupId OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSnmpTargetAddrEntry 1 }
+
+--------------------------------------------------------------------------------
+--  Syslog
+--------------------------------------------------------------------------------
+    tnSyslogIpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSyslog 1 }
+
+    tnSyslogPort OBJECT-TYPE
+        SYNTAX         Unsigned32 (1..65535)
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 514 }
+        ::= { tnSyslog 2 }
+
+    tnSyslogFacility OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         kern(1),
+                         user(2),
+                         mail(3),
+                         daemon(4),
+                         auth(5),
+                         syslog(6),
+                         lpr(7),
+                         news(8),
+                         uucp(9),
+                         cron(10),
+                         authPriv(11),
+                         ftp(12),
+                         local0(13),
+                         local1(14),
+                         local2(15),
+                         local3(16),
+                         local4(17),
+                         local5(18),
+                         local6(19),
+                         local7(20)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { local0 }
+        ::= { tnSyslog 3 }
+
+    tnSyslogPriority OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         emergency(1),
+                         alert(2),
+                         critical(3),
+                         error(4),
+                         warning(5),
+                         notice(6),
+                         info(7),
+                         debug(8)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { debug }
+        ::= { tnSyslog 4 }
+
+    tnSyslogEnabled OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSyslog 5 }
+
+--------------------------------------------------------------------------------
+--  System Timing
+--------------------------------------------------------------------------------
+    tnSysTimingPrimaryReference OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 0 }
+        ::= { tnSysTiming 1 }
+
+    tnSysTimingSecondaryReference OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 0 }
+        ::= { tnSysTiming 2 }
+
+    tnSysTimingLastSwitchTime OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 0 }
+        ::= { tnSysTiming 3 }
+
+    tnSysTimingControl OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         forceToPrimary(2),
+                         forceToSecondary(3),
+                         manualToPrimary(4),
+                         manualToSecondary(5),
+                         clear(6)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { clear }
+        ::= { tnSysTiming 4 }
+
+    tnSysTimingPrimaryReferenceStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         ok(2),
+                         manual(3),
+                         forced(4),
+                         failed(5),
+                         failedLOS(6),
+                         failedLOF(7),
+                         failedLOC(8),
+                         failedFreqOffset(9),
+                         failedAIS(10),
+                         failedSSM(11),
+                         qualifying(12)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 5 }
+
+    tnSysTimingSecondaryReferenceStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         ok(2),
+                         manual(3),
+                         forced(4),
+                         failed(5),
+                         failedLOS(6),
+                         failedLOF(7),
+                         failedLOC(8),
+                         failedFreqOffset(9),
+                         failedAIS(10),
+                         failedSSM(11),
+                         qualifying(12)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 6 }
+
+    tnSysTimingPrimaryReferenceQuality OBJECT-TYPE
+        SYNTAX         TropicSysTimingReferenceQuality
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 7 }
+
+    tnSysTimingSecondaryReferenceQuality OBJECT-TYPE
+        SYNTAX         TropicSysTimingReferenceQuality
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 8 }
+
+    tnSysTimingPrimaryReferenceTimingMode OBJECT-TYPE
+        SYNTAX         TropicSysTimingReferenceTimingMode
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 9 }
+
+    tnSysTimingSecondaryReferenceTimingMode OBJECT-TYPE
+        SYNTAX         TropicSysTimingReferenceTimingMode
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 10 }
+
+    tnSysTimingActiveReference OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         none(1),
+                         primary(2),
+                         secondary(3)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { none }
+        ::= { tnSysTiming 11 }
+
+    tnSysTimingClockingMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         normal(2),
+                         fastStart(3),
+                         holdOver(4),
+                         freeRun(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 12 }
+
+    tnSysTimingSwitchingMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         revertive(2),
+                         nonRevertive(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { nonRevertive }
+        ::= { tnSysTiming 13 }
+
+    tnSysTimingFreeRunSuppressAlarms OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSysTiming 14 }
+
+    tnSysTimingDs1FramingMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         sf(2),
+                         esf(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { esf }
+        ::= { tnSysTiming 15 }
+
+    tnSysTimingDs1LineCoding OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         ami(2),
+                         b8zs(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { b8zs }
+        ::= { tnSysTiming 16 }
+
+    tnSysTimingDs1SsmProcessing OBJECT-TYPE
+        SYNTAX         AluWdmEnabledDisabled
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { enabled }
+        ::= { tnSysTiming 17 }
+
+    tnSysTimingBitsAClockQuality OBJECT-TYPE
+        SYNTAX         TropicSysTimingReferenceQuality
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 18 }
+
+    tnSysTimingBitsBClockQuality OBJECT-TYPE
+        SYNTAX         TropicSysTimingReferenceQuality
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 19 }
+
+    tnSysTimingActiveLineTimingCable OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         notApplicable(2),
+                         none(3),
+                         a(4),
+                         b(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { unknown }
+        ::= { tnSysTiming 20 }
+
+    tnSysTimingBitSourceType OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         ds1(2),
+                         e1(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { ds1 }
+        ::= { tnSysTiming 21 }
+
+    tnSysTimingBitsAModuleType OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         ds1(2),
+                         e1(3)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { ds1 }
+        ::= { tnSysTiming 22 }
+
+    tnSysTimingBitsBModuleType OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         unknown(1),
+                         ds1(2),
+                         e1(3)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { ds1 }
+        ::= { tnSysTiming 23 }
+
+--------------------------------------------------------------------------------
+--  System Features
+--------------------------------------------------------------------------------
+--    obsolete
+--    tnSysFeatureWavelengthTracker OBJECT-TYPE ::= { tnSysFeatures 1 }
+--    tnSysFeatureNetworkElementFaultCorrelation OBJECT-TYPE ::= { tnSysFeatures 2 }
+
+    tnSysFeatureAutoTopology OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSysFeatures 3 }
+
+    tnSysFeaturePauseFlowControl OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         manual(1),
+                         negotiated(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { negotiated }
+        ::= { tnSysFeatures 4 }
+
+    tnSysFeatureIpUtilitiesRestricted OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { false }
+        ::= { tnSysFeatures 5 }
+
+    tnSysFeatureFastServiceSetup OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Enables or disables fast service setup feature."
+        DEFVAL         { false }
+        ::= { tnSysFeatures 6 }
+
+--------------------------------------------------------------------------------
+--  System Fault Correlation
+--------------------------------------------------------------------------------
+    tnSysFaultCorrelationTransientSuppression OBJECT-TYPE
+        SYNTAX         AluWdmEnabledDisabled
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attribute always returns a value of
+                        disabled.  Sets are not supported."
+        ::= { tnSysFaultCorrelation 1 }
+
+--------------------------------------------------------------------------------
+--  System Error Handling
+--------------------------------------------------------------------------------
+    tnSysSetRequestErrorMessage OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "If this attribute is set to any value and it
+                        is the first attribute in a multi-set request
+                        varbind list and one of the other attributes
+                        in the multi-set request varbind list failed
+                        to set, the response PDU will contain an error
+                        message.  The error message will be the value
+                        of attribute tnSysSetRequestErrorMessage in the
+                        response PDU.  If there are no set failures,
+                        the value of tnSysSetRequestErrorMessage in the
+                        response PDU will be unchanged.
+
+                        When read, this attribute will return an empty
+                        string."
+        DEFVAL         { "" }
+        ::= { tnSysErrorHandling 1 }
+
+--------------------------------------------------------------------------------
+--  Security Mode
+--------------------------------------------------------------------------------
+    tnSysSecurityMode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         normal(1),
+                         encrypted(2),
+                         fips(3),     
+                         anssi(4)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Security mode for 1830."
+        DEFVAL         { normal }
+        ::= { tnSysSecurity 1 }
+
+--------------------------------------------------------------------------------
+--  SSH
+--------------------------------------------------------------------------------
+    tnSysSshKeyType OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         dsa(1)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The secure shell key type.  Only DSA key
+                        generation is supported in the current release.
+
+                        Current configurable value: dsa."
+        DEFVAL         { dsa }
+        ::= { tnSysSsh 1 }
+
+    tnSysSshKeyModulus OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The secure shell modulus.  This is used for RSA
+                        key generation.
+
+                        Current supported range: 768-3072."
+        DEFVAL         { 1024 }
+        ::= { tnSysSsh 2 }
+
+    tnSysSshPublicKey OBJECT-TYPE
+        SYNTAX         OCTET STRING (SIZE(0..500))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The secure shell public key."
+        DEFVAL         { "" }
+        ::= { tnSysSsh 3 }
+
+    tnSysSshKeyCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         generate(2),
+                         delete(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Secure key command.  Note that the value
+                        retrieved from this attribute is always noCmd."
+        DEFVAL         { noCmd }
+        ::= { tnSysSsh 4 }
+
+    tnSysSshKeyGenerationStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         completed(1),
+                         inProgress(2),
+                         failed(3)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Status of the secure key generation."
+        DEFVAL         { completed }
+        ::= { tnSysSsh 5 }
+
+--------------------------------------------------------------------------------
+-- SSH KEY SCALAR
+--------------------------------------------------------------------------------
+    tnSshKeyAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Total no of attributes in tnSshKeyTable."
+        ::= { tnSysKey 1 }
+
+--------------------------------------------------------------------------------
+-- SSH KEY TABLE
+--------------------------------------------------------------------------------
+    tnSshKeyTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSshKeyEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysKey 2 }
+
+    tnSshKeyEntry OBJECT-TYPE
+        SYNTAX         TnSshKeyEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnSshKeyTypeIndex }
+        ::= { tnSshKeyTable 1 }
+
+    TnSshKeyEntry ::= SEQUENCE {
+        tnSshKeyTypeIndex          INTEGER,
+        tnSshPublicKey             OCTET STRING
+    }
+
+    tnSshKeyTypeIndex OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         dsa(1),
+			 rsa(2)
+                       }
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The secure shell key type."
+        ::= { tnSshKeyEntry 1 }
+
+    tnSshPublicKey OBJECT-TYPE
+        SYNTAX         OCTET STRING (SIZE(0..1024))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The secure shell public key."
+        DEFVAL         { "" }
+        ::= { tnSshKeyEntry 2 }
+
+--------------------------------------------------------------------------------
+--  SSL
+--------------------------------------------------------------------------------
+    tnSysSslKeyType OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         dsa(1),
+                         rsa(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL key type.  Only RSA key generation is
+                        supported in the current release.
+
+                        Current configurable value: rsa."
+        DEFVAL         { rsa }
+        ::= { tnSysSsl 1 }
+
+    tnSysSslKeyModulus OBJECT-TYPE
+        SYNTAX         Unsigned32 (512..2048)
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL key modulus.
+                        Pre-R3.6 range: (512, 4096)
+                        R3.6 range:     (512, 2048)."
+        DEFVAL         { 1024 }
+        ::= { tnSysSsl 2 }
+
+    tnSysSslPublicKey OBJECT-TYPE
+        SYNTAX         OCTET STRING (SIZE(0..2000))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The SSL public key."
+        ::= { tnSysSsl 3 }
+
+    tnSysSslKeyCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         generate(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "SSL key command.  Note that the value retrieved
+                        from this attribute is always noCmd."
+        DEFVAL         { noCmd }
+        ::= { tnSysSsl 4 }
+
+    tnSysSslKeyGenerationStatus OBJECT-TYPE
+        SYNTAX         AluWdmSslOperationStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Status of the SSL key generation."
+        DEFVAL         { completed }
+        ::= { tnSysSsl 5 }
+
+    tnSysSslCertTransferCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         uploadReq(2),
+                         downloadCert(3)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Command to upload SSL CSR or download certificate."
+        DEFVAL         { noCmd }
+        ::= { tnSysSsl 6 }
+
+--    obsolete
+--    tnSysSslCertTransferStatus OBJECT-TYPE ::= { tnSysSsl 7 }
+
+    tnSysSslCertTransferProtocol OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         ftp(1),
+                         sftp(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The protocol used for SSL CSR and certificate
+                        file transfers."
+        DEFVAL         { ftp }
+        ::= { tnSysSsl 8 }
+
+    tnSysSslCertTransferRemoteIp OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The server IP address for SSL CSR and
+                        certificate file transfers."
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysSsl 9 }
+
+    tnSysSslCertTransferRemotePath OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The path on server for SSL CSR and certificate
+                        file transfers."
+        DEFVAL         { "" }
+        ::= { tnSysSsl 10 }
+
+    tnSysSslCertTransferRemoteUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The userId used for SSL CSR and certificate
+                        file transfers."
+        DEFVAL         { "" }
+        ::= { tnSysSsl 11 }
+
+    tnSysSslCertTransferRemotePassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The password used for SSL CSR and certificate
+                        file transfers.
+
+                        When read, this attribute will return an empty
+                        string if the password has not been set and
+                        '********' if it has been set."
+        DEFVAL         { "" }
+        ::= { tnSysSsl 12 }
+
+    tnSysSslCsrCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         generate(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Command to generate SSL certificate signing
+                        request (CSR)."
+        DEFVAL         { noCmd }
+        ::= { tnSysSsl 13 }
+
+    tnSysSslCsrCountry OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(2))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL CSR subject country."
+        DEFVAL         { "IT" }
+        ::= { tnSysSsl 14 }
+
+    tnSysSslCsrState OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL CSR subject state."
+        DEFVAL         { "Italy" }
+        ::= { tnSysSsl 15 }
+
+    tnSysSslCsrLocality OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL CSR subject locality."
+        DEFVAL         { "Milan" }
+        ::= { tnSysSsl 16 }
+
+    tnSysSslCsrOrganization OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..64))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL CSR subject organization."
+        DEFVAL         { "Nokia" }
+        ::= { tnSysSsl 17 }
+
+    tnSysSslCsrOrganizationUnit OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..64))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL CSR subject organization unit."
+        DEFVAL         { "Optics Division" }
+        ::= { tnSysSsl 18 }
+
+    tnSysSslCsrCommonName OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..64))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL CSR subject common name."
+        DEFVAL         { "1830 Domain" }
+        ::= { tnSysSsl 19 }
+
+    tnSysSslCsrEmailAddress OBJECT-TYPE
+        SYNTAX         SnmpAdminString
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The SSL CSR subject email address."
+        DEFVAL         { "" }
+        ::= { tnSysSsl 20 }
+
+    tnSysSslCertCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         install(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Command to install SSL certificate."
+        DEFVAL         { noCmd }
+        ::= { tnSysSsl 21 }
+
+    tnSysSslCertSignatureAlgorithm OBJECT-TYPE
+        SYNTAX         SnmpAdminString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The SSL certificate signature algorithm."
+        DEFVAL         { "md5WithRSAEncryption" }
+        ::= { tnSysSsl 22 }
+
+    tnSysSslCertValidity OBJECT-TYPE
+        SYNTAX         SnmpAdminString
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The SSL certificate validity."
+        DEFVAL         { "Apr 14 06:03:04 2011 GMT - Apr 11 06:03:04 2021 GMT" }
+        ::= { tnSysSsl 23 }
+
+    tnSysSslCsrUploadStatus OBJECT-TYPE
+        SYNTAX         AluWdmSslOperationStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Status of the SSL CSR file transfer."
+        DEFVAL         { none }
+        ::= { tnSysSsl 24 }
+
+    tnSysSslCertDownloadStatus OBJECT-TYPE
+        SYNTAX         AluWdmSslOperationStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Status of the SSL certificate file transfer."
+        DEFVAL         { none }
+        ::= { tnSysSsl 25 }
+
+    tnSysSslCertInstallStatus OBJECT-TYPE
+        SYNTAX         AluWdmSslOperationStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Status of the SSL certificate install."
+        DEFVAL         { completed }
+        ::= { tnSysSsl 26 }
+
+    tnSysSslCsrGenerationStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         completed(1),
+                         inProgress(2),
+                         failed(3),
+                         none(4),
+                         editing(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Status of the SSL CSR Generation."
+        DEFVAL         { none }
+        ::= { tnSysSsl 27 }
+
+--------------------------------------------------------------------------------
+-- System Transfer Log
+--------------------------------------------------------------------------------
+    tnSysTransferLogCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         transferToRfs(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { noCmd }
+        ::= { tnSysTransferLog 1 }
+
+    tnSysTransferLogRemoteHostIp OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysTransferLog 2 }
+
+    tnSysTransferLogRemotePath OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "" }
+        ::= { tnSysTransferLog 3 }
+
+    tnSysTransferLogType OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         none(1),
+                         snmp(2),
+                         ual(3),
+                         alarm(4),
+                         user(5),
+                         secu(6),
+                         other(7),
+                         ualPartial(8)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the log type to be
+                        transferred to remote file server."
+        DEFVAL         { none }
+        ::= { tnSysTransferLog 4 }
+
+    tnSysTransferLogStatus OBJECT-TYPE
+        SYNTAX         AluWdmTransferStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the status of the
+                        previously executed tnSysTransferLogCommand
+                        operation."
+        DEFVAL         { none }
+        ::= { tnSysTransferLog 5 }
+
+    tnSysTransferLogLastLogFilename OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the filename for the
+                        last transfer performed on the node.  If none
+                        exists or a transfer is in progress, this
+                        attribute will return an empty string."
+        DEFVAL         { "" }
+        ::= { tnSysTransferLog 6 }
+
+    tnSysTransferLogLastCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCommand(1),
+                         unknown(2),
+                         ual(3),
+                         snmp(4),
+                         ualPartial(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This is the last transfer log command executed.
+                        If the last operation is unknown, the value of
+                        this attribute will be unknown.  If a transfer
+                        log command has not been executed since the
+                        last node reset, the value of this attribute
+                        will be noCommand."
+        DEFVAL         { noCommand }
+        ::= { tnSysTransferLog 7 }
+
+    tnSysTransferLogLastFileTimeStamp OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The date and time when the last file was
+                        completed."
+        DEFVAL         { 0 }
+        ::= { tnSysTransferLog 8 }
+
+    tnSysTransferLogProtocol OBJECT-TYPE
+        SYNTAX         AluWdmTransferProtocol
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attributes indicates the transfer log
+                        protocol."
+        DEFVAL         { ftp }
+        ::= { tnSysTransferLog 9 }
+
+    tnSysTransferLogUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..32))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The userId used to access the RFS."
+        DEFVAL         { "" }
+        ::= { tnSysTransferLog 10 }
+
+    tnSysTransferLogPassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..32))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The password used to access the RFS.
+
+                        When read, this attribute will return an empty
+                        string if the password has not been set and
+                        '********' if it has been set."
+        DEFVAL         { "" }
+        ::= { tnSysTransferLog 11 }
+
+    tnSysTransferLogWindowStart OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The start time of partial log time window,
+                        measured in total time ticks (seconds) from the
+                        year 1970."
+        DEFVAL         { 0 }
+        ::= { tnSysTransferLog 12 }
+
+    tnSysTransferLogWindowStop OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The stop time of partial log time window,
+                        measured in total time ticks (seconds) from the
+                        year 1970."
+        DEFVAL         { 0 }
+        ::= { tnSysTransferLog 13 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) System Default
+--------------------------------------------------------------------------------
+    tnSysIpAclRxAction OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         pass(1),
+                         block(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Default action to be taken on received (incoming)
+                        packets where ACL is enabled but no pattern
+                        matches or no action is explicitly defined."
+        DEFVAL         { pass }
+        ::= { tnSysIpAclSysDefault 1 }
+
+    tnSysIpAclTxAction OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         pass(1),
+                         block(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Default action to be taken on transmitted
+                        (outgoing) packets where ACL is enabled but no
+                        pattern matches or no action is explicitly
+                        defined."
+        DEFVAL         { pass }
+        ::= { tnSysIpAclSysDefault 2 }
+
+    tnSysIpAclSnmpCfgEnable OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Indicates whether or not ACL configuration is
+                        supported via SNMP."
+        DEFVAL         { false }
+        ::= { tnSysIpAclSysDefault 3 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Pattern Scalars
+--------------------------------------------------------------------------------
+    tnSysIpAclPatternAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysAccessControlList 2 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Pattern
+--------------------------------------------------------------------------------
+    tnSysIpAclPatternTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysIpAclPatternEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "Table of IP ACL pattern.  An ACL pattern is a
+                        set of packet field descriptors that can be
+                        tested against a packet.  For a pattern to
+                        match, each of its field descriptors must fit
+                        the data in the packet."
+        ::= { tnSysAccessControlList 3 }
+
+    tnSysIpAclPatternEntry OBJECT-TYPE
+        SYNTAX         TnSysIpAclPatternEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnSysIpAclPatternID }
+        ::= { tnSysIpAclPatternTable 1 }
+
+    TnSysIpAclPatternEntry ::= SEQUENCE {
+        tnSysIpAclPatternID               SnmpAdminString,
+        tnSysIpAclPatternAction           INTEGER,
+        tnSysIpAclPatternICMPERROR        TruthValue,
+        tnSysIpAclPatternSrcAddr          IpAddress,
+        tnSysIpAclPatternSrcPrefix        IpAddress,
+        tnSysIpAclPatternDestAddr         IpAddress,
+        tnSysIpAclPatternDestPrefix       IpAddress,
+        tnSysIpAclPatternDestPort         INTEGER,
+        tnSysIpAclPatternIpProtocol       OCTET STRING,
+        tnSysIpAclPatternIpFragment       TruthValue,
+        tnSysIpAclPatternIcmpType         INTEGER,
+        tnSysIpAclPatternIcmpCode         INTEGER,
+        tnSysIpAclPatternTcpEstablish     TruthValue,
+        tnSysIpAclPatternRowStatus        RowStatus,
+        tnSysIpAclPatternSrcPort          INTEGER,
+        tnSysIpAclPatternSystemDefault    TruthValue
+    }
+
+    tnSysIpAclPatternID OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(1..30))
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The identifier of the ACL pattern to be created.
+                        It could be either an integer in the range of
+                        (1-4000) or a string of up to 30 case-sensitive
+                        alphanumeric characters, where the first character
+                        is always a letter, which is selected by the user
+                        to uniquely identify the pattern in subsequent
+                        provisioning requests."
+        ::= { tnSysIpAclPatternEntry 1 }
+
+    tnSysIpAclPatternAction OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         pass(1),
+                         block(2)
+                       }
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Action to be taken on packets matching the
+                        specified ACL pattern.  Valid values are:
+                        pass  - allow the packet if it matches all the
+                                pattern descriptors;
+                        block - disallow the packet if it doesn't match
+                                all the pattern descriptors."
+        ::= { tnSysIpAclPatternEntry 2 }
+
+    tnSysIpAclPatternICMPERROR OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "ICMP error reporting behavior for blocked
+                        packets.  If no icmpError value is specified,
+                        the behavior will be determined by the system
+                        default setting.  Valid values are:
+                        true  - send ICMP error for blocked packets
+                        false - do not send ICMP error for blocked
+                                packets."
+        DEFVAL         { false }
+        ::= { tnSysIpAclPatternEntry 3 }
+
+    tnSysIpAclPatternSrcAddr OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Source IP address.  It can be specified
+                        explicitly to match only packets that originate
+                        from a particular address or can be used along
+                        with the SrcPrefix parameter to specify a range
+                        of supported originating IP addresses."
+        ::= { tnSysIpAclPatternEntry 4 }
+
+    tnSysIpAclPatternSrcPrefix OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Source IP mask prefix.  It's the reverse of a
+                        subnet mask, where 0 indicates a position that
+                        must be matched and 1 indicates a position that
+                        does not matter.  If the SrcAddr is specified
+                        and the SrcPrefix is unspecified (0.0.0.0), the
+                        originating IP address of the packet must match
+                        the SrcAddr exactly.  Otherwise, the pattern
+                        will allow packets whose originating IP is within
+                        the range implied by the source IP and subnet
+                        mask.  This parameter is not valid  unless the
+                        SrcAddr is also specified."
+        DEFVAL         { '00000000'H }
+        ::= { tnSysIpAclPatternEntry 5 }
+
+    tnSysIpAclPatternDestAddr OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Destination IP address.  It can be specified
+                        explicitly to match only packets that originate
+                        from a particular address or can be used along
+                        with the DestPrefix parameter to specify a range
+                        of supported destination IP addresses."
+        ::= { tnSysIpAclPatternEntry 6 }
+
+    tnSysIpAclPatternDestPrefix OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Destination IP Mask Prefix.  It's the reverse
+                        of a subnet mask, where 0 indicates a position
+                        that must be matched and 1 indicates a position
+                        that does not matter.  If the DestAddr is
+                        specified and the DestPrefix is unspecified
+                        (0.0.0.0), the originating IP address of the
+                        packet must match the DestAddr exactly.  Otherwise,
+                        the pattern will allow packets whose originating
+                        IP is within the range implied by the source IP
+                        and subnet mask.  This parameter is not valid
+                        unless the DestAddr is also specified."
+        DEFVAL         { '00000000'H }
+        ::= { tnSysIpAclPatternEntry 7 }
+
+    tnSysIpAclPatternDestPort OBJECT-TYPE
+        SYNTAX         INTEGER (0..65535)
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "TCP/UDP destination port.  It is applicable only
+                        when the IP Protocol is TCP or UDP.  Some of the
+                        commonly used ports are:
+                        20    FTP-Data    TCP  File Transfer Protocol [Data]
+                        21    FTP         TCP  File Transfer Protocol [Control]
+                        23    Telnet      TCP  Telnet
+                        69    TFTP        UDP  Trivial File Transfer Protocol
+                        123   NTP         UDP  Network Time Protocol
+                        161   SNMP        UDP  SNMP
+                        162   SNMPTRAP    UDP  SNMPTRAP
+                        3082  TL1-Raw     TCP  TL-1 [Raw]
+                        3083  TL1-Telnet  TCP  TL-1 [User Interface]"
+        ::= { tnSysIpAclPatternEntry 8 }
+
+    tnSysIpAclPatternIpProtocol OBJECT-TYPE
+        SYNTAX         OCTET STRING
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "IP Protocol.  It can be specified by explicit
+                        protocol number (Integer, 0 to 255) or by keyword.
+                        Some common protocol types are listed below:
+                        ICMP              - IP protocol is ICMP (1)
+                        IPIP              - IP protocol is IPIP (4)
+                        TCP               - IP protocol is TCP (6)
+                        UDP               - IP protocol is UDP (17)
+                        RSVP              - IP protocol is RSVP (46)
+                        GRE               - IP protocol is GRE (47)
+                        OSPF              - IP protocol is OSPF (89)
+                        <other protocol>  - Specify IP protocol number: 0 to 255"
+        ::= { tnSysIpAclPatternEntry 9 }
+
+    tnSysIpAclPatternIpFragment OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "IP Fragmentation.  True means that the filtering
+                        is done on all fragments, not just on the initial
+                        one (assuming the following ones are ok).  Valid
+                        values are:
+                        true  - pattern is an IP
+                        false - pattern is not an IP fragment."
+        DEFVAL         { false }
+        ::= { tnSysIpAclPatternEntry 10 }
+
+    tnSysIpAclPatternIcmpType OBJECT-TYPE
+        SYNTAX         INTEGER (0..255)
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "ICMP Type identifier.  It is applicable only
+                        when IPPROTOCOL is ICMP.  If specified, the
+                        pattern will match only packets with this exact
+                        ICMP type.  Some of the most commonly used ICMP
+                        types are:
+                        0         Echo Reply [RFC792]
+                        3         Destination Unreachable[RFC792]
+                        5         Redirect[RFC792]
+                        9         Router Advertisement[RFC1256]
+                        42-255    Reserved."
+        ::= { tnSysIpAclPatternEntry 11 }
+
+    tnSysIpAclPatternIcmpCode OBJECT-TYPE
+        SYNTAX         INTEGER (0..255)
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "ICMP code field.  It is applicable only when IP
+                        protocol is ICMP and is used along with certain
+                        ICMP types to further specify the message type.
+                        It must also specify the ICMP type when setting
+                        this parameter.  If specified, the pattern will
+                        only match packets with this exact ICMP code
+                        value.  For example, there are a few ICMPCODEs
+                        associated with the ICMPTYPE Redirect [RFC792]:
+                        0  Redirect Datagram for the Network (or subnet)
+                        1  Redirect Datagram for the Host
+                        2  Redirect Datagram for the Type of Service
+                           and Network
+                        3  Redirect Datagram for the Type of Service and
+                           Host."
+        ::= { tnSysIpAclPatternEntry 12 }
+
+    tnSysIpAclPatternTcpEstablish OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "TCP established flag.  It matches a packet
+                        depending on whether the TCP flags in the IP
+                        header correspond to the established state.
+                        It is applicable only when IP Protocol is TCP.
+                        Valid values are:
+                        true  - TCP flags correspond to established state
+                        false - TCP flags do not correspond to established
+                                state."
+        ::= { tnSysIpAclPatternEntry 13 }
+
+    tnSysIpAclPatternRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The status of pattern.
+                        Set to 4 (createAndGo) to add pattern.
+                        Set to 6 (destroy) to remove the pattern."
+        ::= { tnSysIpAclPatternEntry 14 }
+
+    tnSysIpAclPatternSrcPort OBJECT-TYPE
+        SYNTAX         INTEGER (0..65535)
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "TCP/UDP source port.  It is applicable only
+                        when the IP Protocol is TCP or UDP.  Some of the
+                        commonly used ports are:
+
+                        20    FTP-Data    TCP  File Transfer Protocol [Data]
+                        21    FTP         TCP  File Transfer Protocol [Control]
+                        23    Telnet      TCP  Telnet
+                        69    TFTP        UDP  Trivial File Transfer Protocol
+                        123   NTP         UDP  Network Time Protocol
+                        161   SNMP        UDP  SNMP
+                        162   SNMPTRAP    UDP  SNMPTRAP
+                        3082  TL1-Raw     TCP  TL-1 [Raw]
+                        3083  TL1-Telnet  TCP  TL-1 [User Interface]"
+        ::= { tnSysIpAclPatternEntry 15 }
+
+    tnSysIpAclPatternSystemDefault OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates if ACL pattern is added by the system
+                        or a user.  Valid values are:
+                          true  - ACL pattern is added by the system.
+                          false - ACL pattern is added by the user."
+        ::= { tnSysIpAclPatternEntry 16 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Filter Scalar
+--------------------------------------------------------------------------------
+    tnSysIpAclFilterAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysAccessControlList 4 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Filter
+--------------------------------------------------------------------------------
+    tnSysIpAclFilterTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysIpAclFilterEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "An ACL filter is an ordered list of patterns.
+                        A filter consists of a sorted list of (index,
+                        pattern) pairs, where the index indicates the
+                        relative position on the list and the pattern
+                        indicates the pattern identifier.  Up to 100
+                        filters may be defined on the system, and each
+                        filter may contain up to 256 (index, pattern)
+                        pairs."
+        ::= { tnSysAccessControlList 5 }
+
+    tnSysIpAclFilterEntry OBJECT-TYPE
+        SYNTAX         TnSysIpAclFilterEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnSysIpAclFilterID,
+                tnSysIpAclFilterPatternIndex }
+        ::= { tnSysIpAclFilterTable 1 }
+
+    TnSysIpAclFilterEntry ::= SEQUENCE {
+        tnSysIpAclFilterID               SnmpAdminString,
+        tnSysIpAclFilterPatternIndex     INTEGER,
+        tnSysIpAclFilterPatternID        SnmpAdminString,
+        tnSysIpAclFilterStatCount        Counter32,
+        tnSysIpAclFilterRowStatus        RowStatus,
+        tnSysIpAclFilterSystemDefault    TruthValue
+    }
+
+    tnSysIpAclFilterID OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(1..30))
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "Identifier for the ACL filter being defined.
+                        It could be either an integer in the range of
+                        (100-199) or a string of up to 30 case-sensitive
+                        alphanumeric characters, where the first
+                        character is always a letter, which uniquely
+                        identifies the filter being defined."
+        ::= { tnSysIpAclFilterEntry 1 }
+
+    tnSysIpAclFilterPatternIndex OBJECT-TYPE
+        SYNTAX         INTEGER (0..256)
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The values of 1 to 256 represent the insertion
+                        point for the specified pattern on the filter
+                        list.  If there is already a pattern defined at
+                        the specified index, the new pattern entry will
+                        replace the previous one.  The value of 0
+                        represents user input filterID without giving
+                        the pattern index.  Front end users will use 0
+                        for setting."
+        ::= { tnSysIpAclFilterEntry 2 }
+
+    tnSysIpAclFilterPatternID OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..30))
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The identifier of the ACL pattern being added
+                        to or removed from the specified filter.  It
+                        could be either an integer in the range of
+                        (1-4000) or a string of up to 30 case-sensitive
+                        alphanumeric characters, where the first
+                        character is always a letter, which is selected
+                        by the user to uniquely identify the pattern in
+                        subsequent provisioning requests."
+        ::= { tnSysIpAclFilterEntry 3 }
+
+    tnSysIpAclFilterStatCount OBJECT-TYPE
+        SYNTAX         Counter32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Packet match counter.  It is incremented whenever
+                        a packet matches the specified ACL pattern in the
+                        filter.  This counter will be incremented
+                        regardless of the provisioned action on that
+                        pattern."
+        ::= { tnSysIpAclFilterEntry 4 }
+
+    tnSysIpAclFilterRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Action to take on the specified filter.  The
+                        operator could add or remove a pattern from a
+                        specified filter.  Set to 4 (createAndGo) to
+                        add pattern in the filter.  Set to 6 (destroy)
+                        to remove the pattern in the filter."
+        ::= { tnSysIpAclFilterEntry 5 }
+
+    tnSysIpAclFilterSystemDefault OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates if ACL filter is added by the system
+                        or a user.  Valid values are:
+                          true  - ACL filter is added by the system.
+                          false - ACL filter is added by a user."
+        ::= { tnSysIpAclFilterEntry 6 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Interface
+--------------------------------------------------------------------------------
+    tnSysIpAclInterfaceAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysAccessControlList 6 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Interface
+--------------------------------------------------------------------------------
+    tnSysIpAclInterfaceTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysIpAclInterfaceEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The IP ACL interface table is used to associate
+                        or disassociate filters with particular physical
+                        network interfaces (but not logical sub-interfaces).
+                        Two filters may be associated with each interface,
+                        one receive and one transmit.  The receive and
+                        transmit filters on an interface may be
+                        independently enabled and disabled on that
+                        interface without disassociating the specific
+                        filter numbers. "
+        ::= { tnSysAccessControlList 7 }
+
+    tnSysIpAclInterfaceEntry OBJECT-TYPE
+        SYNTAX         TnSysIpAclInterfaceEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { ifIndex,
+                tnSysIpAclInterfaceFilterDir }
+        ::= { tnSysIpAclInterfaceTable 1 }
+
+    TnSysIpAclInterfaceEntry ::= SEQUENCE {
+        tnSysIpAclInterfaceFilterDir           INTEGER,
+        tnSysIpAclInterfaceFilterID            SnmpAdminString,
+        tnSysIpAclInterfaceFilterEnable        INTEGER,
+        tnSysIpAclInterfaceFilterRowStatus     RowStatus,
+        tnSysIpAclInterfaceSystemDefault       TruthValue
+    }
+
+    tnSysIpAclInterfaceFilterDir OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         rx(1),
+                         tx(2)
+                       }
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "Direction on the specified network interface
+                        to which the IP ACL filter will be associated."
+        ::= { tnSysIpAclInterfaceEntry 1 }
+
+    tnSysIpAclInterfaceFilterID OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..30))
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Identifier for the ACL filter being associated
+                        with the specified interface and direction.  It
+                        could be either an integer in the range of
+                        (100-199) or a string of up to 30 case-sensitive
+                        alphanumeric characters, where the first character
+                        is always a letter, representing an existing ACL
+                        Filter."
+        ::= { tnSysIpAclInterfaceEntry 2 }
+
+    tnSysIpAclInterfaceFilterEnable OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         enable(1),
+                         disable(2)
+                       }
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Enable or disable the IP ACL filter associated
+                        with the specified interface and direction."
+        DEFVAL         { disable }
+        ::= { tnSysIpAclInterfaceEntry 3 }
+
+    tnSysIpAclInterfaceFilterRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The status of Interface Filter.  Set to 4
+                        (createAndGo) to add filter in the interface.
+                        Set to 6 (destroy) to remove the filter in
+                        the interface."
+        ::= { tnSysIpAclInterfaceEntry 4 }
+
+    tnSysIpAclInterfaceSystemDefault OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates if ACL interface added by the system
+                        or a user.  Valid values are:
+                          true  - ACL interface is added by the system.
+                          false - ACL interface is added by a user."
+        ::= { tnSysIpAclInterfaceEntry 5 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Network Interface
+--------------------------------------------------------------------------------
+    tnSysIpAclNetIfFilterAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysAccessControlList 8 }
+
+--------------------------------------------------------------------------------
+-- IP Access Control List (ACL) Network Interface
+--------------------------------------------------------------------------------
+    tnSysIpAclNetIfFilterTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysIpAclNetIfFilterEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "The IP ACL NetIf table is used to associate or
+                        disassociate filters with particular NetIf.  Two
+                        filters may be associated with each NetIf, one
+                        receive and one transmit.  The receive and transmit
+                        filters on an NetIf may be independently enabled
+                        and disabled on that NetIf without disassociating
+                        the specific filter numbers."
+        ::= { tnSysAccessControlList 9 }
+
+    tnSysIpAclNetIfFilterEntry OBJECT-TYPE
+        SYNTAX         TnSysIpAclNetIfFilterEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnNetIfIndex ,
+                tnSysIpAclNetIfFilterDir}
+        ::= { tnSysIpAclNetIfFilterTable 1 }
+
+    TnSysIpAclNetIfFilterEntry ::= SEQUENCE {
+        tnSysIpAclNetIfFilterDir            INTEGER,
+        tnSysIpAclNetIfFilterRowStatus      RowStatus,
+        tnSysIpAclNetIfFilterID             SnmpAdminString,
+        tnSysIpAclNetIfFilterEnable         INTEGER,
+        tnSysIpAclNetIfFilterSystemDefault        TruthValue
+    }
+
+    tnSysIpAclNetIfFilterDir OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         rx(1),
+                         tx(2)
+                       }
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "Direction on the specified NetIf to which the IP
+                        ACL filter will be associated."
+        ::= { tnSysIpAclNetIfFilterEntry 1 }
+
+    tnSysIpAclNetIfFilterRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The status of NetIf  Filter.  Set to 4 (createAndGo)
+                        to add filter in the interface.
+                        Set to 6 (destroy) to remove the filter in
+                        the interface."
+        ::= { tnSysIpAclNetIfFilterEntry 2 }
+
+    tnSysIpAclNetIfFilterID OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..30))
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Identifier for the ACL filter being associated
+                        with the specified NetIf  and direction.  It
+                        could be either an integer in the range of
+                        (100-199) or a string of up to 30 case-sensitive
+                        alphanumeric characters, where the first character
+                        is always a letter, representing an existing ACL
+                        Filter."
+        ::= { tnSysIpAclNetIfFilterEntry 3 }
+
+    tnSysIpAclNetIfFilterEnable OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         enable(1),
+                         disable(2)
+                       }
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Enable or disable the IP ACL filter associated
+                        with the specified NetIf  and direction."
+        DEFVAL         { disable }
+        ::= { tnSysIpAclNetIfFilterEntry 4 }
+
+    tnSysIpAclNetIfFilterSystemDefault OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates if ACL NetIf is added by the system
+                        or a user.  Valid values are:
+                          true  - ACL interface is added by the system.
+                          false - ACL interface is added by a user."
+        ::= { tnSysIpAclNetIfFilterEntry 5 }
+
+--------------------------------------------------------------------------------
+-- NTP Servers ID Stats Table
+--------------------------------------------------------------------------------
+    tnSysNtpServerIdStatsTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysNtpServerIdStatsEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerIdStats 1 }
+
+    tnSysNtpServerIdStatsEntry OBJECT-TYPE
+        SYNTAX         TnSysNtpServerIdStatsEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnSysNtpServerIdStatsIndex }
+        ::= { tnSysNtpServerIdStatsTable 1 }
+
+    TnSysNtpServerIdStatsEntry ::= SEQUENCE {
+        tnSysNtpServerIdStatsIndex       Unsigned32,
+        tnSysNtpServerIdStatsSelect      SnmpAdminString,
+        tnSysNtpServerIdStatsIp          SnmpAdminString,
+        tnSysNtpServerIdStatsRefId       SnmpAdminString,
+        tnSysNtpServerIdStatsStrtm       SnmpAdminString,
+        tnSysNtpServerIdStatsClockType   SnmpAdminString,
+        tnSysNtpServerIdStatsPoll        SnmpAdminString,
+        tnSysNtpServerIdStatsReach       SnmpAdminString,
+        tnSysNtpServerIdStatsDelay       SnmpAdminString,
+        tnSysNtpServerIdStatsOffset      SnmpAdminString,
+        tnSysNtpServerIdStatsJitter      SnmpAdminString,
+        tnSysNtpServerIdStatsKeyIndex    Unsigned32
+    }
+
+    tnSysNtpServerIdStatsIndex OBJECT-TYPE
+        SYNTAX         Unsigned32 (1..3)
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "For the 1830 PSS-32.  The maximum number of
+                        supported NTP servers is 3."
+        ::= { tnSysNtpServerIdStatsEntry 1 }
+
+    tnSysNtpServerIdStatsSelect OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..2))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Character to be displayed is one of the
+                        following:
+                        '*' - selected reference
+                        '+' - member of the alternate references
+                        ' ' - disqualified."
+        ::= { tnSysNtpServerIdStatsEntry 2 }
+
+    tnSysNtpServerIdStatsIp OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..16))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "NTP server IP address."
+        ::= { tnSysNtpServerIdStatsEntry 3 }
+
+    tnSysNtpServerIdStatsRefId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..16))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "NTP reference ID."
+        ::= { tnSysNtpServerIdStatsEntry 4 }
+
+    tnSysNtpServerIdStatsStrtm OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..3))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Level of reference, from 1 - 16."
+        ::= { tnSysNtpServerIdStatsEntry 5 }
+
+    tnSysNtpServerIdStatsClockType OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..2))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Clock type:
+                        'u' - unicast
+                        'b' - broadcast
+                        'l' - local."
+        ::= { tnSysNtpServerIdStatsEntry 6 }
+
+    tnSysNtpServerIdStatsPoll OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..6))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Polling interval in log base 2 seconds."
+        ::= { tnSysNtpServerIdStatsEntry 7 }
+
+    tnSysNtpServerIdStatsReach OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..4))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "8 bit octal number representing success of last
+                        8 attempts."
+        ::= { tnSysNtpServerIdStatsEntry 8 }
+
+    tnSysNtpServerIdStatsDelay OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..12))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Round trip delay to the reference server."
+        ::= { tnSysNtpServerIdStatsEntry 9 }
+
+    tnSysNtpServerIdStatsOffset OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..12))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerIdStatsEntry 10 }
+
+    tnSysNtpServerIdStatsJitter OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..12))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerIdStatsEntry 11 }
+
+    tnSysNtpServerIdStatsKeyIndex OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerIdStatsEntry 12 }
+
+--------------------------------------------------------------------------------
+-- Ftp Server Scalars
+--------------------------------------------------------------------------------
+    tnSysFtpServerEnabled OBJECT-TYPE
+        SYNTAX         TruthValue
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "true  - FTP server function is enabled.
+                        false - FTP server function is disabled."
+        DEFVAL          { false }
+        ::= { tnSysFtpServer 1 }
+
+    tnSysFtpServerUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The FTP server user ID."
+        DEFVAL         { "UserSWNE" }
+        ::= { tnSysFtpServer 2 }
+
+    tnSysFtpServerPassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..128))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The FTP server password.  When read, this
+                        attribute will return '********'."
+        DEFVAL         { "********" }
+        ::= { tnSysFtpServer 3 }
+
+--------------------------------------------------------------------------------
+-- NTP Server Authentication Scalar
+--------------------------------------------------------------------------------
+    tnSysNtpServerAuthenticationAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerAuthentication 1 }
+
+--------------------------------------------------------------------------------
+-- NTP Server Authentication
+--------------------------------------------------------------------------------
+    tnSysNtpServerAuthenticationTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysNtpServerAuthenticationEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysNtpServerAuthentication 2 }
+
+    tnSysNtpServerAuthenticationEntry OBJECT-TYPE
+        SYNTAX         TnSysNtpServerAuthenticationEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnSysNtpServerAuthenticationKeyIndex }
+        ::= { tnSysNtpServerAuthenticationTable 1 }
+
+    TnSysNtpServerAuthenticationEntry ::= SEQUENCE {
+        tnSysNtpServerAuthenticationKeyIndex      Unsigned32,
+        tnSysNtpServerAuthenticationRowStatus     RowStatus,
+        tnSysNtpServerAuthenticationKeyType       INTEGER,
+        tnSysNtpServerAuthenticationKey           OCTET STRING
+    }
+
+    tnSysNtpServerAuthenticationKeyIndex OBJECT-TYPE
+        SYNTAX         Unsigned32 (0..65535)
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "NTP server authentication key index."
+        ::= { tnSysNtpServerAuthenticationEntry 1 }
+
+    tnSysNtpServerAuthenticationRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Status of this NTP server.  Supported values:
+                        1 - active
+                        4 - createAndGo
+                        6 - destroy."
+        DEFVAL         { destroy }
+        ::= { tnSysNtpServerAuthenticationEntry 2 }
+
+    tnSysNtpServerAuthenticationKeyType OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         sha1(1),
+                         md5(2)
+                       }
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "NTP server authentication key type."
+        ::= { tnSysNtpServerAuthenticationEntry 3 }
+
+    tnSysNtpServerAuthenticationKey OBJECT-TYPE
+        SYNTAX         OCTET STRING (SIZE(0..500))
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "NTP server authentication key."
+        ::= { tnSysNtpServerAuthenticationEntry 4 }
+
+------------------------------------------------------------------------------
+-- NE Discovery Scalar
+------------------------------------------------------------------------------
+    tnNeDiscoveryAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnNeDiscovery 1 }
+
+-------------------------------------------------------------------------------
+-- NE Discovery Table
+-------------------------------------------------------------------------------
+    tnNeDiscoveryTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnNeDiscoveryEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnNeDiscovery 2 }
+
+    tnNeDiscoveryEntry OBJECT-TYPE
+        SYNTAX         TnNeDiscoveryEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnNeDiscoveryIndex }
+        ::= { tnNeDiscoveryTable 1 }
+
+    TnNeDiscoveryEntry ::= SEQUENCE {
+        tnNeDiscoveryIndex              SnmpAdminString,
+        tnNeDiscoveryFilename           SnmpAdminString,
+        tnNeDiscoveryControl            INTEGER,
+        tnNeDiscoveryStatus             INTEGER,
+        tnNeDiscoveryErrorCode          INTEGER,
+        tnNeDiscoveryServerIp           IpAddress,
+        tnNeDiscoveryServerProtocol     AluWdmTransferProtocol,
+        tnNeDiscoveryServerUserId       SnmpAdminString,
+        tnNeDiscoveryServerPassword     SnmpAdminString,
+        tnNeDiscoveryServerTimeOut      Integer32,
+        tnNeDiscoveryRowStatus          RowStatus
+    }
+
+    tnNeDiscoveryIndex OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(1..28))
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    "Unique name given by the NMS."
+        ::= { tnNeDiscoveryEntry 1 }
+
+    tnNeDiscoveryFilename OBJECT-TYPE
+        SYNTAX         SnmpAdminString
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "" }
+        ::= { tnNeDiscoveryEntry 2 }
+
+    tnNeDiscoveryControl OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         start(2),
+                         abort(3)
+                       }
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Controls the discovery, i.e., starts or aborts it."
+        DEFVAL         { noCmd }
+        ::= { tnNeDiscoveryEntry 3 }
+
+    tnNeDiscoveryStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         idle(1),
+                         inProgress(2),
+                         completedSuccessfully(3),
+                         failed(4),
+                         aborted(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The discovery status."
+        ::= { tnNeDiscoveryEntry 4 }
+
+    tnNeDiscoveryErrorCode OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noError(1),
+                         unknown(2),
+                         timeout(3),
+                         serverError(4),
+                         networkError(5),
+                         fileSystemError(6),
+                         systemNotReady(7)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "The discovery error code."
+        ::= { tnNeDiscoveryEntry 5 }
+
+    tnNeDiscoveryServerIp OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The discovery server IP address."
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnNeDiscoveryEntry 6 }
+
+    tnNeDiscoveryServerProtocol OBJECT-TYPE
+        SYNTAX         AluWdmTransferProtocol
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The discovery server protocol."
+        ::= { tnNeDiscoveryEntry 7 }
+
+    tnNeDiscoveryServerUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(1..128))
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The user ID used to access the server."
+        ::= { tnNeDiscoveryEntry 8 }
+
+    tnNeDiscoveryServerPassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(1..128))
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The password used to access the server.  When
+                        read, this attribute will return an empty
+                        string if the password has not been set and
+                        '********' if it has been set."
+        ::= { tnNeDiscoveryEntry 9 }
+
+    tnNeDiscoveryServerTimeOut OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Timeout from NMS for the discovery request."
+        ::= { tnNeDiscoveryEntry 10 }
+
+    tnNeDiscoveryRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "The row status of this discovery."
+        ::= { tnNeDiscoveryEntry 11 }
+
+--------------------------------------------------------------------------------
+-- OTDR (Optical Time Domain Reflectometer) Scan System Profile Scalar
+--------------------------------------------------------------------------------
+    tnSysOtdrScanSystemProfileAttributeTotal OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION   ""
+    ::= { tnSysOtdrScanSystemProfile 1 }
+
+--------------------------------------------------------------------------------
+-- OTDR (Optical Time Domain Reflectometer) Scan System Profile Table
+--------------------------------------------------------------------------------
+    tnSysOtdrScanSystemProfileTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnSysOtdrScanSystemProfileEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSysOtdrScanSystemProfile 2 }
+
+    tnSysOtdrScanSystemProfileEntry OBJECT-TYPE
+        SYNTAX         TnSysOtdrScanSystemProfileEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnSysOtdrScanSystemProfileId }
+        ::= { tnSysOtdrScanSystemProfileTable 1 }
+
+    TnSysOtdrScanSystemProfileEntry ::= SEQUENCE {
+        tnSysOtdrScanSystemProfileId                      Integer32,
+        tnSysOtdrScanSystemProfileDescription             SnmpAdminString,
+        tnSysOtdrScanSystemProfileWaveLength              Integer32,
+        tnSysOtdrScanSystemProfilePulseLength             Integer32,
+        tnSysOtdrScanSystemProfileRange                   Integer32,
+        tnSysOtdrScanSystemProfileResolution              Integer32,
+        tnSysOtdrScanSystemProfileAvgTime                 Integer32
+    }
+
+    tnSysOtdrScanSystemProfileId OBJECT-TYPE
+        SYNTAX           Integer32 (1..16)
+        MAX-ACCESS       not-accessible
+        STATUS           current
+        DESCRIPTION      "Unique identifier for the profile.  Range is
+                          from 1 to 16."
+        ::= { tnSysOtdrScanSystemProfileEntry  1 }
+
+    tnSysOtdrScanSystemProfileDescription OBJECT-TYPE
+        SYNTAX           SnmpAdminString (SIZE(0..80))
+        MAX-ACCESS       read-only
+        STATUS           current
+        DESCRIPTION      "Describes the scan profile."
+        ::= { tnSysOtdrScanSystemProfileEntry  2 }
+
+    tnSysOtdrScanSystemProfileWaveLength OBJECT-TYPE
+        SYNTAX           Unsigned32
+        UNITS            "nanometers"
+        MAX-ACCESS       read-only
+        STATUS           current
+        DESCRIPTION      "The wavelength used for the OTDR scan.  The
+                          wavelength is 1610 nm, and is not configurable."
+        DEFVAL           { 1610 }
+        ::= { tnSysOtdrScanSystemProfileEntry  3 }
+
+    tnSysOtdrScanSystemProfilePulseLength OBJECT-TYPE
+        SYNTAX           Unsigned32
+        UNITS            "nanoseconds"
+        MAX-ACCESS       read-only
+        STATUS           current
+        DESCRIPTION      "Length of the pulse.
+
+                          Current values: 5, 10, 30, 100, 300, 1000, 3000,
+                            10000, and 20000."
+        DEFVAL           { 300 }
+        ::= { tnSysOtdrScanSystemProfileEntry  4 }
+
+    tnSysOtdrScanSystemProfileRange OBJECT-TYPE
+        SYNTAX           Unsigned32
+        UNITS            "meters"
+        MAX-ACCESS       read-only
+        STATUS           current
+        DESCRIPTION      "The range of the span that is being probed in
+                          meters.
+
+                          Current values: 100, 500, 1000, 2000, 5000,
+                            10000, 20000, 40000, 80000, and 260000."
+        DEFVAL           { 260000 }
+        ::= { tnSysOtdrScanSystemProfileEntry  5 }
+
+    tnSysOtdrScanSystemProfileResolution OBJECT-TYPE
+        SYNTAX           Unsigned32
+        UNITS            "millimeters"
+        MAX-ACCESS       read-only
+        STATUS           current
+        DESCRIPTION      "Distance resolution of the OTDR scan.
+
+                          Current values:  40, 80, 160, 320, 640, 1200,
+                            2500, 5000, 10000, 20000, 40000, 80000, and
+                            160000."
+        DEFVAL           { 2500 }
+        ::= { tnSysOtdrScanSystemProfileEntry  6 }
+
+    tnSysOtdrScanSystemProfileAvgTime OBJECT-TYPE
+          SYNTAX           Unsigned32(5..300)
+          UNITS            "seconds"
+          MAX-ACCESS       read-only
+          STATUS           current
+          DESCRIPTION      "Signal averaging time for a scan range.
+
+                            Current range: 5 to 300."
+          DEFVAL           { 180 }
+          ::= { tnSysOtdrScanSystemProfileEntry  7 }
+
+--------------------------------------------------------------------------------
+--  OTDR Scan Transfer Scalars
+--------------------------------------------------------------------------------
+    tnSysOtdrScanTransferRemoteHostIp OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "OTDR scan transfer remote host IP address."
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysOtdrScanTransfer 1 }
+
+    tnSysOtdrScanTransferCommand OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         noCmd(1),
+                         transferToRfs(2)
+                       }
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "OTDR scan transfer command."
+        DEFVAL         { noCmd }
+        ::= { tnSysOtdrScanTransfer 2 }
+
+    tnSysOtdrScanTransferRemotePath OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "OTDR scan transfer remote path."
+        DEFVAL         { "" }
+        ::= { tnSysOtdrScanTransfer 3 }
+
+    tnSysOtdrScanTransferStatus OBJECT-TYPE
+        SYNTAX         AluWdmTransferStatus
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the status of the
+                        previously executed tnSysOtdrScanTransferCommand
+                        operation."
+        DEFVAL         { none }
+        ::= { tnSysOtdrScanTransfer 4 }
+
+    tnSysOtdrScanTransferFilename OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attribute indicates the filename for the
+                        OTDR file transfer performed on the node.  If
+                        it specifies empty string then bulk transfer
+                        the files from NE to RFs.  And if it specifies
+                        file name then it is single file transfer.
+                        File information can be from the
+                        tnOtdrScanStatusSuccessNotif trap."
+
+        DEFVAL         { "" }
+        ::= { tnSysOtdrScanTransfer 5 }
+
+    tnSysOtdrScanTransferProtocol OBJECT-TYPE
+        SYNTAX         AluWdmTransferProtocol
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "This attributes indicates the OTDR scan transfer
+                        protocol.  Currently, only sftp/ftp is supported."
+        DEFVAL         { ftp }
+        ::= { tnSysOtdrScanTransfer 6 }
+
+    tnSysOtdrScanTransferUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..32))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The userId is used to access the RFS."
+        DEFVAL         { "" }
+        ::= { tnSysOtdrScanTransfer 7 }
+
+    tnSysOtdrScanTransferPassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..32))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "The password is used to access the RFS.
+
+                        When read, this attribute will return an empty
+                        string if the password has not been set and
+                        '********' if it has been set."
+        DEFVAL         { "" }
+        ::= { tnSysOtdrScanTransfer 8 }
+
+---------------------------------------------------------------
+-- Cluster Table
+---------------------------------------------------------------
+
+    tnClusterTable OBJECT-TYPE
+        SYNTAX         SEQUENCE OF TnClusterEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnClusterObjs 1 }
+
+    tnClusterEntry OBJECT-TYPE
+        SYNTAX         TnClusterEntry
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        INDEX { tnClusterFarEndNode }
+        ::= { tnClusterTable 1 }
+
+    TnClusterEntry ::= SEQUENCE {
+        tnClusterRowStatus              RowStatus,
+        tnClusterFarEndNode             OCTET STRING,
+        tnClusterIpAddress              IpAddress,
+        tnClusterlinkStatus             INTEGER
+    }
+
+    tnClusterRowStatus OBJECT-TYPE
+        SYNTAX         RowStatus
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnClusterEntry 1 }
+
+    tnClusterFarEndNode OBJECT-TYPE
+        SYNTAX         OCTET STRING
+        MAX-ACCESS     not-accessible
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnClusterEntry 2 }
+
+    tnClusterIpAddress OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnClusterEntry 3 }
+
+    tnClusterlinkStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                          up(1),
+                          down(2),
+                          unknown(3)
+                          }
+        MAX-ACCESS     read-create
+        STATUS         current
+        DESCRIPTION    "Cluster link status"
+        DEFVAL         { unknown }
+        ::= { tnClusterEntry 4 }
+
+--------------------------------------------------------------------------------
+--  PM FETCH BULK Transfer Scalars
+--------------------------------------------------------------------------------
+
+    tnSysPmFetchBulkStart OBJECT-TYPE
+        SYNTAX         TnCommand
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Intiates the PM Fetch bulk operation."
+        DEFVAL         { noCmd }
+        ::= { tnSysPmFetchBulk 1 }
+
+    tnSysPmFetchBulkStatus OBJECT-TYPE
+        SYNTAX         INTEGER {
+                         idle(1),
+                         inProgress(2),
+                         completedSuccessfully(3),
+                         failed(4),
+                         aborted(5)
+                       }
+        MAX-ACCESS     read-only
+        STATUS         current
+        DESCRIPTION    "Indicates the status of the PM Fetch Bulk."
+        DEFVAL         { idle }
+        ::= { tnSysPmFetchBulk 2 }
+       
+    tnSysPmFetchBulkRemoteHostIp OBJECT-TYPE
+        SYNTAX         IpAddress
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "PM Fetch Bulk remote host IP address."
+        DEFVAL         { "0.0.0.0" }
+        ::= { tnSysPmFetchBulk 3 }
+       
+    tnSysPmFetchBulkUserId OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..32))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "Indicates the username of the user who intiates 
+            PM fetch Bulk operation."
+        DEFVAL         { "" }
+        ::= { tnSysPmFetchBulk 4 }
+
+    tnSysPmFetchBulkPassword OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..32))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION     "Indicates the password of the user who intiates 
+              PM fetch Bulk operation"
+        DEFVAL         { "" }
+        ::= { tnSysPmFetchBulk 5 }
+
+    tnSysPmFetchBulkRemotePath OBJECT-TYPE
+        SYNTAX         SnmpAdminString (SIZE(0..255))
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    "PM fetch Bulk remote path."
+        DEFVAL         { "" }
+        ::= { tnSysPmFetchBulk 6 }
+       
+    tnSysPmFetchBulkStatsInterval OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 0 }
+        ::= { tnSysPmFetchBulk 7 }
+
+    tnSysPmFetchBulkBinnedStatsBin OBJECT-TYPE
+        SYNTAX         Unsigned32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 0 }
+        ::= { tnSysPmFetchBulk 8 }
+
+    tnSysPmFetchBulkShelfNum OBJECT-TYPE
+        SYNTAX         Integer32
+        MAX-ACCESS     read-write
+        STATUS         current
+        DESCRIPTION    ""
+        DEFVAL         { 1 }
+        ::= { tnSysPmFetchBulk 9 }
+
+--------------------------------------------------------------------------------
+-- Conformance Group Definitions
+--------------------------------------------------------------------------------
+    tnSystemBasicsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysDescr,
+            tnSysTelnetPort,
+            tnSysHttpPort,
+            tnSysDateAndTime,
+            tnSysReset,
+            tnSysMIBVersion,
+            tnSysRingID,
+            tnSysNetworkElementID,
+            tnSysAINSDebounceTime,
+            tnSysSonetSdhMode,
+            tnSysAlarmReportingControl,
+            tnSysWavelengthTrackerWaveKeySpace,
+            tnSysSecureMode,
+--            obsolete
+--            tnSysMinPasswordLength,
+--            tnSysMaxPasswordLength,
+            tnSysExtendedTemperatureRange,
+            tnSysTemperatureInCelsius,
+            tnSysName,
+            tnSysEquipmentControllerCapacity,
+            tnSysFirstLevelControllerCapacity,
+            tnSysMatrix0CompactCapacity,
+            tnSysUniversalMatrixFirstLevelControllerCapacity,
+            tnSysTimeOffsetTimeZone,
+--            obsolete
+--            tnSysOperationPercentCompleted,
+--            tnSysLastOperationTimeStamp,
+            tnSysSwitchId,
+            tnSysFipsSquelchMode,
+            tnSysOtdrListOfFileNames,
+            tnSysOtdrFileCounts,
+            tnSysAltitude,
+            tnSysThermalShutdownAutotimer,
+            tnSysDisplayShelfLabel
+        }
+        STATUS         current
+        DESCRIPTION    "A collection of objects providing basic system
+                        extensions."
+        ::= { tnSystemGroups 1 }
+
+    tnSystemControlNetworkGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAddress,
+            tnSysSubnetMask,
+            tnSysConfiguredIpAddress,
+            tnSysConfiguredSubnetMask,
+            tnSysConfiguredSnmpSource,
+            tnSysConfiguredOcsIpAddress,
+            tnSysConfiguredOcs2IpAddress,
+            tnSysConfiguredOcs3IpAddress,
+            tnSysOcs1LinkStatus,
+            tnSysOcs2LinkStatus,
+            tnSysOcs3LinkStatus,
+            tnSysConfiguredRadiusSource,
+            tnSysConfiguredLoopbackIp1,
+            tnSysConfiguredLoopbackIp1SubnetMask,
+            tnSysConfiguredSnmpSource1,
+            tnSysConfiguredRadiusSource1,
+            tnSysLoopbackIpAddress1,
+            tnSysLoopbackIp1SubnetMask
+        }
+        STATUS         current
+        DESCRIPTION    "A collection of objects providing basic system
+                        extensions."
+        ::= { tnSystemGroups 2 }
+
+    tnSystemRedundancyGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysRedundancyDbSynchState,
+            tnSysRedundancyDbResynch,
+            tnSysRedundancyDbAudit,
+            tnSysRedundancyDbClear,
+            tnSysRedundancyActiveCCSlot,
+            tnSysRedundancyDbInvalid,
+            tnSysRedundancyMateCCReadyToProtect
+        }
+        STATUS         current
+        DESCRIPTION    "A collection of objects providing basic system
+                        extensions."
+        ::= { tnSystemGroups 3 }
+
+    tnSystemDiscoveryGroup OBJECT-GROUP
+        OBJECTS {
+--            obsolete
+--            tnSysDiscoveryTFTPServer,
+            tnSysDiscoveryFilename,
+            tnSysDiscoveryMask,
+            tnSysDiscoveryControl,
+            tnSysDiscoveryStatus,
+            tnSysDiscoveryErrorCode,
+--            obsolete
+--            tnSysDiscoveryNMSMask,
+            tnSysDiscoveryBinnedStatsInterval,
+            tnSysDiscoveryBinnedStatsBin,
+            tnSysDiscoveryServerProtocol,
+            tnSysDiscoveryServerIp,
+            tnSysDiscoveryServerUserId,
+            tnSysDiscoveryServerPassword
+        }
+        STATUS         current
+        DESCRIPTION    "A collection of objects providing System Discovery."
+        ::= { tnSystemGroups 4 }
+
+    tnSystemLoggingGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysLoggingCLI,
+            tnSysLoggingSNMP
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 5 }
+
+    tnSystemBackupAndRestoreGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysBackupAndRestoreCommand,
+            tnSysBackupAndRestoreRemoteHostIp,
+            tnSysBackupAndRestoreRemotePath,
+            tnSysBackupAndRestoreStatus,
+            tnSysBackupAndRestoreLastBackupFilename,
+            tnSysBackupAndRestoreLastCommand,
+            tnSysBackupAndRestorePercentCompleted,
+            tnSysBackupAndRestoreLastBackupFileTimeStamp,
+            tnSysBackupAndRestoreProtocol,
+            tnSysBackupAndRestoreUserId,
+            tnSysBackupAndRestorePassword,
+            tnSysBackupAndRestoreLastBackupFileCrc
+--            obsolete
+--            tnSysBackupAndRestoreRemotePort
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 6 }
+
+    tnSysNtpGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysNtpEnable,
+--            obsolete
+--            tnSysNtpTimeOffsetHours,
+--            tnSysNtpTimeOffsetMinutes,
+--            tnSysNtpTimeOffsetTimeZone,
+--            tnSysNtpDrift,
+--            tnSysNtpTimeOffset,
+--            tnSysNtpScale,
+            tnSysNtpSynched,
+            tnSysNtpServerCurrentIpAddress,
+--            obsolete
+--            tnSysNtpDaylightSavingsTimeConfigured,
+            tnSysNtpDriftString,
+            tnSysNtpTimeOffsetString,
+            tnSysNtpClockMode
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 7 }
+
+    tnSysNtpServerGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysNtpServerIpAddress,
+            tnSysNtpServerRowStatus,
+            tnSysNtpServerKeyIndex
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 8 }
+
+    tnSnmpTargetAddressGroup OBJECT-GROUP
+        OBJECTS {
+            tnSnmpTargetAddrNmsStationGroupId
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 9 }
+
+    tnSyslogGroup OBJECT-GROUP
+        OBJECTS {
+            tnSyslogIpAddress,
+            tnSyslogPort,
+            tnSyslogFacility,
+            tnSyslogPriority,
+            tnSyslogEnabled
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 10 }
+
+    tnSysTimingGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysTimingPrimaryReference,
+            tnSysTimingSecondaryReference,
+            tnSysTimingLastSwitchTime,
+            tnSysTimingControl,
+            tnSysTimingPrimaryReferenceStatus,
+            tnSysTimingSecondaryReferenceStatus,
+            tnSysTimingPrimaryReferenceQuality,
+            tnSysTimingSecondaryReferenceQuality,
+            tnSysTimingPrimaryReferenceTimingMode,
+            tnSysTimingSecondaryReferenceTimingMode,
+            tnSysTimingActiveReference,
+            tnSysTimingClockingMode,
+            tnSysTimingSwitchingMode,
+            tnSysTimingFreeRunSuppressAlarms,
+            tnSysTimingDs1FramingMode,
+            tnSysTimingDs1LineCoding,
+            tnSysTimingDs1SsmProcessing,
+            tnSysTimingBitsAClockQuality,
+            tnSysTimingBitsBClockQuality,
+            tnSysTimingActiveLineTimingCable,
+            tnSysTimingBitSourceType,
+            tnSysTimingBitsAModuleType,
+            tnSysTimingBitsBModuleType
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 11 }
+
+    tnSysFeaturesGroup OBJECT-GROUP
+        OBJECTS {
+--            obsolete
+--            tnSysFeatureWavelengthTracker,
+--            tnSysFeatureNetworkElementFaultCorrelation,
+            tnSysFeatureAutoTopology,
+            tnSysFeaturePauseFlowControl,
+            tnSysFeatureIpUtilitiesRestricted,
+            tnSysFeatureFastServiceSetup
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 12 }
+
+    tnSysFaultCorrelationGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysFaultCorrelationTransientSuppression
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 13 }
+
+    tnSysErrorHandlingGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysSetRequestErrorMessage
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 14 }
+
+    tnSysSecurityGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysSecurityMode,
+            tnSysSshKeyType,
+            tnSysSshKeyModulus,
+            tnSysSshPublicKey,
+            tnSysSshKeyCommand,
+            tnSysSshKeyGenerationStatus,
+            tnSysSslKeyType,
+            tnSysSslKeyModulus,
+            tnSysSslPublicKey,
+            tnSysSslKeyCommand,
+            tnSysSslKeyGenerationStatus,
+            tnSysSslCertTransferCommand,
+--            obsolete
+--            tnSysSslCertTransferStatus,
+            tnSysSslCertTransferProtocol,
+            tnSysSslCertTransferRemoteIp,
+            tnSysSslCertTransferRemotePath,
+            tnSysSslCertTransferRemoteUserId,
+            tnSysSslCertTransferRemotePassword,
+            tnSysSslCsrCommand,
+            tnSysSslCsrCountry,
+            tnSysSslCsrState,
+            tnSysSslCsrLocality,
+            tnSysSslCsrOrganization,
+            tnSysSslCsrOrganizationUnit,
+            tnSysSslCsrCommonName,
+            tnSysSslCsrEmailAddress,
+            tnSysSslCertCommand,
+            tnSysSslCertSignatureAlgorithm,
+            tnSysSslCertValidity,
+            tnSysSslCsrUploadStatus,
+            tnSysSslCertDownloadStatus,
+            tnSysSslCertInstallStatus,
+            tnSysSslCsrGenerationStatus,
+            tnSshKeyTypeIndex,
+            tnSshPublicKey
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 15 }
+
+    tnSysTransferLogGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysTransferLogCommand,
+            tnSysTransferLogRemoteHostIp,
+            tnSysTransferLogRemotePath,
+            tnSysTransferLogType,
+            tnSysTransferLogStatus,
+            tnSysTransferLogLastLogFilename,
+            tnSysTransferLogLastCommand,
+            tnSysTransferLogLastFileTimeStamp,
+            tnSysTransferLogProtocol,
+            tnSysTransferLogUserId,
+            tnSysTransferLogPassword,
+            tnSysTransferLogWindowStart,
+            tnSysTransferLogWindowStop
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 16 }
+
+    tnSysIpAclSysDefaultGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclRxAction,
+            tnSysIpAclTxAction,
+            tnSysIpAclSnmpCfgEnable
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 17 }
+
+    tnSysIpAclPatternScalarsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclPatternAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 18 }
+
+    tnSysIpAclPatternGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclPatternAction,
+            tnSysIpAclPatternICMPERROR,
+            tnSysIpAclPatternSrcAddr,
+            tnSysIpAclPatternSrcPrefix,
+            tnSysIpAclPatternDestAddr,
+            tnSysIpAclPatternDestPrefix,
+            tnSysIpAclPatternDestPort,
+            tnSysIpAclPatternIpProtocol,
+            tnSysIpAclPatternIpFragment,
+            tnSysIpAclPatternIcmpType,
+            tnSysIpAclPatternIcmpCode,
+            tnSysIpAclPatternTcpEstablish,
+            tnSysIpAclPatternRowStatus,
+            tnSysIpAclPatternSrcPort,
+            tnSysIpAclPatternSystemDefault
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 19 }
+
+    tnSysIpAclFilterScalarsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclFilterAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 20 }
+
+    tnSysIpAclFilterGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclFilterPatternID,
+            tnSysIpAclFilterStatCount,
+            tnSysIpAclFilterRowStatus,
+            tnSysIpAclFilterSystemDefault
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 21 }
+
+    tnSysIpAclInterfaceScalarsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclInterfaceAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 22 }
+
+    tnSysIpAclInterfaceGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclInterfaceFilterID,
+            tnSysIpAclInterfaceFilterEnable,
+            tnSysIpAclInterfaceFilterRowStatus,
+            tnSysIpAclInterfaceSystemDefault
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 23 }
+
+    tnSysNtpServerIdStatsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysNtpServerIdStatsSelect,
+            tnSysNtpServerIdStatsIp,
+            tnSysNtpServerIdStatsRefId,
+            tnSysNtpServerIdStatsStrtm,
+            tnSysNtpServerIdStatsClockType,
+            tnSysNtpServerIdStatsPoll,
+            tnSysNtpServerIdStatsReach,
+            tnSysNtpServerIdStatsDelay,
+            tnSysNtpServerIdStatsOffset,
+            tnSysNtpServerIdStatsJitter,
+            tnSysNtpServerIdStatsKeyIndex
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 24 }
+
+    tnSysFtpServerGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysFtpServerEnabled,
+            tnSysFtpServerUserId,
+            tnSysFtpServerPassword
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 25 }
+
+    tnSysNtpServerAuthenticationScalarsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysNtpServerAuthenticationAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 26 }
+
+    tnSysNtpServerAuthenticationGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysNtpServerAuthenticationRowStatus,
+            tnSysNtpServerAuthenticationKeyType,
+            tnSysNtpServerAuthenticationKey
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 27 }
+
+    tnSysIpAclNetIfFilterScalarsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclNetIfFilterAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 28 }
+
+    tnSysIpAclNetIfFilterGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysIpAclNetIfFilterRowStatus,
+            tnSysIpAclNetIfFilterID,
+            tnSysIpAclNetIfFilterEnable,
+            tnSysIpAclNetIfFilterSystemDefault
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 29 }
+
+    tnNeDiscoveryScalarsGroup OBJECT-GROUP
+        OBJECTS {
+            tnNeDiscoveryAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 30 }
+
+    tnNeDiscoveryGroup OBJECT-GROUP
+        OBJECTS {
+            tnNeDiscoveryFilename,
+            tnNeDiscoveryControl,
+            tnNeDiscoveryStatus,
+            tnNeDiscoveryErrorCode,
+            tnNeDiscoveryServerIp,
+            tnNeDiscoveryServerProtocol,
+            tnNeDiscoveryServerUserId,
+            tnNeDiscoveryServerPassword,
+            tnNeDiscoveryServerTimeOut,
+            tnNeDiscoveryRowStatus
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 31 }
+
+    tnSysOtdrScanSystemProfileScalarsGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysOtdrScanSystemProfileAttributeTotal
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 32 }
+
+    tnSysOtdrScanSystemProfileGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysOtdrScanSystemProfileDescription,
+            tnSysOtdrScanSystemProfileWaveLength,
+            tnSysOtdrScanSystemProfilePulseLength,
+            tnSysOtdrScanSystemProfileRange,
+            tnSysOtdrScanSystemProfileResolution,
+            tnSysOtdrScanSystemProfileAvgTime
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 33 }
+
+    tnSysOtdrScanTransferGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysOtdrScanTransferRemoteHostIp,
+            tnSysOtdrScanTransferCommand,
+            tnSysOtdrScanTransferRemotePath,
+            tnSysOtdrScanTransferStatus,
+            tnSysOtdrScanTransferFilename,
+            tnSysOtdrScanTransferProtocol,
+            tnSysOtdrScanTransferUserId,
+            tnSysOtdrScanTransferPassword
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 34 }
+
+    tnClusterGroup OBJECT-GROUP
+        OBJECTS {
+            tnClusterRowStatus ,         
+            tnClusterFarEndNode,
+            tnClusterIpAddress,
+            tnClusterlinkStatus       
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 35 }
+
+    tnSysPmFetchBulkGroup OBJECT-GROUP
+        OBJECTS {
+            tnSysPmFetchBulkStart,
+            tnSysPmFetchBulkStatus,
+            tnSysPmFetchBulkRemoteHostIp,
+            tnSysPmFetchBulkUserId,
+            tnSysPmFetchBulkPassword,
+            tnSysPmFetchBulkRemotePath,
+            tnSysPmFetchBulkStatsInterval,
+            tnSysPmFetchBulkBinnedStatsBin,
+            tnSysPmFetchBulkShelfNum
+        }
+        STATUS         current
+        DESCRIPTION    ""
+        ::= { tnSystemGroups 36 }
+
+--------------------------------------------------------------------------------
+-- Compliance Statements (mandatory)
+--------------------------------------------------------------------------------
+    tnSystemCompliance MODULE-COMPLIANCE
+        STATUS         current
+        DESCRIPTION    "The compliance statement for System Extensions."
+        MODULE
+        MANDATORY-GROUPS  {
+            tnSystemBasicsGroup,
+            tnSystemControlNetworkGroup,
+            tnSystemRedundancyGroup,
+            tnSystemDiscoveryGroup,
+            tnSystemLoggingGroup,
+            tnSystemBackupAndRestoreGroup,
+            tnSysNtpGroup,
+            tnSysNtpServerGroup,
+            tnSnmpTargetAddressGroup,
+            tnSyslogGroup,
+            tnSysTimingGroup,
+            tnSysFeaturesGroup,
+--            obsolete
+--            tnSysFaultCorrelationGroup,
+            tnSysErrorHandlingGroup,
+            tnSysSecurityGroup,
+            tnSysTransferLogGroup,
+            tnSysIpAclSysDefaultGroup,
+            tnSysIpAclPatternScalarsGroup,
+            tnSysIpAclPatternGroup,
+            tnSysIpAclFilterScalarsGroup,
+            tnSysIpAclFilterGroup,
+            tnSysIpAclInterfaceScalarsGroup,
+            tnSysIpAclInterfaceGroup,
+            tnSysNtpServerIdStatsGroup,
+            tnSysFtpServerGroup,
+            tnSysNtpServerAuthenticationScalarsGroup,
+            tnSysNtpServerAuthenticationGroup,
+            tnSysIpAclNetIfFilterScalarsGroup,
+            tnSysIpAclNetIfFilterGroup,
+            tnNeDiscoveryScalarsGroup,
+            tnNeDiscoveryGroup,
+            tnSysOtdrScanSystemProfileScalarsGroup,
+            tnSysOtdrScanSystemProfileGroup,
+            tnSysOtdrScanTransferGroup,
+            tnClusterGroup,
+            tnSysPmFetchBulkGroup
+        }
+        ::= { tnSystemCompliances 1 }
+
+END -- DEFINITION OF TROPIC-SYSTEM-MIB

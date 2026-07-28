@@ -1,0 +1,341 @@
+--MibName=rcOspf
+-- *****************************************************************
+-- RAISECOM-OSPF-MIB.MIB
+--
+-- JULY. 2003, CHENYU
+--
+-- Copyright RAISECOM Telecom.
+-- All rights reserved.
+-- 
+-- *****************************************************************--  
+
+RAISECOM-OSPF-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,IpAddress     FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION,RowStatus   FROM SNMPv2-TC
+    iscomSwitch	            	FROM RAISECOM-BASE-MIB;
+
+rcOspf MODULE-IDENTITY
+    LAST-UPDATED "0412200000Z"
+    ORGANIZATION "raisecom"
+    CONTACT-INFO
+                 ""
+    DESCRIPTION
+                 "The MIB module for ospf."
+    REVISION     "0412200000Z"
+    DESCRIPTION
+                 ""
+    ::= { iscomSwitch 18}      
+
+-------textual convention-----------
+AreaID ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+            " An OSPF Area Identifier."
+    SYNTAX  IpAddress
+ 
+RouterID ::= TEXTUAL-CONVENTION
+    STATUS       current
+    DESCRIPTION
+            " A OSPF Router Identifier."
+    SYNTAX  IpAddress   
+           
+         
+           
+--  OSPF Interface MD5 Authentication Table
+rcOspfIfMd5AuthTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RcOspfIfMd5AuthEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The OSPF Interface Authentication Table describes the parameters
+           required for MD5 cryptographic Authentication."
+    REFERENCE
+        "OSPF Version 2, Appendix D.3  Cryptographic Authentication"
+    ::=  { rcOspf 1 }
+
+rcOspfIfMd5AuthEntry OBJECT-TYPE
+    SYNTAX RcOspfIfMd5AuthEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The OSPF Interface MD5 Auththentication Entry describes one  
+          Authentication Key from the viewpoint of OSPF."
+    INDEX {rcOspfIfMd5AuthIpAddress,rcOspfIfMd5AuthAddressLessIf,rcOspfIfMd5AuthKeyId}
+    ::=  { rcOspfIfMd5AuthTable 1 }
+
+RcOspfIfMd5AuthEntry ::= SEQUENCE {
+    rcOspfIfMd5AuthIpAddress IpAddress,
+    rcOspfIfMd5AuthAddressLessIf    INTEGER,
+    rcOspfIfMd5AuthKeyId    INTEGER,
+    rcOspfIfMd5AuthKey    OCTET STRING,
+    rcOspfIfMd5AuthKeyRowStatus    RowStatus
+    }
+
+rcOspfIfMd5AuthIpAddress OBJECT-TYPE
+    SYNTAX IpAddress
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The IP address of this OSPF interface."
+    ::=  { rcOspfIfMd5AuthEntry 1 }
+
+rcOspfIfMd5AuthAddressLessIf OBJECT-TYPE
+    SYNTAX INTEGER (0..16)
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "For the purpose of easing  the  instancing  of
+           addressed   and  addressless  interfaces;  This
+           variable takes the value 0 on  interfaces  with
+           IP  Addresses,  and  the corresponding value of
+           ifIndex for interfaces having no IP Address."
+    ::=  { rcOspfIfMd5AuthEntry 2 }
+
+rcOspfIfMd5AuthKeyId OBJECT-TYPE
+    SYNTAX INTEGER  (0..65535)
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        " This object identifies the secret key used to create the 
+          message digest appended to the OSPF packet."
+    ::=  { rcOspfIfMd5AuthEntry 3 }
+
+rcOspfIfMd5AuthKey OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (0..16))
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        " This is the secret key which is used to create the 
+          message digest appended to the OSPF packet."
+    ::=  { rcOspfIfMd5AuthEntry 4 }
+
+
+
+rcOspfIfMd5AuthKeyRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        " Identifies the status of the key "
+    ::=  { rcOspfIfMd5AuthEntry 5 }
+
+
+
+--  OSPF Virtual Interface Md5 Authentication Table
+
+rcOspfVirtIfMd5AuthTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RcOspfVirtIfMd5AuthEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The OSPF Interface Authentication Table describes the parameters
+           required for Md5 cryptographic Authentication."
+    REFERENCE
+        "OSPF Version 2, Appendix D.3  Cryptographic Authentication"
+    ::=  { rcOspf 2 }
+
+rcOspfVirtIfMd5AuthEntry OBJECT-TYPE
+    SYNTAX RcOspfVirtIfMd5AuthEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The OSPF Interface Md5 Auththentication Entry describes one  
+          Authentication Key from the viewpoint of OSPF."
+    INDEX {rcOspfVirtIfMd5AuthAreaId,rcOspfVirtIfMd5AuthNeighbor,rcOspfVirtIfMd5AuthKeyId}
+    ::=  { rcOspfVirtIfMd5AuthTable 1 }
+
+RcOspfVirtIfMd5AuthEntry ::= SEQUENCE {
+    rcOspfVirtIfMd5AuthAreaId  AreaID,
+    rcOspfVirtIfMd5AuthNeighbor    RouterID,
+    rcOspfVirtIfMd5AuthKeyId    INTEGER,
+    rcOspfVirtIfMd5AuthKey    OCTET STRING,
+    rcOspfVirtIfMd5AuthKeyRowStatus    RowStatus
+    }
+
+rcOspfVirtIfMd5AuthAreaId OBJECT-TYPE
+    SYNTAX AreaID
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The  Transit  Area  that  the   Virtual   Link
+           traverses.  By definition, this is not 0.0.0.0."
+    ::=  { rcOspfVirtIfMd5AuthEntry 1 }
+
+rcOspfVirtIfMd5AuthNeighbor OBJECT-TYPE
+    SYNTAX RouterID
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+               "The Router ID of the Virtual Neighbor."
+    ::=  { rcOspfVirtIfMd5AuthEntry 2 }
+
+rcOspfVirtIfMd5AuthKeyId OBJECT-TYPE
+    SYNTAX INTEGER (0..65535)
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        " This object identifies the secret key used to create the 
+          message digest appended to the OSPF packet."
+    ::=  { rcOspfVirtIfMd5AuthEntry 3 }
+
+rcOspfVirtIfMd5AuthKey OBJECT-TYPE
+    SYNTAX OCTET STRING (SIZE (0..16))
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        " This is the secret key which is used to create the 
+          message digest appended to the OSPF packet."
+    ::=  { rcOspfVirtIfMd5AuthEntry 4 }
+
+
+
+rcOspfVirtIfMd5AuthKeyRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        " Identifies the status of the key "
+    ::=  { rcOspfVirtIfMd5AuthEntry 5}
+
+
+--ospf nssa table
+rcOspfNssaAreaTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RcOspfNssaAreaEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The OSPF Nssa Area Table describes nssa area's parameters."
+    REFERENCE
+        "OSPF Version 2, Appendix D.3  Cryptographic Authentication"
+    ::=  { rcOspf 3 }
+
+rcOspfNssaAreaEntry OBJECT-TYPE
+    SYNTAX RcOspfNssaAreaEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "The OSPF Nssa Area Entry describes one  
+          OSPF Nssa Area."
+    INDEX {rcOspfNssaAreaId,rcOspfNssaTos}
+    ::=  { rcOspfNssaAreaTable 1 }
+
+RcOspfNssaAreaEntry ::= SEQUENCE {
+    rcOspfNssaAreaId  AreaID,
+    rcOspfNssaTos    INTEGER,
+    rcOspfNssaDefaultCost    INTEGER,
+    rcOspfNssaRowStatus     RowStatus
+    }
+
+rcOspfNssaAreaId OBJECT-TYPE
+    SYNTAX AreaID
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The  Nssa  Area  Id."
+    ::=  { rcOspfNssaAreaEntry 1 }  
+    
+rcOspfNssaTos   OBJECT-TYPE
+    SYNTAX INTEGER (0..7)
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "The  Nssa  Area  TOS."
+    ::=  { rcOspfNssaAreaEntry 2 }         
+    
+rcOspfNssaDefaultCost   OBJECT-TYPE
+    SYNTAX INTEGER  (0..16777215)
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "The  Type  of  Service  associated  with   the
+ 	metric.   On creation, this can be derived from
+ 	the instance."
+    ::=  { rcOspfNssaAreaEntry 3 }  
+                                                   
+rcOspfNssaRowStatus   OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "This variable displays the status of  the  en-
+ 	try.  Setting it to 'invalid' has the effect of
+ 	rendering it inoperative.  The internal  effect
+ 	(row removal) is implementation dependent."  
+ 	
+    ::=  { rcOspfNssaAreaEntry 4 }   
+ 
+------ospf config-------
+rcOspfConfig  OBJECT IDENTIFIER ::= {rcOspf 4 }            
+    
+rcOspfDistance   OBJECT-TYPE
+    SYNTAX INTEGER  (1..200)
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "distance of ospf,value range is 1--200."  
+ 	DEFVAL { 110 }
+    ::=  {rcOspfConfig 1 } 
+
+--  OSPF Network Table
+
+rcOspfNetworkTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RcOspfNetworkEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Before a interface startup ospf protocol,the interface must be added to an ospf area.
+        The OSPF network Table add a ospf interface into an ospf area."
+    ::=  { rcOspf 5 }                                                             
+
+rcOspfNetworkEntry OBJECT-TYPE
+    SYNTAX RcOspfNetworkEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Before a interface startup ospf protocol,the interface must be added to an ospf area.
+        The OSPF network Table add a ospf interface into an ospf area."
+    INDEX {rcOspfNetworkIfIpAddress,rcOspfNetworkIfMask}
+    ::=  { rcOspfNetworkTable 1 }
+
+RcOspfNetworkEntry ::= SEQUENCE {
+    rcOspfNetworkIfIpAddress IpAddress,           
+    rcOspfNetworkIfMask      IpAddress,
+    rcOspfNetworkAreaId    IpAddress,
+    rcOspfNetworkRowStatus    RowStatus
+    }
+
+rcOspfNetworkIfIpAddress OBJECT-TYPE
+    SYNTAX IpAddress
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "The IP address of this OSPF interface."
+    ::=  { rcOspfNetworkEntry 1 }
+                                     
+rcOspfNetworkIfMask OBJECT-TYPE
+    SYNTAX IpAddress
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "mask of this OSPF interface."
+    ::=  { rcOspfNetworkEntry 2 }
+
+rcOspfNetworkAreaId OBJECT-TYPE
+    SYNTAX IpAddress
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        "an ospf area that the ospf interface is in."
+    ::=  { rcOspfNetworkEntry 3 }
+
+rcOspfNetworkRowStatus OBJECT-TYPE
+    SYNTAX RowStatus
+    MAX-ACCESS read-create
+    STATUS current
+    DESCRIPTION
+        " This variable displays the status of  the  entry. "
+    ::=  { rcOspfNetworkEntry 4 }
+
+END

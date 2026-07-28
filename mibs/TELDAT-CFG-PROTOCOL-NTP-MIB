@@ -1,0 +1,198 @@
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+                -- MIB privada de Teldat
+
+                -- Protocolo NTP
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.2  16/05/11    J. Rodrigo      Parametro MAX_CLOCK_AGE para peer
+    -- 1.1  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+    -- 1.0  01/07/04    J. Molina       Fichero procedente de NTPmib.mib
+
+    -- Historial de NTPmib.mib:
+
+        -- ??-??-01  A. Guerrero        Implementacin inicial
+    --------------------------------------------------------------------------
+
+TELDAT-CFG-PROTOCOL-NTP-MIB DEFINITIONS ::= BEGIN
+
+-- Tipos importados
+
+    IMPORTS
+            IpAddress
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            telProdNpConfProtocol
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+-- Tipos para la definicin de las tablas
+
+    TelProdNpConProtNtpPeerEntry ::=
+        SEQUENCE{
+            telProdNpConProtNtpPeerIndex
+                INTEGER,
+            telProdNpConProtNtpPeerAdd
+                IpAddress,
+            telProdNpConProtNtpPeerPort
+                INTEGER,
+            telProdNpConProtNtpPeerMode
+                INTEGER,
+            telProdNpConProtNtpPeerPoll
+                INTEGER,
+            telProdNpConProtNtpPeerStatus
+                INTEGER,
+            telProdNpConProtNtpPeerMaxClkAge
+                INTEGER
+        }
+
+
+    telProdNpConfProtNtp        OBJECT IDENTIFIER ::= { telProdNpConfProtocol 13 }
+
+
+    telProdNpConfProtNtpGlobal  OBJECT IDENTIFIER ::= { telProdNpConfProtNtp 1 }
+
+    telProdNpConfProtNtpStat OBJECT-TYPE
+        SYNTAX  INTEGER{
+                enabled(1),
+                disabled(2)
+            }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Describes the NTP protocol status: enabled or disabled."
+        ::={ telProdNpConfProtNtpGlobal 1 }
+
+    telProdNpConProtNtpMode OBJECT-TYPE
+        SYNTAX  INTEGER{
+                    client(0),
+                    broadcastClient-client(1)
+            }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Describes the router operation mode."
+        ::={ telProdNpConfProtNtpGlobal 2 }
+
+    telProdNpConProtNtpPoll OBJECT-TYPE
+        SYNTAX INTEGER(16..1024)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Default poll interval."
+        ::={ telProdNpConfProtNtpGlobal 3 }
+
+    telProdNpConProtNtpUtc OBJECT-TYPE
+        SYNTAX INTEGER(-24..24)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Describes the UTC shift in hours."
+        ::={ telProdNpConfProtNtpGlobal 4 }
+
+    telProdNpConProtNtpPeerTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpConProtNtpPeerEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Table containing information related to the different NTP servers
+             known."
+        ::={ telProdNpConfProtNtp 2 }
+
+    telProdNpConProtNtpPeerEntry OBJECT-TYPE
+        SYNTAX  TelProdNpConProtNtpPeerEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Information about a particular NTP server. Includes IP address,
+             UDP port, operation mode and poll interval."
+        INDEX {telProdNpConProtNtpPeerIndex}
+        ::={ telProdNpConProtNtpPeerTable 1 }
+
+    telProdNpConProtNtpPeerIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Variable indentifier."
+        ::={ telProdNpConProtNtpPeerEntry 1 }
+
+    telProdNpConProtNtpPeerAdd OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Ip address of the corresponding NTP server."
+        ::={ telProdNpConProtNtpPeerEntry 2 }
+
+    telProdNpConProtNtpPeerPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "UDP port of the corresponding NTP server."
+        ::={ telProdNpConProtNtpPeerEntry 3 }
+
+    telProdNpConProtNtpPeerMode OBJECT-TYPE
+        SYNTAX INTEGER{
+                    client(0),
+                    broadcast-client(1)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Operation Mode."
+        ::={ telProdNpConProtNtpPeerEntry 4 }
+
+    telProdNpConProtNtpPeerPoll OBJECT-TYPE
+        SYNTAX  INTEGER(16..1024)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Polling Interval. Admits only multiples of two. Takes the value 1
+            when the client acts in broadcast mode."
+        ::={ telProdNpConProtNtpPeerEntry 5 }
+
+    telProdNpConProtNtpPeerStatus OBJECT-TYPE
+        SYNTAX  INTEGER{
+                    ok(1),
+                    crear(2),
+                    borrar(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Let the manager add or delete instances dinamically.
+             To add an instance to the table, set the variable with
+             the appropriate residue to 2.To delete an instance, set
+             the variable to 3. OK represents the normal status of
+             an instance."
+        ::={ telProdNpConProtNtpPeerEntry 6 }
+
+     telProdNpConProtNtpPeerMaxClkAge OBJECT-TYPE
+        SYNTAX  INTEGER(0..86400)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Maximum Clock Age for a NTP server."
+        ::={ telProdNpConProtNtpPeerEntry 7 }
+
+END

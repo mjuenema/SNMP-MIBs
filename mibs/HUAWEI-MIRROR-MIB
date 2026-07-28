@@ -1,0 +1,1671 @@
+-- ==================================================================
+-- Copyright (C) 2008 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- 
+-- Description: HUAWEI Private mirror MIB
+-- Reference:
+-- Version: 
+-- History:
+--       
+-- ==================================================================
+-- ==================================================================
+-- 
+-- Variables and types be imported
+-- 
+-- ==================================================================
+
+    HUAWEI-MIRROR-MIB DEFINITIONS ::= BEGIN
+ 
+        IMPORTS
+            huaweiMgmt            
+                FROM HUAWEI-MIB            
+            InterfaceIndex            
+                FROM IF-MIB            
+            OBJECT-GROUP, MODULE-COMPLIANCE            
+                FROM SNMPv2-CONF            
+            IpAddress, Integer32, OBJECT-TYPE, MODULE-IDENTITY            
+                FROM SNMPv2-SMI
+            EnabledStatus           
+                FROM P-BRIDGE-MIB     
+            RowStatus, TruthValue, MacAddress            
+                FROM SNMPv2-TC;
+
+-- 20080101
+        
+        hwMirrorMIB MODULE-IDENTITY 
+            LAST-UPDATED "200801012030Z"                    
+            ORGANIZATION 
+                "Huawei Technologies co.,Ltd."
+            CONTACT-INFO 
+                "8090 Team Huawei Technologies co.,Ltd.
+                Huawei Bld.,NO.3 Xinxi Rd., 
+                Shang-Di Information Industry Base,
+                Hai-Dian District Beijing P.R. China
+                http://www.huawei.com
+                Zip:100085
+                "
+            DESCRIPTION 
+                "MIB description of mirror."
+            ::= { huaweiMgmt 162 }
+        
+      hwMirrorMIBObjects OBJECT IDENTIFIER ::= { hwMirrorMIB 1 }
+      
+      hwLocalMirror OBJECT IDENTIFIER ::= { hwMirrorMIBObjects 1 }
+      
+      
+      
+-- ******************************************************************
+--
+--   hwLocalObserveTable
+--
+-- ******************************************************************
+
+hwLocalObserveTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwLocalObserveEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwLocalObserveTable lists local mirror characters. "
+          ::= { hwLocalMirror 1 }
+          
+
+      hwLocalObserveEntry OBJECT-TYPE
+          SYNTAX HwLocalObserveEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwLocalObserveEntry lists local mirror characters. " 
+          INDEX  { hwLocalObservePort }    
+          ::= { hwLocalObserveTable 1 }           
+
+    HwLocalObserveEntry ::=
+        SEQUENCE {               
+                hwLocalObservePort                      
+                    InterfaceIndex,
+                hwLocalObserveIndex                
+                    Integer32,
+                hwLocalObserveWithLinkLayerHeader   
+                    Integer32,
+                hwLocalObserveRowStatus           
+                    RowStatus
+   }
+
+
+hwLocalObservePort OBJECT-TYPE
+      SYNTAX InterfaceIndex
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "This object indicates the observing port index, which is used to query the name of an observing port."     
+      ::= { hwLocalObserveEntry 1 }
+
+
+    
+hwLocalObserveIndex OBJECT-TYPE
+      SYNTAX Integer32 (1..128)
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "
+      The value of this object identifies the observing port index. In a single-chassis system, the index of a physical observing port is the same as the slot number, ranging from 1 to 32; the index of a logical observing port ranges from 33 to 64.
+In a multi-chassis system, the index of a physical observing port is the same as the slot number, ranging from 1 to 128."
+ 
+      ::= { hwLocalObserveEntry 2 }
+      
+   
+hwLocalObserveWithLinkLayerHeader OBJECT-TYPE
+      SYNTAX Integer32 (0..1)
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "
+       The value of this object identifies heterogeneous or homogeneous media attributes:
+1: heterogeneous media. In the case of heterogeneous media, the contents of a packet, excluding the link layer header, are mirrored.
+0: homogeneous media. In the case of homogeneous media, the contents of a packet, including the link layer header, are mirrored.
+The default value is 1.
+"
+      DEFVAL {1}
+      ::= { hwLocalObserveEntry 3 }
+      
+
+hwLocalObserveRowStatus OBJECT-TYPE
+      SYNTAX RowStatus 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted."
+      
+      ::= { hwLocalObserveEntry 4 }   
+      
+
+-- ******************************************************************
+--
+--  hwLocalPortMirrorTable 
+--
+-- ******************************************************************         
+hwLocalPortMirrorTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwLocalPortMirrorEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwLocalPortMirrorTable lists local mirror characters. "
+          ::= { hwLocalMirror 2 }
+          
+
+      hwLocalPortMirrorEntry OBJECT-TYPE
+          SYNTAX HwLocalPortMirrorEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwLocalPortMirrorEntry lists local mirror characters. " 
+          INDEX  { hwLocalMirrorPort }    
+          ::= { hwLocalPortMirrorTable 1 }           
+
+    HwLocalPortMirrorEntry ::=
+        SEQUENCE {
+                hwLocalMirrorPort                 
+                    InterfaceIndex,
+                hwLocalMirrorBearing         
+                    INTEGER,
+                hwLocalCpuPacketFlag           
+                    TruthValue,
+                hwLocalPortMirrorCar             
+                    Integer32,
+                hwLocalPortMirrorRowStatus        
+                    RowStatus
+   }
+
+
+hwLocalMirrorPort OBJECT-TYPE
+      SYNTAX InterfaceIndex
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "This object indicates the mirroring port index, which is used to query the name of a mirroring port."
+      
+      ::= { hwLocalPortMirrorEntry 1 }
+    
+
+hwLocalMirrorBearing OBJECT-TYPE
+      SYNTAX INTEGER {
+      inbound   (1),
+      outbound  (2),
+      inout     (3)
+      } 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the mirroring direction:
+1: inbound
+2: outbound
+3: inout
+When the mirroring direction is inout, both incoming and outgoing packets are mirrored.
+"
+      
+      ::= { hwLocalPortMirrorEntry 2 }
+      
+
+hwLocalCpuPacketFlag OBJECT-TYPE
+      SYNTAX TruthValue
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates whether the packets sent to the CPU are mirrored:
+true: indicates that the packets sent to the CPU are mirrored.
+false: indicates that the packets sent to the CPU are not mirrored.
+The default value is false.
+"
+      DEFVAL {false}
+      ::= { hwLocalPortMirrorEntry 3 }    
+    
+
+hwLocalPortMirrorCar OBJECT-TYPE
+      SYNTAX Integer32 (0 | 100..2500000)
+      UNITS "Kbps"
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the CIR of the CAR performed on the mirrored packets, in Kbit/s.
+       The value ranges from 100 to 2500000, and the default value is 2500000.
+"
+      DEFVAL {0}
+      ::= { hwLocalPortMirrorEntry 4 }
+      
+
+hwLocalPortMirrorRowStatus OBJECT-TYPE
+      SYNTAX RowStatus
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted.
+"
+           
+      ::= { hwLocalPortMirrorEntry 5 }
+
+-- ******************************************************************
+--
+--  hwLocalFlowMirrorTable
+--
+-- ******************************************************************         
+hwLocalFlowMirrorTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwLocalFlowMirrorEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwLocalFlowMirrorTable lists local mirror characters. "
+          ::= { hwLocalMirror 3 }
+          
+
+      hwLocalFlowMirrorEntry OBJECT-TYPE
+          SYNTAX HwLocalFlowMirrorEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwLocalFlowMirrorEntry lists local mirror characters. " 
+          INDEX  { hwLocalBehaviorName }    
+          ::= { hwLocalFlowMirrorTable 1 }           
+
+    HwLocalFlowMirrorEntry ::=
+        SEQUENCE {
+                hwLocalBehaviorName             
+                    OCTET STRING,
+                hwLocalFlowMirrorEnable         
+                    EnabledStatus,
+                hwLocalFlowMirrorCar            
+                    Integer32,
+                hwLocalFlowMirrorRowStatus      
+                    RowStatus                                    
+   }
+
+          
+hwLocalBehaviorName OBJECT-TYPE
+      SYNTAX OCTET STRING (SIZE(1..31)) 
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "This object indicates the traffic behavior view, which is a string of 1 to 31 characters."
+           
+      ::= { hwLocalFlowMirrorEntry 1 }
+
+
+hwLocalFlowMirrorEnable OBJECT-TYPE
+      SYNTAX EnabledStatus 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates whether traffic mirroring is enabled:
+disable: indicates that traffic mirroring is disabled.
+enable: indicates that traffic mirroring is enabled.
+The default value is disable.
+"
+      DEFVAL {2}
+      ::= { hwLocalFlowMirrorEntry 2 }
+
+
+hwLocalFlowMirrorCar OBJECT-TYPE
+      SYNTAX Integer32 (0 | 100..2500000) 
+      UNITS "Kbps"
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the CIR of the CAR performed on the mirrored packets, in Kbit/s. 
+      The value ranges from 100 to 2500000, and the default value is 2500000.
+"
+      DEFVAL {0}   
+      ::= { hwLocalFlowMirrorEntry 3 }
+      
+
+hwLocalFlowMirrorRowStatus OBJECT-TYPE
+      SYNTAX RowStatus
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates that the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted.
+"           
+      ::= { hwLocalFlowMirrorEntry 4 }                  
+
+-- ******************************************************************
+--
+--    hwLocalSlotMirrorTable 
+--
+-- ******************************************************************
+hwLocalSlotMirrorTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwLocalSlotMirrorEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwLocalSlotMirrorTable lists local mirror characters. "
+          ::= { hwLocalMirror 4 }
+          
+
+      hwLocalSlotMirrorEntry OBJECT-TYPE
+          SYNTAX HwLocalSlotMirrorEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwLocalFlowMirrorEntry lists local mirror characters. " 
+          INDEX  { hwLocalSlotNo }    
+          ::= { hwLocalSlotMirrorTable 1 }           
+
+    HwLocalSlotMirrorEntry ::=
+        SEQUENCE {
+           hwLocalSlotNo                  
+               Integer32,
+           hwSlotObserveIndex            
+               Integer32,
+           hwLocalSlotMirrorRowStatus        
+               RowStatus                                    
+   }  
+   
+hwLocalSlotNo OBJECT-TYPE
+      SYNTAX Integer32 (1..128)
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the slot ID."
+           
+      ::= { hwLocalSlotMirrorEntry 1 }
+
+
+hwSlotObserveIndex OBJECT-TYPE
+      SYNTAX Integer32 (1..128)
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the observing port index, ranging from 1 to 128."
+           
+      ::= { hwLocalSlotMirrorEntry 2 }
+
+hwLocalSlotMirrorRowStatus OBJECT-TYPE
+      SYNTAX RowStatus
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted.
+"
+           
+      ::= { hwLocalSlotMirrorEntry 3 }
+                        
+-- ******************************************************************
+--
+-- hwPortMirrorInfoTable
+--
+-- ******************************************************************
+
+hwPortMirrorInfoTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwPortMirrorInfoEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwPortMirrorInfoTable lists local and remote mirror characters. "
+          ::= { hwLocalMirror 5 }
+          
+
+      hwPortMirrorInfoEntry OBJECT-TYPE
+          SYNTAX HwPortMirrorInfoEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwPortMirrorInfoEntry lists local and remote mirror characters. " 
+          INDEX  { hwMirrorPortIndex }    
+          ::= { hwPortMirrorInfoTable 1 }           
+
+    HwPortMirrorInfoEntry ::=
+        SEQUENCE {
+            hwMirrorPortIndex                   
+                InterfaceIndex,
+            hwMirrorType                       
+                INTEGER,
+            hwMirrorCar                          
+                Integer32,
+            hwMirrorClass                        
+                INTEGER,
+            hwMirrorBearing                      
+                INTEGER,
+            hwMirrorCpuPacketFlag                
+                TruthValue,
+            hwMirrorWithLinkLayerHeader          
+                Integer32,
+            hwRemoteMirrorInstanceName             
+                OCTET STRING            
+   } 
+
+    
+hwMirrorPortIndex OBJECT-TYPE
+      SYNTAX InterfaceIndex 
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "This object indicates the mirroring port index."
+           
+      ::= { hwPortMirrorInfoEntry 1 }
+
+
+hwMirrorType OBJECT-TYPE
+      SYNTAX INTEGER {
+      local    (1),
+      remote   (2)
+      }
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the mirroring type:
+1: local
+2: remote
+"
+           
+      ::= { hwPortMirrorInfoEntry 2 }
+      
+
+
+
+hwMirrorCar OBJECT-TYPE
+      SYNTAX Integer32 (0 | 100..2500000)  
+      UNITS "Kbps"
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the CIR of the CAR performed on the mirrored packets, in Kbit/s. 
+      The value ranges from 100 to 2500000, and the default value is 2500000. Default value is 0
+      "    
+      ::= { hwPortMirrorInfoEntry 3 }
+      
+
+hwMirrorClass OBJECT-TYPE
+      SYNTAX INTEGER {
+      port    (1),
+      policy  (2)
+      }
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the configuration mode of a mirroring port:
+1: port
+2: policy"
+           
+      ::= { hwPortMirrorInfoEntry 4 }
+
+
+hwMirrorBearing OBJECT-TYPE
+      SYNTAX INTEGER {
+      inbound   (1),
+      outbound  (2),
+      inout   (3)
+      }
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the mirroring direction:
+1: inbound
+2: outbound
+3: inout
+When the mirroring direction is inout, both incoming and outgoing packets are mirrored.
+"
+           
+      ::= { hwPortMirrorInfoEntry 5 }
+      
+
+hwMirrorCpuPacketFlag OBJECT-TYPE
+      SYNTAX TruthValue
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "This object indicates whether the packets sent to the CPU are mirrored:
+true: indicates that the packets sent to the CPU are mirrored.
+false: indicates that the packets sent to the CPU are not mirrored.
+The default value is false.
+"    
+      ::= { hwPortMirrorInfoEntry 6 }
+
+
+hwMirrorWithLinkLayerHeader OBJECT-TYPE
+      SYNTAX Integer32 (0..1)
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies heterogeneous or homogeneous media attributes:
+1: heterogeneous media. In the case of heterogeneous media, the contents of a packet, excluding the link layer header, are mirrored.
+0: homogeneous media. In the case of homogeneous media, the contents of a packet, including the link layer header, are mirrored.
+The default value is 1.
+" 
+      ::= { hwPortMirrorInfoEntry 7 }
+      
+
+hwRemoteMirrorInstanceName OBJECT-TYPE
+      SYNTAX   OCTET STRING (SIZE(1..31))
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "This object indicates the mirroring instance name, which is a string of 1 to 31 characters."
+           
+      ::= { hwPortMirrorInfoEntry 8 }
+   
+   
+-- ******************************************************************
+--   hwRemoteMirror
+-- ******************************************************************
+hwRemoteMirror OBJECT IDENTIFIER ::= { hwMirrorMIBObjects 2 }
+
+-- ******************************************************************
+
+--   hwRemoteObserveTable
+ 
+-- ******************************************************************
+
+hwRemoteObserveTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwRemoteObserveEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwRemoteObserveTable lists remote mirror characters. "
+          ::= { hwRemoteMirror 1 }
+          
+
+      hwRemoteObserveEntry OBJECT-TYPE
+          SYNTAX HwRemoteObserveEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwLocalPortMirrorInfoEntry lists local mirror characters. " 
+          INDEX  { hwRemoteObservePort }    
+          ::= { hwRemoteObserveTable 1 }           
+
+    HwRemoteObserveEntry ::=
+        SEQUENCE { 
+           hwRemoteObservePort                 
+               InterfaceIndex,
+           hwRemoteIdentifier                
+               Integer32,
+           hwRemoteDescription
+               OCTET STRING,
+           hwRemoteObserveWithLinkLayerHeader  
+               Integer32,
+           hwRemoteObserveRowStatus           
+               RowStatus
+   } 
+
+hwRemoteObservePort  OBJECT-TYPE
+      SYNTAX InterfaceIndex 
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "This object indicates the index of a remote observing port."
+      
+      ::= { hwRemoteObserveEntry   1 }
+
+
+hwRemoteIdentifier  OBJECT-TYPE
+      SYNTAX Integer32  (1..64)
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the mirroring identifier, ranging from 1 to 64."
+      ::= { hwRemoteObserveEntry   2 }
+
+
+
+hwRemoteDescription  OBJECT-TYPE
+      SYNTAX OCTET STRING (SIZE(1..31))
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the description of an observing port, which is a string of 1 to 31 characters."
+      
+      ::= { hwRemoteObserveEntry   3 }
+
+hwRemoteObserveWithLinkLayerHeader  OBJECT-TYPE
+      SYNTAX Integer32 (0..1) 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies heterogeneous or homogeneous media attributes:
+1: heterogeneous media. In the case of heterogeneous media, the contents of a packet, excluding the link layer header, are mirrored.
+0: homogeneous media. In the case of homogeneous media, the contents of a packet, including the link layer header, are mirrored.
+The default value is 1.
+ "
+      DEFVAL {1}
+      ::= { hwRemoteObserveEntry   4 }
+
+
+hwRemoteObserveRowStatus  OBJECT-TYPE
+      SYNTAX RowStatus
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted.
+"
+
+      ::= { hwRemoteObserveEntry   5 }
+
+-- ******************************************************************
+
+--  hwRemotePortMirrorTable 
+
+-- ******************************************************************
+hwRemotePortMirrorTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwRemotePortMirrorEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwRemotePortMirrorTable lists remote mirror characters. "
+          ::= { hwRemoteMirror 2 }
+          
+
+      hwRemotePortMirrorEntry OBJECT-TYPE
+          SYNTAX HwRemotePortMirrorEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwRemotePortMirrorTable lists local mirror characters. " 
+          INDEX  { hwRemoteMirrorPort }    
+          ::= { hwRemotePortMirrorTable 1 }           
+
+    HwRemotePortMirrorEntry ::=
+        SEQUENCE {
+           hwRemoteMirrorPort         
+               InterfaceIndex,
+           hwRemoteMirrorBearing      
+               INTEGER,
+           hwRemoteCpuPacketFlag    
+               TruthValue,
+           hwPortMirrorInstanceName   
+               OCTET STRING,
+           hwRemotePortMirrorCar      
+               Integer32,
+           hwRemotePortMirrorRowStatus 
+               RowStatus           
+   } 
+
+
+hwRemoteMirrorPort  OBJECT-TYPE
+      SYNTAX InterfaceIndex 
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      " This object indicates the mirroring port index. "
+
+      ::= { hwRemotePortMirrorEntry   1 }
+
+hwRemoteMirrorBearing  OBJECT-TYPE
+      SYNTAX INTEGER {
+       inbound       (1), 
+       outbound      (2), 
+       inout       (3)
+       }
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the mirroring direction:
+1: inbound
+2: outbound
+3: inout
+When the mirroring direction is inout, both incoming and outgoing packets are mirrored.
+"
+
+      ::= { hwRemotePortMirrorEntry   2 }
+
+
+hwRemoteCpuPacketFlag  OBJECT-TYPE
+      SYNTAX TruthValue 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates whether the packets sent to the CPU are mirrored:
+true: indicates that the packets sent to the CPU are mirrored.
+false: indicates that the packets sent to the CPU are not mirrored.
+The default value is false."
+      DEFVAL {false}
+      ::= { hwRemotePortMirrorEntry   3 }
+
+
+hwPortMirrorInstanceName  OBJECT-TYPE
+      SYNTAX   OCTET STRING (SIZE(1..31))
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the mirroring instance name, which is a string of 1 to 31 characters.
+       The name must be an existing one in the mirroring instance table.
+"
+
+      ::= { hwRemotePortMirrorEntry   4 }
+
+
+hwRemotePortMirrorCar  OBJECT-TYPE
+      SYNTAX Integer32 (0 | 100..2500000)
+      UNITS "Kbps"
+      MAX-ACCESS read-create      
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the CIR of the CAR performed on the mirrored packets, in Kbit/s. By default, the CAR is not performed on the mirrored packets. The value ranges from 100 to 2500000. The default value is 2500000.
+"
+      DEFVAL {0}
+      ::= { hwRemotePortMirrorEntry   5 }
+
+
+
+hwRemotePortMirrorRowStatus  OBJECT-TYPE
+      SYNTAX RowStatus
+      MAX-ACCESS read-create      
+      STATUS current
+      DESCRIPTION
+      "This object indicates the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted.
+"
+
+      ::= { hwRemotePortMirrorEntry   6 }   
+
+   
+
+-- ******************************************************************
+  
+--  hwRemoteFlowMirrorTable 
+
+-- ******************************************************************
+hwRemoteFlowMirrorTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwRemoteFlowMirrorEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwRemoteFlowMirrorTable lists remote mirror characters. "
+          ::= { hwRemoteMirror 3 }
+          
+
+      hwRemoteFlowMirrorEntry OBJECT-TYPE
+          SYNTAX HwRemoteFlowMirrorEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwRemoteFlowMirrorEntry lists local mirror characters. " 
+          INDEX  { hwRemoteBehaviorName }    
+          ::= { hwRemoteFlowMirrorTable 1 }           
+
+    HwRemoteFlowMirrorEntry ::=
+        SEQUENCE {
+            hwRemoteBehaviorName         
+                OCTET STRING ,
+            hwFlowMirrorInstanceName        
+                OCTET STRING ,
+            hwRemoteFlowMirrorCar           
+                Integer32,
+            hwRemoteFlowMirrorRowStatus    
+                RowStatus           
+   } 
+
+
+hwRemoteBehaviorName OBJECT-TYPE
+      SYNTAX OCTET STRING (SIZE(1..31))  
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "This object indicates the traffic behavior name, which is a string of 1 to 31 characters. "
+
+      ::= { hwRemoteFlowMirrorEntry   1 }
+
+
+hwFlowMirrorInstanceName OBJECT-TYPE
+       SYNTAX   OCTET STRING (SIZE(1..31)) 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      " This object indicates the mirroring instance name, which is a string of 1 to 31 characters."
+
+      ::= { hwRemoteFlowMirrorEntry   2 }
+
+
+
+hwRemoteFlowMirrorCar OBJECT-TYPE
+      SYNTAX Integer32 (0 | 100..2500000)
+      UNITS "Kbps"
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      " The value of this object identifies the CIR of the CAR performed on the mirrored packets, in Kbit/s. The value ranges from 100 to 2500000, and the default value is 2500000.
+ "
+      DEFVAL {0}
+      ::= { hwRemoteFlowMirrorEntry   3 }    
+      
+
+
+hwRemoteFlowMirrorRowStatus OBJECT-TYPE
+      SYNTAX RowStatus 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted.
+"
+
+      ::= { hwRemoteFlowMirrorEntry   4 }  
+      
+      
+-- ******************************************************************
+      
+--   hwRemoteMirrorInstanceTable   
+ 
+-- ******************************************************************
+hwRemoteMirrorInstanceTable OBJECT-TYPE
+          SYNTAX      SEQUENCE OF HwRemoteMirrorInstanceEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+              " The hwRemoteMirrorInstanceTable lists remote mirror characters. "
+          ::= { hwRemoteMirror 4 }
+          
+
+      hwRemoteMirrorInstanceEntry OBJECT-TYPE
+          SYNTAX HwRemoteMirrorInstanceEntry
+          MAX-ACCESS not-accessible
+          STATUS current
+          DESCRIPTION
+              " The hwRemoteMirrorInstanceEntry lists  mirror instance characters. " 
+          INDEX  { hwMirrorInstanceName }    
+          ::= { hwRemoteMirrorInstanceTable 1 }           
+
+    HwRemoteMirrorInstanceEntry ::=
+        SEQUENCE {
+            hwMirrorInstanceName     
+                OCTET STRING,
+            hwRemoteObservePortIp   
+                IpAddress,
+            hwRemoteMirrorIdentifier       
+                Integer32,
+            hwRemoteMirrorWithLinkLayerHeader
+                Integer32,
+            hwMirrorFlowClass         
+                INTEGER,
+            hwMirrorSliceSize         
+                Integer32,
+            hwMirrorTunnelIndex      
+                Integer32, 
+            hwMirrorTunnelType       
+                INTEGER,
+            hwMirrorTunnelStatus      
+                Integer32,   
+            hwMirrorTunnelPolicy      
+                OCTET STRING, 
+            hwMirrorInstanceRowStatus 
+                RowStatus         
+   } 
+
+hwMirrorInstanceName OBJECT-TYPE
+      SYNTAX   OCTET STRING (SIZE(1..31))
+      MAX-ACCESS not-accessible
+      STATUS current
+      DESCRIPTION
+      "This object indicates the mirroring instance name, which is a string of 1 to 31 characters."
+
+      ::= { hwRemoteMirrorInstanceEntry  1 }
+   
+
+hwRemoteObservePortIp OBJECT-TYPE
+      SYNTAX IpAddress 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      " This object indicates the IP address of a remote observing port."
+
+      ::= { hwRemoteMirrorInstanceEntry  2 }   
+      
+
+hwRemoteMirrorIdentifier OBJECT-TYPE
+      SYNTAX Integer32 (0 | 1..64)
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      " The value of this object identifies the mirroring identifier, ranging from 1 to 64."
+     
+      DEFVAL {0}
+      ::= { hwRemoteMirrorInstanceEntry  3 }   
+      
+
+hwRemoteMirrorWithLinkLayerHeader OBJECT-TYPE
+      SYNTAX Integer32 (0..1) 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies heterogeneous or homogeneous media attributes:
+1: heterogeneous media. In the case of heterogeneous media, the contents of a packet, excluding the link layer header, are mirrored. 
+0: homogeneous media. In the case of homogeneous media, the contents of a packet, including the link layer header, are mirrored.
+The default value is 1.
+ "
+      DEFVAL {1}
+      ::= { hwRemoteMirrorInstanceEntry  4 } 
+      
+
+hwMirrorFlowClass OBJECT-TYPE
+      SYNTAX INTEGER { 
+        be           (0),
+        af1          (1),
+        af2          (2),
+        af3          (3),
+        af4          (4),
+        ef           (5),
+        cs6          (6),
+        cs7          (7)
+                       
+      }
+ 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the type of mirrored traffic:
+1: be
+2: af1
+3: af2
+4: af3
+5: af4
+6: ef
+7: cs6
+8: cs7
+"
+      DEFVAL {0}
+      ::= { hwRemoteMirrorInstanceEntry  5 }   
+                                            
+
+hwMirrorSliceSize OBJECT-TYPE
+      SYNTAX Integer32 (0 | 64..9600)
+      UNITS "Byte"
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the number of mirrored bytes in the packet. The value ranges from 64 to 9000.
+"
+      DEFVAL {0}
+      ::= { hwRemoteMirrorInstanceEntry  6 }   
+      
+
+hwMirrorTunnelIndex OBJECT-TYPE
+      SYNTAX Integer32 
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      " The value of this object identifies the tunnel index, which uniquely specifies a tunnel. The value ranges from 0 to 2147483647.
+"
+
+      ::= { hwRemoteMirrorInstanceEntry  7 }  
+      
+
+hwMirrorTunnelType OBJECT-TYPE
+      SYNTAX INTEGER { 
+        lspTunnel  (1), 
+        teTunnel   (2),
+        greTunnel  (3)                        
+      }
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the tunnel type:
+1: LSP tunnels
+2: TE tunnels
+3: GRE tunnels
+"
+
+      ::= { hwRemoteMirrorInstanceEntry  8 }  
+      
+      
+hwMirrorTunnelStatus OBJECT-TYPE
+      SYNTAX  Integer32 (0..1)
+      MAX-ACCESS read-only
+      STATUS current
+      DESCRIPTION
+      "The value of this object identifies the tunnel status:
+0: Down
+1: Up
+"
+
+      ::= { hwRemoteMirrorInstanceEntry  9 } 
+
+
+hwMirrorTunnelPolicy OBJECT-TYPE
+      SYNTAX   OCTET STRING (SIZE(1..19))
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      " This object indicates the traffic policy, which is a string of 1 to 19 characters. "
+
+      ::= { hwRemoteMirrorInstanceEntry  10 }
+
+      
+
+hwMirrorInstanceRowStatus OBJECT-TYPE
+      SYNTAX RowStatus 
+      MAX-ACCESS read-create
+      STATUS current
+      DESCRIPTION
+      "This object indicates the row status that ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+4: createAndGo, indicating that a row is created.
+6: destroy, indicating that a row is deleted.
+"
+
+      ::= { hwRemoteMirrorInstanceEntry  11 }
+-- 
+hwMergeMirror OBJECT IDENTIFIER ::= { hwMirrorMIBObjects 3 }
+
+        hwPortMirrHostSendTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwPortMirrHostSendEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to send the packet delivered from the user-configured host to the observing port."
+            ::= { hwMergeMirror 3 }
+        hwPortMirrHostSendEntry OBJECT-TYPE
+            SYNTAX HwPortMirrHostSendEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to send the packet delivered from the user-configured host to the observing port."
+            INDEX { hwPortMirrSlotID }
+            ::= { hwPortMirrHostSendTable 1 }
+        HwPortMirrHostSendEntry ::=
+            SEQUENCE { 
+                hwPortMirrSlotID
+                    Integer32,
+                hwPortMirrType
+                    INTEGER,
+                hwPortMirrRowStatus
+                    RowStatus
+             }
+        hwPortMirrSlotID OBJECT-TYPE
+            SYNTAX Integer32 (0..128)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the slot ID.
+                 The value ranges from 0 to 128.
+                 This object has no default value.
+		"
+            ::= { hwPortMirrHostSendEntry 1 }
+        hwPortMirrType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                local(1),
+                remote(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the mirroring type.
+		 The value of this object is local (1) or remote (2).
+		"
+            ::= { hwPortMirrHostSendEntry 2 }
+
+        hwPortMirrRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the row status. The value ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+		 4: createAndGo, indicating that a row is created.
+		 6: destroy, indicating that a row is deleted.
+		"
+            ::= { hwPortMirrHostSendEntry 50 }
+        hwObServerTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwObServerEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to configure the IP address and interface of the remote observing server. The port mirroring module obtains the destination IP address and interface number of the remote mirroring server through this configuration command."
+            ::= { hwMergeMirror 4 }
+        hwObServerEntry OBJECT-TYPE
+            SYNTAX HwObServerEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to configure the IP address and interface of the remote observing server. The port mirroring module obtains the destination IP address and interface number of the remote mirroring server through this configuration command."
+            INDEX { hwObServerSlotID }
+            ::= { hwObServerTable 1 }
+        HwObServerEntry ::=
+            SEQUENCE { 
+                hwObServerSlotID
+                    Integer32,
+                hwObServerIP
+                    OCTET STRING,
+                hwObServerPort
+                    Integer32,
+                hwObServerSrcIP
+                    OCTET STRING,
+                hwObServerVpnInsName
+                    OCTET STRING,
+                hwObServerPacketLen
+                    Integer32,
+                hwObServerDscp
+                    Integer32,
+                hwObServerRowStatus
+                    RowStatus
+             }
+
+        hwObServerSlotID OBJECT-TYPE
+            SYNTAX Integer32 (0..128)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the slot ID. 
+		 The value ranges from 0 to 128.
+		 This object has no default value.
+		"
+            ::= { hwObServerEntry 1 }
+        hwObServerIP OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the IP address of the remote server receiving packets.
+		 The value ranges from 0 to 31.
+		"
+            ::= { hwObServerEntry 2 }
+        hwObServerPort OBJECT-TYPE
+            SYNTAX Integer32 (1..65535)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the interface number of the remote server receiving packets. The value ranges from 1 to 65535.
+		"
+            ::= { hwObServerEntry 3 }
+
+        hwObServerSrcIP OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the source IP address.
+		 The value ranges from 0 to 31.
+		"
+            ::= { hwObServerEntry 4 }
+        hwObServerVpnInsName OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the name of a VPN instance.
+		 The value is a string of 1 to 31 characters.
+		 This object has no default value.
+		"
+            ::= { hwObServerEntry 5 }
+        hwObServerPacketLen OBJECT-TYPE
+            SYNTAX Integer32 (0..255)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the length of the packet that the remote server receives. The value ranges from 1 to 255.
+                "
+            ::= { hwObServerEntry 6 }
+        hwObServerDscp OBJECT-TYPE
+            SYNTAX Integer32 (0..63)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the IP precedence. The value ranges from 0 to 63."
+            ::= { hwObServerEntry 7 }
+        hwObServerRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the row status. The value ranges from 1 to 6. At present, however, only 4 and 6 are in use.
+		 4: createAndGo, indicating that a row is created.
+		 6: destroy, indicating that a row is deleted.
+		"
+            ::= { hwObServerEntry 50 }
+
+        hwObserveFilterTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwObserveFilterEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to configure the filtering rules for mirrored packets."
+            ::= { hwMergeMirror 5 }
+
+        hwObserveFilterEntry OBJECT-TYPE
+            SYNTAX HwObserveFilterEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to configure the filtering rules for mirrored packets."
+            INDEX { hwObserveFilterSlot, hwObserveFilterIndex }
+            ::= { hwObserveFilterTable 1 }
+        HwObserveFilterEntry ::=
+            SEQUENCE { 
+                hwObserveFilterSlot
+                    Integer32,
+                hwObserveFilterIndex
+                    Integer32,
+                hwObserveFilterType
+                    INTEGER,
+                hwObserveFilterDstIp
+                    OCTET STRING,
+                hwObserveFilterDstMask
+                    OCTET STRING,
+                hwObserveFilterDstMac
+                    OCTET STRING,
+                hwObserveFilterDstPort
+                    Integer32,
+                hwObserveFilterEtherType
+                    OCTET STRING,
+                hwObserveFilterIpProtocol
+                    Integer32,
+                hwObserveFilterPppProtocol
+                    OCTET STRING,
+                hwObserveFilterPPPoe
+                    Integer32,
+                hwObserveFilterSrcIp
+                    OCTET STRING,
+                hwObserveFilterSrcMask
+                    OCTET STRING,
+                hwObserveFilterSrcMac
+                    OCTET STRING,
+                hwObserveFilterSrcPort
+                    Integer32,
+                hwObserveFilterVlan
+                    Integer32,
+                hwObserveFilterRowStatus
+                    RowStatus
+             }
+        hwObserveFilterSlot OBJECT-TYPE
+            SYNTAX Integer32 (0..128)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the slot ID.
+		 The value is an integer ranging from 0 to 128.
+		"
+            ::= { hwObserveFilterEntry 1 }
+
+        hwObserveFilterIndex OBJECT-TYPE
+            SYNTAX Integer32 (0..7)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the rule index.
+		 The value is an integer ranging from 0 to 7.
+		"
+            ::= { hwObserveFilterEntry 2 }
+
+        hwObserveFilterType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                local(1),
+                remote(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the mirroring type.
+		 The value is local (1) or mirror (2)
+		"
+            ::= { hwObserveFilterEntry 3 }
+        hwObserveFilterDstIp OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the destination IP address.
+		 The value is an integer ranging from 0 to 31.
+		"
+            ::= { hwObserveFilterEntry 4 }
+        hwObserveFilterDstMask OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the mask of the destination IP address.
+		 The value is an integer ranging from 0 to 31.
+		"
+            ::= { hwObserveFilterEntry 5 }
+
+        hwObserveFilterDstMac OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the destination MAC address."
+            ::= { hwObserveFilterEntry 6 }
+        hwObserveFilterDstPort OBJECT-TYPE
+            SYNTAX Integer32 (0..65535)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the destination interface number.
+		 The value ranges from 0 to 65535.
+		"
+            ::= { hwObserveFilterEntry 7 }
+        hwObserveFilterEtherType OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the Ethernet type.
+		 The value ranges from 0 to FFFF.
+		"
+            ::= { hwObserveFilterEntry 8 }
+        hwObserveFilterIpProtocol OBJECT-TYPE
+            SYNTAX Integer32 (0 | 1..255)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the IP protocol.
+		 The value ranges from 1 to 255.
+		"
+            ::= { hwObserveFilterEntry 9 }
+        hwObserveFilterPppProtocol OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the Ppp protocol.
+		 The value ranges from 0 to FFFF.
+		"
+            ::= { hwObserveFilterEntry 10 }
+        hwObserveFilterPPPoe OBJECT-TYPE
+            SYNTAX Integer32 (0 | 1..65535)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the PPPoe Session.
+		 The value ranges from 1 to 65535.
+		"
+            ::= { hwObserveFilterEntry 11 }
+        hwObserveFilterSrcIp OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the source IP address.
+		 The value ranges from 0 to 31.
+		"
+            ::= { hwObserveFilterEntry 12 }
+        hwObserveFilterSrcMask OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the mask of the source IP address.
+		 The value ranges from 0 to 31.
+		"
+            ::= { hwObserveFilterEntry 13 }
+        hwObserveFilterSrcMac OBJECT-TYPE
+            SYNTAX OCTET STRING (SIZE (0..31))
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the source MAC address."
+            ::= { hwObserveFilterEntry 14 }
+        hwObserveFilterSrcPort OBJECT-TYPE
+            SYNTAX Integer32 (0..65535)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the source interface number.
+		 The value ranges from 0 to 65535.
+		"
+            ::= { hwObserveFilterEntry 15 }
+        hwObserveFilterVlan OBJECT-TYPE
+            SYNTAX Integer32 (0 | 1..4094)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "VLAN
+		 The value ranges from 1 to 4094.
+		"
+            ::= { hwObserveFilterEntry 16 }
+        hwObserveFilterRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the row status.
+		 The value is CreateAndGo(4), Destroy(6), or Active(1)
+		"
+            ::= { hwObserveFilterEntry 50 }
+
+        hwPortMirrExceptionTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF HwPortMirrExceptionEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to configure the abnormal IDs of sent packets."
+            ::= { hwMergeMirror 6 }
+        hwPortMirrExceptionEntry OBJECT-TYPE
+            SYNTAX HwPortMirrExceptionEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "This table is used to configure the abnormal IDs of sent packets."
+            INDEX { hwPortMirrExceptionSlot, hwPortMirrExceptionID }
+            ::= { hwPortMirrExceptionTable 1 }
+
+        
+        HwPortMirrExceptionEntry ::=
+            SEQUENCE { 
+                hwPortMirrExceptionSlot
+                    Integer32,
+                hwPortMirrExceptionID
+                    Integer32,
+                hwPortMirrExceptionType
+                    INTEGER,
+                hwPortMirrExceptionRowStatus
+                    RowStatus
+             }
+        hwPortMirrExceptionSlot OBJECT-TYPE
+            SYNTAX Integer32 (0..128)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the slot ID.
+		 The value ranges from 0 to 128. 
+	         This object has no default value.
+		"
+            ::= { hwPortMirrExceptionEntry 1 }
+
+        hwPortMirrExceptionID OBJECT-TYPE
+            SYNTAX Integer32 (0..512)
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the abnormal ID.
+    		 The value ranges from 0 to 512.
+ 		 This object has no default value.
+		"
+            ::= { hwPortMirrExceptionEntry 2 }
+        hwPortMirrExceptionType OBJECT-TYPE
+            SYNTAX INTEGER
+                {
+                local(1),
+                remote(2)
+                }
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the mirroring type.
+		 The value is local (1) or Remote (2)
+		 This object has no default value.
+		"
+            ::= { hwPortMirrExceptionEntry 3 }
+        hwPortMirrExceptionRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object indicates the row status.
+		 The value is CreateAndGo(4), Destroy(6), or Active(1).
+		 This object has no default value.
+		"
+            ::= { hwPortMirrExceptionEntry 50 }
+       hwMirrorConformance OBJECT IDENTIFIER ::= { hwMirrorMIB 11 }
+    
+      hwMirrorCompliances OBJECT IDENTIFIER ::= { hwMirrorConformance 1 }
+        
+      hwMirrorCompliance MODULE-COMPLIANCE
+          STATUS current
+          DESCRIPTION 
+              "The compliance statement for systems supporting 
+              the HUAWEI-SECURITY-MIB."
+          MODULE 
+              MANDATORY-GROUPS { hwLocalObserveGroup, hwLocalPortMirrorGroup, hwLocalFlowMirrorGroup,
+                                   hwLocalSlotMirrorGroup, hwLocalPortMirrorInfoGroup, hwRemoteObserveGroup,
+                                   hwRemotePortMirrorGroup, hwRemoteFlowMirrorGroup, hwRemoteMirrorInstanceGroup}
+          ::= { hwMirrorCompliances 1 }
+
+      hwBaseMirrorGroup OBJECT IDENTIFIER ::= { hwMirrorConformance 2 }
+
+      hwLocalObserveGroup OBJECT-GROUP
+          OBJECTS{
+--                hwLocalObservePort          ,
+                hwLocalObserveIndex         ,
+                hwLocalObserveWithLinkLayerHeader  ,
+                hwLocalObserveRowStatus     
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies local observing port."
+          ::= { hwBaseMirrorGroup 1 }
+          
+      hwLocalPortMirrorGroup OBJECT-GROUP
+          OBJECTS{    
+--              hwLocalMirrorPort          ,
+                hwLocalMirrorBearing       ,
+                hwLocalCpuPacketFlag     ,
+                hwLocalPortMirrorCar       ,
+                hwLocalPortMirrorRowStatus
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies local mirroring port."
+          ::= { hwBaseMirrorGroup 2 } 
+          
+      hwLocalFlowMirrorGroup OBJECT-GROUP
+          OBJECTS{
+--                hwLocalBehaviorName  ,   
+                hwLocalFlowMirrorEnable,   
+                hwLocalFlowMirrorCar    , 
+                hwLocalFlowMirrorRowStatus
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies traffic behavior for local mirroring."
+          ::= { hwBaseMirrorGroup 3 }
+          
+      hwLocalSlotMirrorGroup OBJECT-GROUP
+          OBJECTS{
+--                hwLocalSlotNo           ,
+                hwSlotObserveIndex      ,
+                hwLocalSlotMirrorRowStatus
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies local observing port for slot."
+          ::= { hwBaseMirrorGroup 4 }
+          
+      hwLocalPortMirrorInfoGroup OBJECT-GROUP
+          OBJECTS{
+--                hwMirrorPortIndex         ,
+                hwMirrorType              ,
+                hwMirrorCar               ,
+                hwMirrorClass             ,
+                hwMirrorBearing           ,
+                hwMirrorCpuPacketFlag     ,
+                hwMirrorWithLinkLayerHeader ,    
+                hwRemoteMirrorInstanceName   
+             }
+          STATUS current       
+          DESCRIPTION 
+              "The group querys configuration of port-mirroring interfaces."
+          ::= { hwBaseMirrorGroup 5 }
+          
+      hwRemoteObserveGroup OBJECT-GROUP
+          OBJECTS{
+--                hwRemoteObservePort         ,
+                hwRemoteIdentifier        ,
+                hwRemoteDescription         ,
+                hwRemoteObserveWithLinkLayerHeader , 
+                hwRemoteObserveRowStatus   
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies remote observing port."
+          ::= { hwBaseMirrorGroup 6 }
+
+      hwRemotePortMirrorGroup OBJECT-GROUP
+          OBJECTS{
+--                hwRemoteMirrorPort         ,
+                hwRemoteMirrorBearing      ,
+                hwRemoteCpuPacketFlag    ,
+                hwPortMirrorInstanceName   ,
+                hwRemotePortMirrorCar      ,
+                hwRemotePortMirrorRowStatus                                              
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies remote mirroring port."
+          ::= { hwBaseMirrorGroup 7 }
+
+      hwRemoteFlowMirrorGroup OBJECT-GROUP
+          OBJECTS{
+--                hwRemoteBehaviorName     ,
+                hwFlowMirrorInstanceName   ,
+                hwRemoteFlowMirrorCar      ,
+                hwRemoteFlowMirrorRowStatus                                              
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies traffic behavior for remote mirroring."
+          ::= { hwBaseMirrorGroup 8 }
+
+      hwRemoteMirrorInstanceGroup OBJECT-GROUP
+          OBJECTS{
+--                hwMirrorInstanceName        ,
+                hwRemoteObservePortIp     ,
+                hwRemoteMirrorIdentifier         ,
+                hwRemoteMirrorWithLinkLayerHeader  ,
+                hwMirrorFlowClass           ,
+                hwMirrorSliceSize           ,
+                hwMirrorTunnelIndex         ,
+                hwMirrorTunnelType          ,
+                hwMirrorTunnelStatus        ,
+                hwMirrorInstanceRowStatus 
+                 }
+          STATUS current       
+          DESCRIPTION 
+              "The group specifies mirror instance."
+          ::= { hwBaseMirrorGroup 9 }
+
+        hwPortMirrHostSendGroup OBJECT-GROUP
+            OBJECTS { hwPortMirrSlotID, hwPortMirrType, hwPortMirrRowStatus }
+            STATUS current
+            DESCRIPTION 
+                "Description."
+            ::= { hwBaseMirrorGroup 10 }
+        hwObServerGroup OBJECT-GROUP
+            OBJECTS { hwObServerSlotID, hwObServerIP, hwObServerPort, hwObServerSrcIP, hwObServerVpnInsName, 
+                hwObServerPacketLen, hwObServerDscp, hwObServerRowStatus }
+            STATUS current
+            DESCRIPTION 
+                "Description."
+            ::= { hwBaseMirrorGroup 11 }
+        hwObserveFilterGroup OBJECT-GROUP
+            OBJECTS { hwObserveFilterSlot, hwObserveFilterIndex, hwObserveFilterType, hwObserveFilterDstIp, hwObserveFilterDstMac, 
+                hwObserveFilterDstPort, hwObserveFilterEtherType, hwObserveFilterIpProtocol, hwObserveFilterPPPoe, hwObserveFilterSrcIp, 
+                hwObserveFilterSrcMac, hwObserveFilterSrcPort, hwObserveFilterVlan, hwObserveFilterRowStatus, hwObserveFilterDstMask, 
+                hwObserveFilterPppProtocol, hwObserveFilterSrcMask }
+            STATUS current
+            DESCRIPTION 
+                "Description."
+            ::= { hwBaseMirrorGroup 12 }
+        hwPortMirrExceptionGroup OBJECT-GROUP
+            OBJECTS { hwPortMirrExceptionSlot, hwPortMirrExceptionType, hwPortMirrExceptionID, hwPortMirrExceptionRowStatus }
+            STATUS current
+            DESCRIPTION 
+                "Description."
+            ::= { hwBaseMirrorGroup 13 }
+
+END   

@@ -1,0 +1,1365 @@
+
+
+
+
+
+
+				-- Teldat, S.A.
+
+				-- Parque Tecnologico de Madrid
+
+				-- 28760, Tres Cantos (Madrid)
+
+				-- Tlf: +34-918076565
+
+				-- Fax: +34-918076521
+
+				-- e-mail: id@teldat.com
+
+
+    -- MIB privada de Teldat
+
+    -- MIB para el equipo Centrix-D: incluye los parametros de
+    -- configuracion y monitorizacion del protocolo DEP
+
+
+    -- Historial:
+    -- 1.1  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+	-- 1.0	01/07/04	J. Molina	    Archivo procedente de CentrixD.mib
+
+
+    -- Historial de CentrixD.mib:
+    -- 1.2  16-12-03  Benjamçn G.   Se incluyen contadores de ses. TCP estab.
+    --                              Se a±aden posibles causas de fallo en la
+    --                              conexin.
+    -- 1.1  06-03-03  Benjamçn G.   Se incluyen estadçsticos para IP-DEP.
+    -- 1.0  10-07-02  M.A. Pastor   Implementacion inicial
+	--------------------------------------------------------------------------
+
+TELDAT-MON-CentrixD-MIB DEFINITIONS ::= BEGIN
+
+	IMPORTS
+	        Counter, IpAddress
+	    FROM RFC1155-SMI
+		    OBJECT-TYPE
+        FROM RFC-1212
+			DisplayString
+		FROM RFC1213-MIB
+ 			telproducts
+	    FROM TELDAT-MIB;
+
+
+	-- Grupos en la MIB de TELDAT
+
+	-- teladmin                 OBJECT IDENTIFIER ::= { teldat 1 }
+	-- telxface                 OBJECT IDENTIFIER ::= { teldat 2 }
+	-- telproto                 OBJECT IDENTIFIER ::= { teldat 3 }
+	-- telProducts              OBJECT IDENTIFIER ::= { teldat 4 }
+ 	-- telDot3ChipSets          OBJECT IDENTIFIER ::= { teldat 5 }
+
+	-- Grupo telproducts
+
+	telProductsCentrixD         OBJECT IDENTIFIER ::= { telproducts 71 }
+
+	-- Grupo telProductsCentrixD
+
+	telProdCentrixDConfig       OBJECT IDENTIFIER ::= { telProductsCentrixD 1 }
+	telProdCentrixDMonit        OBJECT IDENTIFIER ::= { telProductsCentrixD 2 }
+
+    -- Grupo telProdCentrixDConfig
+
+    telProdCentrixDConfProtocol OBJECT IDENTIFIER ::= { telProdCentrixDConfig 1 }
+
+    -- Grupo telProdCentrixDConfProtocol
+
+    telProdCentrixDConfDEP      OBJECT IDENTIFIER ::= { telProdCentrixDConfProtocol 1 }
+
+    -- Parametros de configuracion del protocolo DEP
+
+    -- Grupo de parametros para configurar los filtros que se aplicaran a las
+    -- transacciones correctas y a las errneas o incompletas para seleccionar
+    -- las que quieren almacenarse en la correspondiente tabla
+
+    telProdCentrixDConfDEPFilterGroup OBJECT IDENTIFIER ::= { telProdCentrixDConfDEP 1 }
+
+    -- Variable que permite habilitar/deshabilitar el filtrado (la aplicacion
+    -- de los filtros configurados)
+
+    telProdCentrixDConfDEPFilterEnable OBJECT-TYPE
+        SYNTAX INTEGER{
+                enabled(1),
+			    disabled(2)
+			    }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Variable to enable/disable the process of filtering in	order to choose
+		which complete and incomplete transactions are going to be stored in the
+		corresponding table.
+		Allowed values for this variable are:
+		(1) enabled
+		(2) disabled."
+        ::={ telProdCentrixDConfDEPFilterGroup 1 }
+
+    -- Tabla de configuracion de filtros
+
+    telProdCentrixDConfDEPFilterTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdCentrixDConfDEPFilterEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"The filter table contains one entry for each filter configured. These
+		filters are used to choose which complete and incomplete transactions
+		are going to be stored in the corresponding table (only if filtering
+		process is enabled)."
+        ::= { telProdCentrixDConfDEPFilterGroup 2 }
+
+   	telProdCentrixDConfDEPFilterEntry OBJECT-TYPE
+		SYNTAX TelProdCentrixDConfDEPFilterEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry of the filter table contains the configuration parameters
+		corresponding to one of the filters to be applied to complete and
+		incomplete transactions in order to choose which of them are going to
+		be stored in the respective tables. Variables included in each entry
+		are: an index to identify the concrete filter, the filter type
+		(inclusive or exclusive), the pattern of comparison (i.e. the type or
+		class of the value used to select which transactions are stored), the
+		value in which comparison is based and a variable to delete the entry
+		(the filter)."
+		INDEX { telProdCentrixDConfDEPFilterIndex }
+		::= { telProdCentrixDConfDEPFilterTable 1 }
+
+	TelProdCentrixDConfDEPFilterEntry ::=
+		SEQUENCE{
+			telProdCentrixDConfDEPFilterIndex
+				INTEGER,
+			telProdCentrixDConfDEPFilterType
+				INTEGER,
+			telProdCentrixDConfDEPFilterPattern
+				INTEGER,
+			telProdCentrixDConfDEPFilterValue
+				DisplayString,
+			telProdCentrixDConfDEPFilterDelete
+				INTEGER
+			}
+
+	telProdCentrixDConfDEPFilterIndex OBJECT-TYPE
+		SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: order of the entry inside the table."
+		::= { telProdCentrixDConfDEPFilterEntry 1 }
+
+    telProdCentrixDConfDEPFilterType OBJECT-TYPE
+		SYNTAX INTEGER{
+		        inclusive(1),
+		        exclusive(2)
+		        }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Filter type: (1) inclusive, (2) exclusive.
+		Default value: 2 (exclusive)."
+		DEFVAL {2}
+		::= { telProdCentrixDConfDEPFilterEntry 2 }
+
+    telProdCentrixDConfDEPFilterPattern OBJECT-TYPE
+		SYNTAX INTEGER{
+		        serial_number(1),
+		        hostname(2),
+		        nri(3)
+		        }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Pattern of comparison, i.e. the type or class of the value used to
+		select which complete and incomplete transactions will be stored in the
+		corresponding table.
+		Allowed values for this variable are:
+		(1) serial_number
+		(2) hostname
+		(3) nri.
+		Default value: 2 (hostname)."
+		DEFVAL {2}
+		::= { telProdCentrixDConfDEPFilterEntry 3 }
+
+    telProdCentrixDConfDEPFilterValue OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Value of comparison to decide if a transaction is or no stored.
+		Depending of the value taken for the previous variable, this parameter
+		is under the following restrictions:
+		1. Serial number must be a string corresponding to a valid serial number.
+		2. Hostname must be a string no longer than 79 characters.
+		3. NRI must be a string composed of one to 16 digits (a valid X.25
+		address).
+		Default value is an empty string."
+		DEFVAL {""}
+		::= { telProdCentrixDConfDEPFilterEntry 4 }
+
+	telProdCentrixDConfDEPFilterDelete OBJECT-TYPE
+		SYNTAX INTEGER{
+		        delete(1),
+		        ok(2),
+		        error(3),
+		        undefined(4)
+		        }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"If the value of this variable is set to 1, this entry will be deleted.
+		In GET operations, the value taken by this variable indicates the
+		result of the last operation: ok (2), if the entry was deleted
+		succesfully; error (3), if the operation failed; the value undefined (4)
+		indicates that delete operations have not been made yet."
+		::= { telProdCentrixDConfDEPFilterEntry 5 }
+
+    -- Grupo telProdCentrixDMonit
+
+    telProdCentrixDMonProtocol  OBJECT IDENTIFIER ::= { telProdCentrixDMonit 1 }
+
+    -- Grupo telProdCentrixDMonProtocol
+
+    telProdCentrixDMonDEP       OBJECT IDENTIFIER ::= { telProdCentrixDMonProtocol 1 }
+
+    -- Parametros de monitorizacion del protocolo DEP
+
+    -- Grupo de parametros para monitorizar las transacciones correctas y
+    -- erroneas que se han efectuado y almacenado en las correspondientes
+    -- tablas (es decir, solo se muestran aquellas que no han sido filtradas)
+
+    telProdCentrixDMonDEPTransGroup OBJECT IDENTIFIER ::= { telProdCentrixDMonDEP 1 }
+
+    -- Grupo de variables para borrar transacciones
+
+    telProdCentrixDMonDEPTransClearGroup OBJECT IDENTIFIER ::= { telProdCentrixDMonDEPTransGroup 1 }
+
+    telProdCentrixDMonDEPTransClearOk OBJECT-TYPE
+        SYNTAX INTEGER{
+                clear(1),
+			    ok(2),
+			    error(3),
+			    undefined(4)
+			    }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Command field to clear ALL correct transactions.
+		If the value of this variable is set to 1, all correct transactions will
+		be deleted. In GET operations, the value taken by this variable
+		indicates the result of the last operation: ok (2), if the entry was
+		deleted succesfully; error (3), if the operation failed; the value
+		undefined (4) indicates that delete operations have not been made yet."
+        ::={ telProdCentrixDMonDEPTransClearGroup 1 }
+
+    telProdCentrixDMonDEPTransClearWrong OBJECT-TYPE
+        SYNTAX INTEGER{
+                clear(1),
+			    ok(2),
+			    error(3),
+			    undefined(4)
+			    }
+		ACCESS read-write
+		STATUS mandatory
+		DESCRIPTION
+		"Command field to clear ALL wrong or incomplete transactions.
+		If the value of this variable is set to 1, all wrong transactions will
+		be deleted. In GET operations, the value taken by this variable
+		indicates the result of the last operation: ok (2), if the entry was
+		deleted succesfully; error (3), if the operation failed; the value
+		undefined (4) indicates that delete operations have not been made yet."
+        ::={ telProdCentrixDMonDEPTransClearGroup 2 }
+
+    -- Grupo de parametros relacionados con las transacciones que se llevaron
+    -- a cabo correctamete
+
+    telProdCentrixDMonDEPTransOkGroup OBJECT IDENTIFIER ::= { telProdCentrixDMonDEPTransGroup 2 }
+
+	-- Variable que indica el numero total de transacciones correctas
+	-- que se han llevado a cabo, se hayan almacenado en la tabla o se hayan
+	-- filtrado
+
+	telProdCentrixDMonDEPTransOkNumber OBJECT-TYPE
+        SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Total number of completed transactions carried out since last restart,
+		filtered or not filtered (stored in the corresponding table)."
+        ::={ telProdCentrixDMonDEPTransOkGroup 1 }
+
+	-- Variable que indica el numero total de transacciones correctas
+	-- que se han llevado a cabo y se han almacenado en la correspondiente tabla
+
+	telProdCentrixDMonDEPTransOkNoFiltNumber OBJECT-TYPE
+        SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Total number of completed transactions carried out and stored in the
+		corresponding table (not filtered) since last restart."
+        ::={ telProdCentrixDMonDEPTransOkGroup 2 }
+
+	-- Tabla que contiene las transacciones completadas correctamente
+
+	telProdCentrixDMonDEPTransOkTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdCentrixDMonDEPTransOkEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"Table with the latest transactions carried out that have been
+		sucessfully completed. Each entry contains information about one single
+		completed transaction."
+   		::= { telProdCentrixDMonDEPTransOkGroup 3 }
+
+   	telProdCentrixDMonDEPTransOkEntry OBJECT-TYPE
+		SYNTAX TelProdCentrixDMonDEPTransOkEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry contains information about one completed transaction and
+		it is composed of the following fields: an index to identify the
+		transaction in the table, start and end time and date of the operation,
+		three variables for the three possible identifiers associated to the
+		remote peer, type of transaction, IP address of the remote peer that
+		carried out the operation, X.25 address that the datafone calls, the
+		reason why the connection failed, the reason why the X.25 connection
+		was released, the diagnosis of the X.25 call release and the DEP fsm
+		state when the transaction was stored."
+		INDEX { telProdCentrixDMonDEPTransOkIndex }
+		::= { telProdCentrixDMonDEPTransOkTable 1 }
+
+	TelProdCentrixDMonDEPTransOkEntry ::=
+		SEQUENCE{
+			telProdCentrixDMonDEPTransOkIndex
+				INTEGER,
+		    telProdCentrixDMonDEPTransOkStartTime
+		        OCTET STRING,
+			telProdCentrixDMonDEPTransOkEndTime
+				OCTET STRING,
+		    telProdCentrixDMonDEPTransOkDate
+		        OCTET STRING,
+		    telProdCentrixDMonDEPTransOkId1
+		        DisplayString,
+		    telProdCentrixDMonDEPTransOkId2
+		        DisplayString,
+		    telProdCentrixDMonDEPTransOkId3
+				DisplayString,
+		    telProdCentrixDMonDEPTransOkType
+				DisplayString,
+		    telProdCentrixDMonDEPTransOkIpAddr
+				IpAddress,
+		    telProdCentrixDMonDEPTransOkNri
+		        DisplayString,
+		    telProdCentrixDMonDEPTransOkCause
+			    INTEGER,
+		    telProdCentrixDMonDEPTransOkX25Cause
+			    INTEGER,
+			telProdCentrixDMonDEPTransOkDiagn
+				INTEGER,
+			telProdCentrixDMonDEPTransOkState
+				INTEGER
+		    }
+
+    telProdCentrixDMonDEPTransOkIndex OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: order of the entry inside the table."
+		::= { telProdCentrixDMonDEPTransOkEntry 1 }
+
+    telProdCentrixDMonDEPTransOkStartTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the start time of the operation."
+		::= { telProdCentrixDMonDEPTransOkEntry 2 }
+
+    telProdCentrixDMonDEPTransOkEndTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the end time of the operation."
+		::= { telProdCentrixDMonDEPTransOkEntry 3 }
+
+    telProdCentrixDMonDEPTransOkDate OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the date the operation was carried out on."
+		::= { telProdCentrixDMonDEPTransOkEntry 4 }
+
+	telProdCentrixDMonDEPTransOkId1 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"First identifier of the remote peer which initiates the operation. This
+		variable will be an empty string if remote peer does not send a
+		first identifier."
+		::= { telProdCentrixDMonDEPTransOkEntry 5 }
+
+    telProdCentrixDMonDEPTransOkId2 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Second identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		second identifier."
+		::= { telProdCentrixDMonDEPTransOkEntry 6 }
+
+    telProdCentrixDMonDEPTransOkId3 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Third identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		third identifier."
+		::= { telProdCentrixDMonDEPTransOkEntry 7 }
+
+    telProdCentrixDMonDEPTransOkType OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(1))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Type of transaction performed.
+		Values:
+   		'0' authorization or purchase
+   		'1' repayment
+   		'2' repetition
+   		'3' enquiry
+   		'4' close
+   		'5' account_entity selection
+   		'6' operation details
+   		'8' account enquiry
+   		'9' movement enquiry
+   		'M' memory inicialization/setup
+   		'U' Unknown."
+		::= { telProdCentrixDMonDEPTransOkEntry 8 }
+
+    telProdCentrixDMonDEPTransOkIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"IP address of the remote peer that carried out the operation."
+		::= { telProdCentrixDMonDEPTransOkEntry 9 }
+
+	telProdCentrixDMonDEPTransOkNri OBJECT-TYPE
+	    SYNTAX DisplayString(SIZE(0..15))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"X.25 address that the datafone calls."
+		::= { telProdCentrixDMonDEPTransOkEntry 10 }
+
+	telProdCentrixDMonDEPTransOkCause OBJECT-TYPE
+        SYNTAX INTEGER{
+                x25_host_disc(1),
+			    eot(2),
+			    t4(3),
+			    unexpected_x25_data(4),
+			    x25_pos_disc(5),
+			    x25_disc(51),
+			    timeout_x25_establish(52),
+			    rcv_eot_from_pos(53),
+			    bad_s_msg(57),
+			    timeout_wait_msg_ends(58),
+			    timeout_wait_msg_start_E5(59),
+			    max_retrans_due_nak(60),
+			    max_retrans_due_timeout(61),
+			    max_bad_msg_rcv(62),
+			    msg_too_short(63),
+			    max_bad_data_rcv(64),
+			    timeout_wait_msg_start_E2(65),
+			    timeout_wait_ack(66),
+			    timeout_wait_host_answers(68),
+   			    tcp_ses_released(70),
+   			    na_not_found(80),
+                timeout_opening_tcp_ses_to_host(81),
+                tcp_ses_closed_by_host(82),
+                max_tcp_host_ses_time_expired(83)
+			    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the connection failed. Possible
+		values are:
+		(1)  X.25 call released by the host
+		(2)  EOT received: POS Disconnection
+	    (3)  T4 received: POS Disconnection
+	    (4)  Unexpected X.25 data received
+	    (5)  X.25 call released by POS: the host has received a L message which
+	         is not a response to a previous L message sent.
+        (51) X.25 call released by the host
+        (52) Timeout waiting X25 establish.
+        (53) Release from POS: EOT received.
+        (57) Bad message waiting S message.
+        (58) Timeout waiting message ends from POS.
+        (59) Timeout waiting message start from POS, E5.
+        (60) Reach max number of retransmissions send to POS, due NAK.
+        (61) Reach max number of retransmissions send to POS, due timeout.
+        (62) Reach max number of bad messages received from POS.
+        (63) Was received a message too short.
+        (64) Reach max number of bad data received from POS, in E2.
+        (65) Timeout waiting message start from POS, in E2.
+        (66) Timeout waiting ACK from POS.
+        (68) Timeout waiting a Host answers.
+        (70) TCP session release from remote end (POS).
+		(80) NA (X25) not found in Host regiters configuration.
+        (81) Timeout opening TCP session to Host.
+        (82) TCP session closed by Host.
+        (83) Max. TCP Host session time expired."
+        ::={ telProdCentrixDMonDEPTransOkEntry 11 }
+
+	telProdCentrixDMonDEPTransOkX25Cause OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the X.25 connection was
+		released."
+        ::={ telProdCentrixDMonDEPTransOkEntry 12 }
+
+	telProdCentrixDMonDEPTransOkDiagn OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the diagnosis of the X.25 call release."
+        ::={ telProdCentrixDMonDEPTransOkEntry 13 }
+
+	telProdCentrixDMonDEPTransOkState OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the DEP fsm state when the transaction
+		was stored."
+        ::={ telProdCentrixDMonDEPTransOkEntry 14 }
+
+    -- Tabla que contiene las transacciones completadas correctamente que
+    -- todavia no han sido enviadas a la estacion de gestion
+
+	telProdCentrixDMonDEPTraOkNewTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdCentrixDMonDEPTraOkNewEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"This table has only one entry which contains information about the
+		first of the latest transactions that have been sucessfully	completed,
+		that have been stored in the corresponding table (have not been
+		filtered) and that have not been sent to the manager station yet."
+   		::= { telProdCentrixDMonDEPTransOkGroup 4 }
+
+   	telProdCentrixDMonDEPTraOkNewEntry OBJECT-TYPE
+		SYNTAX TelProdCentrixDMonDEPTraOkNewEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"This table has only one entry which contains information about the
+		first of the latest transactions that have been sucessfully	completed,
+		that have been stored in the corresponding table (have not been
+		filtered) and that have not been sent to the manager station yet.
+		It is composed of the following fields: an index to identify the
+		transaction in the table (it always takes the value 1), start and end
+		time and date of the operation, three variables for the	three possible
+		identifiers associated to the remote peer, type of transaction,
+		IP address of the remote peer that carried out the operation,
+		X.25 address that the datafone calls, the reason why the connection
+		failed, the reason why the X.25 connection was released, the diagnosis
+		of the X.25 call release and the DEP fsm state when the transaction
+		was stored."
+		INDEX { telProdCentrixDMonDEPTraOkNewIndex }
+		::= { telProdCentrixDMonDEPTraOkNewTable 1 }
+
+	TelProdCentrixDMonDEPTraOkNewEntry ::=
+		SEQUENCE{
+			telProdCentrixDMonDEPTraOkNewIndex
+				INTEGER,
+		    telProdCentrixDMonDEPTraOkNewStartTime
+		        OCTET STRING,
+			telProdCentrixDMonDEPTraOkNewEndTime
+				OCTET STRING,
+		    telProdCentrixDMonDEPTraOkNewDate
+		        OCTET STRING,
+		    telProdCentrixDMonDEPTraOkNewId1
+		        DisplayString,
+		    telProdCentrixDMonDEPTraOkNewId2
+		        DisplayString,
+		    telProdCentrixDMonDEPTraOkNewId3
+				DisplayString,
+		    telProdCentrixDMonDEPTraOkNewType
+				DisplayString,
+		    telProdCentrixDMonDEPTraOkNewIpAddr
+				IpAddress,
+		    telProdCentrixDMonDEPTraOkNewNri
+		        DisplayString,
+		    telProdCentrixDMonDEPTraOkNewCause
+			    INTEGER,
+		    telProdCentrixDMonDEPTraOkNewX25Cause
+		        INTEGER,
+			telProdCentrixDMonDEPTraOkNewDiagn
+				INTEGER,
+			telProdCentrixDMonDEPTraOkNewState
+				INTEGER
+		    }
+
+    telProdCentrixDMonDEPTraOkNewIndex OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: order of the entry inside the table. It can only
+		takes the value 1."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 1 }
+
+    telProdCentrixDMonDEPTraOkNewStartTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the start time of the operation."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 2 }
+
+    telProdCentrixDMonDEPTraOkNewEndTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the end time of the operation."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 3 }
+
+    telProdCentrixDMonDEPTraOkNewDate OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the date the operation was carried out on."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 4 }
+
+	telProdCentrixDMonDEPTraOkNewId1 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"First identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		first identifier."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 5 }
+
+    telProdCentrixDMonDEPTraOkNewId2 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Second identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		second identifier."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 6 }
+
+    telProdCentrixDMonDEPTraOkNewId3 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Third identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		third identifier."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 7 }
+
+    telProdCentrixDMonDEPTraOkNewType OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(1))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Type of transaction performed.
+		Values:
+   		'0' authorization or purchase
+   		'1' repayment
+   		'2' repetition
+   		'3' enquiry
+   		'4' close
+   		'5' account_entity selection
+   		'6' operation details
+   		'8' account enquiry
+   		'9' movement enquiry
+   		'M' memory inicialization/setup
+   		'U' Unknown."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 8 }
+
+    telProdCentrixDMonDEPTraOkNewIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"IP address of the remote peer that carried out the operation."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 9 }
+
+	telProdCentrixDMonDEPTraOkNewNri OBJECT-TYPE
+	    SYNTAX DisplayString(SIZE(0..15))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"X.25 address that the datafone calls."
+		::= { telProdCentrixDMonDEPTraOkNewEntry 10 }
+
+	telProdCentrixDMonDEPTraOkNewCause OBJECT-TYPE
+        SYNTAX INTEGER{
+                x25_host_disc(1),
+			    eot(2),
+			    t4(3),
+			    unexpected_x25_data(4),
+			    x25_pos_disc(5),
+			    x25_disc(51),
+			    timeout_x25_establish(52),
+			    rcv_eot_from_pos(53),
+			    bad_s_msg(57),
+			    timeout_wait_msg_ends(58),
+			    timeout_wait_msg_start_E5(59),
+			    max_retrans_due_nak(60),
+			    max_retrans_due_timeout(61),
+			    max_bad_msg_rcv(62),
+			    msg_too_short(63),
+			    max_bad_data_rcv(64),
+			    timeout_wait_msg_start_E2(65),
+			    timeout_wait_ack(66),
+			    timeout_wait_host_answers(68),
+   			    tcp_ses_released(70),
+   			    na_not_found(80),
+                timeout_opening_tcp_ses_to_host(81),
+                tcp_ses_closed_by_host(82),
+                max_tcp_host_ses_time_expired(83)
+			    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the connection failed. Possible
+		values are:
+		(1)  X.25 call released by the host
+		(2)  EOT received: POS Disconnection
+	    (3)  T4 received: POS Disconnection
+	    (4)  Unexpected X.25 data received
+	    (5)  X.25 call released by POS: the host has received a L message which
+	         is not a response to a previous L message sent.
+        (51) X.25 call released by the host
+        (52) Timeout waiting X25 establish.
+        (53) Release from POS: EOT received.
+        (57) Bad message waiting S message.
+        (58) Timeout waiting message ends from POS.
+        (59) Timeout waiting message start from POS, E5.
+        (60) Reach max number of retransmissions send to POS, due NAK.
+        (61) Reach max number of retransmissions send to POS, due timeout.
+        (62) Reach max number of bad messages received from POS.
+        (63) Was received a message too short.
+        (64) Reach max number of bad data received from POS, in E2.
+        (65) Timeout waiting message start from POS, in E2.
+        (66) Timeout waiting ACK from POS.
+        (68) Timeout waiting a Host answers.
+        (70) TCP session release from remote end (POS).
+        (80) NA (X25) not found in Host regiters configuration.
+        (81) Timeout opening TCP session to Host.
+        (82) TCP session closed by Host.
+        (83) Max. TCP Host session time expired."
+        ::={ telProdCentrixDMonDEPTraOkNewEntry 11 }
+
+    telProdCentrixDMonDEPTraOkNewX25Cause OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the X.25 connection was
+		released."
+        ::={ telProdCentrixDMonDEPTraOkNewEntry 12 }
+
+	telProdCentrixDMonDEPTraOkNewDiagn OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the diagnosis of the X.25 call release."
+        ::={ telProdCentrixDMonDEPTraOkNewEntry 13 }
+
+	telProdCentrixDMonDEPTraOkNewState OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the DEP fsm state when the transaction
+		was stored."
+        ::={ telProdCentrixDMonDEPTraOkNewEntry 14 }
+
+    -- Grupo de parametros relacionados con las transacciones erroneas o
+    -- incompletas
+
+    telProdCentrixDMonDEPTransWroGroup OBJECT IDENTIFIER ::= { telProdCentrixDMonDEPTransGroup 3 }
+
+    -- Variable que indica el numero total de transacciones erroneas o
+    -- incompletas que se han llevado a cabo, se hayan almacenado en la
+    -- correspondiente tabla o se hayan filtrado
+
+	telProdCentrixDMonDEPTransWroNumber OBJECT-TYPE
+        SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Total number of transactions that have not been sucessfully completed
+		since last restart, filtered or not filtered (stored in the
+		corresponding table)."
+        ::={ telProdCentrixDMonDEPTransWroGroup 1 }
+
+    -- Variable que indica el numero total de transacciones erroneas o
+    -- incompletas que se han llevado a cabo y se han almacenado en la
+    -- correspondiente tabla
+
+	telProdCentrixDMonDEPTransWroNoFiltNumber OBJECT-TYPE
+        SYNTAX Counter
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Total number of transactions that have not been sucessfully completed
+		and stored in the corresponding table (not filtered) since
+		last restart."
+        ::={ telProdCentrixDMonDEPTransWroGroup 2 }
+
+    -- Tabla que contiene las transacciones erroneas o incompletas
+
+	telProdCentrixDMonDEPTransWroTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdCentrixDMonDEPTransWroEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"Table with the latest transactions that have not been sucessfully
+		completed. Each entry contains information about one incomplete
+		transaction."
+   		::= { telProdCentrixDMonDEPTransWroGroup 3 }
+
+   	telProdCentrixDMonDEPTransWroEntry OBJECT-TYPE
+		SYNTAX TelProdCentrixDMonDEPTransWroEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"Each entry contains information about one incomplete transaction and
+		it is composed of the following fields: an index to identify the
+		transaction in the table, start and end time and date of the operation,
+		three variables for the three possible identifiers associated to the
+		remote peer, type of transaction, IP address of the remote peer that
+		tried to carry out the operation, X.25 address that the	datafone called,
+		the reason why the connection failed, the reason why the X.25 connection
+		was released, the diagnosis of the X.25 call release and the DEP fsm
+		state when the transaction was stored."
+		INDEX { telProdCentrixDMonDEPTransWroIndex }
+		::= { telProdCentrixDMonDEPTransWroTable 1 }
+
+	TelProdCentrixDMonDEPTransWroEntry ::=
+		SEQUENCE{
+			telProdCentrixDMonDEPTransWroIndex
+				INTEGER,
+		    telProdCentrixDMonDEPTransWroStartTime
+		        OCTET STRING,
+			telProdCentrixDMonDEPTransWroEndTime
+				OCTET STRING,
+		    telProdCentrixDMonDEPTransWroDate
+		        OCTET STRING,
+		    telProdCentrixDMonDEPTransWroId1
+		        DisplayString,
+		    telProdCentrixDMonDEPTransWroId2
+		        DisplayString,
+		    telProdCentrixDMonDEPTransWroId3
+				DisplayString,
+		    telProdCentrixDMonDEPTransWroType
+				DisplayString,
+		    telProdCentrixDMonDEPTransWroIpAddr
+				IpAddress,
+		    telProdCentrixDMonDEPTransWroNri
+		        DisplayString,
+		    telProdCentrixDMonDEPTransWroCause
+			    INTEGER,
+		    telProdCentrixDMonDEPTransWroX25Cause
+		        INTEGER,
+			telProdCentrixDMonDEPTransWroDiagn
+				INTEGER,
+			telProdCentrixDMonDEPTransWroState
+				INTEGER
+		    }
+
+    telProdCentrixDMonDEPTransWroIndex OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: order of the entry inside the table."
+		::= { telProdCentrixDMonDEPTransWroEntry 1 }
+
+    telProdCentrixDMonDEPTransWroStartTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the start time of the operation."
+		::= { telProdCentrixDMonDEPTransWroEntry 2 }
+
+    telProdCentrixDMonDEPTransWroEndTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the end time of the operation."
+		::= { telProdCentrixDMonDEPTransWroEntry 3 }
+
+    telProdCentrixDMonDEPTransWroDate OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the date the operation was carried out on."
+		::= { telProdCentrixDMonDEPTransWroEntry 4 }
+
+	telProdCentrixDMonDEPTransWroId1 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"First identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		first identifier."
+		::= { telProdCentrixDMonDEPTransWroEntry 5 }
+
+    telProdCentrixDMonDEPTransWroId2 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Second identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		second identifier."
+		::= { telProdCentrixDMonDEPTransWroEntry 6 }
+
+    telProdCentrixDMonDEPTransWroId3 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Third identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		third identifier."
+		::= { telProdCentrixDMonDEPTransWroEntry 7 }
+
+    telProdCentrixDMonDEPTransWroType OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(1))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Type of transaction performed.
+		Values:
+   		'0' authorization or purchase
+   		'1' repayment
+   		'2' repetition
+   		'3' enquiry
+   		'4' close
+   		'5' account_entity selection
+   		'6' operation details
+   		'8' account enquiry
+   		'9' movement enquiry
+   		'M' memory inicialization/setup
+   		'U' Unknown."
+		::= { telProdCentrixDMonDEPTransWroEntry 8 }
+
+    telProdCentrixDMonDEPTransWroIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"IP address of the remote peer that carried out the operation."
+		::= { telProdCentrixDMonDEPTransWroEntry 9 }
+
+	telProdCentrixDMonDEPTransWroNri OBJECT-TYPE
+	    SYNTAX DisplayString(SIZE(0..15))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"X.25 address that the datafone called."
+		::= { telProdCentrixDMonDEPTransWroEntry 10 }
+
+	telProdCentrixDMonDEPTransWroCause OBJECT-TYPE
+        SYNTAX INTEGER{
+                x25_host_disc(1),
+			    eot(2),
+			    t4(3),
+			    unexpected_x25_data(4),
+			    x25_pos_disc(5),
+			    x25_disc(51),
+			    timeout_x25_establish(52),
+			    rcv_eot_from_pos(53),
+			    bad_s_msg(57),
+			    timeout_wait_msg_ends(58),
+			    timeout_wait_msg_start_E5(59),
+			    max_retrans_due_nak(60),
+			    max_retrans_due_timeout(61),
+			    max_bad_msg_rcv(62),
+			    msg_too_short(63),
+			    max_bad_data_rcv(64),
+			    timeout_wait_msg_start_E2(65),
+			    timeout_wait_ack(66),
+			    timeout_wait_host_answers(68),
+   			    tcp_ses_released(70),
+   			    na_not_found(80),
+                timeout_opening_tcp_ses_to_host(81),
+                tcp_ses_closed_by_host(82),
+                max_tcp_host_ses_time_expired(83)
+			    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the connection failed. Possible
+		values are:
+		(1)  X.25 call released by the host
+		(2)  EOT received: POS Disconnection
+	    (3)  T4 received: POS Disconnection
+	    (4)  Unexpected X.25 data received
+	    (5)  X.25 call released by POS: the host has received a L message which
+	         is not a response to a previous L message sent.
+        (51) X.25 call released by the host
+        (52) Timeout waiting X25 establish.
+        (53) Release from POS: EOT received.
+        (57) Bad message waiting S message.
+        (58) Timeout waiting message ends from POS.
+        (59) Timeout waiting message start from POS, E5.
+        (60) Reach max number of retransmissions send to POS, due NAK.
+        (61) Reach max number of retransmissions send to POS, due timeout.
+        (62) Reach max number of bad messages received from POS.
+        (63) Was received a message too short.
+        (64) Reach max number of bad data received from POS, in E2.
+        (65) Timeout waiting message start from POS, in E2.
+        (66) Timeout waiting ACK from POS.
+        (68) Timeout waiting a Host answers.
+        (70) TCP session release from remote end (POS).
+        (80) NA (X25) not found in Host regiters configuration.
+        (81) Timeout opening TCP session to Host.
+        (82) TCP session closed by Host.
+        (83) Max. TCP Host session time expired."
+        ::={ telProdCentrixDMonDEPTransWroEntry 11 }
+
+	telProdCentrixDMonDEPTransWroX25Cause OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the X.25 connection was
+		released."
+        ::={ telProdCentrixDMonDEPTransWroEntry 12 }
+
+	telProdCentrixDMonDEPTransWroDiagn OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the diagnosis of the X.25 call release."
+        ::={ telProdCentrixDMonDEPTransWroEntry 13 }
+
+	telProdCentrixDMonDEPTransWroState OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the DEP fsm state when the transaction
+		was stored."
+        ::={ telProdCentrixDMonDEPTransWroEntry 14 }
+
+    -- Tabla que contiene las transacciones erroneas o incompletas que todavia
+    -- no han sido enviadas a la estacion de gestion
+
+	telProdCentrixDMonDEPTraWroNewTable OBJECT-TYPE
+		SYNTAX SEQUENCE OF TelProdCentrixDMonDEPTraWroNewEntry
+   		ACCESS not-accessible
+   		STATUS mandatory
+   		DESCRIPTION
+		"This table has only one entry which contains information about the
+		first of the latest transactions that have not been sucessfully
+		completed, that have been stored in the corresponding table (have not
+		been filtered) and that have not been sent to the manager station yet."
+   		::= { telProdCentrixDMonDEPTransWroGroup 4 }
+
+   	telProdCentrixDMonDEPTraWroNewEntry OBJECT-TYPE
+		SYNTAX TelProdCentrixDMonDEPTraWroNewEntry
+		ACCESS not-accessible
+		STATUS mandatory
+		DESCRIPTION
+		"This table has only one entry which contains information about the
+		first of the latest transactions that have not been sucessfully
+		completed, that have been stored in the corresponding table (have not
+		been filtered) and that have not been sent to the manager station yet.
+		It is composed of the following fields: an index to identify the
+		transaction in the table (it always takes the value 1), start and end
+		time and date of the operation, three variables for the three possible
+		identifiers associated to the remote peer, type of transaction,
+		IP address of the remote peer that tried to carry out the operation,
+		X.25 address that the datafone called, the reason why the connection
+		failed, the reason why the X.25 connection was released, the diagnosis
+		of the X.25 call release and the DEP fsm state when the transaction
+		was stored."
+		INDEX { telProdCentrixDMonDEPTraWroNewIndex }
+		::= { telProdCentrixDMonDEPTraWroNewTable 1 }
+
+	TelProdCentrixDMonDEPTraWroNewEntry ::=
+		SEQUENCE{
+			telProdCentrixDMonDEPTraWroNewIndex
+				INTEGER,
+		    telProdCentrixDMonDEPTraWroNewStartTime
+		        OCTET STRING,
+			telProdCentrixDMonDEPTraWroNewEndTime
+				OCTET STRING,
+		    telProdCentrixDMonDEPTraWroNewDate
+		        OCTET STRING,
+		    telProdCentrixDMonDEPTraWroNewId1
+		        DisplayString,
+		    telProdCentrixDMonDEPTraWroNewId2
+		        DisplayString,
+		    telProdCentrixDMonDEPTraWroNewId3
+				DisplayString,
+		    telProdCentrixDMonDEPTraWroNewType
+				DisplayString,
+		    telProdCentrixDMonDEPTraWroNewIpAddr
+				IpAddress,
+		    telProdCentrixDMonDEPTraWroNewNri
+		        DisplayString,
+		    telProdCentrixDMonDEPTraWroNewCause
+			    INTEGER,
+		    telProdCentrixDMonDEPTraWroNewX25Cause
+		        INTEGER,
+			telProdCentrixDMonDEPTraWroNewDiagn
+				INTEGER,
+			telProdCentrixDMonDEPTraWroNewState
+				INTEGER
+		    }
+
+    telProdCentrixDMonDEPTraWroNewIndex OBJECT-TYPE
+        SYNTAX INTEGER
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Index of the table: order of the entry inside the table. It can only
+		takes the value 1."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 1 }
+
+    telProdCentrixDMonDEPTraWroNewStartTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the start time of the operation."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 2 }
+
+    telProdCentrixDMonDEPTraWroNewEndTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the end time of the operation."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 3 }
+
+    telProdCentrixDMonDEPTraWroNewDate OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the date the operation was carried out on."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 4 }
+
+	telProdCentrixDMonDEPTraWroNewId1 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"First identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		first identifier."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 5 }
+
+    telProdCentrixDMonDEPTraWroNewId2 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Second identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		second identifier."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 6 }
+
+    telProdCentrixDMonDEPTraWroNewId3 OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(0..79))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Third identifier of the remote peer which initiates the operation.
+		This variable will be an empty string if remote peer does not send a
+		third identifier."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 7 }
+
+    telProdCentrixDMonDEPTraWroNewType OBJECT-TYPE
+		SYNTAX DisplayString(SIZE(1))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Type of transaction performed.
+		Values:
+   		'0' authorization or purchase
+   		'1' repayment
+   		'2' repetition
+   		'3' enquiry
+   		'4' close
+   		'5' account_entity selection
+   		'6' operation details
+   		'8' account enquiry
+   		'9' movement enquiry
+   		'M' memory inicialization/setup
+   		'U' Unknown."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 8 }
+
+    telProdCentrixDMonDEPTraWroNewIpAddr OBJECT-TYPE
+		SYNTAX IpAddress
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"IP address of the remote peer that carried out the operation."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 9 }
+
+	telProdCentrixDMonDEPTraWroNewNri OBJECT-TYPE
+	    SYNTAX DisplayString(SIZE(0..15))
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"X.25 address that the datafone called."
+		::= { telProdCentrixDMonDEPTraWroNewEntry 10 }
+
+	telProdCentrixDMonDEPTraWroNewCause OBJECT-TYPE
+        SYNTAX INTEGER{
+                x25_host_disc(1),
+			    eot(2),
+			    t4(3),
+			    unexpected_x25_data(4),
+			    x25_pos_disc(5),
+			    x25_disc(51),
+			    timeout_x25_establish(52),
+			    rcv_eot_from_pos(53),
+			    bad_s_msg(57),
+			    timeout_wait_msg_ends(58),
+			    timeout_wait_msg_start_E5(59),
+			    max_retrans_due_nak(60),
+			    max_retrans_due_timeout(61),
+			    max_bad_msg_rcv(62),
+			    msg_too_short(63),
+			    max_bad_data_rcv(64),
+			    timeout_wait_msg_start_E2(65),
+			    timeout_wait_ack(66),
+			    timeout_wait_host_answers(68),
+   			    tcp_ses_released(70),
+   			    na_not_found(80),
+                timeout_opening_tcp_ses_to_host(81),
+                tcp_ses_closed_by_host(82),
+                max_tcp_host_ses_time_expired(83)
+			    }
+		ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the connection failed. Possible
+		values are:
+		(1)  X.25 call released by the host
+		(2)  EOT received: POS Disconnection
+	    (3)  T4 received: POS Disconnection
+	    (4)  Unexpected X.25 data received
+	    (5)  X.25 call released by POS: the host has received a L message which
+	         is not a response to a previous L message sent.
+        (51) X.25 call released by the host
+        (52) Timeout waiting X25 establish.
+        (53) Release from POS: EOT received.
+        (57) Bad message waiting S message.
+        (58) Timeout waiting message ends from POS.
+        (59) Timeout waiting message start from POS, E5.
+        (60) Reach max number of retransmissions send to POS, due NAK.
+        (61) Reach max number of retransmissions send to POS, due timeout.
+        (62) Reach max number of bad messages received from POS.
+        (63) Was received a message too short.
+        (64) Reach max number of bad data received from POS, in E2.
+        (65) Timeout waiting message start from POS, in E2.
+        (66) Timeout waiting ACK from POS.
+        (68) Timeout waiting a Host answers.
+        (70) TCP session release from remote end (POS).
+	    (80) NA (X25) not found in Host regiters configuration.
+        (81) Timeout opening TCP session to Host.
+        (82) TCP session closed by Host.
+        (83) Max. TCP Host session time expired."
+        ::={ telProdCentrixDMonDEPTraWroNewEntry 11 }
+
+	telProdCentrixDMonDEPTraWroNewX25Cause OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the reason why the X.25 connection was
+		released."
+        ::={ telProdCentrixDMonDEPTraWroNewEntry 12 }
+
+	telProdCentrixDMonDEPTraWroNewDiagn OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the diagnosis of the X.25 call release."
+        ::={ telProdCentrixDMonDEPTraWroNewEntry 13 }
+
+	telProdCentrixDMonDEPTraWroNewState OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"This variable indicates the DEP fsm state when the transaction
+		was stored."
+        ::={ telProdCentrixDMonDEPTraWroNewEntry 14 }
+
+    -- Grupo de parametros para monitorizar las sesiones establecidas.
+
+    telProdCentrixDMonDEPSessionsGroup OBJECT IDENTIFIER ::= { telProdCentrixDMonDEP 2 }
+
+    -- Grupo de variables para ver sesiones TCP
+
+    telProdCentrixDMonDEPSessTcpGroup OBJECT IDENTIFIER ::= { telProdCentrixDMonDEPSessionsGroup 1 }
+
+	 telProdCentrixDMonDEPSessTcpTotal OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of DEP sessions open."
+        ::={ telProdCentrixDMonDEPSessTcpGroup 1 }
+
+	 telProdCentrixDMonDEPSessTcpIn OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of TCP IN sessions open, this sessions are open by POS."
+        ::={ telProdCentrixDMonDEPSessTcpGroup 2 }
+
+	 telProdCentrixDMonDEPSessTcpOut OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+		STATUS mandatory
+		DESCRIPTION
+		"Number of TCP OUT sessions open, this sessions are open from HOST."
+        ::={ telProdCentrixDMonDEPSessTcpGroup 3 }
+
+    END
+    

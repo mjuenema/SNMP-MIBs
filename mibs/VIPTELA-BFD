@@ -1,0 +1,410 @@
+-- Namespace: http://viptela.com/bfd
+
+VIPTELA-BFD DEFINITIONS ::= BEGIN
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE,
+    Integer32, Unsigned32, Counter32, Counter64,
+    Gauge32, IpAddress
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, RowStatus, DateAndTime,
+    TruthValue
+        FROM SNMPv2-TC
+    viptela
+        FROM VIPTELA-GLOBAL
+;
+
+viptela-bfd MODULE-IDENTITY
+    LAST-UPDATED "201608100000Z"
+    ORGANIZATION "Viptela, Inc."
+    CONTACT-INFO "Viptela, Inc.  Email:support@viptela.com"
+    DESCRIPTION "This module defines data model for BFD"
+    REVISION "201608100000Z"
+    DESCRIPTION "Viptela Revision 16.2.2"
+    REVISION "201608010000Z"
+    DESCRIPTION "Viptela Revision 16.2.1"
+    REVISION "201606090000Z"
+    DESCRIPTION "Viptela Revision 16.2"
+    REVISION "201604220000Z"
+    DESCRIPTION "Viptela Revision 16.1.1"
+    REVISION "201603150000Z"
+    DESCRIPTION "Viptela Revision 16.1"
+    REVISION "201601300000Z"
+    DESCRIPTION "Viptela Revision 15.4.3"
+    REVISION "201512280000Z"
+    DESCRIPTION "Viptela Revision 15.4.1"
+    REVISION "201512010000Z"
+    DESCRIPTION "Viptela Revision 15.4.0"
+    REVISION "201510310000Z"
+    DESCRIPTION "Viptela Revision 15.3.5"
+    REVISION "201509270000Z"
+    DESCRIPTION "Viptela Revision 15.3.3"
+    REVISION "201509010000Z"
+    DESCRIPTION "Viptela Revision 15.3.1"
+    REVISION "201507010000Z"
+    DESCRIPTION "Viptela Revision 15.3"
+    ::= { viptela 6 }
+
+UnsignedByte ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS      current
+    DESCRIPTION "xs:unsignedByte"
+    SYNTAX      Unsigned32 (0 .. 255)
+
+UnsignedShort ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "d"
+    STATUS      current
+    DESCRIPTION "xs:unsignedShort"
+    SYNTAX      Unsigned32 (0 .. 65535)
+
+ConfdString ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "xs: and confd: types mapped to strings"
+    SYNTAX      OCTET STRING
+
+String ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "1t"
+    STATUS      current
+    DESCRIPTION "xs:string"
+    SYNTAX      OCTET STRING
+
+BfdmgrStateEnum ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION ""
+    SYNTAX      INTEGER {admin-down(0),down(1),init(2),up(3),invalid(4)}
+
+-- Configure BFD
+-- tagpath /bfd
+bfd OBJECT IDENTIFIER ::= { viptela-bfd 1 }
+
+-- BFD summary
+-- tagpath /bfd/summary
+bfdSummary OBJECT IDENTIFIER ::= { bfd 5 }
+
+-- tagpath /bfd/summary/bfd-sessions-total
+bfdSummaryBfdSessionsTotal OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Current total number of bfd sessions created"
+    ::= { bfdSummary 1 }
+
+-- tagpath /bfd/summary/bfd-sessions-up
+bfdSummaryBfdSessionsUp OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Number of bfd sessions that are in UP state"
+    ::= { bfdSummary 2 }
+
+-- tagpath /bfd/summary/bfd-sessions-max
+bfdSummaryBfdSessionsMax OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Maximum total number of bfd sessions created since bootup"
+    ::= { bfdSummary 3 }
+
+-- tagpath /bfd/summary/bfd-sessions-flap
+bfdSummaryBfdSessionsFlap OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Number of bfd session flaps seen (transitions out of UP state)"
+    ::= { bfdSummary 4 }
+
+-- tagpath /bfd/sessions-list
+bfdSessionsListTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF BfdSessionsListEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "BFD sessions"
+    ::= { bfd 1 }
+
+-- tagpath /bfd/sessions-list
+bfdSessionsListEntry OBJECT-TYPE
+    SYNTAX      BfdSessionsListEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { bfdSessionsListSrcIp, bfdSessionsListDstIp, bfdSessionsListProto, bfdSessionsListSrcPort, bfdSessionsListDstPort }
+        ::= { bfdSessionsListTable 1 }
+
+BfdSessionsListEntry ::=
+    SEQUENCE {
+        bfdSessionsListSrcIp IpAddress,
+        bfdSessionsListDstIp IpAddress,
+        bfdSessionsListProto INTEGER,
+        bfdSessionsListSrcPort UnsignedShort,
+        bfdSessionsListDstPort UnsignedShort,
+        bfdSessionsListSystemIp IpAddress,
+        bfdSessionsListSiteId Unsigned32,
+        bfdSessionsListLocalColor INTEGER,
+        bfdSessionsListColor INTEGER,
+        bfdSessionsListState BfdmgrStateEnum,
+        bfdSessionsListDetectMultiplier UnsignedByte,
+        bfdSessionsListTxInterval Unsigned32,
+        bfdSessionsListUptime String,
+        bfdSessionsListTransitions Integer32
+    }
+
+-- tagpath /bfd/sessions-list/src-ip
+bfdSessionsListSrcIp OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Local TLOC IP address"
+    ::= { bfdSessionsListEntry 1 }
+
+-- tagpath /bfd/sessions-list/dst-ip
+bfdSessionsListDstIp OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Remote TLOC IP address"
+    ::= { bfdSessionsListEntry 2 }
+
+-- tagpath /bfd/sessions-list/proto
+bfdSessionsListProto OBJECT-TYPE
+    SYNTAX      INTEGER {gre(1),ipsec(2)}
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdSessionsListEntry 3 }
+
+-- tagpath /bfd/sessions-list/src-port
+bfdSessionsListSrcPort OBJECT-TYPE
+    SYNTAX      UnsignedShort
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Local port number"
+    ::= { bfdSessionsListEntry 4 }
+
+-- tagpath /bfd/sessions-list/dst-port
+bfdSessionsListDstPort OBJECT-TYPE
+    SYNTAX      UnsignedShort
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Remote port number"
+    ::= { bfdSessionsListEntry 5 }
+
+-- tagpath /bfd/sessions-list/system-ip
+bfdSessionsListSystemIp OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "System IP address"
+    ::= { bfdSessionsListEntry 6 }
+
+-- tagpath /bfd/sessions-list/site-id
+bfdSessionsListSiteId OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Site ID"
+    ::= { bfdSessionsListEntry 7 }
+
+-- tagpath /bfd/sessions-list/local-color
+bfdSessionsListLocalColor OBJECT-TYPE
+    SYNTAX      INTEGER {default(1),mpls(2),metro-ethernet(3),biz-internet(4),public-internet(5),lte(6),threeG(7),red(8),green(9),blue(10),gold(11),silver(12),bronze(13),custom1(14),custom2(15),custom3(16),private1(17),private2(18),private3(19),private4(20),private5(21),private6(22)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Color"
+    ::= { bfdSessionsListEntry 8 }
+
+-- tagpath /bfd/sessions-list/color
+bfdSessionsListColor OBJECT-TYPE
+    SYNTAX      INTEGER {default(1),mpls(2),metro-ethernet(3),biz-internet(4),public-internet(5),lte(6),threeG(7),red(8),green(9),blue(10),gold(11),silver(12),bronze(13),custom1(14),custom2(15),custom3(16),private1(17),private2(18),private3(19),private4(20),private5(21),private6(22)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Color"
+    ::= { bfdSessionsListEntry 9 }
+
+-- tagpath /bfd/sessions-list/state
+bfdSessionsListState OBJECT-TYPE
+    SYNTAX      BfdmgrStateEnum
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "State"
+    ::= { bfdSessionsListEntry 10 }
+
+-- tagpath /bfd/sessions-list/detect-multiplier
+bfdSessionsListDetectMultiplier OBJECT-TYPE
+    SYNTAX      UnsignedByte
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdSessionsListEntry 11 }
+
+-- tagpath /bfd/sessions-list/tx-interval
+bfdSessionsListTxInterval OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdSessionsListEntry 12 }
+
+-- tagpath /bfd/sessions-list/uptime
+bfdSessionsListUptime OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdSessionsListEntry 13 }
+
+-- tagpath /bfd/sessions-list/transitions
+bfdSessionsListTransitions OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdSessionsListEntry 14 }
+
+-- tagpath /bfd/history-list
+bfdHistoryListTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF BfdHistoryListEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "BFD session history"
+    ::= { bfd 2 }
+
+-- tagpath /bfd/history-list
+bfdHistoryListEntry OBJECT-TYPE
+    SYNTAX      BfdHistoryListEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    INDEX { bfdHistoryListSrcIp, bfdHistoryListDstIp, bfdHistoryListProto, bfdHistoryListSrcPort, bfdHistoryListDstPort, bfdHistoryListIndex }
+        ::= { bfdHistoryListTable 1 }
+
+BfdHistoryListEntry ::=
+    SEQUENCE {
+        bfdHistoryListSrcIp IpAddress,
+        bfdHistoryListDstIp IpAddress,
+        bfdHistoryListProto INTEGER,
+        bfdHistoryListSrcPort UnsignedShort,
+        bfdHistoryListDstPort UnsignedShort,
+        bfdHistoryListIndex Unsigned32,
+        bfdHistoryListSystemIp IpAddress,
+        bfdHistoryListSiteId Unsigned32,
+        bfdHistoryListColor INTEGER,
+        bfdHistoryListState BfdmgrStateEnum,
+        bfdHistoryListTime String,
+        bfdHistoryListRxPkts Counter64,
+        bfdHistoryListTxPkts Counter64,
+        bfdHistoryListDel UnsignedByte
+    }
+
+-- tagpath /bfd/history-list/src-ip
+bfdHistoryListSrcIp OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Local TLOC IP address"
+    ::= { bfdHistoryListEntry 1 }
+
+-- tagpath /bfd/history-list/dst-ip
+bfdHistoryListDstIp OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Remote TLOC IP address"
+    ::= { bfdHistoryListEntry 2 }
+
+-- tagpath /bfd/history-list/proto
+bfdHistoryListProto OBJECT-TYPE
+    SYNTAX      INTEGER {gre(1),ipsec(2)}
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdHistoryListEntry 3 }
+
+-- tagpath /bfd/history-list/src-port
+bfdHistoryListSrcPort OBJECT-TYPE
+    SYNTAX      UnsignedShort
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Local port number"
+    ::= { bfdHistoryListEntry 4 }
+
+-- tagpath /bfd/history-list/dst-port
+bfdHistoryListDstPort OBJECT-TYPE
+    SYNTAX      UnsignedShort
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "Remote port number"
+    ::= { bfdHistoryListEntry 5 }
+
+-- tagpath /bfd/history-list/index
+bfdHistoryListIndex OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "History index"
+    ::= { bfdHistoryListEntry 6 }
+
+-- tagpath /bfd/history-list/system-ip
+bfdHistoryListSystemIp OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "System IP address"
+    ::= { bfdHistoryListEntry 7 }
+
+-- tagpath /bfd/history-list/site-id
+bfdHistoryListSiteId OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Site ID"
+    ::= { bfdHistoryListEntry 8 }
+
+-- tagpath /bfd/history-list/color
+bfdHistoryListColor OBJECT-TYPE
+    SYNTAX      INTEGER {default(1),mpls(2),metro-ethernet(3),biz-internet(4),public-internet(5),lte(6),threeG(7),red(8),green(9),blue(10),gold(11),silver(12),bronze(13),custom1(14),custom2(15),custom3(16),private1(17),private2(18),private3(19),private4(20),private5(21),private6(22)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Color"
+    ::= { bfdHistoryListEntry 9 }
+
+-- tagpath /bfd/history-list/state
+bfdHistoryListState OBJECT-TYPE
+    SYNTAX      BfdmgrStateEnum
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "State"
+    ::= { bfdHistoryListEntry 10 }
+
+-- tagpath /bfd/history-list/time
+bfdHistoryListTime OBJECT-TYPE
+    SYNTAX      String
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdHistoryListEntry 11 }
+
+-- tagpath /bfd/history-list/rx-pkts
+bfdHistoryListRxPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdHistoryListEntry 12 }
+
+-- tagpath /bfd/history-list/tx-pkts
+bfdHistoryListTxPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdHistoryListEntry 13 }
+
+-- tagpath /bfd/history-list/del
+bfdHistoryListDel OBJECT-TYPE
+    SYNTAX      UnsignedByte
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION ""
+    ::= { bfdHistoryListEntry 14 }
+
+END

@@ -1,0 +1,1106 @@
+       ADTRAN-AOS-QOS DEFINITIONS ::= BEGIN
+
+       IMPORTS
+           Unsigned32, Integer32 ,Counter32, Counter64, OBJECT-TYPE,
+              MODULE-IDENTITY
+               FROM SNMPv2-SMI
+           DisplayString, TruthValue, TEXTUAL-CONVENTION
+               FROM SNMPv2-TC
+           MODULE-COMPLIANCE, OBJECT-GROUP
+               FROM SNMPv2-CONF
+           InterfaceIndex, ifIndex
+                FROM IF-MIB
+           adIdentity
+               FROM ADTRAN-MIB
+           adGenAOSConformance, adGenAOSRouter
+               FROM ADTRAN-AOS;
+
+       adGenAOSQoSMib MODULE-IDENTITY
+        LAST-UPDATED "200806250000Z"  -- June 25, 2008 / YYYYMMDDHHMMZ
+        ORGANIZATION "ADTRAN, Inc."
+        CONTACT-INFO
+               "Technical Support Dept.
+                Postal: ADTRAN, Inc.
+                901 Explorer Blvd.
+                Huntsville, AL 35806
+
+                Tel: +1 800 726-8663
+                Fax: +1 256 963 6217
+                E-mail: support@adtran.com"
+
+            DESCRIPTION
+                        "This MIB contains QoS statistical information."
+
+            REVISION "200808200000Z"  -- August 20, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Changed name of OIDs adGenAOSQoSMapEntryActionType,
+                     adGenAOSQoSMapBWType, adGenAOSQoSMapBWValue, to
+                     adGenAOSQoSMapQueuingActionType,
+                     adGenAOSQoSMapQueuingBWType,
+                     adGenAOSQoSMapQueuingBWValue.
+                    Changes by Reba Holland."
+
+            REVISION "200807110000Z"  -- July 11, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Added adGenAOSQoSInterfaceTable. Changed
+                     adGenAOSQoSClassConvHistoryTable to use ifIndex,
+                     adGenAOSMapEntryId, and adGenAOSQoSMapParentEntryId as
+                     indices. Changed adGenAOSQoSPriorityRateLimiterTable to use
+                     adGenAOSQoSPriorityRateLimiterParentId as an index.
+                    Changes by Reba Holland."
+
+            REVISION "200806250000Z"  -- June 25, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Added the following to the adGenAOSQoSMapEntriesTable -
+                     adGenAOSQoSMapEntrySetName, adGenAOSQoSMapEntryActionType,
+                     adGenAOSQoSMapBWType, adGenAOSQoSMapBWValue. Changed
+                     adGenAOSQos to be under the adGenAOSRouter tree instead
+                     of the adGenAOSCommon tree. Changed name, indices and
+                     OIDS of adGenQOSQoSConversationTable to
+                     adGenAOSQoSClassConversationTable. Changed name, indices
+                     and OIDS of adGenQOSQoSConvHistoryTable to
+                     adGenAOSQoSClassConvHistoryTable. Changes by Reba Holland."
+
+            REVISION "200806060000Z"  -- June 6, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Changed the following from Integer32 to Unsigned32 -
+                    adGenAOSQoSMapSetId, adGenAOSQoSMapEntryId
+                    adGenAOSQoSHistoryConvId, adGenAOSQoSHistorySetId,
+                    adGenAOSQoSHistoryEntryId, adGenAOSQoSConvId. Changed
+                    description of adGenAOSQoSConvHistoryTable and
+                    adGenAOSQoSConversationTable. Removed adGenAOSQoSMapSetId
+                    as an index to adGenAOSQoSPriorityRateLimiterTable and
+                    added adGenAOSQoSPriorityRateLimiterSetId as an entry.
+                    Changes by Reba Holland."
+
+            REVISION "200806040000Z"  -- June 4, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Added adGenAOSQoSMapChildSetName to
+                    adGenAOSQoSMapEntriesTable.
+                    Changed indices of adGenAOSQoSConvHistoryTable.
+                    Changed description and indices of
+                    adGenAOSQoSMapEntriesTable. Changed OID name of
+                    adGenAOSQoSRateLimiterTable to
+                    adGenAOSQoSPriorityRateLimiterTable.
+                    Changes by Reba Holland."
+
+            REVISION "200804170000Z"  -- April 17, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "First Draft of ADTRAN-AOS-QOS MIB module.
+                     **********************************
+                        QoS Overview
+                     **********************************
+                     This MIB allows read-only access to quality of service (QoS)
+                     statistical information for QoS enabled ADTRAN products.  A
+                     QoS-policy is defined using a QoS map in the ADTRAN
+                     Operating System (AOS) command line interface (CLI).
+                     The QoS map is a named list with sequenced entries.
+                     An entry contains a single match reference and one or more
+                     actions. Multiple map entries for the same QoS map are
+                     differentiated by a sequence number. The sequence number
+                     is used to assign match order. Once created, a QoS map must
+                     be applied to an interface in order to actively process
+                     traffic. Any traffic for the interface that does not
+                     explicitly match a map entry is sent using the default
+                     queuing method for the interface (such as weighted
+                     fair queuing (WFQ)). All QoS configuration must be done
+                     by the ADTRAN command line interface (CLI) or the WEB GUI."
+
+          ::= { adIdentity 10000 53 2 1 }
+
+      adGenAOSQos    OBJECT IDENTIFIER ::= { adGenAOSRouter 1 }
+
+-- ========================================================================
+
+     --
+
+     --   QoS Map Table
+
+     -- TID - TID_QOS_MAP_SET
+     adGenAOSQoSMapSetTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSMapSetEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Named list of configured QoS maps."
+         ::= { adGenAOSQos 1 }
+
+     adGenAOSQoSMapSetEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSMapSetEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "The parameters for a particular QoS map."
+         INDEX { adGenAOSQoSMapSetId }
+         ::= { adGenAOSQoSMapSetTable 1 }
+
+
+     AdGenAOSQoSMapSetEntry ::=
+         SEQUENCE {
+             adGenAOSQoSMapSetId            Unsigned32,
+             adGenAOSQoSMapSetName          DisplayString,
+             adGenAOSQoSMapIsChild          TruthValue
+     }
+
+     -- CID_QOS_MAP_SET_ID
+     adGenAOSQoSMapSetId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system to
+                identify a row in the adGenAOSQoSMapTable."
+         ::= { adGenAOSQoSMapSetEntry 1 }
+
+     -- CID_QOS_MAP_SET_NAME
+     adGenAOSQoSMapSetName OBJECT-TYPE
+         SYNTAX     DisplayString
+         MAX-ACCESS read-only
+         STATUS     current
+         DESCRIPTION
+            "Unique string used to identify QoS map."
+         ::= { adGenAOSQoSMapSetEntry 2 }
+
+
+     -- CID_QOS_MAP_SET_IS_CHILD
+     adGenAOSQoSMapIsChild OBJECT-TYPE
+         SYNTAX      TruthValue
+         MAX-ACCESS  read-only
+         STATUS      current
+         DESCRIPTION
+            "Signifies this map as a child of another map if true."
+         ::= { adGenAOSQoSMapSetEntry 3 }
+
+
+     --
+
+     --   QoS Map Entry Table
+
+     --  TID_QOS_MAP_ENTRY
+
+     adGenAOSQoSMapEntriesTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSMapEntriesEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "List of sequenced entries for a named QoS map."
+         ::= { adGenAOSQos 2 }
+
+     adGenAOSQoSMapEntriesEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSMapEntriesEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "The parameters for a particular sequenced entry of a named QoS map."
+         INDEX { adGenAOSQoSMapSetId, adGenAOSQoSMapEntryId }
+         ::= { adGenAOSQoSMapEntriesTable 1 }
+
+     AdGenAOSQoSMapEntriesEntry ::=
+         SEQUENCE {
+             adGenAOSQoSMapEntryId              Unsigned32,
+             adGenAOSQoSMapSeqNum               Unsigned32,
+             adGenAOSQoSMapEntrySetName         DisplayString,
+             adGenAOSQoSMapChildSetName         DisplayString,
+             adGenAOSQoSMapQueuingActionType    INTEGER,
+             adGenAOSQoSMapQueuingBWType        INTEGER,
+             adGenAOSQoSMapQueuingBWValue       Unsigned32
+     }
+
+     -- CID_QOS_MAP_ENTRY_ID
+     adGenAOSQoSMapEntryId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system and is used in
+                conjunction with adGenAOSQoSMapSetId to identify a unique
+                row in the adGenAOSQoSMapEntryTable."
+         ::= { adGenAOSQoSMapEntriesEntry 1 }
+
+     -- CID_QOS_MAP_SEQ_NUMBER
+     adGenAOSQoSMapSeqNum OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number configured by the user to identify a
+                sequence of entries in a named list of maps."
+         ::= { adGenAOSQoSMapEntriesEntry 2 }
+
+     -- CID_QOS_MAP_CHILD_SET_NAME
+     adGenAOSQoSMapEntrySetName OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Unique string used to identify QoS map."
+         ::= { adGenAOSQoSMapEntriesEntry 3 }
+
+     -- CID_QOS_MAP_CHILD_SET_NAME
+     adGenAOSQoSMapChildSetName OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Unique string used to identify QoS child map."
+         ::= { adGenAOSQoSMapEntriesEntry 4 }
+
+        -- CID_QOS_MAP_ACTION_TYPE
+        adGenAOSQoSMapQueuingActionType OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  none (1),
+                  priority (2),
+                  classBased(3)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Defines the type of queuing configured for this map entry."
+         ::= { adGenAOSQoSMapEntriesEntry 5 }
+
+        -- CID_QOS_MAP_BW_TYPE
+        -- CID_QOS_MAP_PRIORITY_BW_TYPE
+        adGenAOSQoSMapQueuingBWType OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  none (1),
+                  absolute (2),
+                  percent (3),
+                  percentRemaining (4)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Defines the type of bandwidth queuing."
+         ::= { adGenAOSQoSMapEntriesEntry 6 }
+
+        -- CID_QOS_MAP_CLASS_BANDWIDTH
+        -- CID_QOS_MAP_BANDWIDTH
+        adGenAOSQoSMapQueuingBWValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Configured bandwidth for this map entry."
+         ::= { adGenAOSQoSMapEntriesEntry 7 }
+     --
+     --   QoS Class Based Conversation History Table
+
+     adGenAOSQoSInterfaceTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSInterfaceEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "List of interfaces and the QoS map data for that interface."
+         ::= { adGenAOSQos 3 }
+
+     adGenAOSQoSInterfaceEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSInterfaceEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Displays list of interfaces and the QoS map data for that
+            interface. Note: some interfaces may not support QoS or may support
+            only a portion of the QoS data."
+         INDEX { ifIndex }
+         ::= { adGenAOSQoSInterfaceTable 1 }
+
+
+     AdGenAOSQoSInterfaceEntry ::=
+         SEQUENCE {
+             adGenAOSQoSInterfaceName                        DisplayString,
+             adGenAOSQoSInterfaceOutboundMapSetName          DisplayString,
+             adGenAOSQoSInterfaceInboundMapSetName           DisplayString,
+             adGenAOSQoSInterfaceMapState                    INTEGER,
+             adGenAOSQoSInterfaceTXQType                     INTEGER,
+             adGenAOSQoSInterfaceTXQSubqPktLimit             Unsigned32,
+             adGenAOSQoSInterfaceTXQSize                     Unsigned32,
+             adGenAOSQoSInterfaceTXQPktHighWater             Unsigned32,
+             adGenAOSQoSInterfaceTXQMaxTotal                 Unsigned32,
+             adGenAOSQoSInterfaceTXQDrops                    Unsigned32,
+             adGenAOSQoSInterfaceTXQHdlcRingLimit            Unsigned32,
+             adGenAOSQoSInterfaceTXQAvailableBW              Unsigned32,
+             adGenAOSQoSInterfaceTXQConvActive               Unsigned32,
+             adGenAOSQoSInterfaceTXQConvMaxActive            Unsigned32,
+             adGenAOSQoSInterfaceTXQConvMaxTotal             Unsigned32
+             }
+
+     -- Cid_IF_NAME
+     adGenAOSQoSInterfaceName OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Unique string used to identify this interface."
+         ::= { adGenAOSQoSInterfaceEntry 1 }
+
+     -- Cid_Output_Qos_Map_Set_Name
+     adGenAOSQoSInterfaceOutboundMapSetName OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Unique string used to identify the outbound QoS map
+            applied to this interface."
+         ::= { adGenAOSQoSInterfaceEntry 2 }
+
+     -- Cid_Input_Qos_Map_Set_Name
+     adGenAOSQoSInterfaceInboundMapSetName OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Unique string used to identify the inbound QoS map
+            applied to this interface."
+         ::= { adGenAOSQoSInterfaceEntry 3 }
+
+     --Qos::CID_QOS_MAP_SET_STATE
+      adGenAOSQoSInterfaceMapState OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enabled (1),
+                  disabled (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Specifies state of QoS map attached to this interface. There may
+            be inadequate bandwidth to enable."
+         ::= { adGenAOSQoSInterfaceEntry 4 }
+
+     -- Qos::CID_QOS_TXQ_TYPE
+      adGenAOSQoSInterfaceTXQType OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                 fifo (1),
+                 fifoAged (2),
+                 weightedFair (3),
+                 roundRobin (4),
+                 priority (5),
+                 none (6)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Specifies queueing method for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 5 }
+
+     --  Qos::CID_QOS_TXQ_SUBQ_PKT_LIMIT
+     adGenAOSQoSInterfaceTXQSubqPktLimit OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies output packet threshold for the subqueues on this interface."
+         ::= { adGenAOSQoSInterfaceEntry 6 }
+
+     --  Qos::CID_QOS_TXQ_SIZE
+     adGenAOSQoSInterfaceTXQSize OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies output queue size for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 7 }
+
+     --  Qos::CID_QOS_TXQ_PKT_HIGH_WATER
+     adGenAOSQoSInterfaceTXQPktHighWater OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies output queue high water mark for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 8 }
+
+     -- Qos::CID_QOS_TXQ_MAX_TOTAL
+     adGenAOSQoSInterfaceTXQMaxTotal OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies output queue max total for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 9 }
+
+     -- Qos::CID_QOS_TXQ_DROPS
+     adGenAOSQoSInterfaceTXQDrops OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies output queue drops for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 10 }
+
+     --Qos::CID_QOS_TXQ_HDLC_RING_LIMIT
+     adGenAOSQoSInterfaceTXQHdlcRingLimit OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies HDLC tx buffer descriptor ring limit for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 11 }
+
+     --Qos::CID_QOS_AVAILABLE_BANDWIDTH
+     adGenAOSQoSInterfaceTXQAvailableBW OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies available bandwidth in kilobits/sec."
+         ::= { adGenAOSQoSInterfaceEntry 12 }
+
+     -- CID_QOS_TXQ_CONVERSATIONS_ACTIVE
+     adGenAOSQoSInterfaceTXQConvActive OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies number of active conversations for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 13 }
+
+     --Qos::CID_QOS_TXQ_CONVERSATIONS_MAX_ACTIVE
+     adGenAOSQoSInterfaceTXQConvMaxActive OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies number of max active conversations for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 14 }
+
+     -- Qos::CID_QOS_TXQ_CONVERSATIONS_MAX_TOTAL
+     adGenAOSQoSInterfaceTXQConvMaxTotal OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Specifies max total conversations for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 15 }
+
+
+     --   QoS Class Based Conversation History Table
+
+     --  TID_QOS_CLASS_BASED_CONVERSATION_HISTORY
+
+     adGenAOSQoSClassConvHistoryTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSClassConvHistoryEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Displays QoS class based conversation history."
+         ::= { adGenAOSQos 4 }
+
+     adGenAOSQoSClassConvHistoryEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSClassConvHistoryEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "The class based conversation history for a particular sequenced
+            entry of a named QoS map."
+         INDEX { ifIndex, adGenAOSQoSMapEntryId,
+                adGenAOSQoSMapParentEntryId }
+         ::= { adGenAOSQoSClassConvHistoryTable 1 }
+
+
+    AdGenAOSQoSClassConvHistoryEntry ::=
+         SEQUENCE {
+             adGenAOSQoSMapParentEntryId                     Unsigned32,
+             adGenAOSQoSClassConvSetId                       Unsigned32,
+             adGenAOSQoSHistoryClassConvId                   Unsigned32,
+             adGenAOSQoSClassConvHistoryMatches              Counter32,
+             adGenAOSQoSClassConvHistoryDiscards             Counter32,
+             adGenAOSQoSClassConvHistoryMatchesBytes         Counter64,
+             adGenAOSQoSClassConvHistoryDiscardsBytes        Counter64,
+             adGenAOSQoSClassConvHistoryDepth                Unsigned32,
+             adGenAOSQoSClassConvHistoryHighWater            Unsigned32
+     }
+
+
+     -- CID_QOS_MAP_PARENT_ENTRY_ID
+     adGenAOSQoSMapParentEntryId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system and the parent
+                QoS map. This will always be zero for conversations in the base
+                interface queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 1 }
+
+     -- CID_QOS_MAP_SET_ID
+     adGenAOSQoSClassConvSetId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number used to identify which row in the
+                adGenAOSQoSMapSetTable this conversation is associated."
+         ::= { adGenAOSQoSClassConvHistoryEntry 2 }
+
+     --  CID_QOS_CONVERSATION_ID
+     adGenAOSQoSHistoryClassConvId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system and is used in
+                conjuntion with adGenAOSQoSMapSetId, adGenAOSQoSMapEntryId, and
+                ifIndex to identify a unique row in the
+                AdGenAOSQoSClassConvHistoryTable."
+         ::= { adGenAOSQoSClassConvHistoryEntry 3 }
+
+     -- CID_QOS_CONVERSATION_MATCHES
+     adGenAOSQoSClassConvHistoryMatches OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of conversation packets matched on this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 4 }
+
+     -- CID_QOS_CONVERSATION_DISCARDS
+     adGenAOSQoSClassConvHistoryDiscards OBJECT-TYPE
+         SYNTAX     Counter32
+         MAX-ACCESS read-only
+         STATUS     current
+         DESCRIPTION
+                "Number of conversation packets discarded on this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 5 }
+
+     -- CID_QOS_CONVERSATION_MATCHES_BYTES
+     adGenAOSQoSClassConvHistoryMatchesBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of conversation bytes matched on this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 6 }
+
+     -- CID_QOS_CONVERSATION_DISCARDS_BYTES
+     adGenAOSQoSClassConvHistoryDiscardsBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of conversation bytes discarded on this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 7 }
+
+     -- CID_QOS_CONVERSATION_DEPTH
+     adGenAOSQoSClassConvHistoryDepth OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Current conversation queue depth on this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 8 }
+
+     -- CID_QOS_CONVERSATION_HIGH_WATER
+     adGenAOSQoSClassConvHistoryHighWater OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Maximum depth in sub-queue since counter statistics were last
+                cleared."
+         ::= { adGenAOSQoSClassConvHistoryEntry 9 }
+
+     --
+
+     --   QoS Conversation Table
+
+     --  TID_QOS_CONVERSATIONS
+
+     adGenAOSQoSConversationTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSConversationEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Displays real-time head-of-queue packets in the conversation
+            subqueue."
+         ::= { adGenAOSQos 5 }
+
+     adGenAOSQoSConversationEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSConversationEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "The conversation for a particular sequenced entry of a
+            named QoS map."
+         INDEX { ifIndex, adGenAOSQoSConvId, adGenAOSQoSMapConvParentEntryId }
+         ::= { adGenAOSQoSConversationTable 1 }
+
+
+
+     AdGenAOSQoSConversationEntry ::=
+         SEQUENCE {
+             adGenAOSQoSConvId                  Unsigned32,
+             adGenAOSQoSMapConvParentEntryId    Unsigned32,
+             adGenAOSQoSConvMatches             Counter32,
+             adGenAOSQoSConvDiscards            Counter32,
+             adGenAOSQoSConvMatchesBytes        Counter64,
+             adGenAOSQoSConvDiscardsBytes       Counter64,
+             adGenAOSQoSConvDepth               Unsigned32,
+             adGenAOSQoSConvHighWater           Unsigned32,
+             adGenAOSQoSConvWeight              Unsigned32,
+             adGenAOSQoSConvPktLen              Unsigned32,
+             adGenAOSQoSConvProttype            INTEGER,
+             adGenAOSQoSConvSubQType            INTEGER,
+             adGenAOSQoSConvPktHeader           OCTET STRING
+     }
+
+     --  CID_QOS_CONVERSATION_ID
+     adGenAOSQoSConvId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system and is used in
+                conjuntion with adGenAOSQoSMapSetId, adGenAOSQoSMapEntryId, and
+                ifIndex to identify a unique row in the
+                AdGenAOSQoConversationTable."
+         ::= { adGenAOSQoSConversationEntry 1 }
+
+     --  CID_QOS_MAP_PARENT_ENTRY_ID
+     adGenAOSQoSMapConvParentEntryId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system and the parent
+                QoS map. This will always be zero for conversations in the base
+                interface queue."
+         ::= { adGenAOSQoSConversationEntry 2 }
+
+     -- CID_QOS_CONVERSATION_MATCHES
+     adGenAOSQoSConvMatches OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of conversation packets matched."
+         ::= { adGenAOSQoSConversationEntry 3 }
+
+     -- CID_QOS_CONVERSATION_DISCARDS
+     adGenAOSQoSConvDiscards OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of conversation packets discarded."
+         ::= { adGenAOSQoSConversationEntry 4 }
+
+     -- CID_QOS_CONVERSATION_MATCHES_BYTES
+     adGenAOSQoSConvMatchesBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of conversation bytes matched."
+         ::= { adGenAOSQoSConversationEntry 5 }
+
+     -- CID_QOS_CONVERSATION_DISCARDS_BYTES
+     adGenAOSQoSConvDiscardsBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of conversation bytes discarded."
+         ::= { adGenAOSQoSConversationEntry 6 }
+     -- CID_QOS_CONVERSATION_DEPTH
+     adGenAOSQoSConvDepth OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Current conversation queue depth."
+         ::= { adGenAOSQoSConversationEntry 7 }
+
+     -- CID_QOS_CONVERSATION_HIGH_WATER
+      adGenAOSQoSConvHighWater  OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Maximum depth in sub-queue since a clear counters occurred."
+         ::= { adGenAOSQoSConversationEntry 8 }
+
+     -- CID_QOS_CONVERSATION_WEIGHT
+     adGenAOSQoSConvWeight OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Debug display of Ratio given to packets of the conversation to
+                 determine relative priority.  The weight is lower for higher
+                 priority values, reflecting quicker response time."
+         ::= { adGenAOSQoSConversationEntry 9 }
+
+     -- CID_QOS_CONVERSATION_WEIGHT
+     adGenAOSQoSConvPktLen OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Length in bytes of the packet at the head of the conversation
+                subqueue."
+         ::= { adGenAOSQoSConversationEntry 10 }
+
+     -- CID_QOS_CONVERSATION_PROTTYPE
+     adGenAOSQoSConvProttype OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                   unset (1),
+                   ip (2),
+                   bridging (3)
+                }
+         MAX-ACCESS read-only
+         STATUS     current
+         DESCRIPTION
+                "Protocol type of the packet at the head of the conversation
+                subqueue."
+         ::= { adGenAOSQoSConversationEntry 11 }
+
+     -- CID_QOS_CONVERSATION_SUBQUEUE_TYPE
+     adGenAOSQoSConvSubQType OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                   bestEffort (1),
+                   classBased (2),
+                   unclassified (3),
+                   priorityUser (4),
+                   prioritySystem (5)
+                }
+         MAX-ACCESS read-only
+         STATUS     current
+         DESCRIPTION
+                "What type of queueing has been configured for the conversation
+                 subqueue given by the conversation index.  It will correspond
+                 to the protocol type configured in the map entry for the map
+                 applied to the interface."
+         ::= { adGenAOSQoSConversationEntry 12 }
+
+     -- CID_QOS_CONVERSATION_PKT_HEADER
+     adGenAOSQoSConvPktHeader OBJECT-TYPE
+         SYNTAX     OCTET STRING(SIZE(0..80))
+         MAX-ACCESS read-only
+         STATUS     current
+         DESCRIPTION
+                "Header of the packet at the head of the conversation subqueue."
+         ::= { adGenAOSQoSConversationEntry 13 }
+
+
+     --
+
+     --   QoS Priority Queue Rate Limiter Table
+
+     --  TID_QOS_RATE_LIMITER
+
+     adGenAOSQoSPriorityRateLimiterTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSPriorityRateLimiterEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Displays priority queue rate limiter statistics.
+            This table will be empty if no priority queue classes
+            are configured in the qos map applied to a
+            particular interface."
+         ::= { adGenAOSQos 6 }
+
+     adGenAOSQoSPriorityRateLimiterEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSPriorityRateLimiterEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "The priority queue statistics for a particular sequenced entry of a
+            named QoS map.  An entry will only be present if the action type of
+            the corresponding map entry has priority queueing enabled."
+         INDEX { ifIndex, adGenAOSQoSMapEntryId,
+                adGenAOSQoSPriorityRateLimiterParentEntryId }
+         ::= { adGenAOSQoSPriorityRateLimiterTable 1 }
+
+
+     AdGenAOSQoSPriorityRateLimiterEntry ::=
+         SEQUENCE {
+             adGenAOSQoSPriorityRateLimiterParentEntryId        Unsigned32,
+             adGenAOSQoSPriorityRateLimiterSetId                Unsigned32,
+             adGenAOSQoSPriorityRateLimiterCurrBudget           Unsigned32,
+             adGenAOSQoSPriorityRateLimiterMaxBudget            Unsigned32,
+             adGenAOSQoSPriorityRateLimiterUpdateTimestamp      Unsigned32,
+             adGenAOSQoSPriorityRateLimiterBudgetRate           Unsigned32,
+             adGenAOSQoSPriorityRateLimiterMaxFillTime          Unsigned32,
+             adGenAOSQoSPriorityRateLimiterMatches              Counter32,
+             adGenAOSQoSPriorityRateLimiterDrops                Counter32,
+             adGenAOSQoSPriorityRateLimiterMatchesBytes         Counter64,
+             adGenAOSQoSPriorityRateLimiterDropsBytes           Counter64,
+             adGenAOSQoSPriorityRateLimiterClearCounters        INTEGER
+
+     }
+
+     --  CID_QOS_MAP_PARENT_ENTRY_ID
+     adGenAOSQoSPriorityRateLimiterParentEntryId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system and the parent
+                QoS map. This will always be zero for conversations in the base
+                interface queue."
+        ::= { adGenAOSQoSPriorityRateLimiterEntry 1 }
+
+     -- CID_QOS_MAP_SET_ID
+     adGenAOSQoSPriorityRateLimiterSetId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number used to identify which row in the
+                adGenAOSQoSMapSetTable this conversation is associated."
+        ::= { adGenAOSQoSPriorityRateLimiterEntry 2 }
+
+     --  CID_QOS_RATE_LIMITER_CURR_BUDGET
+     adGenAOSQoSPriorityRateLimiterCurrBudget OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+              "Current rate limiter burst budget."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 3 }
+
+     --  CID_QOS_RATE_LIMITER_MAX_BUDGET
+     adGenAOSQoSPriorityRateLimiterMaxBudget OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+              "Maximum rate limiter burst budget."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 4 }
+
+     --  CID_QOS_RATE_LIMITER_UPDATE_TIMESTAMP
+     adGenAOSQoSPriorityRateLimiterUpdateTimestamp OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+              "Rate limiter budget update timestamp in milliseconds."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 5 }
+
+     --  CID_QOS_RATE_LIMITER_BUDGET_RATE
+     adGenAOSQoSPriorityRateLimiterBudgetRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+              "Rate of byte budget increase."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 6 }
+
+     --  CID_QOS_RATE_LIMITER_MAX_FILL_TIME
+     adGenAOSQoSPriorityRateLimiterMaxFillTime OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+              "time to accumulate a full budget."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 7 }
+
+     -- CID_QOS_RATE_LIMITER_MATCHES
+     adGenAOSQoSPriorityRateLimiterMatches OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of packets matched."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 8 }
+
+     -- CID_QOS_RATE_LIMITER_DROPS
+     adGenAOSQoSPriorityRateLimiterDrops OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of packets discarded."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 9 }
+
+     -- CID_QOS_RATE_LIMITER_MATCHES_BYTES
+     adGenAOSQoSPriorityRateLimiterMatchesBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes matched."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 10 }
+
+     -- CID_QOS_RATE_LIMITER_DROPS_BYTES
+     adGenAOSQoSPriorityRateLimiterDropsBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of packets discarded."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 11 }
+
+     -- CID_CLEAR_COUNTERS
+     adGenAOSQoSPriorityRateLimiterClearCounters OBJECT-TYPE
+        SYNTAX INTEGER {
+                clear (1)
+        }
+        MAX-ACCESS   read-write
+        STATUS       current
+        DESCRIPTION
+            "Clear the rate limiter statistics. This is a
+            write-only variable. A read will always return a value of '1'."
+                ::= { adGenAOSQoSPriorityRateLimiterEntry 12 }
+
+
+     -- conformance information
+
+     adGenAOSQoSConformance OBJECT IDENTIFIER ::= { adGenAOSConformance 8 }
+     adGenAOSQoSGroup       OBJECT IDENTIFIER ::= { adGenAOSQoSConformance 1 }
+     adGenAOSQoSCompliances OBJECT IDENTIFIER ::= { adGenAOSQoSConformance 2 }
+
+--
+-- MIB Compliance statements.
+--
+
+-- Full compliance statement
+     adGenAOSQoSFullCompliance MODULE-COMPLIANCE
+         STATUS  current
+         DESCRIPTION
+            "The compliance statement for SNMP entities which implement
+            version 2 of the adGenAOSQoS MIB."
+
+        MODULE  -- this module
+        MANDATORY-GROUPS { adGenAOSQoSMapGroup, adGenAOSQoSMapEntryGroup }
+
+         GROUP  adGenAOSQoSInterfaceGroup
+         DESCRIPTION
+                "This optional group is used to retrieve interface
+                QoS information ."
+
+         GROUP  adGenAOSQoSConversationGroup
+         DESCRIPTION
+                "This optional group is used to retrieve conversation statistics
+                of a sequenced entry of a named QoS map.  Availability of data
+                is dependent upon configuration and interface activity."
+
+         GROUP  adGenAOSQoSClassConvHistoryGroup
+         DESCRIPTION
+                "This optional group is used to retrieve classe based
+                conversation history of a sequenced entry of a named QoS map.
+                Availability of data is dependent upon configuration and
+                interface activity."
+
+         GROUP  adGenAOSQoSPriorityRateLimiterGroup
+         DESCRIPTION
+                "This optional group is used to retrieve rate limiter statistics
+                of a sequenced entry of a named QoS map.  Availability of data
+                is dependent upon configuration and interface activity."
+         ::= { adGenAOSQoSCompliances 1 }
+     -- units of conformance
+
+     adGenAOSQoSMapGroup    OBJECT-GROUP
+         OBJECTS {
+                adGenAOSQoSMapSetId, adGenAOSQoSMapSetName, adGenAOSQoSMapIsChild
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the statistics of the
+            QoS maps."
+         ::= { adGenAOSQoSGroup 1 }
+
+     adGenAOSQoSMapEntryGroup    OBJECT-GROUP
+         OBJECTS {
+                adGenAOSQoSMapEntryId,
+                adGenAOSQoSMapSeqNum,
+                adGenAOSQoSMapEntrySetName, adGenAOSQoSMapChildSetName,
+                adGenAOSQoSMapQueuingActionType, adGenAOSQoSMapQueuingBWType,
+                adGenAOSQoSMapQueuingBWValue
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the statistics of
+            a particular sequenced entry of a named QoS map."
+         ::= { adGenAOSQoSGroup 2 }
+
+     adGenAOSQoSInterfaceGroup   OBJECT-GROUP
+         OBJECTS {
+                adGenAOSQoSInterfaceName,
+                adGenAOSQoSInterfaceOutboundMapSetName,
+                adGenAOSQoSInterfaceInboundMapSetName,
+                adGenAOSQoSInterfaceMapState,
+                adGenAOSQoSInterfaceTXQType,
+                adGenAOSQoSInterfaceTXQSubqPktLimit,
+                adGenAOSQoSInterfaceTXQSize,
+                adGenAOSQoSInterfaceTXQPktHighWater,
+                adGenAOSQoSInterfaceTXQMaxTotal,
+                adGenAOSQoSInterfaceTXQDrops,
+                adGenAOSQoSInterfaceTXQHdlcRingLimit,
+                adGenAOSQoSInterfaceTXQAvailableBW,
+                adGenAOSQoSInterfaceTXQConvActive,
+                adGenAOSQoSInterfaceTXQConvMaxActive,
+                adGenAOSQoSInterfaceTXQConvMaxTotal
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the QoS map information
+            for an interface."
+         ::= { adGenAOSQoSGroup 3 }
+
+     adGenAOSQoSClassConvHistoryGroup    OBJECT-GROUP
+         OBJECTS {
+                adGenAOSQoSMapParentEntryId,
+                adGenAOSQoSClassConvSetId,
+                adGenAOSQoSHistoryClassConvId,
+                adGenAOSQoSClassConvHistoryMatches,
+                adGenAOSQoSClassConvHistoryDiscards,
+                adGenAOSQoSClassConvHistoryDepth,
+                adGenAOSQoSClassConvHistoryHighWater
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the class based
+            conversation history of a particular sequenced entry of a named
+            QoS map."
+         ::= { adGenAOSQoSGroup 4 }
+
+     adGenAOSQoSConversationGroup    OBJECT-GROUP
+         OBJECTS {
+                adGenAOSQoSConvId,
+                adGenAOSQoSMapConvParentEntryId,
+                adGenAOSQoSConvMatches,
+                adGenAOSQoSConvDiscards,
+                adGenAOSQoSConvDepth,
+                adGenAOSQoSConvHighWater,
+                adGenAOSQoSConvWeight,
+                adGenAOSQoSConvPktLen,
+                adGenAOSQoSConvProttype,
+                adGenAOSQoSConvSubQType,
+                adGenAOSQoSConvPktHeader
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the conversation
+            statistics of a particular sequenced entry of a named QoS map."
+         ::= { adGenAOSQoSGroup 5 }
+
+     adGenAOSQoSPriorityRateLimiterGroup    OBJECT-GROUP
+         OBJECTS {
+                adGenAOSQoSPriorityRateLimiterParentEntryId,
+                adGenAOSQoSPriorityRateLimiterSetId,
+                adGenAOSQoSPriorityRateLimiterCurrBudget,
+                adGenAOSQoSPriorityRateLimiterMaxBudget,
+                adGenAOSQoSPriorityRateLimiterUpdateTimestamp,
+                adGenAOSQoSPriorityRateLimiterBudgetRate,
+                adGenAOSQoSPriorityRateLimiterMaxFillTime,
+                adGenAOSQoSPriorityRateLimiterMatches,
+                adGenAOSQoSPriorityRateLimiterDrops,
+                adGenAOSQoSPriorityRateLimiterClearCounters
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the rate limiter
+            statistics of a particular sequenced entry of a named QoS map."
+         ::= { adGenAOSQoSGroup 6 }
+
+     END
+
+
+

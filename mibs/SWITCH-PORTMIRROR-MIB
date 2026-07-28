@@ -1,0 +1,208 @@
+--MibName=rcPortMirror
+-- *****************************************************************
+-- RAISECOM-PORTMIRROR-MIB.MIB:  Raisecom Port Mirror MIB file
+--
+-- May 2004, gaohongwei
+--
+-- Copyright (c) 1994-2004 by Raisecom, Inc.
+-- All rights reserved.
+-- 
+-- *****************************************************************
+SWITCH-PORTMIRROR-MIB  DEFINITIONS ::= BEGIN
+ 
+IMPORTS
+        iscomSwitch
+                                          FROM RAISECOM-BASE-MIB
+        MacAddress,
+        RowStatus
+                                          FROM SNMPv2-TC    
+        PortList,EnableVar,Vlanset		  FROM SWITCH-TC
+        MODULE-IDENTITY, OBJECT-TYPE,
+        Integer32                         FROM SNMPv2-SMI;
+                
+	rcPortMirror MODULE-IDENTITY
+        LAST-UPDATED    "200412200000Z"
+        ORGANIZATION    "Raisecom, Inc."
+        CONTACT-INFO
+                "       Raise Systems
+                        
+                Postal: Beijing,
+                        China
+
+                   Tel: 86-010-82884499
+
+                E-mail: support@raisecom.com"
+        DESCRIPTION
+                "description of port mirror object."
+                ::= { iscomSwitch 4}   
+                
+----------------------define groups-------------------------------
+	rcBaseConfig		OBJECT IDENTIFIER ::= { rcPortMirror 1 }
+	rcIngressMirror     OBJECT IDENTIFIER ::= { rcPortMirror 2 }
+   	rcEgressMirror      OBJECT IDENTIFIER ::= { rcPortMirror 3 }
+
+-------------------config some scalar---------------------------    
+	rcMirrorToPort OBJECT-TYPE 
+        SYNTAX INTEGER 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The monitor port."
+        ::= { rcBaseConfig 1}
+       
+   	rcPortMirrorEnable OBJECT-TYPE 
+        SYNTAX EnableVar
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Enable or disable port mirroring."    
+        DEFVAL	{ disable }
+        ::= { rcBaseConfig 2 }  
+           
+   	rcBlockNoMirrorTrafficEnable OBJECT-TYPE 
+        SYNTAX EnableVar
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "When enabled, all traffic to monitor port is blocked except mirror traffic."
+        DEFVAL	{ disable }
+        ::= { rcBaseConfig 3 }        
+        
+   	rcIngressMirrorPorts OBJECT-TYPE 
+        SYNTAX PortList 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Ingress Monitored ports mask. Bit mask which selectively allows any port with 
+            its corresponding bit set, to be mirrored to the monitor port."
+        ::= { rcBaseConfig 4 }
+               
+   	rcEgressMirrorPorts OBJECT-TYPE 
+        SYNTAX PortList 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Egress Monitored ports mask. Bit mask which selectively allows any port with 
+            its corresponding bit set, to be mirrored to the monitor port."
+        ::= { rcBaseConfig 5 }
+     
+     rcMirrorPolicyPorts OBJECT-TYPE 
+        SYNTAX PortList 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Ingress Policy ports mask. Bit mask. which selectively allows any ports with 
+            its corresponding bit set, to be mirrored to the mirror destination port."
+        ::= { rcBaseConfig 6 }   
+        
+      rcMirrorVlans OBJECT-TYPE 
+        SYNTAX Vlanset 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Ingress Policy ports mask. Bit mask. which selectively allows any ports with 
+            its corresponding bit set, to be mirrored to the mirror destination port."
+        ::= { rcBaseConfig 7 }    
+        
+   	rcIngressMirrorPorts64 OBJECT-TYPE 
+        SYNTAX OCTET STRING 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Ingress Monitored ports mask. Bit mask which selectively allows any port with 
+            its corresponding bit set, to be mirrored to the monitor port."
+        ::= { rcBaseConfig 8 }
+               
+   	rcEgressMirrorPorts64 OBJECT-TYPE 
+        SYNTAX OCTET STRING 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Egress Monitored ports mask. Bit mask which selectively allows any port with 
+            its corresponding bit set, to be mirrored to the monitor port."
+        ::= { rcBaseConfig 9 }
+     
+     rcMirrorPolicyPorts64 OBJECT-TYPE 
+        SYNTAX OCTET STRING 
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Ingress Policy ports mask. Bit mask. which selectively allows any ports with 
+            its corresponding bit set, to be mirrored to the mirror destination port."
+        ::= { rcBaseConfig 10 }   
+
+
+
+------------------ for Ingress port mirror----------------------------   
+           
+   rcIngressMirrorFilter OBJECT-TYPE 
+        SYNTAX INTEGER	{
+        			all(1),
+        			dmac(2),
+        			smac(3)
+        			}
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Set ingress mirror filter rule. all: mirror all frames from mirroring ports; 
+            damc: mirror all received frames with destination address equal with ingress MAC;
+            samc: mirror all received frames with source address equal with ingress MAC."
+        DEFVAL	{ all }
+        ::= { rcIngressMirror 1 } 
+          
+   rcIngressMirrorDivider OBJECT-TYPE 
+        SYNTAX Integer32 ( 1..1023 )
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Receive frames that have passed the ingress mirror filter rule can further be pruned 
+            to reduce the overall number of frames returned to the monitor port. Frames that 
+            pass the ingress mirror filter rule are further divided by the value that user sets, 
+            so that only one in n frames(1/n of frames, where n='value') are mirrored." 
+        ::= { rcIngressMirror 2 }  
+               
+   rcIngressMirrorMacAddress OBJECT-TYPE 
+        SYNTAX MacAddress
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "MAC address that is compared against ingress frames in accordance with the 
+            ingress mirror filter rules."
+        ::= { rcIngressMirror 3 }
+
+------------------ for Egress port mirror----------------------------          
+   rcEgressMirrorFilter OBJECT-TYPE 
+        SYNTAX INTEGER	{
+        			all(1),
+        			dmac(2),
+        			smac(3)
+        			}
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Set egress mirror filter rule. all: mirror all frames from mirroring ports; 
+            damc: mirror all received frames with destination address equal with egress MAC;
+            samc: mirror all received frames with source address equal with egress MAC."
+        DEFVAL	{ ALL }
+        ::= { rcEgressMirror 1 } 
+          
+   rcEgressMirrorDivider OBJECT-TYPE 
+        SYNTAX Integer32 ( 1..1023 )
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Receive frames that have passed the egress mirror filter rule can further be pruned 
+            to reduce the overall number of frames returned to the monitor port. Frames that 
+            pass the egress mirror filter rule are further divided by the value that user sets, 
+            so that only one in n frames(1/n of frames, where n='value') are mirrored."       
+        ::= { rcEgressMirror 2 }  
+             
+   rcEgressMirrorMacAddress OBJECT-TYPE 
+        SYNTAX MacAddress
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "MAC address that is compared against ingress frames in accordance with the 
+            egress mirror filter rules."       
+        ::= { rcEgressMirror 3 }  
+END

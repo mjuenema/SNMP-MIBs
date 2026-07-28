@@ -1,0 +1,295 @@
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: 34-918076565
+
+                -- Fax: 34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+            -- MIB privada de Teldat
+
+            -- Configuracin del cliente DNS
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.1  21/02/08    J. Herrero      Corregida para compilacin con
+    --                  M.A. Pastor     MG-Soft MIB Compiler
+    -- 1.0  12/07/06    P. Nogueira     Codificacion inicial
+--------------------------------------------------------------------------------
+
+TELDAT-MON-FEATURES-DNS-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+        OBJECT-TYPE
+            FROM RFC-1212
+        DisplayString
+            FROM RFC1213-MIB
+        telProdNpMonFeatures
+            FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    -- Grupo telProdNpMonFeatDNS
+    -- Incluye los parﬂmetros correspondientes a la monitorizacin de la
+    -- facilidad DNS cliente.
+
+    telProdNpMonFeatDNS     OBJECT IDENTIFIER ::= { telProdNpMonFeatures 8 }
+
+
+    -- Grupo donde se incluye informacin de las sondas DNS.
+
+    teldatDNSMonProbeGroup  OBJECT IDENTIFIER ::= { telProdNpMonFeatDNS 1 }
+
+    teldatDNSMonProbeTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TeldatDNSMonProbeEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "DNS probes table. Each entry identifies a DNS probe."
+        ::= { teldatDNSMonProbeGroup 1 }
+
+    teldatDNSMonProbeEntry OBJECT-TYPE
+        SYNTAX TeldatDNSMonProbeEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "An entry identifies a DNS probe, used to measure the DNS resolution
+        time, and it is comprised of the following parameters: the probe
+        identifier, the probe status, the URL used for the last resolve time
+        measurement, the date and time that the probe was last started and the
+        resolve time measured."
+        INDEX { teldatDNSMonProbeIdentifier }
+        ::= { teldatDNSMonProbeTable 1 }
+
+    TeldatDNSMonProbeEntry ::=
+        SEQUENCE{
+            teldatDNSMonProbeIdentifier
+                INTEGER,
+            teldatDNSMonProbeStatus
+                DisplayString,
+            teldatDNSMonProbeURL
+                DisplayString,
+            teldatDNSMonProbeInitDate
+                OCTET STRING,
+            teldatDNSMonProbeInitTime
+                OCTET STRING,
+            teldatDNSMonProbeResolveTime
+                INTEGER
+            }
+
+    teldatDNSMonProbeIdentifier OBJECT-TYPE
+        SYNTAX INTEGER(1..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Index of the table: probe indentifier."
+        ::= { teldatDNSMonProbeEntry 1 }
+
+    teldatDNSMonProbeStatus OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..99))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Status of the DNS probe: Waiting, executing, or completed correctly
+         or with errors."
+        ::= { teldatDNSMonProbeEntry 2 }
+
+    teldatDNSMonProbeURL OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..99))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "First resolved URL for the given DNS probe."
+        ::= { teldatDNSMonProbeEntry 3 }
+
+    teldatDNSMonProbeInitDate OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "The date the probe was last started. If the probe has not ever been
+        started yet, this is shown as 0."
+        ::= { teldatDNSMonProbeEntry 4 }
+
+    teldatDNSMonProbeInitTime OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(3))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "The time the probe was last started. If the probe has not ever been
+        started yet, this is shown as 0."
+        ::= { teldatDNSMonProbeEntry 5 }
+
+    teldatDNSMonProbeResolveTime OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Measured resolve time."
+        ::= { teldatDNSMonProbeEntry 6 }
+
+    -- Tabla para lanzar una sonda
+
+    teldatDNSMonProbeStartTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TeldatDNSMonProbeStartEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table allows to start the execution of the probe whose identifier
+        takes the value given by the index. Each entry refers to one of the
+        configured probes, and consists of two variables: the identifier of the
+        probe, which is the index of the table, and a variable which is used to
+        start the execution of the probe when a SET operation to this variable
+        is made (and gives it the value 1)."
+        ::= { teldatDNSMonProbeGroup 2 }
+
+    teldatDNSMonProbeStartEntry OBJECT-TYPE
+        SYNTAX TeldatDNSMonProbeStartEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry refers to one of the configured probes, and consists of two
+        variables: the identifier of the probe, which is the index of the table,
+        and a variable which is used to start the execution of the probe when a
+        SET operation to this variable is made (and gives it the value 1)."
+        INDEX { teldatDNSMonProbeStartIndex }
+        ::= { teldatDNSMonProbeStartTable 1 }
+
+    TeldatDNSMonProbeStartEntry ::=
+        SEQUENCE{
+            teldatDNSMonProbeStartIndex
+                INTEGER,
+            teldatDNSMonProbeStartCommand
+                INTEGER
+            }
+
+    teldatDNSMonProbeStartIndex OBJECT-TYPE
+        SYNTAX INTEGER(1..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Index of the table: probe identifier."
+        ::= { teldatDNSMonProbeStartEntry 1 }
+
+    teldatDNSMonProbeStartCommand OBJECT-TYPE
+        SYNTAX INTEGER{
+            start(1),
+            ok(2),
+            undefined(3),
+            no_memory(4),
+            wrong_identifier(5),
+            already_started(6),
+            dns_uninitialized(7),
+            error(8)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "If the value of this variable is set to 1, the execution of the probe
+        whose identifier takes the value given by the index will start.
+        In GET operations, the value taken by this variable indicates the
+        result of the last operation: ok (2), if the last operation was made
+        succesfully; the value undefined (3) indicates that operations of this
+        type have not been made yet. If the operation failed, this variable
+        could take different values depending on the error cause:
+        no_memory (4), if there was not enough memory to start the DNS probe;
+        wrong_identifier(5) if the probe identifier introduced was not
+        correct; already_started (6) indicates that the probe which was going to
+        be started was started previously and is in execution;
+        dns_uninitialized (7) if the DNS system has not been initialized;
+        error (8) if another generic error has occurred."
+        ::= { teldatDNSMonProbeStartEntry 2 }
+
+    -- Tabla para lanzar una sonda tras cerrar la conexin PPP
+
+    teldatDNSMonProbeResetPPPAndStartTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TeldatDNSMonProbeResetPPPAndStartEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table allows to start the execution of the probe whose identifier
+        takes the value given by the index once the PPP indicated has
+        restablished connection after being shut down. Each entry refers to a
+        pair probe-ppp connection, and consists of three variables: the
+        identifier of the  probe, the identifier of the PPP interface,
+        and a variable which is used to start the execution of the probe when
+        a SET operation to this variable is made (and gives it the value 1)."
+        ::= { teldatDNSMonProbeGroup 3 }
+
+    teldatDNSMonProbeResetPPPAndStartEntry OBJECT-TYPE
+        SYNTAX TeldatDNSMonProbeResetPPPAndStartEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry refers to a
+        pair probe-ppp connection, and consists of three variables: the
+        identifier of the  probe, the identifier of the PPP interface,
+        and a variable which is used to start the execution of the probe when
+        a SET operation to this variable is made (and gives it the value 1)."
+        INDEX { teldatDNSMonProbeResetPPPAndStartIndex, teldatDNSMonProbeResetPPPIndex }
+        ::= { teldatDNSMonProbeResetPPPAndStartTable 1 }
+
+    TeldatDNSMonProbeResetPPPAndStartEntry ::=
+        SEQUENCE{
+            teldatDNSMonProbeResetPPPAndStartIndex
+                INTEGER,
+            teldatDNSMonProbeResetPPPIndex
+                INTEGER,
+            teldatDNSMonProbeResetPPPAndStartCommand
+                INTEGER
+            }
+
+    teldatDNSMonProbeResetPPPAndStartIndex OBJECT-TYPE
+        SYNTAX INTEGER(1..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Index of the table: probe identifier."
+        ::= { teldatDNSMonProbeResetPPPAndStartEntry 1 }
+
+    teldatDNSMonProbeResetPPPIndex OBJECT-TYPE
+        SYNTAX INTEGER(1..255)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Index of the table: number of the PPP interface."
+        ::= { teldatDNSMonProbeResetPPPAndStartEntry 2 }
+
+    teldatDNSMonProbeResetPPPAndStartCommand OBJECT-TYPE
+        SYNTAX INTEGER{
+            start(1),
+            ok(2),
+            undefined(3),
+            no_memory(4),
+            wrong_identifier(5),
+            already_started(6),
+            dns_uninitialized(7),
+            error(8)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "If the value of this variable is set to 1, the PPP connection
+        established through the interface given by the index will be disconnect
+        and the DNS probe given by the other index will be started once the
+        PPP connection restablishes.
+        In GET operations, the value taken by this variable indicates the
+        result of the last operation: ok (2), if the last operation was made
+        succesfully; the value undefined (3) indicates that operations of this
+        type have not been made yet. If the operation failed, this variable
+        could take different values depending on the error cause:
+        no_memory (4), if there was not enough memory to start the DNS probe;
+        wrong_identifier(5) if the probe identifier introduced was not
+        correct; already_started (6) indicates that the probe which was going to
+        be started was started previously and is in execution;
+        dns_uninitialized (7) if the DNS system has not been initialized;
+        error (8) if another generic error has occurred."
+        ::= { teldatDNSMonProbeResetPPPAndStartEntry 3 }
+
+
+END

@@ -1,0 +1,1136 @@
+-- 
+-- This file contains the enterprise-specific MIB definitions for Blue
+-- Coat CacheFlow appliances.  All Blue Coat-defined MIBs relevant to
+-- the CacheFlow appliance are contained herein.
+--
+-- In addition, the CacheFlow appliance also supports the following
+-- public standard MIBs:
+--
+--   RFC    MIB Name                    Title
+--   ----   --------------------------  -------------------------------
+--   1213   MIB-2                       Management Information Base for Network 
+--                                      Management of TCP/IP-based internets 
+--
+--   3418   SNMPv2-MIB                  Management Information Base for the
+--                                      Simple Network Management Protocol
+--
+--   2863   IF-MIB                      The Interfaces Group MIB
+--
+--   2594   WWW-MIB                     Definitions of Managed Objects for WWW
+--                                      Services
+--
+--   3411   SNMP-FRAMEWORK-MIB          An Architecture for Describing Simple
+--                                      Network Management Protocol (SNMP) 
+--                                      Management Frameworks
+--
+--   3412   SNMP-MPD-MIB                Message Processing and Dispatching for 
+--                                      the Simple Network Management Protocol
+-- 
+--   3414   SNMP-USER-BASED-SM-MIB      User-based Security Model (USM) for 
+--                                      version 3 of the Simple Network 
+--
+--                                      Management Protocol (SNMPv3)
+--   3415   SNMP-VIEW-BASED-ACM-MIB     View-based Access Control Model (VACM) 
+--                                      for the Simple Network Management 
+--                                      Protocol (SNMP)
+--
+-- Please consult the documentation for your SNMP Management Station
+-- for assistance in loading and accessing these public MIBs.
+--
+--
+
+BCSI-CFLO-HEALTH-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, Integer32, Unsigned32
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, TimeStamp, DisplayString, RowPointer, TruthValue,
+    DateAndTime
+        FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+    cacheflow 
+        FROM BCSI-MIB;
+
+cfloHealthMIB MODULE-IDENTITY
+    LAST-UPDATED    "201104180000Z"
+    ORGANIZATION    "Blue Coat Systems, Inc."
+    CONTACT-INFO    "support.services@bluecoat.com
+                     http://www.bluecoat.com"
+    DESCRIPTION     "MIB for health monitoring of
+                     Blue Coat CacheFlow appliances."
+    REVISION        "201104180000Z"
+    DESCRIPTION     "Added new disk status"
+    REVISION        "201012210000Z"
+    DESCRIPTION     "Refactored Threshold and Discrete Entities"
+    REVISION        "201008070000Z"
+    DESCRIPTION     "Added discrete facility entity."    
+    REVISION        "200910040000Z"
+    DESCRIPTION     "Initial revision of this MIB."
+   ::= { cacheflow 3 }
+
+cfloHealthNotifications     OBJECT IDENTIFIER ::= { cfloHealthMIB 0 }
+cfloHealthObjects           OBJECT IDENTIFIER ::= { cfloHealthMIB 1 }
+cfloHealthConformance       OBJECT IDENTIFIER ::= { cfloHealthMIB 2 }
+
+cfloHealthStatus            OBJECT IDENTIFIER ::= { cfloHealthObjects 1 }
+cfloHealthEntities          OBJECT IDENTIFIER ::= { cfloHealthObjects 2 }
+cfloHealthMessages          OBJECT IDENTIFIER ::= { cfloHealthObjects 3 }
+
+--
+-- Textual Conventions
+--
+HealthEntityType ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION     "Types of health-monitored entities. Different types
+            have different metadata, and each type is monitored via a distinct
+            table of entries. Values are:
+
+                thresholdEntity(1)  - an entity whose health is measurable via
+                                      thresholds on a varying value
+                discreteEntity(2)   - an entity that provides discrete status
+                                      values
+                diskStatus(3)       - a disk drive
+                updateService(4)    - an external service used to periodically
+                                      update or synchronize information 
+                                      on the appliance with some external
+                                      source or sink
+                requestService(5)   - an external service used by the appliance
+                                      in the course of request processing"
+                                      
+        SYNTAX INTEGER {
+                thresholdEntity(1),
+                discreteEntity(2),
+                diskStatus(3),
+                updateService(4),
+                requestService(5)
+        }
+
+HealthEntityCategory ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION     "Categories of health-monitored entities.  Categories
+            describe what sort of physical or conceptual function the entity
+            provides.  Values are:
+                temperature(1)      - a temperature sensor
+                fanSpeed(2)         - a fan speed sensor
+                voltage(3)          - a voltage sensor
+                powerSupply(4)      - status of a power supply unit
+                disk(6)             - disk drive information
+                dns(7)              - DNS service information
+                contentFilter(8)    - a content filtering service
+                blueCoatService(9)  - a Blue Coat update service
+                accessLog(10)       - a log upload service
+                policy(11)          - policy compilation status
+                cacheGroup(12)      - cache group status"
+        SYNTAX INTEGER {
+                temperature(1),
+                fanSpeed(2),
+                voltage(3),
+                powerSupply(4),
+                disk(6),
+                dns(7),
+                contentFilter(8),
+                blueCoatService(9),
+                accessLog(10),
+                policy(11),
+                cacheGroup(12)
+        }
+
+HealthState ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION     "Health states reported for any monitored entity:
+                ok(1)        - the entity is functioning normally
+                warning(2)   - the entity is somewhat impaired or at risk
+                               and should be subjected to further scrutiny
+                               for possible problems or faults
+                critical(3)  - the entity is severely impaired pr down
+                               and requires immediate diagnostic and/or 
+                               remedial attention"
+        SYNTAX INTEGER {
+                ok(1),
+                warning(2),
+                critical(3)
+        }
+
+SensorUnits ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION     "Units of measurement reported by environmental sensors:
+                count(1)          - number of devices
+                degreesCelsius(2) - temperature in degrees Celsius
+                rpm(3)            - revolutions per minute
+                volts(4)          - potential difference in volts
+                milliseconds(5)   - a time interval in milliseconds"
+        SYNTAX INTEGER {
+                count(1),
+                degreesCelsius(2),
+                rpm(3),
+                volts(4),
+                milliseconds(5)
+        }
+
+DiscreteSensorStatus ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION     "Status values reported by environmental sensors:
+                normal(1)       - the monitored component is operating normally
+                notPresent(2)   - the monitored component is not installed
+                                  or has been removed or cannot be detected
+                unknown(3)      - the status of the component cannot be
+                                  determined or read
+                noInput(4)      - a power supply has no input voltage but 
+                                  otherwise appears to be functioning normally;
+                                  it may be unplugged or a fault may exist in
+                                  the equipment rack
+                lowVoltage(5)   - a power supply is providing abnormally low
+                                  voltage to the appliance
+                highVoltage(6)  - a power supply is providing abnormally high
+                                  voltage to the appliance
+                failed(7)       - a power supply has failed and is providing
+                                  no power to the appliance
+                slow(8)         - a fan is rotating at an abnormally slow rate
+                stopped(9)      - a fan has effectively stopped rotating and
+                                  is no longer circulating cooling air
+                string(10)      - indicates that the precise status is found in
+                                  cfloHealthDiscreteStatusDesc"
+        SYNTAX INTEGER {
+                normal(1),
+                notPresent(2),
+                unknown(3),
+                noInput(4),
+                lowVoltage(5),
+                highVoltage(6),
+                failed(7),
+                slow(8),
+                stopped(9),
+                string(10)
+        }
+
+DiskStatus ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION     "Status values reported for disk slots:
+                normal(1)       - a normally functioning disk is installed
+                empty(2)        - the disk slot is empty
+                unknown(3)      - the status cannot be determined
+                initializing(4) - the disk is currently initializing
+                offline(5)      - the disk is currently offline
+                bad(6)          - the disk has failed
+                unsupported(7)  - the disk installed is not supported by the 
+                                  appliance or operating system
+                failing(8)      - the disk is still functioning normally but is
+                                  reporting errors that enhance risk of failure"
+        SYNTAX INTEGER {
+                normal(1),
+                empty(2),
+                unknown(3),
+                initializing(4),
+                offline(5),
+                bad(6),
+                unsupported(7),
+                failing(8)
+        }
+
+ServiceAdminState ::= TEXTUAL-CONVENTION
+        STATUS          current
+        DESCRIPTION     "Adminstrative status values configurable for
+                         service entities:
+        enabled(1)       - the service is enabled for normal operation
+        disabled(2)      - the service has been disabled."
+        SYNTAX INTEGER {
+                enabled(1),
+                disabled(2)
+        }
+
+
+--
+-- Health Status
+--
+
+cfloHealthStatusTable OBJECT-TYPE
+        SYNTAX          SEQUENCE OF HealthStatusEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Health Status Table."
+        ::= { cfloHealthStatus 1 }
+
+cfloHealthStatusEntry OBJECT-TYPE
+        SYNTAX          HealthStatusEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Describes the current health state of an
+                         entity, along with some historical context."
+        INDEX           { cfloHealthStatusType, cfloHealthStatusIndex }
+        ::= { cfloHealthStatusTable 1 }
+
+HealthStatusEntry ::= SEQUENCE {
+        cfloHealthStatusType            HealthEntityType,
+        cfloHealthStatusIndex           Integer32,
+        cfloHealthStatusName            DisplayString,
+        cfloHealthStatusCategory        HealthEntityCategory,
+        cfloHealthStatusCurState        HealthState,
+        cfloHealthStatusCurTime         TimeStamp,
+        cfloHealthStatusPrevState       HealthState,
+        cfloHealthStatusPrevTime        TimeStamp,
+        cfloHealthStatusLastIncident    TimeStamp,
+        cfloHealthStatusLastSevere      TimeStamp,
+        cfloHealthStatusEntity          RowPointer
+        }
+
+cfloHealthStatusType OBJECT-TYPE
+        SYNTAX          HealthEntityType
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "The type of entity to which this status information
+                         applies."
+        ::= { cfloHealthStatusEntry 1 }
+
+cfloHealthStatusIndex OBJECT-TYPE
+        SYNTAX          Integer32 (1..2147483647)
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "An arbitrary value which uniquely identifies this
+                         entity within its type."
+        ::= { cfloHealthStatusEntry 2 }
+
+cfloHealthStatusName OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The name of the entity to which this status information
+                         applies."
+        ::= { cfloHealthStatusEntry 3 }
+
+cfloHealthStatusCategory OBJECT-TYPE
+        SYNTAX          HealthEntityCategory
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The category of entity to which this status information
+                         applies."
+        ::= { cfloHealthStatusEntry 4 }
+
+cfloHealthStatusCurState OBJECT-TYPE
+        SYNTAX          HealthState
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The current health state of the entity."
+        ::= { cfloHealthStatusEntry 5 }
+
+cfloHealthStatusCurTime OBJECT-TYPE
+        SYNTAX          TimeStamp
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The time at which the current health state was entered.
+                         A value of zero implies that the entity has not
+                         changed state since the appliance was restarted."
+        ::= { cfloHealthStatusEntry 6 }
+
+cfloHealthStatusPrevState OBJECT-TYPE
+        SYNTAX          HealthState
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The previous health state of the entity."
+        ::= { cfloHealthStatusEntry 7 }
+
+cfloHealthStatusPrevTime OBJECT-TYPE
+        SYNTAX          TimeStamp
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The time at which the previous health state was entered.
+                         A value of zero implies that the entity has not
+                         changed state more than once since the appliance
+                         was restarted."
+        ::= { cfloHealthStatusEntry 8 }
+
+cfloHealthStatusLastIncident OBJECT-TYPE
+        SYNTAX          TimeStamp
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The most recent time at which the entity left the
+                         'ok' health state.  If the entity is currently in
+                         an abnormal state, this is the time when the period
+                         of abnormality began."
+        ::= { cfloHealthStatusEntry 9 }
+
+cfloHealthStatusLastSevere OBJECT-TYPE
+        SYNTAX          TimeStamp
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The most recent time at which the entity was in
+                         the most severe health state ('critical').  If the 
+                         entity is currently in the critical state, this will
+                         represent the time the entity entered the critical
+                         state.  A value of zero implies the entity has not
+                         been in a critical state since appliance restart."
+        ::= { cfloHealthStatusEntry 10 }
+
+cfloHealthStatusEntity OBJECT-TYPE
+        SYNTAX          RowPointer
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The OID of the entity (in the appropriate table)
+                         to which this status information applies."
+        ::= { cfloHealthStatusEntry 11 }
+
+
+--
+-- Threshold Entity Details
+-- 
+
+cfloHealthThreshTable OBJECT-TYPE
+        SYNTAX          SEQUENCE OF HealthThreshEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Threshold Entity Table."
+        ::= { cfloHealthEntities 1 }
+
+cfloHealthThreshEntry OBJECT-TYPE
+        SYNTAX          HealthThreshEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Describes the configuration and current status of 
+                         a threshold entity."
+        INDEX           { cfloHealthThreshIndex }
+        ::= { cfloHealthThreshTable 1 }
+
+HealthThreshEntry ::= SEQUENCE {
+        cfloHealthThreshIndex            Integer32,
+        cfloHealthThreshName             DisplayString,
+        cfloHealthThreshCategory         HealthEntityCategory,
+        cfloHealthThreshValid            TruthValue,
+        cfloHealthThreshUnits            SensorUnits,
+        cfloHealthThreshMultiplier       Unsigned32,
+        cfloHealthThreshValue            Integer32,
+        cfloHealthThreshLowCritical      Integer32,
+        cfloHealthThreshLowWarning       Integer32,
+        cfloHealthThreshHighWarning      Integer32,
+        cfloHealthThreshHighCritical     Integer32,
+        cfloHealthThreshInterval         Unsigned32
+        }
+
+cfloHealthThreshIndex OBJECT-TYPE
+        SYNTAX          Integer32 (1..2147483647)
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "An arbitrary value which uniquely identifies this
+                         threshold entity."
+        ::= { cfloHealthThreshEntry 1 }
+
+cfloHealthThreshName OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The name of this entity."
+        ::= { cfloHealthThreshEntry 2 }
+
+cfloHealthThreshCategory OBJECT-TYPE
+        SYNTAX          HealthEntityCategory
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The category of this entity."
+        ::= { cfloHealthThreshEntry 3 }
+
+cfloHealthThreshValid OBJECT-TYPE
+        SYNTAX          TruthValue
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "A flag indicating whether this entity is 
+                         functioning and readable.  A false value 
+                         indicates that the entity cannot be read."
+        ::= { cfloHealthThreshEntry 4 }
+
+cfloHealthThreshUnits OBJECT-TYPE
+        SYNTAX          SensorUnits
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The physical unit of measurement pertaining
+                         to this threshold entity."
+        ::= { cfloHealthThreshEntry 5 }
+
+cfloHealthThreshMultiplier OBJECT-TYPE
+        SYNTAX          Unsigned32 (1..1000000000)
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The factor by which the physical value measured by
+                         this entity has been multiplied to produce the
+                         reported integral Value.  Divide the reported Value 
+                         by this factor to obtain the true physical reading.
+                         Similarly, divide the reported threshold values by
+                         the same factor to obtain their physical values."
+        ::= { cfloHealthThreshEntry 6 }
+
+cfloHealthThreshValue OBJECT-TYPE
+        SYNTAX          Integer32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The most recent measurement reported by the entity, 
+                         scaled to an integer by the entity's Multiplier
+                         in the entity's Units."
+        ::= { cfloHealthThreshEntry 7 }
+
+cfloHealthThreshLowCritical OBJECT-TYPE
+        SYNTAX          Integer32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "A reading below this value indicates  
+                         a critical health issue for the monitored entity.
+                         A reported value of -1 indicates that no lower
+                         threshold applies to this entity."
+        ::= { cfloHealthThreshEntry 8 }
+
+cfloHealthThreshLowWarning OBJECT-TYPE
+        SYNTAX          Integer32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "A reading below this value but above the
+                         LowCritical threshold indicates  
+                         a warning-level health issue for the monitored entity.
+                         A reported value of -1 indicates that no lower
+                         threshold applies to this entity."
+        ::= { cfloHealthThreshEntry 9 }
+
+cfloHealthThreshHighWarning OBJECT-TYPE
+        SYNTAX          Integer32 
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "A reading above this value but below the HighCritical
+                         threshold indicates a warning-level health issue for
+                         the monitored entity. A reported value of -1 indicates
+                         that no upper threshold applies to this entity."
+        ::= { cfloHealthThreshEntry 10 }
+
+cfloHealthThreshHighCritical OBJECT-TYPE
+        SYNTAX          Integer32 
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "A reading above this value indicates a critical health
+                         issue for the monitored entity. A reported value of -1
+                         indicates that no upper threshold applies to this entity."
+        ::= { cfloHealthThreshEntry 11 }
+
+cfloHealthThreshInterval OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The hysteresis interval in seconds for this entity.
+                         When non-zero, an entity will not transition to a
+                         different health state until its current value remains
+                         above (or below) the relevant threshold for at least
+                         this interval."
+        ::= { cfloHealthThreshEntry 12 }
+--
+-- Discrete Entity Details
+-- 
+
+cfloHealthDiscreteTable OBJECT-TYPE
+        SYNTAX          SEQUENCE OF HealthDiscreteEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Discrete Entity Table."
+        ::= { cfloHealthEntities 2 }
+
+cfloHealthDiscreteEntry OBJECT-TYPE
+        SYNTAX          HealthDiscreteEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Describes the current status of 
+                         a discrete entity."
+        INDEX           { cfloHealthDiscreteIndex }
+        ::= { cfloHealthDiscreteTable 1 }
+
+HealthDiscreteEntry ::= SEQUENCE {
+        cfloHealthDiscreteIndex          Integer32,
+        cfloHealthDiscreteName           DisplayString,
+        cfloHealthDiscreteCategory       HealthEntityCategory,
+        cfloHealthDiscreteSensorStatus   DiscreteSensorStatus,
+        cfloHealthDiscreteStatusDesc     DisplayString,
+        cfloHealthDiscreteMessage        DisplayString
+        }
+
+cfloHealthDiscreteIndex OBJECT-TYPE
+        SYNTAX          Integer32 (1..2147483647)
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "An arbitrary value which uniquely identifies this
+                         entity."
+        ::= { cfloHealthDiscreteEntry 1 }
+
+cfloHealthDiscreteName OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The name of this entity."
+        ::= { cfloHealthDiscreteEntry 2 }
+
+cfloHealthDiscreteCategory OBJECT-TYPE
+        SYNTAX          HealthEntityCategory
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The category of this entity."
+        ::= { cfloHealthDiscreteEntry 3 }
+
+cfloHealthDiscreteSensorStatus OBJECT-TYPE
+        SYNTAX          DiscreteSensorStatus
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "Enumerated status value for entities that represent
+                         environmental sensors. The value for other facilities
+                         will be 'string(10)' indicating that the precise status
+                         can be found in cfloHealthDiscreteStatusDesc"
+        ::= { cfloHealthDiscreteEntry 4 }
+
+cfloHealthDiscreteStatusDesc OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "A human-readable description of the current status of
+                         this entity."
+        ::= { cfloHealthDiscreteEntry 5 }
+        
+cfloHealthDiscreteMessage OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "An optional detailed message related to the current
+                         status of this entity.  This value will only be 
+                         non-empty if additional information beyond the basic
+                         status is available."
+        ::= { cfloHealthDiscreteEntry 6 }
+--
+-- Disk Details
+-- 
+
+cfloHealthDiskTable OBJECT-TYPE
+        SYNTAX          SEQUENCE OF HealthDiskEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Disk Status Table."
+        ::= { cfloHealthEntities 3 }
+
+cfloHealthDiskEntry OBJECT-TYPE
+        SYNTAX          HealthDiskEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Describes the current status of a disk drive."
+        INDEX           { cfloHealthDiskIndex }
+        ::= { cfloHealthDiskTable 1 }
+
+HealthDiskEntry ::= SEQUENCE {
+        cfloHealthDiskIndex            Integer32,
+        cfloHealthDiskStatus           DiskStatus,
+        cfloHealthDiskVendor           DisplayString,
+        cfloHealthDiskProduct          DisplayString,
+        cfloHealthDiskRevision         DisplayString,
+        cfloHealthDiskSerial           DisplayString,
+        cfloHealthDiskBlockSize        Unsigned32,
+        cfloHealthDiskBlockCount       Unsigned32
+        }
+
+cfloHealthDiskIndex OBJECT-TYPE
+        SYNTAX          Integer32 (1..2147483647)
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "The disk slot number."
+        ::= { cfloHealthDiskEntry 1 }
+
+cfloHealthDiskStatus OBJECT-TYPE
+        SYNTAX          DiskStatus
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The most recent status reported for this disk slot."
+        ::= { cfloHealthDiskEntry 2 }
+
+cfloHealthDiskVendor OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The vendor name of the disk installed in this slot."
+        ::= { cfloHealthDiskEntry 3 }
+
+cfloHealthDiskProduct OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The vendor's product name for the disk installed 
+                         in this slot."
+        ::= { cfloHealthDiskEntry 4 }
+
+cfloHealthDiskRevision OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The vendor's revision code for the disk installed
+                         in this slot."
+        ::= { cfloHealthDiskEntry 5 }
+
+cfloHealthDiskSerial OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The serial number of the disk installed in this slot."
+        ::= { cfloHealthDiskEntry 6 }
+
+cfloHealthDiskBlockSize OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The formatted block size of the disk 
+                         installed in this slot."
+        ::= { cfloHealthDiskEntry 7 }
+
+cfloHealthDiskBlockCount OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The number of blocks formatted on the disk 
+                         installed in this slot."
+        ::= { cfloHealthDiskEntry 8 }
+
+
+--
+-- Update Service Details
+-- 
+
+cfloHealthUpdSvcTable OBJECT-TYPE
+        SYNTAX          SEQUENCE OF HealthUpdSvcEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Update Service Table."
+        ::= { cfloHealthEntities 4 }
+
+cfloHealthUpdSvcEntry OBJECT-TYPE
+        SYNTAX          HealthUpdSvcEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Describes the status of an service that synchronizes 
+                         content or information between the appliance and 
+                         an external server."
+        INDEX           { cfloHealthUpdSvcIndex }
+        ::= { cfloHealthUpdSvcTable 1 }
+
+HealthUpdSvcEntry ::= SEQUENCE {
+        cfloHealthUpdSvcIndex            Integer32,
+        cfloHealthUpdSvcName             DisplayString,
+        cfloHealthUpdSvcCategory         HealthEntityCategory,
+        cfloHealthUpdSvcAdminState       ServiceAdminState,
+        cfloHealthUpdSvcThreshold        Unsigned32,
+        cfloHealthUpdSvcLastAttempt      DateAndTime,
+        cfloHealthUpdSvcLastSuccess      DateAndTime,
+        cfloHealthUpdSvcNextAttempt      DateAndTime,
+        cfloHealthUpdSvcCurrentVersion   DisplayString
+        }
+
+cfloHealthUpdSvcIndex OBJECT-TYPE
+        SYNTAX          Integer32 (1..2147483647)
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "An arbitrary value which uniquely identifies this
+                         update service entity."
+        ::= { cfloHealthUpdSvcEntry 1 }
+
+cfloHealthUpdSvcName OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The name of this update service."
+        ::= { cfloHealthUpdSvcEntry 2 }
+
+cfloHealthUpdSvcCategory OBJECT-TYPE
+        SYNTAX          HealthEntityCategory
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The category of this service."
+        ::= { cfloHealthUpdSvcEntry 3 }
+
+cfloHealthUpdSvcAdminState OBJECT-TYPE
+        SYNTAX          ServiceAdminState
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The administrative state of this service (enabled 
+                         or disabled).  A disabled service will not attempt to
+                         obtain or provide any updates."
+        ::= { cfloHealthUpdSvcEntry 4 }
+
+cfloHealthUpdSvcThreshold OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The amount of time (in seconds) that must elapse
+                         without a successful server contact before this 
+                         service is deemed to be suffering from a severe
+                         lapse.  When cfloHealthUpdSvcLastAttempt exceeds 
+                         cfloHealthUpdSvcLastSuccess by more than this value,
+                         the service will enter the Critical health state."
+        ::= { cfloHealthUpdSvcEntry 5 }
+
+cfloHealthUpdSvcLastAttempt OBJECT-TYPE
+        SYNTAX          DateAndTime
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The date and time of the last attempt made by 
+                         the appliance to contact the service.  Services 
+                         are typically checked for update availability or
+                         readiness on a periodic schedule."
+        ::= { cfloHealthUpdSvcEntry 6 }
+
+cfloHealthUpdSvcLastSuccess OBJECT-TYPE
+        SYNTAX          DateAndTime
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The date and time of the last server contact attempt 
+                         which succeed in exchanging information, or 
+                         which determined conclusively that no exchange of
+                         actual information was necessary.  When LastSuccess
+                         is equal to Last Attempt, the service represented by
+                         this entity is considered fully up-to-date."
+        ::= { cfloHealthUpdSvcEntry 7 }
+
+cfloHealthUpdSvcNextAttempt OBJECT-TYPE
+        SYNTAX          DateAndTime
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The future date and time when the appliance is next
+                         scheduled to contact the service to determine
+                         the need to exchange information. 
+                         Services that are contacted on demand instead of on
+                         a periodic schedule will report a zero value."
+        ::= { cfloHealthUpdSvcEntry 8 }
+
+cfloHealthUpdSvcCurrentVersion OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "A version identifier, if applicable, for the 
+                         information last exchanged between the appliance and
+                         the service (at the time reported in 
+                         cfloHealthUpdSvcLastSuccess).  If no specific version
+                         is defined, this variable will have an empty value."
+        ::= { cfloHealthUpdSvcEntry 9 }
+
+
+--
+-- Request Service Details
+-- 
+
+cfloHealthReqSvcTable OBJECT-TYPE
+        SYNTAX          SEQUENCE OF HealthReqSvcEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Request Service Table."
+        ::= { cfloHealthEntities 5 }
+
+cfloHealthReqSvcEntry OBJECT-TYPE
+        SYNTAX          HealthReqSvcEntry
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "Describes the status of an service that is employed by
+                         the appliance during request processing, and is thus
+                         subject to periodic health checks."
+        INDEX           { cfloHealthReqSvcIndex }
+        ::= { cfloHealthReqSvcTable 1 }
+
+HealthReqSvcEntry ::= SEQUENCE {
+        cfloHealthReqSvcIndex                Integer32,
+        cfloHealthReqSvcName                 DisplayString,
+        cfloHealthReqSvcCategory             HealthEntityCategory,
+        cfloHealthReqSvcAdminState           ServiceAdminState,
+        cfloHealthReqSvcStatusThreshold      Unsigned32,
+        cfloHealthReqSvcLatencyThreshold     Unsigned32,
+        cfloHealthReqSvcSuccessCount         Unsigned32,
+        cfloHealthReqSvcFailureCount         Unsigned32,
+        cfloHealthReqSvcLastCheckTime        TimeStamp,
+        cfloHealthReqSvcLatencyLast          Unsigned32,
+        cfloHealthReqSvcLatencyMin           Unsigned32,
+        cfloHealthReqSvcLatencyAvg           Unsigned32,
+        cfloHealthReqSvcLatencyMax           Unsigned32
+        }
+
+cfloHealthReqSvcIndex OBJECT-TYPE
+        SYNTAX          Integer32 (1..2147483647)
+        MAX-ACCESS      not-accessible
+        STATUS          current
+        DESCRIPTION     "An arbitrary value which uniquely identifies this
+                         request service entity."
+        ::= { cfloHealthReqSvcEntry 1 }
+
+cfloHealthReqSvcName OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The name of this request service."
+        ::= { cfloHealthReqSvcEntry 2 }
+
+cfloHealthReqSvcCategory OBJECT-TYPE
+        SYNTAX          HealthEntityCategory
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The category of this service."
+        ::= { cfloHealthReqSvcEntry 3 }
+
+cfloHealthReqSvcAdminState OBJECT-TYPE
+        SYNTAX          ServiceAdminState
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The administrative state of this service. 
+                         A disabled service will
+                         not be used during request processing."
+        ::= { cfloHealthReqSvcEntry 4 }
+
+cfloHealthReqSvcStatusThreshold OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The configurable number of consecutive health check
+                         failures which will cause this service to enter the
+                         Critical health state; also the number of
+                         consecutive health check successes required to
+                         re-enter the OK (healthy) state."
+        ::= { cfloHealthReqSvcEntry 5 }
+
+cfloHealthReqSvcLatencyThreshold OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The configurable response time in milliseconds
+                         beyond which an otherwise successful health check
+                         is deemed to have failed.  Health checks that do not
+                         complete within this amount of time will be treated
+                         as timeout failures, and acted upon accordingly."
+        ::= { cfloHealthReqSvcEntry 6 }
+
+cfloHealthReqSvcSuccessCount OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The number of successful health checks conducted
+                         since the last failed health check.  If this value is
+                         zero, the most recent check failed (and 
+                         cfloHealthReqSvcFailureCount will be non-zero).
+                         When this number reaches 
+                         cfloHealthReqSvcStatusThreshold, 
+                         a previously unhealthy service will be deemed 
+                         to have returned to health."
+        ::= { cfloHealthReqSvcEntry 7 }
+
+cfloHealthReqSvcFailureCount OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The number of failed health checks conducted
+                         since the last successful health check.  If this
+                         value is zero, the most recent check succeeded (and 
+                         cfloHealthReqSvcSuccessCount will be non-zero).
+                         When this number reaches 
+                         cfloHealthReqSvcStatusThreshold, 
+                         a previously healthy service will be deemed 
+                         to have become unhealthy."
+        ::= { cfloHealthReqSvcEntry 8 }
+
+cfloHealthReqSvcLastCheckTime OBJECT-TYPE
+        SYNTAX          TimeStamp
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The time of the most recent health check for
+                         this service."
+        ::= { cfloHealthReqSvcEntry 9 }
+
+cfloHealthReqSvcLatencyLast OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The measured response time in milliseconds 
+                         of the most recent health check for this service."
+        ::= { cfloHealthReqSvcEntry 10 }
+
+cfloHealthReqSvcLatencyMin OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The minimum health check response time for
+                         this service.  This accumulator is reset whenever
+                         the service enters or leaves the Critical health state."
+        ::= { cfloHealthReqSvcEntry 11 }
+
+cfloHealthReqSvcLatencyAvg OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The mean health check response time for
+                         this service.  This accumulator is reset whenever
+                         the service enters or leaves the Critical health state."
+        ::= { cfloHealthReqSvcEntry 12 }
+
+cfloHealthReqSvcLatencyMax OBJECT-TYPE
+        SYNTAX          Unsigned32
+        MAX-ACCESS      read-only
+        STATUS          current
+        DESCRIPTION     "The maximum health check response time for
+                         this service.  This accumulator is reset whenever
+                         the service enters or leaves the Critical health state."
+        ::= { cfloHealthReqSvcEntry 13 }
+
+--
+-- Notifications
+--
+
+cfloHealthStateChangeMessage OBJECT-TYPE
+        SYNTAX          DisplayString
+        MAX-ACCESS      accessible-for-notify
+        STATUS          current
+        DESCRIPTION     "A human-readable description of a health state
+                         change event."
+        ::= { cfloHealthMessages 1 }
+
+cfloHealthStateChange NOTIFICATION-TYPE
+        OBJECTS { 
+                        cfloHealthStatusCurState, 
+                        cfloHealthStatusPrevState, 
+                        cfloHealthStateChangeMessage,
+                        cfloHealthStatusEntity  
+        }
+        STATUS          current
+        DESCRIPTION     "The health state of this monitored entity has changed."
+        ::= { cfloHealthNotifications 1 }
+
+
+--
+-- Compliance/Conformance/Groups 
+--
+
+cfloHealthCompliances OBJECT IDENTIFIER ::= { cfloHealthConformance 1 }
+cfloHealthGroups      OBJECT IDENTIFIER ::= { cfloHealthConformance 2 }
+
+cfloHealthBasicCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "Basic compliance for CacheFlow Appliance Health Monitoring."
+    MODULE  -- this module
+    MANDATORY-GROUPS {
+        cfloHealthStatusGroup,
+        cfloHealthMessageGroup,
+        cfloHealthNotificationsGroup,
+        cfloHealthThreshGroup,
+        cfloHealthDiscreteGroup,
+        cfloHealthDiskGroup,
+        cfloHealthUpdSvcGroup,
+        cfloHealthReqSvcGroup
+        }
+    ::= { cfloHealthCompliances 1 }
+
+cfloHealthStatusGroup OBJECT-GROUP
+    OBJECTS {
+        cfloHealthStatusEntity,
+        cfloHealthStatusName,
+        cfloHealthStatusCategory,
+        cfloHealthStatusCurState,
+        cfloHealthStatusCurTime,
+        cfloHealthStatusPrevState,
+        cfloHealthStatusPrevTime,
+        cfloHealthStatusLastIncident,
+        cfloHealthStatusLastSevere
+    } 
+    STATUS      current
+    DESCRIPTION
+        "The objects used to monitor health status of 
+         appliance components."
+    ::= { cfloHealthGroups 1 }
+
+cfloHealthMessageGroup OBJECT-GROUP
+    OBJECTS {
+        cfloHealthStateChangeMessage
+    } 
+    STATUS      current
+    DESCRIPTION
+        "Messages used in health notifications."
+    ::= { cfloHealthGroups 2 }
+
+cfloHealthNotificationsGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        cfloHealthStateChange
+    }
+    STATUS      current
+    DESCRIPTION
+        "Notifications about changes in the health state of
+         appliance components."
+    ::= { cfloHealthGroups 3 }
+
+cfloHealthThreshGroup OBJECT-GROUP
+    OBJECTS {
+        cfloHealthThreshName,
+        cfloHealthThreshCategory,
+        cfloHealthThreshValid,
+        cfloHealthThreshUnits,
+        cfloHealthThreshMultiplier,
+        cfloHealthThreshValue,
+        cfloHealthThreshLowCritical,
+        cfloHealthThreshLowWarning,
+        cfloHealthThreshHighWarning,
+        cfloHealthThreshHighCritical,
+        cfloHealthThreshInterval
+    } 
+    STATUS      current
+    DESCRIPTION
+        "The objects used to monitor threshold sensors."
+    ::= { cfloHealthGroups 4 }
+
+cfloHealthDiscreteGroup OBJECT-GROUP
+    OBJECTS {
+        cfloHealthDiscreteName,
+        cfloHealthDiscreteCategory,
+        cfloHealthDiscreteSensorStatus,
+        cfloHealthDiscreteStatusDesc,
+        cfloHealthDiscreteMessage
+    } 
+    STATUS      current
+    DESCRIPTION
+        "The objects used to monitor discrete sensors."
+    ::= { cfloHealthGroups 5 }
+
+cfloHealthDiskGroup OBJECT-GROUP
+    OBJECTS {
+        cfloHealthDiskStatus,
+        cfloHealthDiskVendor,
+        cfloHealthDiskProduct,
+        cfloHealthDiskRevision,
+        cfloHealthDiskSerial,
+        cfloHealthDiskBlockSize,
+        cfloHealthDiskBlockCount
+    } 
+    STATUS      current
+    DESCRIPTION
+        "The objects used to monitor disk drives."
+    ::= { cfloHealthGroups 6 }
+
+cfloHealthUpdSvcGroup OBJECT-GROUP
+    OBJECTS {
+        cfloHealthUpdSvcName,
+        cfloHealthUpdSvcCategory,
+        cfloHealthUpdSvcAdminState,
+        cfloHealthUpdSvcThreshold,
+        cfloHealthUpdSvcLastAttempt,
+        cfloHealthUpdSvcLastSuccess,
+        cfloHealthUpdSvcNextAttempt,
+        cfloHealthUpdSvcCurrentVersion
+    } 
+    STATUS      current
+    DESCRIPTION
+        "The objects used to monitor update services."
+    ::= { cfloHealthGroups 7 }
+
+cfloHealthReqSvcGroup OBJECT-GROUP
+    OBJECTS {
+        cfloHealthReqSvcName,
+        cfloHealthReqSvcCategory,
+        cfloHealthReqSvcAdminState,
+        cfloHealthReqSvcStatusThreshold,
+        cfloHealthReqSvcLatencyThreshold,
+        cfloHealthReqSvcSuccessCount,
+        cfloHealthReqSvcFailureCount,
+        cfloHealthReqSvcLastCheckTime,
+        cfloHealthReqSvcLatencyLast,
+        cfloHealthReqSvcLatencyMin,
+        cfloHealthReqSvcLatencyAvg,
+        cfloHealthReqSvcLatencyMax
+    } 
+    STATUS      current
+    DESCRIPTION
+        "The objects used to monitor request services."
+    ::= { cfloHealthGroups 8 }
+END

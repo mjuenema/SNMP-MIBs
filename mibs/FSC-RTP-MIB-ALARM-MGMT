@@ -1,0 +1,368 @@
+--
+-- $Copyright: 
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2005 
+-- FSC confidential 
+-- All rights reserved 
+-- $
+--
+-- **************************************************************************
+
+FSC-RTP-MIB-ALARM-MGMT DEFINITIONS ::= BEGIN   
+
+-- **************************************************************************
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, OBJECT-IDENTITY, NOTIFICATION-TYPE,
+     Integer32, Unsigned32		
+       FROM SNMPv2-SMI
+    rtpFaultMgmt, TimeStampSeconds			
+       FROM FSC-RTP-MIB
+    AlarmType, rtpEvtCurrId				
+       FROM FSC-RTP-MIB-EVENT-MGMT;  
+            
+-- **************************************************************************
+
+--
+-- Resilient Telco Platform-related MOs
+--
+
+    rtpAlarmMgmtModule MODULE-IDENTITY
+	LAST-UPDATED "200806111500Z"
+	ORGANIZATION "Fujitsu Siemens Computers GmbH - PO EP OS RT 1"
+	CONTACT-INFO
+	             "Resilient Telco Platform Team
+		      Georg Blank
+	              Postal: Fujitsu Siemens Computers GmbH
+		      EP SW RT1
+		      Otto-Hahn-Ring 6
+		      D-81739 Munich
+	              Tel: +49 89 636 44504
+		      Fax: +49 89 636 48976
+	              E-mail: Georg.Blank@fujitsu-siemens.com"
+   	DESCRIPTION
+	    "The MIB module describes the Managed Objects of
+	     the Alarm Management of the Resilient Telco Platform (RTP)
+
+	    $Header: c:\cvsroot/mib_base/siemens/HiPath8000_Mibs_2008/RtpAdmAlarmMgmt.mib,v 1.1 2008/11/13 21:06:27 qiaxi01 Exp $ " 
+	    
+	REVISION "200806111500Z"
+        DESCRIPTION
+             "Updated the MIB to be fully compatible with SNMPv2"
+ 
+        REVISION "200504211800Z"
+	DESCRIPTION
+	    "Changed module name to FSC-RTP-MIB-ALARM-MGMT to resolve naming
+	     conflict with RFC 2959.
+	     Module header information updated."
+
+    
+        REVISION "200110291800Z"
+	DESCRIPTION
+	    "New oid's: rtpArmCiLastTransId, rtpArmCiMultipartNum,
+	     rtpArmCiAmountOfParts, rtpArmCiAmountOfCorrIDs, rtpArmCiCorrIDs.
+	     New trap: rtpArmCorrIdTrap."
+
+	REVISION "200103301800Z"
+	DESCRIPTION
+	    "The initial version of this MIB module."
+
+	::= { rtpFaultMgmt 2 }
+
+--
+-- Fault Management: Alarm Management
+--
+
+    rtpAlarmMgmt OBJECT-IDENTITY
+	STATUS current
+	DESCRIPTION
+	    "The Alarm Management Functionality."
+	::= { rtpAlarmMgmtModule 1 }
+
+
+--
+-- Alarm Status Objects
+--
+
+        rtpArmAlarmObjectTable OBJECT-TYPE
+	   SYNTAX  SEQUENCE OF RtpArmAlarmObjectEntry
+	   MAX-ACCESS  not-accessible
+	   STATUS  current
+	   DESCRIPTION
+		"A list of Alarm Objects. The conceptual rows in this table 
+		 can be read and modified."
+        ::= { rtpAlarmMgmt 1 }
+
+	rtpArmAlarmObjectEntry OBJECT-TYPE
+	    SYNTAX  RtpArmAlarmObjectEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An Alarm Object entry."
+	    INDEX  { rtpArmAlarmObjectType }
+	    ::= { rtpArmAlarmObjectTable 1 }
+
+	RtpArmAlarmObjectEntry ::=
+	    SEQUENCE {
+		rtpArmAlarmObjectType	AlarmType,
+		rtpArmAlarmObjectStatus	INTEGER,
+		rtpArmAlarmObjectAction INTEGER
+	    }
+
+	rtpArmAlarmObjectType OBJECT-TYPE
+	    SYNTAX  AlarmType
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The type of the Alarm Object."
+	    ::= { rtpArmAlarmObjectEntry 1 }
+
+	rtpArmAlarmObjectStatus OBJECT-TYPE
+	    SYNTAX  INTEGER { rtpArmOk(0), rtpArmNOk(1) }
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"the current state of the Alarm Object"
+	    ::= { rtpArmAlarmObjectEntry 2 }
+
+	rtpArmAlarmObjectAction OBJECT-TYPE
+	    SYNTAX  INTEGER { 
+		nothing(0), 
+		clear(1) 
+	    }
+	    MAX-ACCESS  read-write
+	    STATUS  current
+	    DESCRIPTION
+		"Get requests will always return 'nothing'.
+
+		 Setting this object to 'clear' clears the indexed alarm object
+		 by removing all related alarms; the related conceptual rows in
+		 'rtpArmAlarmTable' are removed.
+
+		 Setting this object to 'nothing' has no effect."
+	    ::= { rtpArmAlarmObjectEntry 3 }
+
+    --
+    -- Alarms
+    --
+
+    rtpArmAlarmTable OBJECT-TYPE
+	SYNTAX  SEQUENCE OF RtpArmAlarmEntry
+	MAX-ACCESS  not-accessible
+	STATUS  current
+	DESCRIPTION
+		"A list of active Alarms. The conceptual rows in this table 
+		 can be read and deleted. 
+		 
+		 Active alarms will return with their current Id 
+		 (rtpArmAlarmId). You will get further information about this
+		 alarm using the event table (see rtpEvtTable)."
+        ::= { rtpAlarmMgmt 2 }
+
+	rtpArmAlarmEntry OBJECT-TYPE
+	    SYNTAX  RtpArmAlarmEntry
+	    MAX-ACCESS  not-accessible
+	    STATUS  current
+	    DESCRIPTION
+		"An Alarm entry."
+	    INDEX  { rtpArmAlarmType, rtpArmAlarmTime, rtpArmAlarmId }
+	    ::= { rtpArmAlarmTable 1 }
+
+	RtpArmAlarmEntry ::=
+	    SEQUENCE {
+		rtpArmAlarmType   AlarmType,
+		rtpArmAlarmTime   TimeStampSeconds,
+		rtpArmAlarmId	  Unsigned32,
+		rtpArmAlarmAction INTEGER
+	    }
+
+	rtpArmAlarmType OBJECT-TYPE
+	    SYNTAX  AlarmType
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The alarm type of an active alarm or 0."
+	    ::= { rtpArmAlarmEntry 1 }
+	
+	rtpArmAlarmTime OBJECT-TYPE
+	    SYNTAX  TimeStampSeconds
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The time when the alarm occured, in seconds 
+		 since 01.Jan.1970 00:00:00h UTC. This is the event time
+		 used in rtpEvtEventTime."
+	    ::= { rtpArmAlarmEntry 2 }
+	
+	rtpArmAlarmId OBJECT-TYPE
+	    SYNTAX  Unsigned32
+	    MAX-ACCESS  read-only
+	    STATUS  current
+	    DESCRIPTION
+		"The current Id (logId) of an active alarm. This is the log
+		 record Id in the database used in rtpEvtCurrId."
+	    ::= { rtpArmAlarmEntry 3 }
+
+	rtpArmAlarmAction OBJECT-TYPE
+	    SYNTAX  INTEGER { 
+		nothing(0), 
+		deleteSingle(1), 
+		deleteBeforeId(2), 
+		deleteBeforeTime(3) 
+	    }
+	    MAX-ACCESS  read-write
+	    STATUS  current
+	    DESCRIPTION
+		"Get requests will always return 'nothing'.
+
+		 Setting this object to one of the specified actions has the
+		 following effects:
+
+		 deleteSingle:     Deletes a single entry selected by its
+				   current Id (rtpArmAlarmId) from the 
+				   alarm table. rtpArmAlarmType and
+				   rtpArmAlarmTime should be set to zero
+				   or to valid values (i.e. an existing OID).
+
+		 deleteBeforeId:   Deletes all entries within the specified
+				   alarm type from the top of the alarm table 
+				   to the set current Id (rtpArmAlarmId)
+				   from the alarm table.
+				   rtpArmAlarmTime should be set to zero
+				   or to a valid value (i.e. an existing OID).
+
+		 deleteBeforeTime: Deletes all entries within the specified
+				   alarm type from the top of the alarm table 
+				   to the set alarm time (rtpArmAlarmTime)
+				   from the alarm table.
+				   rtpArmAlarmId must be set to a valid value
+				   (i.e. an existing OID).
+
+		 Setting this object to 'nothing' has no effect."
+	    ::= { rtpArmAlarmEntry 4 }
+
+
+    --
+    -- Notification
+    --
+
+    rtpArmCorrIdTrap NOTIFICATION-TYPE
+	OBJECTS { rtpEvtCurrId,
+		  rtpArmCiLastTransId,
+		  rtpArmCiMultipartNum,
+	          rtpArmCiAmountOfParts,
+	          rtpArmCiAmountOfCorrIDs,
+	          rtpArmCiCorrIDs
+	}
+	STATUS current
+	DESCRIPTION
+	    "This notification (trap) mainly contains the Current ID of a Clear
+	     event ('rtpEvtCurrId') and the list of Correlated IDs, i.e. those
+	     alarm IDs which have been cleared by the Clear event ('rtpArmCiCorrIDs').
+	     The list of Correlated IDs may be empty. It may also be too long to
+	     fit into a single SNMP PDU (= Protocol Data Unit). For the latter
+	     reason, it may be necessary to send more than one trap for the same
+	     Clear event in order to provide all Correlated IDs. There are objects
+	     in the trap controlling the sending of multiple parts of the
+	     Correlated ID list ('rtpArmCiMultipartNum', 'rtpArmCiAmountOfParts').
+
+	     Note: since there is no filtering for 'rtpArmCorrIdTrap' traps, all
+	     recipients (configured either in 'rtpEvtFilterTable' - see the event
+	     management mib file: RtpAdmEventMgmt.my - or at the EMANATE Master
+	     Agent) will receive the same(!) value in 'rtpArmCiLastTransId',
+	     respectively!"
+	::= { rtpAlarmMgmt 3 }
+
+
+    --
+    -- The 'correlated ID' objects
+    --
+	--
+	-- Correlated IDs are the current IDs of such alarms that have been
+	-- currently cleared from the Active Alarm List caused by an abatement
+	-- (clear) event.
+	--
+
+    rtpArmCiLastTransId OBJECT-TYPE
+	SYNTAX Unsigned32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION
+	    "Transmission identifier used for the last sent trap.
+	     This value will be incremented every time before sending a
+	     'rtpArmCorrIdTrap' trap to a management station which has
+	     defined an event filter (see rtpEvtFilterTable in the
+	     event management mib file: RtpAdmEventMgmt.my!).
+	     It is also incremented for each 'multipart trap' (see
+	     rtpArmCiMultipartNum) in case the list of correlated IDs (see
+	     rtpArmCiCorrIDs) spreads over multiple traps.
+
+	     A management station which has defined an event filter can
+	     detect the loss of 'clear' events when subsequently received
+	     'rtpArmCorrIdTrap' traps do not have subsequent transmission
+	     identifiers (i.e. transId2 - transId1 > 1).
+	     A management station should poll this object to detect the
+	     loss of 'rtpArmCorrIdTrap' traps.
+
+	     Warning: this is a non-persistent value. Each time the agent
+	     restarts, its value is 0 until the 1st 'rtpArmCorrIdTrap' trap
+	     with the transmission id of 1 is sent."
+	::= { rtpAlarmMgmt 4 }
+
+    rtpArmCiMultipartNum OBJECT-TYPE
+	SYNTAX Integer32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION
+	    "This is the sequence number of the trap if multiple
+	     'rtpArmCorrIdTrap' traps are sent to transfer the complete list
+	     of correlated IDs for 'rtpEvtCurrId' (see rtpArmCorrIdTrap!).
+	     The first part of a so called 'multipart trap' has the value 1.
+	     If the list fits into a single trap (see rtpArmCiCorrIDs - octet
+	     string), this value is also 1.
+
+	     A GET request on this object always returns 0."
+	::= { rtpAlarmMgmt 5 }
+
+    rtpArmCiAmountOfParts OBJECT-TYPE
+	SYNTAX Integer32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION
+	    "This object represents the amount of 'multipart traps' needed to
+	     transfer the complete list of correlated IDs for 'rtpEvtCurrId'.
+	     If the list fits into a single trap, this value is 1.
+	     (see rtpArmCorrIdTrap!)
+
+	     A GET request on this object always returns 0."
+	::= { rtpAlarmMgmt 6 }
+
+    rtpArmCiAmountOfCorrIDs OBJECT-TYPE
+	SYNTAX Integer32
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION
+	    "The amount of correlated IDs cleared by 'rtpEvtCurrId' (see
+	     rtpArmCorrIdTrap!).
+
+	     Note: if multiple traps are needed to transfer the complete list
+	     of correlated IDs, this value indicates the amount of correlated
+	     IDs across all 'multipart traps'.
+
+	     A GET request on this object always returns 0."
+	::= { rtpAlarmMgmt 7 }
+
+   rtpArmCiCorrIDs OBJECT-TYPE
+	SYNTAX OCTET STRING (SIZE (0..4096))
+	MAX-ACCESS read-only
+	STATUS current
+	DESCRIPTION
+	    "This value is the ascii representation of a list of correlated IDs
+	     separated by colons. (e.g. 10000:10010:10020:10030)
+	     In case of 'multipart traps' it represents only a part of the
+	     whole list at one time. In case the list of correlated IDs is
+	     empty, the octet string has a length of 0.
+
+	     A GET request on this object always returns an empty octet string
+	     with a length of 0."
+	::= { rtpAlarmMgmt 8 }
+
+END

@@ -1,0 +1,187 @@
+
+
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+            -- MIB privada de Teldat
+
+            -- Monitorizacin de NAT
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.1  08/07/09    I. Mu±oz    Revisin de todas las MIB para evitar
+    --                  M.A. Pastor warnings y errores de compilacin
+    -- 1.0  01/07/04    J. Molina   Fichero procedente del fichero IP.mib
+
+    -- Historial del fichero IP.mib:
+    -- 01-10-01  N. Villase±or  Traduccin a inglâs
+    -- 01-12-00  M.A. Pastor    Modificaciones para que pueda ser
+    --                          compilada utilizando compiladores
+    --                          distintos del de Teldat
+    -- 04-05-00  M.A. Pastor    Implementacin inicial
+    --------------------------------------------------------------------------
+
+TELDAT-MON-PROTOCOL-NAT-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            IpAddress
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            telProdNpMonProtIP
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+-- Grupo telProdNpMonProtIP
+-- Grupo de variables de monitorizacin del NAT estﬂtico.
+
+    telProdNpMonProtIPNATMonit OBJECT IDENTIFIER ::= { telProdNpMonProtIP 10 }
+
+    -- Tabla de conexiones NAT: cada entrada es la traduccin de la direccin de
+    -- una subred a otra. Las înicas conexiones que generan una entrada en esta
+    -- tabla son las FTP de control.
+
+    telProdNpMonProtIPNATConnTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonProtIPNATConnEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of NAT connections: each entry is the traslation of one subnet
+        address to another. The only connections that generate an entry to this
+        table are the control FTP."
+        ::= { telProdNpMonProtIPNATMonit 1 }
+
+    telProdNpMonProtIPNATConnEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonProtIPNATConnEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry corresponds to a connection, and consists of an index that
+        shows the order of that connection or table entry, the type of
+        connection (normal or ftp, only one not clear that admits the router
+        that performs static NAT), IP address and source port, IP address and
+        destination port, time to live of the entry before being deleted and if
+        the connection is active or not. The only connections that generate an
+        entry to this table are the FTP of control."
+        INDEX { telProdNpMonProtIPNATConnIndex }
+        ::= { telProdNpMonProtIPNATConnTable 1 }
+
+    TelProdNpMonProtIPNATConnEntry ::=
+        SEQUENCE {
+            telProdNpMonProtIPNATConnIndex
+                INTEGER,
+            telProdNpMonProtIPNATConnType
+                INTEGER,
+            telProdNpMonProtIPNATConnSrcAddr
+                IpAddress,
+            telProdNpMonProtIPNATConnSrcPort
+                INTEGER,
+            telProdNpMonProtIPNATConnDstAddr
+                IpAddress,
+            telProdNpMonProtIPNATConnDstPort
+                INTEGER,
+            telProdNpMonProtIPNATConnAge
+                INTEGER,
+            telProdNpMonProtIPNATConnActive
+                INTEGER
+            }
+
+    telProdNpMonProtIPNATConnIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Index: connection position or entry to the table."
+        ::= { telProdNpMonProtIPNATConnEntry 1 }
+
+    telProdNpMonProtIPNATConnType OBJECT-TYPE
+        SYNTAX INTEGER {
+            normal(1),
+            ftp(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "The type of connection of the NAT router. It can be a clear connection,
+        normal (1) or a non clear connection, that needs to perform more
+        translations in the data side of the packet. In case of static NAT,
+        only control of FTP connections with the following features belong to
+        this class: client in local domain and server in global domain and
+        PORT commands trasnmitted with a change in packet length, ftp(2).
+        The only connections that generate an entry to this table are the
+        control of FTP connections"
+        ::= { telProdNpMonProtIPNATConnEntry 2 }
+
+    telProdNpMonProtIPNATConnSrcAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source IP address of the connection in global format (as it would be
+        seen by the global domain)."
+        ::= { telProdNpMonProtIPNATConnEntry 3 }
+
+    telProdNpMonProtIPNATConnSrcPort OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Source port of the connection in global format (as it would be seen
+        by the global domain)."
+        ::= { telProdNpMonProtIPNATConnEntry 4 }
+
+    telProdNpMonProtIPNATConnDstAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination IP address of the connection in global format (as it would
+        be seen by the global domain)."
+        ::= { telProdNpMonProtIPNATConnEntry 5 }
+
+    telProdNpMonProtIPNATConnDstPort OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Destination port of the connection in global format (as it would
+        be seen by the global domain)."
+        ::= { telProdNpMonProtIPNATConnEntry 6 }
+
+    telProdNpMonProtIPNATConnAge OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Time to live of the entry before being deleted."
+        ::= { telProdNpMonProtIPNATConnEntry 7 }
+
+    telProdNpMonProtIPNATConnActive OBJECT-TYPE
+        SYNTAX INTEGER {
+            active(1),
+            inactive(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "If the NAT router has detected that the connection is active (1)
+        or not (2)."
+        ::= { telProdNpMonProtIPNATConnEntry 8 }
+
+
+END

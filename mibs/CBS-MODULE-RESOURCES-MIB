@@ -1,0 +1,569 @@
+CBS-MODULE-RESOURCES-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+   MODULE-IDENTITY, OBJECT-TYPE, 
+   NOTIFICATION-TYPE, Integer32, Gauge32    FROM SNMPv2-SMI
+ 
+   TEXTUAL-CONVENTION,
+   DisplayString, TruthValue                FROM SNMPv2-TC
+
+   ProductID, KBytes                        FROM HOST-RESOURCES-MIB
+
+   cbsMIBs, cbsMgmt, cbsTraps               FROM CROSSBEAM-SYSTEMS-MIB
+
+   cbsHwModuleID                            FROM CBS-HARDWARE-MIB;
+
+
+cbsModuleResourcesMIB MODULE-IDENTITY
+   LAST-UPDATED "200103020000Z"     -- 2 March 2001
+   ORGANIZATION "Crossbeam Systems, Inc."
+   CONTACT-INFO "Email:  mib-admin@crossbeamsys.com
+                 Postal: 80 Central Street
+                         Boxborough, MA  01719"
+   DESCRIPTION  "This MIB module defines the objects that monitor the
+                 performance and utilization of Module resources."
+
+   REVISION     "200203180000Z"     -- 18 March 2002
+   DESCRIPTION  "Initial Revision"
+
+   REVISION     "200208010000Z"     -- 1 August 2002
+   DESCRIPTION  "Obsoleted cbsModuleMemoryUsageExceeded and
+                cbsModuleMemoryUsageNormal notification types"
+
+   REVISION     "200212110000Z"     -- 11 December 2002
+   DESCRIPTION  "Added cbsModuleCPUUtil objects. Obsoleted cpuLoad
+                exceeded/normal notification types in favor of
+                cpuUtil notification types"
+
+   REVISION     "200712170000Z"     -- 17 December 2007
+   DESCRIPTION  "Added cbsModuleMU, cbsModuleFR, and 
+		cbModuleBU objects"
+
+   REVISION     "200712170000Z"     -- 29 December 2007
+   DESCRIPTION  "Added cbsModuleFreePage* objects and traps"
+
+::= { cbsMIBs 3 }
+
+
+cbsModuleResources       OBJECT IDENTIFIER ::= { cbsMgmt 3 }
+cbsModuleResourceTraps   OBJECT IDENTIFIER ::= { cbsTraps 2 }
+
+
+-- Table of processor CPU utilization
+
+cbsModuleCPULoadTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF CbsModuleCPULoadEntry
+   MAX-ACCESS   not-accessible
+   STATUS       current
+   DESCRIPTION
+      "This table contains information about the CPU utilization of
+      the processor modules."
+   ::= { cbsModuleResources 1 }
+
+cbsModuleCPULoadEntry OBJECT-TYPE
+   SYNTAX     CbsModuleCPULoadEntry
+   MAX-ACCESS not-accessible
+   STATUS     current
+   DESCRIPTION
+      "An entry in the CPU load table."
+   INDEX { cbsHwModuleID }
+   ::= { cbsModuleCPULoadTable 1 }
+
+CbsModuleCPULoadEntry ::= SEQUENCE {
+   cbsModuleCPUSpeed             Integer32,
+   cbsModuleCPUCount             Integer32,
+   cbsModuleCPULoad1             Gauge32,
+   cbsModuleCPULoad5             Gauge32,
+   cbsModuleCPULoad15            Gauge32,
+   cbsModuleCPUUtil1             Gauge32,
+   cbsModuleCPUUtil5             Gauge32,
+   cbsModuleCPUUtil15            Gauge32
+}
+
+cbsModuleCPUSpeed OBJECT-TYPE
+   SYNTAX     Integer32
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The speed of the processor(s) in MHz."
+   ::= { cbsModuleCPULoadEntry 1 }
+
+cbsModuleCPUCount OBJECT-TYPE
+   SYNTAX     Integer32
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The number of CPUs in the module"
+   ::= { cbsModuleCPULoadEntry 2 }
+
+cbsModuleCPULoad1 OBJECT-TYPE
+   SYNTAX     Gauge32
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The average number of processes ready to run in the last
+       minute."
+   ::= { cbsModuleCPULoadEntry 3 }
+
+cbsModuleCPULoad5 OBJECT-TYPE
+   SYNTAX     Gauge32
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The average number of processes ready to run in the last
+       5 minutes."
+   ::= { cbsModuleCPULoadEntry 4 }
+
+cbsModuleCPULoad15 OBJECT-TYPE
+   SYNTAX     Gauge32
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The average number of processes ready to run in the last
+       15 minutes."
+   ::= { cbsModuleCPULoadEntry 5 }
+
+cbsModuleCPUUtil1 OBJECT-TYPE
+   SYNTAX     Gauge32 (0..100)
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "CPU utilization averaged over last 1 minute."
+   ::= { cbsModuleCPULoadEntry 6 }
+
+cbsModuleCPUUtil5 OBJECT-TYPE
+   SYNTAX     Gauge32 (0..100)
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "CPU utilization averaged over last 5 minutes."
+   ::= { cbsModuleCPULoadEntry 7 }
+
+cbsModuleCPUUtil15 OBJECT-TYPE
+   SYNTAX     Gauge32 (0..100)
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "CPU utilization averaged over last 15 minutes."
+   ::= { cbsModuleCPULoadEntry 8 }
+
+
+-- Table of processor Memory utilization
+
+cbsModuleMemoryTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF CbsModuleMemoryEntry
+   MAX-ACCESS   not-accessible
+   STATUS       current
+   DESCRIPTION
+      "This table contains information about the memory utilization of the
+       processor modules."
+   ::= { cbsModuleResources 2 }
+
+cbsModuleMemoryEntry OBJECT-TYPE
+   SYNTAX     CbsModuleMemoryEntry
+   MAX-ACCESS not-accessible
+   STATUS     current
+   DESCRIPTION
+      "An entry in the memory utilization table."
+   INDEX { cbsHwModuleID }
+   ::= { cbsModuleMemoryTable 1 }
+
+CbsModuleMemoryEntry ::= SEQUENCE {
+   cbsModuleMemoryTotal          KBytes,
+   cbsModuleMemoryUsed           KBytes,
+   cbsModuleMemoryFree           KBytes
+}
+
+cbsModuleMemoryTotal OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "Total memory that can be used by the operating system."
+   ::= { cbsModuleMemoryEntry 1 }
+
+cbsModuleMemoryUsed OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The amount of memory in use."
+   ::= { cbsModuleMemoryEntry 2 }
+
+cbsModuleMemoryFree OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "Amount of memory available for use."
+   ::= { cbsModuleMemoryEntry 3 }
+
+
+-- Table of processor swap utilization
+
+cbsModuleSwapTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF CbsModuleSwapEntry
+   MAX-ACCESS   not-accessible
+   STATUS       current
+   DESCRIPTION
+      "This table contains information about the swap utilization of the
+       processor modules."
+   ::= { cbsModuleResources 3 }
+
+cbsModuleSwapEntry OBJECT-TYPE
+   SYNTAX     CbsModuleSwapEntry
+   MAX-ACCESS not-accessible
+   STATUS     current
+   DESCRIPTION
+      "An entry in the memory utilization table."
+   INDEX { cbsHwModuleID }
+   ::= { cbsModuleSwapTable 1 }
+
+CbsModuleSwapEntry ::= SEQUENCE {
+   cbsModuleSwapTotal          KBytes,
+   cbsModuleSwapUsed           KBytes,
+   cbsModuleSwapFree           KBytes
+}
+
+cbsModuleSwapTotal OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "Total swap space available to the operating system."
+   ::= { cbsModuleSwapEntry 1 }
+
+cbsModuleSwapUsed OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The amount of swap space in use."
+   ::= { cbsModuleSwapEntry 2 }
+
+cbsModuleSwapFree OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "Amount of free swap space."
+   ::= { cbsModuleSwapEntry 3 }
+
+
+-- Table of disk usage
+
+cbsModuleDUTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF CbsModuleDUEntry
+   MAX-ACCESS   not-accessible
+   STATUS       current
+   DESCRIPTION
+      "This table contains information about the disk usage of the
+       processor modules."
+   ::= { cbsModuleResources 4 }
+
+cbsModuleDUEntry OBJECT-TYPE
+   SYNTAX     CbsModuleDUEntry
+   MAX-ACCESS not-accessible
+   STATUS     current
+   DESCRIPTION
+      "An entry in the disk usage table."
+   INDEX { cbsHwModuleID }
+   ::= { cbsModuleDUTable 1 }
+
+CbsModuleDUEntry ::= SEQUENCE {
+   cbsModuleDURoot        Gauge32,
+   cbsModuleDUBoot        Gauge32,
+   cbsModuleDUCbconfig    Gauge32,
+   cbsModuleDUTftpboot    Gauge32
+}
+
+cbsModuleDURoot OBJECT-TYPE
+   SYNTAX     Gauge32 (0..100)
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The current percentage of disk usage on the / partition."
+   ::= { cbsModuleDUEntry 1 }
+
+cbsModuleDUBoot OBJECT-TYPE
+   SYNTAX     Gauge32 (0..100)
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The current percentage of disk usage on the /boot partition."
+   ::= { cbsModuleDUEntry 2 }
+
+cbsModuleDUCbconfig OBJECT-TYPE
+   SYNTAX     Gauge32 (0..100)
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The current percentage of disk usage on the /cbconfig partition."
+   ::= { cbsModuleDUEntry 3 }
+
+cbsModuleDUTftpboot OBJECT-TYPE
+   SYNTAX     Gauge32 (0..100)
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The current percentage of disk usage on the /tftpboot partition."
+   ::= { cbsModuleDUEntry 4 }
+
+
+
+-- Table of AP free page utilization
+
+cbsModuleFreePageTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF CbsModuleFreePageEntry
+   MAX-ACCESS   not-accessible
+   STATUS       current
+   DESCRIPTION
+      "This table contains information about the free page utilization of the
+       APMs."
+   ::= { cbsModuleResources 5 }
+
+cbsModuleFreePageEntry OBJECT-TYPE
+   SYNTAX     CbsModuleFreePageEntry
+   MAX-ACCESS not-accessible
+   STATUS     current
+   DESCRIPTION
+      "An entry in the free page utilization table."
+   INDEX { cbsHwModuleID }
+   ::= { cbsModuleFreePageTable 1 }
+
+CbsModuleFreePageEntry ::= SEQUENCE {
+   cbsModuleFreePageAvailable           Integer32,
+   cbsModuleFreePageThreshold           KBytes,
+   cbsModuleFreePageSeverity    		KBytes,
+   cbsModuleFreePageVapName 			DisplayString
+}
+
+cbsModuleFreePageThreshold OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "Free Page threshold setting in cbs_fp_th."
+   ::= { cbsModuleFreePageEntry 1 }
+
+cbsModuleFreePageAvailable OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The number of free pages available to the operating system."
+   ::= { cbsModuleFreePageEntry 2 }
+   
+cbsModuleFreePageSeverity OBJECT-TYPE
+   SYNTAX     KBytes
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The amount severity of the alarm.  0 = No alarm, 1 = Minor, 2 = Major, 3 = Critical"
+   ::= { cbsModuleFreePageEntry 3 }
+   
+   cbsModuleFreePageVapName OBJECT-TYPE
+   SYNTAX     DisplayString
+   MAX-ACCESS read-only
+   STATUS     current
+   DESCRIPTION
+      "The VAP group name.  For example, cbsVmVapGroupName-cbsVmVapIndex"
+   ::= { cbsModuleFreePageEntry 4 }
+   
+   
+   
+
+-- The traps
+
+cbsModuleCPULoadExceeded NOTIFICATION-TYPE
+   OBJECTS { cbsModuleCPULoad1 }
+   STATUS  obsolete
+   DESCRIPTION
+     "The CPU load on one of the processor modules is excessive.
+      This sends the current value of the one minute load on the
+      CPU module that is experinceing excessive load."
+   ::= { cbsModuleResourceTraps 1 }
+
+cbsModuleCPULoadNormal NOTIFICATION-TYPE
+   OBJECTS { cbsModuleCPULoad1 }
+   STATUS  obsolete
+   DESCRIPTION
+     "The CPU load on one of the processor modules has returned to
+      normal. This sends the current value of the one minute load
+      on the CPU module that returned to normal."
+   ::= { cbsModuleResourceTraps 2 }
+
+cbsModuleMemoryUsageExceeded NOTIFICATION-TYPE
+   OBJECTS { cbsModuleMemoryTotal, cbsModuleMemoryUsed }
+   STATUS  obsolete
+   DESCRIPTION
+     "The memory usage on the processor modules is excessive. This
+      sends the current values of total and free memory for the
+      module."
+   ::= { cbsModuleResourceTraps 3 }
+
+cbsModuleMemoryUsageNormal NOTIFICATION-TYPE
+   OBJECTS { cbsModuleMemoryTotal, cbsModuleMemoryUsed }
+   STATUS  obsolete
+   DESCRIPTION
+     "The memory usage on the processor modules that was excessive
+      returned to normal. This sends the current values of total
+      and free memory for the module."
+   ::= { cbsModuleResourceTraps 4 }
+
+cbsModuleCPUUtilExceeded NOTIFICATION-TYPE
+   OBJECTS { cbsModuleCPUUtil1 }
+   STATUS  current
+   DESCRIPTION
+     "The CPU utilization on one of the processor modules is excessive.
+      This sends the current value of the one minute utilization on 
+      the CPU module that is experinceing excessive load."
+   ::= { cbsModuleResourceTraps 5 }
+
+cbsModuleCPUUtilNormal NOTIFICATION-TYPE
+   OBJECTS { cbsModuleCPUUtil1 }
+   STATUS  current
+   DESCRIPTION
+     "The CPU utilization on one of the processor modules returned to
+      normal. This sends the current value of the one minute utilization
+      on the CPU module that returned to normal."
+   ::= { cbsModuleResourceTraps 6 }
+
+cbsModuleDURootHigh NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDURoot }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the / partition of the processor module is high.
+      This sends the current value of the disk usage on the / partition that
+      is experiencing the high usage."
+   ::= { cbsModuleResourceTraps 7 }
+
+cbsModuleDURootNormal NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDURoot }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the / partition of the processor module returned
+      to normal. This sends the current value of the disk usage on the /
+      partition that returned to normal."
+   ::= { cbsModuleResourceTraps 8 }
+
+cbsModuleDUBootHigh NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDUBoot }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the /boot partition of the processor module is high.
+      This sends the current value of the disk usage on the /boot partition that
+      is experiencing the high usage."
+   ::= { cbsModuleResourceTraps 9 }
+
+cbsModuleDUBootNormal NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDUBoot }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the /boot partition of the processor module returned
+      to normal. This sends the current value of the disk usage on the /boot
+      partition that returned to normal."
+   ::= { cbsModuleResourceTraps 10 }
+
+cbsModuleDUCbconfigHigh NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDUCbconfig }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the /cbconfig partition of the processor module is high.
+      This sends the current value of the disk usage on the /cbconfig partition
+      that is experiencing the high usage."
+   ::= { cbsModuleResourceTraps 11 }
+
+cbsModuleDUCbconfigNormal NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDUCbconfig }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the /cbconfig partition of the processor module returned
+      to normal. This sends the current value of the disk usage on the /cbconfig
+      partition that returned to normal."
+   ::= { cbsModuleResourceTraps 12 }
+
+cbsModuleDUTftpbootHigh NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDUTftpboot }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the /tftpboot partition of the processor module is high.
+      This sends the current value of the disk usage on the /tftpboot partition that
+      is experiencing the high usage."
+   ::= { cbsModuleResourceTraps 13 }
+
+cbsModuleDUTftpbootNormal NOTIFICATION-TYPE
+   OBJECTS { cbsModuleDUTftpboot }
+   STATUS  current
+   DESCRIPTION
+     "The disk usage on the /tftpboot partition of the processor module returned
+      to normal. This sends the current value of the disk usage on the /tftpboot
+      partition that returned to normal."
+   ::= { cbsModuleResourceTraps 14 }
+
+cbsModuleMUHigh NOTIFICATION-TYPE
+   OBJECTS { cbsHwModuleID }
+   STATUS  current
+   DESCRIPTION
+     "Internal memory tables usage on this NPM is high."
+   ::= { cbsModuleResourceTraps 15 }
+
+cbsModuleMUNormal NOTIFICATION-TYPE
+   OBJECTS { cbsHwModuleID }
+   STATUS  current
+   DESCRIPTION
+     "Internal memory table usage on this NPM returned to normal."
+   ::= { cbsModuleResourceTraps 16 }
+
+cbsModuleFRHigh NOTIFICATION-TYPE
+   OBJECTS { cbsHwModuleID }
+   STATUS  current
+   DESCRIPTION
+     "Usage of resource dealing with fragmentation is high."
+   ::= { cbsModuleResourceTraps 17 }
+
+cbsModuleFRNormal NOTIFICATION-TYPE
+   OBJECTS { cbsHwModuleID }
+   STATUS  current
+   DESCRIPTION
+     "Usage of resource dealing with fragmentation returned to normal."
+   ::= { cbsModuleResourceTraps 18 }
+
+cbsModuleBUHigh NOTIFICATION-TYPE
+   OBJECTS { cbsHwModuleID }
+   STATUS  current
+   DESCRIPTION
+     "High Usage of packet buffers."
+   ::= { cbsModuleResourceTraps 19 }
+
+cbsModuleBUNormal NOTIFICATION-TYPE
+   OBJECTS { cbsHwModuleID }
+   STATUS  current
+   DESCRIPTION
+     "Usage of packet buffers returned to normal."
+   ::= { cbsModuleResourceTraps 20 }
+   
+cbsModuleFreePageAvailableHigh NOTIFICATION-TYPE
+   OBJECTS { cbsModuleFreePageAvailable, cbsModuleFreePageThreshold, 
+             cbsModuleFreePageSeverity, cbsModuleFreePageVapName }
+   STATUS  current
+   DESCRIPTION
+     "The used free page usage on the module is high.  The values passed are the threshold 
+     value and the free page count in /proc/cbs_fp_th on the AP and the vap group name."
+   ::= { cbsModuleResourceTraps 21 }
+
+cbsModuleFreePageAvailableNorm NOTIFICATION-TYPE
+   OBJECTS { cbsModuleFreePageAvailable , cbsModuleFreePageThreshold, 
+             cbsModuleFreePageSeverity, cbsModuleFreePageVapName }
+   STATUS  current
+   DESCRIPTION
+     "The used free page count on the module is normal.  The values passed are the threshold 
+     value and the free page count in /proc/cbs_fp_th on the AP and the vap group name."
+   ::= { cbsModuleResourceTraps 22 }
+   
+   
+   
+
+END
+
+

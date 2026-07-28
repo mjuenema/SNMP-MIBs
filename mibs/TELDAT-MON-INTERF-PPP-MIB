@@ -1,0 +1,3807 @@
+
+
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+            -- MIB privada de Teldat
+
+            -- Interfaces PPP
+
+
+        -- Historial:
+        --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+        -- 1.2  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+        -- 1.1  08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+        --                  M.A. Pastor     warnings y errores de compilacin
+        -- 1.0  01/07/04    J. Molina       Archivo procedente de PPP.MIB
+
+
+    -- Historial de PPP.MIB:
+            -- 1.7  05-10-07  F. Tresgallo  PMP 526. Multiclass MP
+            -- 1.6  22-12-03  J. Roman      Se obsoleta grupo IPCP y se crea grupo
+            --                              NCP con IPCP y BCP
+            -- 1.5  26-12-01  J.L. Fuentes  Se a±ade el valor unused en algunas
+            --                              opciones de CCP para indicar que no
+            --                              tienen sentido para el tipo de
+            --                              compresion elegido
+            -- 1.4  07-06-01  J.L. Fuentes  Se incluye monitorizacin de CCP, MP
+            --                              y de la parte DIAL del PPP. Se
+            --                              modifican las tablas relacionadas
+            --                              con LCP. Tambiân se extraen las
+            --                              tablas relativas a los interfaces de
+            --                              lçnea serie (sçncrona y asçncrona) y
+            --                              se eliminan las tablas que hacçan
+            --                              referencia a los antiguos interfaces
+            --                              PPP sobre canal B de RDSI y PPP
+            --                              sobre interfaz de comandos AT que
+            --                              desaparecen con la nueva
+            --                              implementacin de PPP
+            -- 1.3  01-10-01  N. Villase±or Traduccin a inglâs
+            -- 1.2  20-04-01  M.A. Pastor   La variable telProdNpMonIfcPPPCommReset
+            --                              es de lectura y escritura, y no slo
+            --                              de lectura como decça su definicin
+            -- 1.1  01-12-00  M.A. Pastor   Modificaciones para que pueda ser
+            --                              compilada utilizando compiladores
+            --                              distintos del de Teldat
+            -- 1.0  13-06-00  M.A. Pastor   Implementacin inicial
+    --------------------------------------------------------------------------
+
+ TELDAT-MON-INTERF-PPP-MIB DEFINITIONS ::= BEGIN
+
+    IMPORTS
+            IpAddress, Counter
+        FROM RFC1155-SMI
+            OBJECT-TYPE
+        FROM RFC-1212
+            DisplayString, PhysAddress
+        FROM RFC1213-MIB
+            telProdNpMonInterfRouter
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    telProdNpMonInterfPPP   OBJECT IDENTIFIER ::= { telProdNpMonInterfRouter 10 }
+
+-- Grupo telProdNpMonInterfPPP
+
+-- Incluye los parﬂmetros referentes a los interfaces PPP.
+
+-- Grupo de parﬂmetros relacionados con el LCP.
+
+    telProdNpMonIfcPPPLCPGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfPPP 1 }
+
+    -- Tabla de parﬂmetros globales del LCP. Contiene informacin del estado de
+    -- negociacin de parﬂmetros LCP.
+
+    telProdNpMonIfcPPPLCPControlGloTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPLCPControlGloEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains global LCP parameters. The entry number is
+        determined by the PPP interface number, the lower interface number and
+        the order number of the link inside the lower interface."
+        ::= { telProdNpMonIfcPPPLCPGroup 1 }
+
+    telProdNpMonIfcPPPLCPControlGloEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPLCPControlGloEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the PPP interface number of the node, the lower
+        interface number, the order number of the link inside the lower
+        interface, a description of the lower interface, the circuit identifier,
+        the version number and the current state of the LCP protocol."
+        INDEX { telProdNpMonIfcPPPLCPCtrlGloPPPIndex, telProdNpMonIfcPPPLCPCtrlGloLowIndex,
+                telProdNpMonIfcPPPLCPCtrlGloOrdIndex }
+
+        ::= { telProdNpMonIfcPPPLCPControlGloTable 1 }
+
+    TelProdNpMonIfcPPPLCPControlGloEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPLCPCtrlGloPPPIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlGloLowIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlGloOrdIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlGloLowDescr
+                DisplayString,
+            telProdNpMonIfcPPPLCPCtrlGloCircId
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlGloVersion
+                DisplayString,
+            telProdNpMonIfcPPPLCPCtrlGloState
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPLCPCtrlGloPPPIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "PPP interface number of the node (first index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPControlGloEntry 1 }
+
+    telProdNpMonIfcPPPLCPCtrlGloLowIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Lower interface number of the node (second index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPControlGloEntry 2 }
+
+    telProdNpMonIfcPPPLCPCtrlGloOrdIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Order number of the link inside the lower interface corresponding to
+        the LCP parameters of the entry (third index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPControlGloEntry 3 }
+
+    telProdNpMonIfcPPPLCPCtrlGloLowDescr OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "A description of the lower interface corresponding to this entry."
+        ::= { telProdNpMonIfcPPPLCPControlGloEntry 4 }
+
+    telProdNpMonIfcPPPLCPCtrlGloCircId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Circuit identifier inside the lower interface."
+        ::= { telProdNpMonIfcPPPLCPControlGloEntry 5 }
+
+    telProdNpMonIfcPPPLCPCtrlGloVersion OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Version number."
+        ::= { telProdNpMonIfcPPPLCPControlGloEntry 6 }
+
+    telProdNpMonIfcPPPLCPCtrlGloState OBJECT-TYPE
+        SYNTAX INTEGER{
+            initial(0),
+            starting(1),
+            closed(2),
+            stopped(3),
+            closing(4),
+            stopping(5),
+            req_sent(6),
+            ack_rcvd(7),
+            ack_sent(8),
+            opened(9)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Current protocol state. The possible values of the variable are integer
+        numbers between 0 and 9. Each number is related to a feasible state:
+        (0) initial, (1) starting, (2) closed, (3) stopped, (4) closing,
+        (5) stopping, (6) req_sent, (7) ack_rcvd, (8) ack_sent, (9) opened."
+        ::= { telProdNpMonIfcPPPLCPControlGloEntry 7 }
+
+    -- Tabla que contiene los parﬂmetros que permiten monitorizar las opciones
+    -- transmitidas y recibidas en el establecimiento del enlace.
+
+    telProdNpMonIfcPPPLCPControlOptionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPLCPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains variables that give information about the
+        transmitted and received options during the link setup. The entry number
+        is determined by the PPP interface number, the lower interface number
+        and the order number of the link inside the lower interface."
+        ::= { telProdNpMonIfcPPPLCPGroup 2 }
+
+    telProdNpMonIfcPPPLCPControlOptionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPLCPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the PPP interface number, the lower interface
+        number, the order number of the link inside the lower interface, a
+        description of the lower interface, the circuit identifier, the local
+        and remote MRU, the local and remote Asynchronous Control Character Map,
+        the authentication type (if it exists) in the local and remote site, the
+        local and remote Magic Number, if Protocol Field Compression has been
+        used in the local or remote end, if Address/Control Field Compression
+        has been used in the local or remote end, and if 32 bits Checksum has
+        been used in the local or remote end."
+        INDEX { telProdNpMonIfcPPPLCPCtrlOptPPPIndex, telProdNpMonIfcPPPLCPCtrlOptLowIndex,
+                telProdNpMonIfcPPPLCPCtrlOptOrdIndex }
+
+        ::= { telProdNpMonIfcPPPLCPControlOptionsTable 1 }
+
+    TelProdNpMonIfcPPPLCPControlOptionsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPLCPCtrlOptPPPIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptLowIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptOrdIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptLowDescr
+                DisplayString,
+            telProdNpMonIfcPPPLCPCtrlOptCircId
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptMRULoc
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptMRURem
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptAsyCharMaskLoc
+                OCTET STRING,
+            telProdNpMonIfcPPPLCPCtrlOptAsyCharMaskRem
+                OCTET STRING,
+            telProdNpMonIfcPPPLCPCtrlOptAuthLoc
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptAuthRem
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptMagNumLoc
+                DisplayString,
+            telProdNpMonIfcPPPLCPCtrlOptMagNumRem
+                DisplayString,
+            telProdNpMonIfcPPPLCPCtrlOptProtCmpLoc
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptProtCmpRem
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptAddCmpLoc
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptAddCmpRem
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptChecksumLoc
+                INTEGER,
+            telProdNpMonIfcPPPLCPCtrlOptChecksumRem
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPLCPCtrlOptPPPIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "PPP interface number of the node (first index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 1 }
+
+    telProdNpMonIfcPPPLCPCtrlOptLowIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Lower interface number of the node (second index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 2 }
+
+    telProdNpMonIfcPPPLCPCtrlOptOrdIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Order number of the link inside the lower interface corresponding to
+        the LCP parameters of the entry (third index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 3 }
+
+    telProdNpMonIfcPPPLCPCtrlOptLowDescr OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "A description of the lower interface corresponding to this entry."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 4 }
+
+    telProdNpMonIfcPPPLCPCtrlOptCircId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Circuit identifier inside the lower interface."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 5 }
+
+    telProdNpMonIfcPPPLCPCtrlOptMRULoc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "MRU (Maximum Received Unit) in the local end. It represents the PPP
+        frame maximum size that is accepted in reception."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 6 }
+
+    telProdNpMonIfcPPPLCPCtrlOptMRURem OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "MRU (Maximum Received Unit) in the remote end. It represents the PPP
+        frame maximum size that is accepted in reception."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 7 }
+
+    telProdNpMonIfcPPPLCPCtrlOptAsyCharMaskLoc OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(4))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Local Asynchronous Control Character Map. It shows the mask to use if
+        transparent transmission is applied over control characters (XON, XOFF)
+        for asynchronous PPP. If characters are inside the frame, they won≥t
+        cause the activation of flow control process in modems or adapters."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 8 }
+
+    telProdNpMonIfcPPPLCPCtrlOptAsyCharMaskRem OBJECT-TYPE
+        SYNTAX OCTET STRING(SIZE(4))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Remote Asynchronous Control Character Map. It shows the mask to use if
+        transparent transmission is applied over control characters (XON, XOFF)
+        for asynchronous PPP. If characters are inside the frame, they won≥t
+        cause the activation of flow control process in modems or adapters."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 9 }
+
+    telProdNpMonIfcPPPLCPCtrlOptAuthLoc OBJECT-TYPE
+        SYNTAX INTEGER{
+            none(0),
+            pap(1),
+            chap(2),
+            other(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Local authentication type used. Possible options are: PAP (1), CHAP (2),
+        a different one (3) or no authentication used (0)."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 10 }
+
+    telProdNpMonIfcPPPLCPCtrlOptAuthRem OBJECT-TYPE
+        SYNTAX INTEGER{
+            none(0),
+            pap(1),
+            chap(2),
+            other(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Remote authentication type used. Possible options are: PAP (1),
+        CHAP (2), a different one (3) or no authentication used (0)."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 11 }
+
+    telProdNpMonIfcPPPLCPCtrlOptMagNumLoc OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Local magic number. It is useful to determine if there is a loop in the
+        link by transmitting a random number between the ends based on the
+        system clock and the times the clock has reset. The magic number has
+        4 bytes. This variable is a string that shows an hexadecimal value."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 12 }
+
+    telProdNpMonIfcPPPLCPCtrlOptMagNumRem OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Remote magic number. It is useful to determine if there is a loop in
+        the link by transmitting a random number between the ends based on the
+        system clock and the times the clock has reset. The magic number has
+        4 bytes. This variable is a string that shows an hexadecimal value."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 13 }
+
+    telProdNpMonIfcPPPLCPCtrlOptProtCmpLoc OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if Protocol Field Compression is used at the
+        local end. Possible values are: (1) yes or (2) no. Once LCP has been
+        negotiated and NCP has been established, the PPP frame protocol field
+        is compressed and a byte is transmitted."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 14 }
+
+    telProdNpMonIfcPPPLCPCtrlOptProtCmpRem OBJECT-TYPE
+        SYNTAX INTEGER{
+            non_negotiated(0),
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if Protocol Field Compression is used at the
+        remote end. Possible values are: (0) non negotiated, (1) yes or (2) no.
+        Once LCP has been negotiated and NCP has been established, the PPP frame
+        protocol field is compressed and a byte is transmitted."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 15 }
+
+    telProdNpMonIfcPPPLCPCtrlOptAddCmpLoc OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if Address/Control Field Compression is used at
+        the local end. Possible values are: (1) yes or (2) no. Once LCP has been
+        negotiated and NCP has been established, the control and address fields
+        of the PPP frame are not transmitted."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 16 }
+
+    telProdNpMonIfcPPPLCPCtrlOptAddCmpRem OBJECT-TYPE
+        SYNTAX INTEGER{
+            non_negotiated(0),
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if Address/Control Field Compression is used at
+        the remote end. Possible values are: (0) non negotiated, (1) yes or
+        (2) no. Once LCP has been negotiated and NCP has been established, the
+        control and address fields of the PPP frame are not transmitted."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 17 }
+
+    telProdNpMonIfcPPPLCPCtrlOptChecksumLoc OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if 32 bits Checksum is used at the local end.
+        Possible values are: (1) yes or (2) no."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 18 }
+
+    telProdNpMonIfcPPPLCPCtrlOptChecksumRem OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if 32 bits Checksum is used at the remote end.
+        Possible values are: (1) yes or (2) no."
+        ::= { telProdNpMonIfcPPPLCPControlOptionsEntry 19 }
+
+    -- Tabla que contiene los estadçsticos correspondientes al protocolo LCP.
+
+    telProdNpMonIfcPPPLCPStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPLCPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains statistics of the LCP protocol. The entry number is
+        determined by the PPP interface number, the lower interface number and
+        the order number of the link inside the lower interface."
+        ::= { telProdNpMonIfcPPPLCPGroup 3 }
+
+    telProdNpMonIfcPPPLCPStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPLCPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the PPP interface number, the lower interface
+        number, the order number of the link inside the lower interface, a
+        description of the lower interface, the circuit identifier, a variable
+        to check variables deletion (corresponding counters reset), and
+        variables that give information about the following counters values:
+        sent and received frames number, sent and received bytes number, number
+        of sent and received Configure Request LCP frames, number of sent and
+        received Configure Ack LCP frames, number of sent and received
+        Configure Nak LCP frames, number of sent and received Configure Reject
+        LCP frames, number of sent and received Terminate Request LCP frames,
+        number of sent and received Terminate Ack LCP frames, number of sent
+        and received Echo Request LCP frames, number of sent and received
+        Echo Reply LCP frames."
+        INDEX { telProdNpMonIfcPPPLCPStPPPIndex, telProdNpMonIfcPPPLCPStLowIndex,
+                telProdNpMonIfcPPPLCPStOrdIndex }
+
+        ::= { telProdNpMonIfcPPPLCPStatsTable 1 }
+
+    TelProdNpMonIfcPPPLCPStatsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPLCPStPPPIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPStLowIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPStOrdIndex
+                INTEGER,
+            telProdNpMonIfcPPPLCPStLowDescr
+                DisplayString,
+            telProdNpMonIfcPPPLCPStCircId
+                INTEGER,
+            telProdNpMonIfcPPPLCPStClear
+                INTEGER,
+            telProdNpMonIfcPPPLCPStFramesRx
+                Counter,
+            telProdNpMonIfcPPPLCPStFramesTx
+                Counter,
+            telProdNpMonIfcPPPLCPStBytesRx
+                Counter,
+            telProdNpMonIfcPPPLCPStBytesTx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfReqRx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfReqTx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfAckRx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfAckTx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfNakRx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfNakTx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfRejRx
+                Counter,
+            telProdNpMonIfcPPPLCPStConfRejTx
+                Counter,
+            telProdNpMonIfcPPPLCPStTermReqRx
+                Counter,
+            telProdNpMonIfcPPPLCPStTermReqTx
+                Counter,
+            telProdNpMonIfcPPPLCPStTermAckRx
+                Counter,
+            telProdNpMonIfcPPPLCPStTermAckTx
+                Counter,
+            telProdNpMonIfcPPPLCPStEchoReqRx
+                Counter,
+            telProdNpMonIfcPPPLCPStEchoReqTx
+                Counter,
+            telProdNpMonIfcPPPLCPStEchoRepRx
+                Counter,
+            telProdNpMonIfcPPPLCPStEchoRepTx
+                Counter
+            }
+
+    telProdNpMonIfcPPPLCPStPPPIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "PPP interface number of the node (first index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 1 }
+
+    telProdNpMonIfcPPPLCPStLowIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Lower interface number of the node (second index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 2 }
+
+    telProdNpMonIfcPPPLCPStOrdIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Order number of the link inside the lower interface corresponding to
+        the LCP parameters of the entry (third index of the entry)."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 3 }
+
+    telProdNpMonIfcPPPLCPStLowDescr OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "A description of the lower interface corresponding to this entry."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 4 }
+
+    telProdNpMonIfcPPPLCPStCircId OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Circuit identifier inside the lower interface."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 5 }
+
+    telProdNpMonIfcPPPLCPStClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is readed shows the output from the last counter
+        restart attempt: the value is 2 (ok) if the restart was performed
+        succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+        has tried to restart the counters yet. In set operations, the value 1
+        (it is the only value that can be assigned by a writing operation)
+        causes a counter restart."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 6 }
+
+    telProdNpMonIfcPPPLCPStFramesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames received through the link shown in the indexes."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 7 }
+
+    telProdNpMonIfcPPPLCPStFramesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames sent through the link shown in the indexes."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 8 }
+
+    telProdNpMonIfcPPPLCPStBytesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes received through the link shown in the indexes."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 9 }
+
+    telProdNpMonIfcPPPLCPStBytesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of bytes sent through the link shown in the indexes."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 10 }
+
+    telProdNpMonIfcPPPLCPStConfReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Request LCP frames received through the link shown
+        in the indexes. These frames are transmitted when a link is started and
+        contains link configuration options."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 11 }
+
+    telProdNpMonIfcPPPLCPStConfReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Request LCP frames sent through the link shown in
+        the indexes. These frames are transmitted when a link is started and
+        contains link configuration options."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 12 }
+
+    telProdNpMonIfcPPPLCPStConfAckRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Ack LCP frames received through the link shown in
+        the indexes. These frames are answers to Configure Requests and shows
+        accordance with the received configuration options."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 13 }
+
+    telProdNpMonIfcPPPLCPStConfAckTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Ack LCP frames transmitted through the link shown
+        in the indexes. These frames are answers to Configure Requests and shows
+        accordance with the received configuration options."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 14 }
+
+    telProdNpMonIfcPPPLCPStConfNakRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Nak LCP frames received through the link shown in
+        the indexes. These frames are answers to Configure Requests and
+        indicates that some configuration options received in the identified
+        frame has not been accepted, nevertheless a remote reccomended or
+        accepted value is sent."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 15 }
+
+    telProdNpMonIfcPPPLCPStConfNakTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Nak LCP frames transmitted through the link shown
+        in the indexes. These frames are answers to Configure Requests and
+        indicates that some configuration options received in the identified
+        frame has not been accepted, nevertheless a remote reccomended or
+        accepted value is sent."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 16 }
+
+    telProdNpMonIfcPPPLCPStConfRejRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Reject LCP frames received through the link shown
+        in the indexes. These frames are answers to Configure Requests and
+        indicates that some configuration options received in the identified
+        frame has not neither accepted nor recognized."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 17 }
+
+    telProdNpMonIfcPPPLCPStConfRejTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Configure Reject LCP frames transmitted through the link
+        shown in the indexes. These frames are answers to Configure Requests
+        and indicates that some configuration options received in the
+        identified frame has not neither accepted nor recognized."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 18 }
+
+    telProdNpMonIfcPPPLCPStTermReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Terminate Request LCP frames received through the link shown
+        in the indexes. These frames are transmitted to finish, close, the
+        link."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 19 }
+
+    telProdNpMonIfcPPPLCPStTermReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Terminate Request LCP frames transmitted through the link
+        shown in the indexes. These frames are transmitted to finish, close,
+        the link."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 20 }
+
+    telProdNpMonIfcPPPLCPStTermAckRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Terminate Ack LCP frames received through the link shown in
+        the indexes. These frames are transmitted after a Terminate Request is
+        received. The reception of a non expected Terminate Ack packet indicates
+        that the link has been closed."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 21 }
+
+    telProdNpMonIfcPPPLCPStTermAckTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Terminate Ack LCP frames transmitted through the link shown
+        in the indexes. These frames are transmitted after a Terminate Request
+        is received. The reception of a non expected Terminate Ack packet
+        indicates that the link has been closed."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 22 }
+
+    telProdNpMonIfcPPPLCPStEchoReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Echo Request LCP frames received through the link shown in
+        the indexes. These frames are used in link maintenance. From time to
+        time a query containing Echo Request code is generated, and is sent
+        back with an Echo Reply."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 23 }
+
+    telProdNpMonIfcPPPLCPStEchoReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Echo Request LCP frames transmitted through the link shown in
+        the indexes. These frames are used in link maintenance. From time to
+        time a query containing Echo Request code is generated, and is sent
+        back with an Echo Reply."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 24 }
+
+    telProdNpMonIfcPPPLCPStEchoRepRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Echo Reply LCP frames received through the link shown in the
+        indexes. These frames are used in link maintenance. From time to time a
+        query containing Echo Request code is generated, and is sent back with
+        an Echo Reply."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 25 }
+
+    telProdNpMonIfcPPPLCPStEchoRepTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of Echo Reply LCP frames transmitted through the link shown in
+        the indexes. These frames are used in link maintenance. From time to
+        time a query containing Echo Request code is generated, and is sent
+        back with an Echo Reply."
+        ::= { telProdNpMonIfcPPPLCPStatsEntry 26 }
+
+-- Grupo de parﬂmetros relacionados con el IPCP.
+
+    telProdNpMonIfcPPPIPCPGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfPPP 2 }
+
+    -- Tabla que contiene informacin sobre el estado actual del IPCP.
+
+    telProdNpMonIfcPPPIPCPControlGloTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPIPCPControlGloEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "This table contains IPCP global parameters. This table has an entry for
+        each PPP interface of the node. The entry number is determined by the
+        corresponding interface number (table index)."
+        ::= { telProdNpMonIfcPPPIPCPGroup 1 }
+
+    telProdNpMonIfcPPPIPCPControlGloEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPIPCPControlGloEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "Each entry contains the node interface number which is the table index,
+        and a variable that shows the current state of the IPCP protocol."
+        INDEX { telProdNpMonIfcPPPIPCPCtrlGloIndex }
+
+        ::= { telProdNpMonIfcPPPIPCPControlGloTable 1 }
+
+    TelProdNpMonIfcPPPIPCPControlGloEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPIPCPCtrlGloIndex
+                INTEGER,
+            telProdNpMonIfcPPPIPCPCtrlGloState
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPIPCPCtrlGloIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPIPCPControlGloEntry 1 }
+
+    telProdNpMonIfcPPPIPCPCtrlGloState OBJECT-TYPE
+        SYNTAX INTEGER{
+            initial(0),
+            starting(1),
+            closed(2),
+            stopped(3),
+            closing(4),
+            stopping(5),
+            req_sent(6),
+            ack_rcvd(7),
+            ack_sent(8),
+            opened(9)
+            }
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Current protocol state. The possible values of the variable are integer
+        numbers between 0 and 9. Each number is related to a feasible state:
+        (0) initial, (1) starting, (2) closed, (3) stopped, (4) closing,
+        (5) stopping, (6) req_sent, (7) ack_rcvd, (8) ack_sent, (9) opened."
+        ::= { telProdNpMonIfcPPPIPCPControlGloEntry 2 }
+
+    -- Tabla que contiene los parﬂmetros que permiten monitorizar las opciones
+    -- transmitidas y recibidas en el establecimiento del protocolo de nivel
+    -- de RED.
+
+    telProdNpMonIfcPPPIPCPControlOptionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPIPCPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "This table contains information about parameters used to monitor
+        received and transmitted options during the network level protocol
+        setup. The entry number is determined by the interface value (table
+        index)."
+        ::= { telProdNpMonIfcPPPIPCPGroup 2 }
+
+    telProdNpMonIfcPPPIPCPControlOptionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPIPCPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, the assigned IP address (in case of dinamic asignation), remote
+        end IP address (if received) and if the Van Jacobson compression option
+        has been selected at any end (local or remote)."
+        INDEX { telProdNpMonIfcPPPIPCPCtrlOptIndex }
+
+        ::= { telProdNpMonIfcPPPIPCPControlOptionsTable 1 }
+
+    TelProdNpMonIfcPPPIPCPControlOptionsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPIPCPCtrlOptIndex
+                INTEGER,
+            telProdNpMonIfcPPPIPCPCtrlOptIpAddrLoc
+                IpAddress,
+            telProdNpMonIfcPPPIPCPCtrlOptIpAddrRem
+                IpAddress,
+            telProdNpMonIfcPPPIPCPCtrlOptVJCmpLoc
+                INTEGER,
+            telProdNpMonIfcPPPIPCPCtrlOptVJCmpRem
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPIPCPCtrlOptIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPIPCPControlOptionsEntry 1 }
+
+    telProdNpMonIfcPPPIPCPCtrlOptIpAddrLoc OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "The IP address assigned (supposing dinamic assignation has been
+        selected)."
+        ::= { telProdNpMonIfcPPPIPCPControlOptionsEntry 2 }
+
+    telProdNpMonIfcPPPIPCPCtrlOptIpAddrRem OBJECT-TYPE
+        SYNTAX IpAddress
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "The remote IP address (supposing it has been received)."
+        ::= { telProdNpMonIfcPPPIPCPControlOptionsEntry 3 }
+
+    telProdNpMonIfcPPPIPCPCtrlOptVJCmpLoc OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Van Jacobson compression selected or not in the local end: (1) yes,
+        (2) no."
+        ::= { telProdNpMonIfcPPPIPCPControlOptionsEntry 4 }
+
+    telProdNpMonIfcPPPIPCPCtrlOptVJCmpRem OBJECT-TYPE
+        SYNTAX INTEGER{
+            non_negotiated(0),
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Van Jacobson compression selected or not in the remote end: (0) non
+        negotiated, (1) yes, (2) no."
+        ::= { telProdNpMonIfcPPPIPCPControlOptionsEntry 5 }
+
+    -- Tabla que contiene los estadçsticos correspondientes al protocolo IPCP.
+
+    telProdNpMonIfcPPPIPCPStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPIPCPStatsEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "This table contains statistics of the IPCP protocol. The entry number
+        is determined by the interface number (table index)."
+        ::= { telProdNpMonIfcPPPIPCPGroup 3 }
+
+    telProdNpMonIfcPPPIPCPStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPIPCPStatsEntry
+        ACCESS not-accessible
+        STATUS obsolete
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, a variable to check variables deletion (corresponding counters
+        reset), and information about the following counters values: number of
+        sent and received Configure Request NCP frames, number of sent and
+        received Configure Ack NCP frames, number of sent and received Configure
+        Nak NCP frames, number of sent and received Configure Reject NCP frames,
+        number of sent and received Terminate Request NCP frames, number of sent
+        and received Terminate Ack NCP frames."
+        INDEX { telProdNpMonIfcPPPIPCPStIndex }
+
+        ::= { telProdNpMonIfcPPPIPCPStatsTable 1 }
+
+    TelProdNpMonIfcPPPIPCPStatsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPIPCPStIndex
+                INTEGER,
+            telProdNpMonIfcPPPIPCPStClear
+                INTEGER,
+            telProdNpMonIfcPPPIPCPStConfReqRx
+                Counter,
+            telProdNpMonIfcPPPIPCPStConfReqTx
+                Counter,
+            telProdNpMonIfcPPPIPCPStConfAckRx
+                Counter,
+            telProdNpMonIfcPPPIPCPStConfAckTx
+                Counter,
+            telProdNpMonIfcPPPIPCPStConfNakRx
+                Counter,
+            telProdNpMonIfcPPPIPCPStConfNakTx
+                Counter,
+            telProdNpMonIfcPPPIPCPStConfRejRx
+                Counter,
+            telProdNpMonIfcPPPIPCPStConfRejTx
+                Counter,
+            telProdNpMonIfcPPPIPCPStTermReqRx
+                Counter,
+            telProdNpMonIfcPPPIPCPStTermReqTx
+                Counter,
+            telProdNpMonIfcPPPIPCPStTermAckRx
+                Counter,
+            telProdNpMonIfcPPPIPCPStTermAckTx
+                Counter
+            }
+
+    telProdNpMonIfcPPPIPCPStIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 1 }
+
+    telProdNpMonIfcPPPIPCPStClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS obsolete
+        DESCRIPTION
+        "This variable when is readed shows the output from the last counter
+        restart attempt: the value is 2 (ok) if the restart was performed
+        succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+        has tried to restart the counters yet. In set operations, the value 1
+        (it is the only value that can be assigned by a writing operation)
+        causes a counter restart."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 2 }
+
+    telProdNpMonIfcPPPIPCPStConfReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Request NCP frames received through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 3 }
+
+    telProdNpMonIfcPPPIPCPStConfReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Request NCP frames transmitted through the
+        interface number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 4 }
+
+    telProdNpMonIfcPPPIPCPStConfAckRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Ack NCP frames received through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 5 }
+
+    telProdNpMonIfcPPPIPCPStConfAckTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Ack NCP frames transmitted through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 6 }
+
+    telProdNpMonIfcPPPIPCPStConfNakRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Nak NCP frames received through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 7 }
+
+    telProdNpMonIfcPPPIPCPStConfNakTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Nak NCP frames transmitted through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 8 }
+
+    telProdNpMonIfcPPPIPCPStConfRejRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Reject NCP frames received through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 9 }
+
+    telProdNpMonIfcPPPIPCPStConfRejTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Configure Reject NCP frames transmitted through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 10 }
+
+    telProdNpMonIfcPPPIPCPStTermReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Terminate Request NCP frames received through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 11 }
+
+     telProdNpMonIfcPPPIPCPStTermReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Terminate Request NCP frames transmitted through the
+        interface number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 12 }
+
+    telProdNpMonIfcPPPIPCPStTermAckRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Terminate Ack NCP frames received through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 13 }
+
+    telProdNpMonIfcPPPIPCPStTermAckTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS obsolete
+        DESCRIPTION
+        "Number of Terminate Ack NCP frames transmitted through the interface
+        number shown in the index."
+        ::= { telProdNpMonIfcPPPIPCPStatsEntry 14 }
+
+-- Tabla que contiene los parﬂmetros de monitorizacin correspondientes a la
+-- compresin Van Jacobson.
+
+    telProdNpMonIfcPPPVJStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPVJStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains monitoring parameters related to Van Jacobson
+        compression. The entry number is determined by the interface number."
+        ::= { telProdNpMonInterfPPP 3 }
+
+    telProdNpMonIfcPPPVJStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPVJStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, a variable to check variables deletion (corresponding counters
+        reset), and information about the following counters values: number of
+        outbound TCP/IP packets, number of outbound compressed TCP/IP packets,
+        number of searchs of the connection state, number of times the
+        connection state wasn≥t found, number of inbound TCP/IP packets, number
+        of inbound compressed TCP/IP packets, number of inbound TCP/IP packets
+        classified as unknown and number of tossed error inbound TCP/IP
+        packets."
+        INDEX { telProdNpMonIfcPPPVJStIndex }
+
+        ::= { telProdNpMonIfcPPPVJStatsTable 1 }
+
+    TelProdNpMonIfcPPPVJStatsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPVJStIndex
+                INTEGER,
+            telProdNpMonIfcPPPVJStClear
+                INTEGER,
+            telProdNpMonIfcPPPVJStOutPackets
+                Counter,
+            telProdNpMonIfcPPPVJStOutComprPkts
+                Counter,
+            telProdNpMonIfcPPPVJStSearches
+                Counter,
+            telProdNpMonIfcPPPVJStNoConnState
+                Counter,
+            telProdNpMonIfcPPPVJStInUncomPkts
+                Counter,
+            telProdNpMonIfcPPPVJStInComprPkts
+                Counter,
+            telProdNpMonIfcPPPVJStInUnkTypePkts
+                Counter,
+            telProdNpMonIfcPPPVJStInPktsTossErr
+                Counter
+            }
+
+    telProdNpMonIfcPPPVJStIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 1 }
+
+    telProdNpMonIfcPPPVJStClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is readed shows the output from the last counter
+        restart attemp: the value is 2 (ok) if the restart was performed
+        succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+        has tried to restart the counters yet. In set operations, the value 1
+        (it is the only value that can be assigned by a writing operation)
+        causes a counter restart."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 2 }
+
+    telProdNpMonIfcPPPVJStOutPackets OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of outbound TCP/IP packets."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 3 }
+
+    telProdNpMonIfcPPPVJStOutComprPkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of outbound compressed TCP/IP packets."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 4 }
+
+    telProdNpMonIfcPPPVJStSearches OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of searchs of the connection state."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 5 }
+
+    telProdNpMonIfcPPPVJStNoConnState OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Times the connection state could not be found."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 6 }
+
+    telProdNpMonIfcPPPVJStInUncomPkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound uncompressed TCP/IP packets."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 7 }
+
+    telProdNpMonIfcPPPVJStInComprPkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound compressed TCP/IP packets."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 8 }
+
+    telProdNpMonIfcPPPVJStInUnkTypePkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound TCP/IP packets classified as unkown."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 9 }
+
+    telProdNpMonIfcPPPVJStInPktsTossErr OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound TCP/IP packets tossed error."
+        ::= { telProdNpMonIfcPPPVJStatsEntry 10 }
+
+-- Tabla que contiene los parﬂmetros de monitorizacin correspondientes a la
+-- compresin CRTP.
+
+    telProdNpMonIfcPPPCrtpStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPCrtpStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains monitoring parameters related to CRTP compression.
+        The entry number is determined by the interface number."
+        ::= { telProdNpMonInterfPPP 4 }
+
+    telProdNpMonIfcPPPCrtpStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPCrtpStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, a variable to check variables deletion (corresponding counters
+        reset), and information about the following counters values: number of
+        outbound RTP packets, number of outbound compressed RTP packets, number
+        of searchs of the connection state, number of times the connection
+        state wasn≥t found, number of inbound RTP packets, number of inbound
+        compressed RTP packets, number of inbound RTP packets classified as
+        unknown and number of inbound RTP Context State packets."
+        INDEX { telProdNpMonIfcPPPCrtpStIndex }
+
+        ::= { telProdNpMonIfcPPPCrtpStatsTable 1 }
+
+    TelProdNpMonIfcPPPCrtpStatsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPCrtpStIndex
+                INTEGER,
+            telProdNpMonIfcPPPCrtpStClear
+                INTEGER,
+            telProdNpMonIfcPPPCrtpStOutPackets
+                Counter,
+            telProdNpMonIfcPPPCrtpStOutComprPkts
+                Counter,
+            telProdNpMonIfcPPPCrtpStSearches
+                Counter,
+            telProdNpMonIfcPPPCrtpStNoConnState
+                Counter,
+            telProdNpMonIfcPPPCrtpStInUncomPkts
+                Counter,
+            telProdNpMonIfcPPPCrtpStInComprPkts
+                Counter,
+            telProdNpMonIfcPPPCrtpStInUnkTypePkts
+                Counter,
+            telProdNpMonIfcPPPCrtpStInContextStPkts
+                Counter
+            }
+
+    telProdNpMonIfcPPPCrtpStIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 1 }
+
+    telProdNpMonIfcPPPCrtpStClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is readed shows the output from the last counter
+        restart attempt: the value is 2 (ok) if the restart was performed
+        succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+        has tried to restart the counters yet. In set operations, the value 1
+        (it is the only value that can be assigned by a writing operation)
+        causes a counter restart."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 2 }
+
+    telProdNpMonIfcPPPCrtpStOutPackets OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of outbound RTP packets."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 3 }
+
+    telProdNpMonIfcPPPCrtpStOutComprPkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of outbound compressed RTP packets."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 4 }
+
+    telProdNpMonIfcPPPCrtpStSearches OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of searchs of the connection state."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 5 }
+
+    telProdNpMonIfcPPPCrtpStNoConnState OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Times the connection state could not be found."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 6 }
+
+    telProdNpMonIfcPPPCrtpStInUncomPkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound uncompressed RTP packets."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 7 }
+
+    telProdNpMonIfcPPPCrtpStInComprPkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound compressed RTP packets."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 8 }
+
+    telProdNpMonIfcPPPCrtpStInUnkTypePkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound RTP packets classified as unkown."
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 9 }
+
+    telProdNpMonIfcPPPCrtpStInContextStPkts OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of inbound RTP Context State packets"
+        ::= { telProdNpMonIfcPPPCrtpStatsEntry 10 }
+
+-- Grupo de comandos: CLEAR y RESET-LINK.
+
+    telProdNpMonIfcPPPCommandGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfPPP 5 }
+
+    -- Tabla que sirve para ejecutar el comando CLEAR en los distintos
+    -- posibles interfaces.
+
+    telProdNpMonIfcPPPCommClearTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPCommClearEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of CLEAR commands for different interfaces. The entry number is
+        determined by the interface number and indicates the interface type to
+        which this command is applied."
+        ::= { telProdNpMonIfcPPPCommandGroup 1 }
+
+    telProdNpMonIfcPPPCommClearEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPCommClearEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the interface number, that is the table index, and
+        indicates the interface the CLEAR command is applied on, a variable to
+        perform the CLEAR operation: restart interface statistics, that when is
+        readed indicates the output of the last CLEAR operation."
+        INDEX { telProdNpMonIfcPPPCommClearIndex }
+
+        ::= { telProdNpMonIfcPPPCommClearTable 1 }
+
+    TelProdNpMonIfcPPPCommClearEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPCommClearIndex
+                INTEGER,
+            telProdNpMonIfcPPPCommClear
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPCommClearIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPCommClearEntry 1 }
+
+    telProdNpMonIfcPPPCommClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is readed shows the output from the last attempt to
+        restart interface statistics. Possible values are: 2 (ok) if the restart
+        was performed succesfully, 3 (error) if an error ocurred and
+        4 (undefined) if nobody has tried to restart the table yet. In set
+        operations, the value 1 (it is the only value that can be assigned by a
+        writing operation) causes statistics to restart."
+        ::= { telProdNpMonIfcPPPCommClearEntry 2 }
+
+    -- Tabla que sirve para ejecutar el comando RESET-LINK en los distintos
+    -- posibles interfaces.
+
+    telProdNpMonIfcPPPCommResetTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPCommResetEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Table of RESET-LINK commands for different type of interfaces. The
+        entry number is determined by the interface number, and indicates
+        which interface we are considering."
+        ::= { telProdNpMonIfcPPPCommandGroup 2 }
+
+    telProdNpMonIfcPPPCommResetEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPCommResetEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number, that is the table index,
+        and indicates the interface the RESET-LINK command is applied on,
+        and a variable to perform the RESET-LINK operation: pull down the PPP
+        link and when the variable is readed indicates the output of the last
+        operation attempt."
+        INDEX { telProdNpMonIfcPPPCommResetIndex }
+
+        ::= { telProdNpMonIfcPPPCommResetTable 1 }
+
+    TelProdNpMonIfcPPPCommResetEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPCommResetIndex
+                INTEGER,
+            telProdNpMonIfcPPPCommReset
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPCommResetIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPCommResetEntry 1 }
+
+    telProdNpMonIfcPPPCommReset OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is readed shows the output from the last attempt
+        to drop PPP link. Possible values are: 2 (ok) if the operation was
+        performed succesfully, 3 (error) if an error ocurred and 4 (undefined)
+        if nobody has tried to drop the link yet. In set operations, the value
+        1 (it is the only value that can be assigned by a writing operation)
+        implies the PPP link is going to be dropped."
+        ::= { telProdNpMonIfcPPPCommResetEntry 2 }
+
+-- Grupo de parﬂmetros relacionados con el CCP.
+
+    telProdNpMonIfcPPPCCPGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfPPP 6 }
+
+    -- Tabla de parﬂmetros globales del CCP. Contiene informacin del estado de
+    -- negociacion de parﬂmetros CCP.
+
+    telProdNpMonIfcPPPCCPControlGloTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPCCPControlGloEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains CCP global parameters. This table has an entry for
+        each PPP interface. The entry number is determined by the corresponding
+        interface number (table index)."
+        ::= { telProdNpMonIfcPPPCCPGroup 1 }
+
+    telProdNpMonIfcPPPCCPControlGloEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPCCPControlGloEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number which is the table index,
+        and variables that shows if the CCP protocol is enabled or disabled, and
+        the current state of the CCP protocol."
+        INDEX { telProdNpMonIfcPPPCCPCtrlGloIndex }
+
+        ::= { telProdNpMonIfcPPPCCPControlGloTable 1 }
+
+    TelProdNpMonIfcPPPCCPControlGloEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPCCPCtrlGloIndex
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlGloCCP
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlGloState
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPCCPCtrlGloIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPCCPControlGloEntry 1 }
+
+    telProdNpMonIfcPPPCCPCtrlGloCCP OBJECT-TYPE
+        SYNTAX INTEGER{
+            enabled(1),
+            disabled(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates if the CCP protocol is enabled or disabled."
+        ::= { telProdNpMonIfcPPPCCPControlGloEntry 2 }
+
+    telProdNpMonIfcPPPCCPCtrlGloState OBJECT-TYPE
+        SYNTAX INTEGER{
+            initial(0),
+            starting(1),
+            closed(2),
+            stopped(3),
+            closing(4),
+            stopping(5),
+            req_sent(6),
+            ack_rcvd(7),
+            ack_sent(8),
+            opened(9)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Current protocol state. The possible values of the variable are integer
+        numbers between 0 and 9. Each number is related to a feasible state:
+        (0) initial, (1) starting, (2) closed, (3) stopped, (4) closing,
+        (5) stopping, (6) req_sent, (7) ack_rcvd, (8) ack_sent, (9) opened."
+        ::= { telProdNpMonIfcPPPCCPControlGloEntry 3 }
+
+    -- Tabla que contiene los parﬂmetros que permiten monitorizar las opciones
+    -- del protocolo CCP.
+
+    telProdNpMonIfcPPPCCPControlOptionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPCCPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains the variables that informs about the CCP protocol
+        options. The entry number is determined by the interface value (table
+        index)."
+        ::= { telProdNpMonIfcPPPCCPGroup 2 }
+
+    telProdNpMonIfcPPPCCPControlOptionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPCCPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, the output and input encapsulated protocol, the output and input
+        event, the type of configuration format associated to the output and
+        input, the number of output and input negotiated histories, the output
+        and input negotiated check mode, the output and input negotiated process
+        mode, the output and input session and the output and input sequence
+        number."
+        INDEX { telProdNpMonIfcPPPCCPCtrlOptIndex }
+
+        ::= { telProdNpMonIfcPPPCCPControlOptionsTable 1 }
+
+    TelProdNpMonIfcPPPCCPControlOptionsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPCCPCtrlOptIndex
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptProtOut
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptProtIn
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptEventOut
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptEventIn
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptTypeOut
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptTypeIn
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptHistOut
+                DisplayString,
+            telProdNpMonIfcPPPCCPCtrlOptHistIn
+                DisplayString,
+            telProdNpMonIfcPPPCCPCtrlOptChkModOut
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptChkModIn
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptPrcModOut
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptPrcModIn
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptSessionOut
+                DisplayString,
+            telProdNpMonIfcPPPCCPCtrlOptSessionIn
+                DisplayString,
+            telProdNpMonIfcPPPCCPCtrlOptSeqNumOut
+                INTEGER,
+            telProdNpMonIfcPPPCCPCtrlOptSeqNumIn
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPCCPCtrlOptIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 1 }
+
+    telProdNpMonIfcPPPCCPCtrlOptProtOut OBJECT-TYPE
+        SYNTAX INTEGER{
+            ppp(1),
+            mppp(2),
+            other(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Output encapsulated protocol. It can be used PPP (1), MPPP (2) or other
+        different of thesesones (3)."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 2 }
+
+    telProdNpMonIfcPPPCCPCtrlOptProtIn OBJECT-TYPE
+        SYNTAX INTEGER{
+            ppp(1),
+            mppp(2),
+            other(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Input encapsulated protocol. It can be used PPP (1), MPPP (2) or other
+        different of thesesones (3)."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 3 }
+
+    telProdNpMonIfcPPPCCPCtrlOptEventOut OBJECT-TYPE
+        SYNTAX INTEGER{
+            encode(1),
+            decode(2),
+            all(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Output event."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 4 }
+
+    telProdNpMonIfcPPPCCPCtrlOptEventIn OBJECT-TYPE
+        SYNTAX INTEGER{
+            encode(1),
+            decode(2),
+            all(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Input event."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 5 }
+
+    telProdNpMonIfcPPPCCPCtrlOptTypeOut OBJECT-TYPE
+        SYNTAX INTEGER{
+            lzs-dcp(1),
+            no-comp(2),
+            stac(3),
+            msppc(4),
+            predic(5),
+            bsdlzw(6),
+            other(7)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Type of configuration format associated to the output."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 6 }
+
+    telProdNpMonIfcPPPCCPCtrlOptTypeIn OBJECT-TYPE
+        SYNTAX INTEGER{
+            lzs-dcp(1),
+            no-comp(2),
+            stac(3),
+            msppc(4),
+            predic(5),
+            bsdlzw(6),
+            other(7)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Type of configuration format associated to the input."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 7 }
+
+    telProdNpMonIfcPPPCCPCtrlOptHistOut OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "The number of output negotiated histories. This variable indicates pack
+        to pack or the corresponding number."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 8 }
+
+    telProdNpMonIfcPPPCCPCtrlOptHistIn OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "The number of input negotiated histories. This variable indicates pack
+        to pack or the corresponding number."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 9 }
+
+    telProdNpMonIfcPPPCCPCtrlOptChkModOut OBJECT-TYPE
+        SYNTAX INTEGER{
+            unused(0),
+            none(1),
+            lcb(2),
+            crc(3),
+            seqnum(4),
+            seqnum-and-lcb(5),
+            extended(6),
+            other(7)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Output negotiated check mode."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 10 }
+
+    telProdNpMonIfcPPPCCPCtrlOptChkModIn OBJECT-TYPE
+        SYNTAX INTEGER{
+            unused(0),
+            none(1),
+            lcb(2),
+            crc(3),
+            seqnum(4),
+            seqnum-and-lcb(5),
+            extended(6),
+            other(7)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Input negotiated check mode."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 11 }
+
+    telProdNpMonIfcPPPCCPCtrlOptPrcModOut OBJECT-TYPE
+        SYNTAX INTEGER{
+            unused(0),
+            none(1),
+            procuncomp(2),
+            other(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Output negotiated process mode."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 12 }
+
+    telProdNpMonIfcPPPCCPCtrlOptPrcModIn OBJECT-TYPE
+        SYNTAX INTEGER{
+            unused(0),
+            none(1),
+            procuncomp(2),
+            other(3)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Input negotiated process mode."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 13 }
+
+    telProdNpMonIfcPPPCCPCtrlOptSessionOut OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Output session identifier."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 14 }
+
+    telProdNpMonIfcPPPCCPCtrlOptSessionIn OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Input session identifier."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 15 }
+
+    telProdNpMonIfcPPPCCPCtrlOptSeqNumOut OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Output sequence number."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 16 }
+
+    telProdNpMonIfcPPPCCPCtrlOptSeqNumIn OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Input sequence number."
+        ::= { telProdNpMonIfcPPPCCPControlOptionsEntry 17 }
+
+    -- Tabla que contiene los estadçsticos correspondientes al protocolo CCP.
+
+    telProdNpMonIfcPPPCCPStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPCCPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains statistics of the CCP protocol. The entry number is
+        determined by the interface number (table index)."
+        ::= { telProdNpMonIfcPPPCCPGroup 3 }
+
+    telProdNpMonIfcPPPCCPStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPCCPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, a variable to check variables deletion (corresponding counters
+        reset), and information about the following counters values: number of
+        sent and received Configure Request CCP frames, number of sent and
+        received Configure Ack CCP frames, number of sent and received Configure
+        Nak CCP frames, number of sent and received Configure Reject CCP frames,
+        number of sent and received Terminate Request CCP frames, number of sent
+        and received Terminate Ack CCP frames, number of sent and received
+        Terminate Ack CCP frames, number of processed frames received for
+        uncompress and compress, number of processed bytes received for
+        uncompress and compress, number of uncompressed and compressed frames,
+        number of uncompressed and compressed bytes, number of non processed
+        frames received for uncompress and compress, number of frames with
+        errors in compression and uncompression, number of received and sent
+        Reset Request CCP frames, number of received and sent Reset Ack CCP
+        frames, number of sequence errors in reception and transmission, number
+        of LCB errors in reception and transmission and number of received and
+        sent header errors."
+        INDEX { telProdNpMonIfcPPPCCPStIndex }
+
+        ::= { telProdNpMonIfcPPPCCPStatsTable 1 }
+
+    TelProdNpMonIfcPPPCCPStatsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPCCPStIndex
+                INTEGER,
+            telProdNpMonIfcPPPCCPStClear
+                INTEGER,
+            telProdNpMonIfcPPPCCPStConfReqRx
+                Counter,
+            telProdNpMonIfcPPPCCPStConfReqTx
+                Counter,
+            telProdNpMonIfcPPPCCPStConfAckRx
+                Counter,
+            telProdNpMonIfcPPPCCPStConfAckTx
+                Counter,
+            telProdNpMonIfcPPPCCPStConfNakRx
+                Counter,
+            telProdNpMonIfcPPPCCPStConfNakTx
+                Counter,
+            telProdNpMonIfcPPPCCPStConfRejRx
+                Counter,
+            telProdNpMonIfcPPPCCPStConfRejTx
+                Counter,
+            telProdNpMonIfcPPPCCPStTermReqRx
+                Counter,
+            telProdNpMonIfcPPPCCPStTermReqTx
+                Counter,
+            telProdNpMonIfcPPPCCPStTermAckRx
+                Counter,
+            telProdNpMonIfcPPPCCPStTermAckTx
+                Counter,
+            telProdNpMonIfcPPPCCPStProcFrsRx
+                Counter,
+            telProdNpMonIfcPPPCCPStProcFrsTx
+                Counter,
+            telProdNpMonIfcPPPCCPStProcBytRx
+                Counter,
+            telProdNpMonIfcPPPCCPStProcBytTx
+                Counter,
+            telProdNpMonIfcPPPCCPStFramesRx
+                Counter,
+            telProdNpMonIfcPPPCCPStFramesTx
+                Counter,
+            telProdNpMonIfcPPPCCPStBytesRx
+                Counter,
+            telProdNpMonIfcPPPCCPStBytesTx
+                Counter,
+            telProdNpMonIfcPPPCCPStUncompFrsRx
+                Counter,
+            telProdNpMonIfcPPPCCPStUncompFrsTx
+                Counter,
+            telProdNpMonIfcPPPCCPStErrorFrsRx
+                Counter,
+            telProdNpMonIfcPPPCCPStErrorFrsTx
+                Counter,
+            telProdNpMonIfcPPPCCPStResetReqRx
+                Counter,
+            telProdNpMonIfcPPPCCPStResetReqTx
+                Counter,
+            telProdNpMonIfcPPPCCPStResetAckRx
+                Counter,
+            telProdNpMonIfcPPPCCPStResetAckTx
+                Counter,
+            telProdNpMonIfcPPPCCPStSeqErrorsRx
+                Counter,
+            telProdNpMonIfcPPPCCPStSeqErrorsTx
+                Counter,
+            telProdNpMonIfcPPPCCPStLCBErrorsRx
+                Counter,
+            telProdNpMonIfcPPPCCPStLCBErrorsTx
+                Counter,
+            telProdNpMonIfcPPPCCPStHdrErrorsRx
+                Counter,
+            telProdNpMonIfcPPPCCPStHdrErrorsTx
+                Counter
+            }
+
+    telProdNpMonIfcPPPCCPStIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 1 }
+
+    telProdNpMonIfcPPPCCPStClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is readed shows the output from the last counter
+        restart attempt: the value is 2 (ok) if the restart was performed
+        succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+        has tried to restart the counters yet. In set operations, the value 1
+        (it is the only value that can be assigned by a writing operation)
+        causes a counter restart."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 2 }
+
+    telProdNpMonIfcPPPCCPStConfReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Configure Request CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 3 }
+
+    telProdNpMonIfcPPPCCPStConfReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Configure Request CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 4 }
+
+    telProdNpMonIfcPPPCCPStConfAckRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Configure Ack CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 5 }
+
+    telProdNpMonIfcPPPCCPStConfAckTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Configure Ack CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 6 }
+
+    telProdNpMonIfcPPPCCPStConfNakRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Configure Nak CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 7 }
+
+    telProdNpMonIfcPPPCCPStConfNakTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Configure Nak CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 8 }
+
+    telProdNpMonIfcPPPCCPStConfRejRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Configure Reject CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 9 }
+
+    telProdNpMonIfcPPPCCPStConfRejTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Configure Reject CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 10 }
+
+    telProdNpMonIfcPPPCCPStTermReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Terminate Request CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 11 }
+
+    telProdNpMonIfcPPPCCPStTermReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Terminate Request CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 12 }
+
+    telProdNpMonIfcPPPCCPStTermAckRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Terminate Ack CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 13 }
+
+    telProdNpMonIfcPPPCCPStTermAckTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Terminate Ack CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 14 }
+
+    telProdNpMonIfcPPPCCPStProcFrsRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of processed frames received for uncompress."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 15 }
+
+    telProdNpMonIfcPPPCCPStProcFrsTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of processed frames received for compress."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 16 }
+
+    telProdNpMonIfcPPPCCPStProcBytRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of processed bytes received for uncompress."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 17 }
+
+    telProdNpMonIfcPPPCCPStProcBytTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of processed bytes received for compress."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 18 }
+
+    telProdNpMonIfcPPPCCPStFramesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of uncompressed frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 19 }
+
+    telProdNpMonIfcPPPCCPStFramesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of compressed frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 20 }
+
+    telProdNpMonIfcPPPCCPStBytesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of uncompressed bytes."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 21 }
+
+    telProdNpMonIfcPPPCCPStBytesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of compressed bytes."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 22 }
+
+    telProdNpMonIfcPPPCCPStUncompFrsRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of non processed frames received for uncompress."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 23 }
+
+    telProdNpMonIfcPPPCCPStUncompFrsTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of non processed frames received for compress."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 24 }
+
+    telProdNpMonIfcPPPCCPStErrorFrsRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames whith errors in compression."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 25 }
+
+    telProdNpMonIfcPPPCCPStErrorFrsTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of frames whith errors in uncompression."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 26 }
+
+    telProdNpMonIfcPPPCCPStResetReqRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Reset Request CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 27 }
+
+    telProdNpMonIfcPPPCCPStResetReqTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Reset Request CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 28 }
+
+    telProdNpMonIfcPPPCCPStResetAckRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received Reset Ack CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 29 }
+
+    telProdNpMonIfcPPPCCPStResetAckTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent Reset Ack CCP frames."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 30 }
+
+    telProdNpMonIfcPPPCCPStSeqErrorsRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sequence errors in reception."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 31 }
+
+    telProdNpMonIfcPPPCCPStSeqErrorsTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sequence errors in transmission."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 32 }
+
+    telProdNpMonIfcPPPCCPStLCBErrorsRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of LCB errors in reception."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 33 }
+
+    telProdNpMonIfcPPPCCPStLCBErrorsTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of LCB errors in transmission."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 34 }
+
+    telProdNpMonIfcPPPCCPStHdrErrorsRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received header errors."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 35 }
+
+    telProdNpMonIfcPPPCCPStHdrErrorsTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent header errors."
+        ::= { telProdNpMonIfcPPPCCPStatsEntry 36 }
+
+-- Grupo de parﬂmetros relacionados con el Multilink PPP (MP).
+
+    telProdNpMonIfcPPPMPGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfPPP 7 }
+
+    -- Tabla de parﬂmetros globales del Multilink PPP.
+
+    telProdNpMonIfcPPPMPControlGloTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPMPControlGloEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains Multilink PPP global parameters. This table has an
+        entry for each PPP interface. The entry number is determined by the
+        corresponding interface number (table index)."
+        ::= { telProdNpMonIfcPPPMPGroup 1 }
+
+    telProdNpMonIfcPPPMPControlGloEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPMPControlGloEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number which is the table index,
+        and variables that shows the remote user name, the number of active
+        links in bundle and the current fragment queue length."
+        INDEX { telProdNpMonIfcPPPMPCtrlGloIndex }
+
+        ::= { telProdNpMonIfcPPPMPControlGloTable 1 }
+
+    TelProdNpMonIfcPPPMPControlGloEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPMPCtrlGloIndex
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlGloRemUserName
+                DisplayString,
+            telProdNpMonIfcPPPMPCtrlGloBundleLinks
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlGloFragments
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlGloRTFragments
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPMPCtrlGloIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPMPControlGloEntry 1 }
+
+    telProdNpMonIfcPPPMPCtrlGloRemUserName OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..30))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "When the authentication is enabled, this variable indicates the remote
+        user name. In other case, it contains a empty string."
+        ::= { telProdNpMonIfcPPPMPControlGloEntry 2 }
+
+    telProdNpMonIfcPPPMPCtrlGloBundleLinks OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows the number of active links in bundle."
+        ::= { telProdNpMonIfcPPPMPControlGloEntry 3 }
+
+    telProdNpMonIfcPPPMPCtrlGloFragments OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows the current fragment queue length."
+        ::= { telProdNpMonIfcPPPMPControlGloEntry 4 }
+
+    telProdNpMonIfcPPPMPCtrlGloRTFragments OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows the current fragment queue length for real time
+        traffic."
+        ::= { telProdNpMonIfcPPPMPControlGloEntry 5 }
+
+    -- Tabla que contiene los parﬂmetros que permiten monitorizar las opciones
+    -- del Multilink PPP.
+
+    telProdNpMonIfcPPPMPControlOptionsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPMPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains the variables that informs about the Multilink PPP
+        options. The entry number is determined by the interface value (table
+        index)."
+        ::= { telProdNpMonIfcPPPMPGroup 2 }
+
+    telProdNpMonIfcPPPMPControlOptionsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPMPControlOptionsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, the local and remote maximum packet size accepted in reception,
+        if short sequence number header format is enabled in the local and
+        remote end, the local and remote associated class and the local and
+        remote address."
+        INDEX { telProdNpMonIfcPPPMPCtrlOptIndex }
+
+        ::= { telProdNpMonIfcPPPMPControlOptionsTable 1 }
+
+    TelProdNpMonIfcPPPMPControlOptionsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPMPCtrlOptIndex
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlOptMRRULoc
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlOptMRRURem
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlOptSSNLoc
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlOptSSNRem
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlOptClassLoc
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlOptClassRem
+                INTEGER,
+            telProdNpMonIfcPPPMPCtrlOptAddressLoc
+                DisplayString,
+            telProdNpMonIfcPPPMPCtrlOptAddressRem
+                DisplayString,
+            telprodNpMonIfcPPPMPCtrlOptMHFNeg
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPMPCtrlOptIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 1 }
+
+    telProdNpMonIfcPPPMPCtrlOptMRRULoc OBJECT-TYPE
+        SYNTAX INTEGER(1..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Maximum packet size accepted in reception associated to the local end."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 2 }
+
+    telProdNpMonIfcPPPMPCtrlOptMRRURem OBJECT-TYPE
+        SYNTAX INTEGER(1..65535)
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Maximum packet size accepted in reception associated to the remote
+        end."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 3 }
+
+    telProdNpMonIfcPPPMPCtrlOptSSNLoc OBJECT-TYPE
+        SYNTAX INTEGER{
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows if the short sequence number header format in the
+        local end is enabled or disabled."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 4 }
+
+    telProdNpMonIfcPPPMPCtrlOptSSNRem OBJECT-TYPE
+        SYNTAX INTEGER{
+            non_negotiated(0),
+            yes(1),
+            no(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows if the short sequence number header format in the
+        remote end is enabled or disabled."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 5 }
+
+    telProdNpMonIfcPPPMPCtrlOptClassLoc OBJECT-TYPE
+        SYNTAX INTEGER{
+            null_class(0),
+            locally_assigned_address(1),
+            ip_address(2),
+            ethernet_mac_address(3),
+            magic_number(4),
+            public_switched_network_directory_number(5)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows the class associated to the local end."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 6 }
+
+    telProdNpMonIfcPPPMPCtrlOptClassRem OBJECT-TYPE
+        SYNTAX INTEGER{
+            null_class(0),
+            locally_assigned_address(1),
+            ip_address(2),
+            ethernet_mac_address(3),
+            magic_number(4),
+            public_switched_network_directory_number(5)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows the class associated to the remote end."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 7 }
+
+    telProdNpMonIfcPPPMPCtrlOptAddressLoc OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..19))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates the address associated to the local end. It is
+        a string that must be interpreted according to the local class."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 8 }
+
+    telProdNpMonIfcPPPMPCtrlOptAddressRem OBJECT-TYPE
+        SYNTAX DisplayString(SIZE(0..19))
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable indicates the address associated to the remote end. It is
+        a string that must be interpreted according to the remote class."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 9 }
+
+    telprodNpMonIfcPPPMPCtrlOptMHFNeg OBJECT-TYPE
+        SYNTAX INTEGER{
+            no(1),
+            yes(2)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "This variable shows if the multiclass multilink option has been
+        negotiated."
+        ::= { telProdNpMonIfcPPPMPControlOptionsEntry 10 }
+
+    -- Tabla que contiene los estadçsticos correspondientes al Multilink PPP.
+
+    telProdNpMonIfcPPPMPStatsTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPMPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains statistics of the Multilink PPP. The entry number
+        is determined by the interface number (table index)."
+        ::= { telProdNpMonIfcPPPMPGroup 3 }
+
+    telProdNpMonIfcPPPMPStatsEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPMPStatsEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the node interface number, which is the table
+        index, a variable to check variables deletion (corresponding counters
+        reset), and information about the following counters values: number of
+        sent and received frames, number of sent and received bytes, number of
+        queued frames, number of error frames and number of sequence loss in
+        reception."
+        INDEX { telProdNpMonIfcPPPMPStIndex }
+
+        ::= { telProdNpMonIfcPPPMPStatsTable 1 }
+
+    TelProdNpMonIfcPPPMPStatsEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPMPStIndex
+                INTEGER,
+            telProdNpMonIfcPPPMPStClear
+                INTEGER,
+            telProdNpMonIfcPPPMPStFramesTx
+                Counter,
+            telProdNpMonIfcPPPMPStFramesRx
+                Counter,
+            telProdNpMonIfcPPPMPStBytesTx
+                Counter,
+            telProdNpMonIfcPPPMPStBytesRx
+                Counter,
+            telProdNpMonIfcPPPMPStQueuedFrm
+                Counter,
+            telProdNpMonIfcPPPMPStErrorFrm
+                Counter,
+            telProdNpMonIfcPPPMPStSeqLoss
+                Counter,
+            telProdNpMonIfcPPPMPStRTFramesTx
+                Counter,
+            telProdNpMonIfcPPPMPStRTFramesRx
+                Counter,
+            telProdNpMonIfcPPPMPStRTBytesTx
+                Counter,
+            telProdNpMonIfcPPPMPStRTBytesRx
+                Counter,
+            telProdNpMonIfcPPPMPStRTQueuedFrm
+                Counter,
+            telProdNpMonIfcPPPMPStRTErrorFrm
+                Counter,
+            telProdNpMonIfcPPPMPStRTSeqLoss
+                Counter
+            }
+
+    telProdNpMonIfcPPPMPStIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Interface number of the node, that indicates the corresponding table
+        entry (it is the table index)."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 1 }
+
+    telProdNpMonIfcPPPMPStClear OBJECT-TYPE
+        SYNTAX INTEGER{
+            delete(1),
+            ok(2),
+            error(3),
+            undefined(4)
+            }
+        ACCESS read-write
+        STATUS mandatory
+        DESCRIPTION
+        "This variable when is readed shows the output from the last counter
+        restart attempt: the value is 2 (ok) if the restart was performed
+        succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+        has tried to restart the counters yet. In set operations, the value 1
+        (it is the only value that can be assigned by a writing operation)
+        causes a counter restart."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 2 }
+
+    telProdNpMonIfcPPPMPStFramesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent frames."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 3 }
+
+    telProdNpMonIfcPPPMPStFramesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received frames."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 4 }
+
+    telProdNpMonIfcPPPMPStBytesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent bytes."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 5 }
+
+    telProdNpMonIfcPPPMPStBytesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received bytes."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 6 }
+
+    telProdNpMonIfcPPPMPStQueuedFrm OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of queued received frames."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 7 }
+
+    telProdNpMonIfcPPPMPStErrorFrm OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of rejected frames due to errors."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 8 }
+
+    telProdNpMonIfcPPPMPStSeqLoss OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sequence loss in reception."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 9 }
+
+    telProdNpMonIfcPPPMPStRTFramesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent real time frames."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 10 }
+
+    telProdNpMonIfcPPPMPStRTFramesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received real time frames."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 11 }
+
+    telProdNpMonIfcPPPMPStRTBytesTx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sent real time bytes."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 12 }
+
+    telProdNpMonIfcPPPMPStRTBytesRx OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of received real time bytes."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 13 }
+
+    telProdNpMonIfcPPPMPStRTQueuedFrm OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of queued received real time frames."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 14 }
+
+    telProdNpMonIfcPPPMPStRTErrorFrm OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of rejected real time frames due to errors."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 15 }
+
+    telProdNpMonIfcPPPMPStRTSeqLoss OBJECT-TYPE
+        SYNTAX Counter
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of sequence loss in reception of real time frames."
+        ::= { telProdNpMonIfcPPPMPStatsEntry 16 }
+
+-- Tabla de parﬂmetros de monitorizacin relacionados con la parte Dial del PPP.
+
+    telProdNpMonIfcPPPDialTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF TelProdNpMonIfcPPPDialEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "This table contains information about monitoring parameters associated
+        to Dial part of PPP. The entry number is determined by the PPP interface
+        value and the Dial order number."
+        ::= { telProdNpMonInterfPPP 8 }
+
+    telProdNpMonIfcPPPDialEntry OBJECT-TYPE
+        SYNTAX TelProdNpMonIfcPPPDialEntry
+        ACCESS not-accessible
+        STATUS mandatory
+        DESCRIPTION
+        "Each entry contains the PPP interface number of the node, the Dial
+        order number, the Dial profile name, the remote address, the local
+        address, the number of the interface over the PPP is mounted, the
+        requested circuit identifier, the Dial circuit state and the assigned
+        circuit identifier."
+        INDEX { telProdNpMonIfcPPPDialIfcIndex, telProdNpMonIfcPPPDialOrderIndex }
+
+        ::= { telProdNpMonIfcPPPDialTable 1 }
+
+    TelProdNpMonIfcPPPDialEntry ::=
+        SEQUENCE{
+            telProdNpMonIfcPPPDialIfcIndex
+                INTEGER,
+            telProdNpMonIfcPPPDialOrderIndex
+                INTEGER,
+            telProdNpMonIfcPPPDialName
+                DisplayString,
+            telProdNpMonIfcPPPDialDesAddr
+                DisplayString,
+            telProdNpMonIfcPPPDialLocAddr
+                DisplayString,
+            telProdNpMonIfcPPPDialLowIfc
+                INTEGER,
+            telProdNpMonIfcPPPDialCircReq
+                INTEGER,
+            telProdNpMonIfcPPPDialCircStatus
+                INTEGER,
+            telProdNpMonIfcPPPDialCircAsig
+                INTEGER
+            }
+
+    telProdNpMonIfcPPPDialIfcIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "PPP interface number of the node (first table index)."
+        ::= { telProdNpMonIfcPPPDialEntry 1 }
+
+    telProdNpMonIfcPPPDialOrderIndex OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Dial order number inside the PPP interface (second table index)."
+        ::= { telProdNpMonIfcPPPDialEntry 2 }
+
+    telProdNpMonIfcPPPDialName OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Dial profile name."
+        ::= { telProdNpMonIfcPPPDialEntry 3 }
+
+    telProdNpMonIfcPPPDialDesAddr OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "If the interface that support the PPP interface is switched, this
+        variable indicates the remote address."
+        ::= { telProdNpMonIfcPPPDialEntry 4 }
+
+    telProdNpMonIfcPPPDialLocAddr OBJECT-TYPE
+        SYNTAX DisplayString
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "If the interface that support the PPP interface is switched, this
+        variable indicates the local address."
+        ::= { telProdNpMonIfcPPPDialEntry 5 }
+
+    telProdNpMonIfcPPPDialLowIfc OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Number of the interface the PPP is mounted over. In this case, the
+        interfaces are numbered from 0, the same as in console."
+        ::= { telProdNpMonIfcPPPDialEntry 6 }
+
+    telProdNpMonIfcPPPDialCircReq OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "When the interface that support the PPP interface is composed of
+        different subinterfaces, this variable specifies the requested circuit
+        identifier. Its value must be 255 to indicate the choice of the circuit
+        number is free."
+        ::= { telProdNpMonIfcPPPDialEntry 7 }
+
+    telProdNpMonIfcPPPDialCircStatus OBJECT-TYPE
+        SYNTAX INTEGER{
+            down(0),
+            closed(1),
+            opening(2),
+            closing(3),
+            open(4)
+            }
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "Dial circuit state."
+        ::= { telProdNpMonIfcPPPDialEntry 8 }
+
+    telProdNpMonIfcPPPDialCircAsig OBJECT-TYPE
+        SYNTAX INTEGER
+        ACCESS read-only
+        STATUS mandatory
+        DESCRIPTION
+        "When the interface that support the PPP interface is composed of
+        different subinterfaces, this variable specifies the assigned circuit
+        identifier. If the Dial circuit state is not OPEN(4), the requested
+        circuit identifier is shown."
+        ::= { telProdNpMonIfcPPPDialEntry 9 }
+
+-- Grupo de parﬂmetros relacionados con los NCPs de datos.
+
+    telProdNpMonIfcPPPNCPGroup OBJECT IDENTIFIER ::= { telProdNpMonInterfPPP 9 }
+
+    -- Grupo de parﬂmetros relacionados con el IPCP.
+
+        telProdNpMonIfcPPPNCPIPCPGroup OBJECT IDENTIFIER ::= { telProdNpMonIfcPPPNCPGroup 1 }
+
+    -- Tabla que contiene informacin sobre el estado actual del IPCP.
+
+        telProdNpMonIfcPPPNCPIPCPControlGloTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF TelProdNpMonIfcPPPNCPIPCPControlGloEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "This table contains IPCP global parameters. This table has an entry for
+            each PPP interface of the node. The entry number is determined by the
+            corresponding interface number (table index)."
+            ::= { telProdNpMonIfcPPPNCPIPCPGroup 1 }
+
+        telProdNpMonIfcPPPNCPIPCPControlGloEntry OBJECT-TYPE
+            SYNTAX TelProdNpMonIfcPPPNCPIPCPControlGloEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "Each entry contains the node interface number which is the table index,
+            and a variable that shows the current state of the IPCP protocol."
+            INDEX { telProdNpMonIfcPPPNCPIPCPCtrlGloIndex }
+
+            ::= { telProdNpMonIfcPPPNCPIPCPControlGloTable 1 }
+
+        TelProdNpMonIfcPPPNCPIPCPControlGloEntry ::=
+            SEQUENCE{
+                telProdNpMonIfcPPPNCPIPCPCtrlGloIndex
+                    INTEGER,
+                telProdNpMonIfcPPPNCPIPCPCtrlGloState
+                    INTEGER
+                }
+
+        telProdNpMonIfcPPPNCPIPCPCtrlGloIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Interface number of the node, that indicates the corresponding table
+            entry (it is the table index)."
+            ::= { telProdNpMonIfcPPPNCPIPCPControlGloEntry 1 }
+
+        telProdNpMonIfcPPPNCPIPCPCtrlGloState OBJECT-TYPE
+            SYNTAX INTEGER{
+                initial(0),
+                starting(1),
+                closed(2),
+                stopped(3),
+                closing(4),
+                stopping(5),
+                req_sent(6),
+                ack_rcvd(7),
+                ack_sent(8),
+                opened(9)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Current protocol state. The possible values of the variable are integer
+            numbers between 0 and 9. Each number is related to a feasible state:
+            (0) initial, (1) starting, (2) closed, (3) stopped, (4) closing,
+            (5) stopping, (6) req_sent, (7) ack_rcvd, (8) ack_sent, (9) opened."
+            ::= { telProdNpMonIfcPPPNCPIPCPControlGloEntry 2 }
+
+    -- Tabla que contiene los parﬂmetros que permiten monitorizar las opciones
+    -- transmitidas y recibidas en el establecimiento del protocolo de nivel
+    -- de RED.
+
+        telProdNpMonIfcPPPNCPIPCPControlOptionsTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF TelProdNpMonIfcPPPNCPIPCPControlOptionsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "This table contains information about parameters used to monitor
+            received and transmitted options during the network level protocol
+            setup. The entry number is determined by the interface value (table
+            index)."
+            ::= { telProdNpMonIfcPPPNCPIPCPGroup 2 }
+
+        telProdNpMonIfcPPPNCPIPCPControlOptionsEntry OBJECT-TYPE
+            SYNTAX TelProdNpMonIfcPPPNCPIPCPControlOptionsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "Each entry contains the node interface number, which is the table
+            index, the assigned IP address (in case of dinamic asignation), remote
+            end IP address (if received) and if the Van Jacobson compression option
+            has been selected at any end (local or remote)."
+            INDEX { telProdNpMonIfcPPPNCPIPCPCtrlOptIndex }
+
+            ::= { telProdNpMonIfcPPPNCPIPCPControlOptionsTable 1 }
+
+        TelProdNpMonIfcPPPNCPIPCPControlOptionsEntry ::=
+            SEQUENCE{
+                telProdNpMonIfcPPPNCPIPCPCtrlOptIndex
+                    INTEGER,
+                telProdNpMonIfcPPPNCPIPCPCtrlOptIpAddrLoc
+                    IpAddress,
+                telProdNpMonIfcPPPNCPIPCPCtrlOptIpAddrRem
+                    IpAddress,
+                telProdNpMonIfcPPPNCPIPCPCtrlOptVJCmpLoc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPIPCPCtrlOptVJCmpRem
+                    INTEGER
+                }
+
+        telProdNpMonIfcPPPNCPIPCPCtrlOptIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Interface number of the node, that indicates the corresponding table
+            entry (it is the table index)."
+            ::= { telProdNpMonIfcPPPNCPIPCPControlOptionsEntry 1 }
+
+        telProdNpMonIfcPPPNCPIPCPCtrlOptIpAddrLoc OBJECT-TYPE
+            SYNTAX IpAddress
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "The IP address assigned (supposing dinamic assignation has been
+            selected)."
+            ::= { telProdNpMonIfcPPPNCPIPCPControlOptionsEntry 2 }
+
+        telProdNpMonIfcPPPNCPIPCPCtrlOptIpAddrRem OBJECT-TYPE
+            SYNTAX IpAddress
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "The remote IP address (supposing it has been received)."
+            ::= { telProdNpMonIfcPPPNCPIPCPControlOptionsEntry 3 }
+
+        telProdNpMonIfcPPPNCPIPCPCtrlOptVJCmpLoc OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Van Jacobson compression selected or not in the local end: (1) yes,
+            (2) no."
+            ::= { telProdNpMonIfcPPPNCPIPCPControlOptionsEntry 4 }
+
+        telProdNpMonIfcPPPNCPIPCPCtrlOptVJCmpRem OBJECT-TYPE
+            SYNTAX INTEGER{
+                non_negotiated(0),
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Van Jacobson compression selected or not in the remote end: (0) non
+            negotiated, (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPIPCPControlOptionsEntry 5 }
+
+    -- Tabla que contiene los estadçsticos correspondientes al protocolo IPCP.
+
+        telProdNpMonIfcPPPNCPIPCPStatsTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF TelProdNpMonIfcPPPNCPIPCPStatsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "This table contains statistics of the IPCP protocol. The entry number
+            is determined by the interface number (table index)."
+            ::= { telProdNpMonIfcPPPNCPIPCPGroup 3 }
+
+        telProdNpMonIfcPPPNCPIPCPStatsEntry OBJECT-TYPE
+            SYNTAX TelProdNpMonIfcPPPNCPIPCPStatsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "Each entry contains the node interface number, which is the table
+            index, a variable to check variables deletion (corresponding counters
+            reset), and information about the following counters values: number of
+            sent and received Configure Request NCP frames, number of sent and
+            received Configure Ack NCP frames, number of sent and received Configure
+            Nak NCP frames, number of sent and received Configure Reject NCP frames,
+            number of sent and received Terminate Request NCP frames, number of sent
+            and received Terminate Ack NCP frames."
+            INDEX { telProdNpMonIfcPPPNCPIPCPStIndex }
+
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsTable 1 }
+
+        TelProdNpMonIfcPPPNCPIPCPStatsEntry ::=
+            SEQUENCE{
+                telProdNpMonIfcPPPNCPIPCPStIndex
+                    INTEGER,
+                telProdNpMonIfcPPPNCPIPCPStClear
+                    INTEGER,
+                telProdNpMonIfcPPPNCPIPCPStConfReqRx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStConfReqTx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStConfAckRx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStConfAckTx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStConfNakRx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStConfNakTx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStConfRejRx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStConfRejTx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStTermReqRx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStTermReqTx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStTermAckRx
+                    Counter,
+                telProdNpMonIfcPPPNCPIPCPStTermAckTx
+                    Counter
+                }
+
+        telProdNpMonIfcPPPNCPIPCPStIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Interface number of the node, that indicates the corresponding table
+            entry (it is the table index)."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 1 }
+
+        telProdNpMonIfcPPPNCPIPCPStClear OBJECT-TYPE
+            SYNTAX INTEGER{
+                delete(1),
+                ok(2),
+                error(3),
+                undefined(4)
+                }
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+            "This variable when is readed shows the output from the last counter
+            restart attempt: the value is 2 (ok) if the restart was performed
+            succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+            has tried to restart the counters yet. In set operations, the value 1
+            (it is the only value that can be assigned by a writing operation)
+            causes a counter restart."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 2 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfReqRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Request NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 3 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfReqTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Request NCP frames transmitted through the
+            interface number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 4 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfAckRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Ack NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 5 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfAckTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Ack NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 6 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfNakRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Nak NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 7 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfNakTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Nak NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 8 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfRejRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Reject NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 9 }
+
+        telProdNpMonIfcPPPNCPIPCPStConfRejTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Reject NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 10 }
+
+        telProdNpMonIfcPPPNCPIPCPStTermReqRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Request NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 11 }
+
+         telProdNpMonIfcPPPNCPIPCPStTermReqTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Request NCP frames transmitted through the
+            interface number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 12 }
+
+        telProdNpMonIfcPPPNCPIPCPStTermAckRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Ack NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 13 }
+
+        telProdNpMonIfcPPPNCPIPCPStTermAckTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Ack NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPIPCPStatsEntry 14 }
+
+    -- Grupo de parﬂmetros relacionados con el BCP.
+
+        telProdNpMonIfcPPPNCPBCPGroup OBJECT IDENTIFIER ::= { telProdNpMonIfcPPPNCPGroup 2 }
+
+    -- Tabla que contiene informacin sobre el estado actual del BCP.
+
+        telProdNpMonIfcPPPNCPBCPControlGloTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF TelProdNpMonIfcPPPNCPBCPControlGloEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "This table contains BCP global parameters. This table has an entry for
+            each PPP interface of the node. The entry number is determined by the
+            corresponding interface number (table index)."
+            ::= { telProdNpMonIfcPPPNCPBCPGroup 1 }
+
+        telProdNpMonIfcPPPNCPBCPControlGloEntry OBJECT-TYPE
+            SYNTAX TelProdNpMonIfcPPPNCPBCPControlGloEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "Each entry contains the node interface number which is the table index,
+            and a variable that shows the current state of the BCP protocol."
+            INDEX { telProdNpMonIfcPPPNCPBCPCtrlGloIndex }
+
+            ::= { telProdNpMonIfcPPPNCPBCPControlGloTable 1 }
+
+        TelProdNpMonIfcPPPNCPBCPControlGloEntry ::=
+            SEQUENCE{
+                telProdNpMonIfcPPPNCPBCPCtrlGloIndex
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlGloState
+                    INTEGER
+                }
+
+        telProdNpMonIfcPPPNCPBCPCtrlGloIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Interface number of the node, that indicates the corresponding table
+            entry (it is the table index)."
+            ::= { telProdNpMonIfcPPPNCPBCPControlGloEntry 1 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlGloState OBJECT-TYPE
+            SYNTAX INTEGER{
+                initial(0),
+                starting(1),
+                closed(2),
+                stopped(3),
+                closing(4),
+                stopping(5),
+                req_sent(6),
+                ack_rcvd(7),
+                ack_sent(8),
+                opened(9)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Current protocol state. The possible values of the variable are integer
+            numbers between 0 and 9. Each number is related to a feasible state:
+            (0) initial, (1) starting, (2) closed, (3) stopped, (4) closing,
+            (5) stopping, (6) req_sent, (7) ack_rcvd, (8) ack_sent, (9) opened."
+            ::= { telProdNpMonIfcPPPNCPBCPControlGloEntry 2 }
+
+    -- Tabla que contiene los parﬂmetros que permiten monitorizar las opciones
+    -- transmitidas y recibidas en el establecimiento del protocolo de nivel
+    -- de RED.
+
+        telProdNpMonIfcPPPNCPBCPControlOptionsTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF TelProdNpMonIfcPPPNCPBCPControlOptionsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "This table contains information about parameters used to monitor
+            received and transmitted options during the network level protocol
+            setup. The entry number is determined by the interface value (table
+            index)."
+            ::= { telProdNpMonIfcPPPNCPBCPGroup 2 }
+
+        telProdNpMonIfcPPPNCPBCPControlOptionsEntry OBJECT-TYPE
+            SYNTAX TelProdNpMonIfcPPPNCPBCPControlOptionsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "Each entry contains the node interface number, which is the table
+            index, local tinygram support and remote tinygram support."
+            INDEX { telProdNpMonIfcPPPNCPBCPCtrlOptIndex }
+
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsTable 1 }
+
+        TelProdNpMonIfcPPPNCPBCPControlOptionsEntry ::=
+            SEQUENCE{
+                telProdNpMonIfcPPPNCPBCPCtrlOptIndex
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptLineIdLoc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptLineIdRem
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptMac8023Loc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptMac8023Rem
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptMac8025Loc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptMac8025Rem
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptMacFddiLoc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptMacFddiRem
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptTinyLoc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptTinyRem
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptStp8021DLoc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptStp8021DRem
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptStpIbmSrbLoc
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPCtrlOptStpIbmSrbRem
+                    INTEGER
+                }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Interface number of the node, that indicates the corresponding table
+            entry (it is the table index)."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 1 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptLineIdLoc OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Line Identification configured for SRB on the local end"
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 2 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptLineIdRem OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Line Identification configured for SRB on the remote end"
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 3 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptMac8023Loc OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of IEEE 802.3 frames allowed selected or not in the local end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 4 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptMac8023Rem OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of IEEE 802.3 frames allowed selected or not in the remote end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 5 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptMac8025Loc OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of IEEE 802.5 frames allowed selected or not in the local end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 6 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptMac8025Rem OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of IEEE 802.5 frames allowed selected or not in the remote end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 7 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptMacFddiLoc OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of FDDI frames allowed selected or not in the local end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 8 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptMacFddiRem OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of FDDI frames allowed selected or not in the remote end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 9 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptTinyLoc OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Tinygram compress support selected or not in the local end: (1) yes,
+            (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 10 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptTinyRem OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Tinygram compress support selected or not in the remote end: (1) yes,
+            (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 11 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptStp8021DLoc OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of 802.1D STP frames allowed selected or not in the local end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 12 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptStp8021DRem OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of 802.1D STP frames allowed selected or not in the remote end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 13 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptStpIbmSrbLoc OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of IBM SRB STP frames allowed selected or not in the local end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 14 }
+
+        telProdNpMonIfcPPPNCPBCPCtrlOptStpIbmSrbRem OBJECT-TYPE
+            SYNTAX INTEGER{
+                yes(1),
+                no(2)
+                }
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Reception of IBM SRB STP frames allowed selected or not in the remote end:
+            (1) yes, (2) no."
+            ::= { telProdNpMonIfcPPPNCPBCPControlOptionsEntry 15 }
+
+    -- Tabla que contiene los estadçsticos correspondientes al protocolo BCP.
+
+        telProdNpMonIfcPPPNCPBCPStatsTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF TelProdNpMonIfcPPPNCPBCPStatsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "This table contains statistics of the BCP protocol. The entry number
+            is determined by the interface number (table index)."
+            ::= { telProdNpMonIfcPPPNCPBCPGroup 3 }
+
+        telProdNpMonIfcPPPNCPBCPStatsEntry OBJECT-TYPE
+            SYNTAX TelProdNpMonIfcPPPNCPBCPStatsEntry
+            ACCESS not-accessible
+            STATUS mandatory
+            DESCRIPTION
+            "Each entry contains the node interface number, which is the table
+            index, a variable to check variables deletion (corresponding counters
+            reset), and information about the following counters values: number of
+            sent and received Configure Request NCP frames, number of sent and
+            received Configure Ack NCP frames, number of sent and received Configure
+            Nak NCP frames, number of sent and received Configure Reject NCP frames,
+            number of sent and received Terminate Request NCP frames, number of sent
+            and received Terminate Ack NCP frames."
+            INDEX { telProdNpMonIfcPPPNCPBCPStIndex }
+
+            ::= { telProdNpMonIfcPPPNCPBCPStatsTable 1 }
+
+        TelProdNpMonIfcPPPNCPBCPStatsEntry ::=
+            SEQUENCE{
+                telProdNpMonIfcPPPNCPBCPStIndex
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPStClear
+                    INTEGER,
+                telProdNpMonIfcPPPNCPBCPStConfReqRx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStConfReqTx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStConfAckRx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStConfAckTx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStConfNakRx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStConfNakTx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStConfRejRx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStConfRejTx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStTermReqRx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStTermReqTx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStTermAckRx
+                    Counter,
+                telProdNpMonIfcPPPNCPBCPStTermAckTx
+                    Counter
+                }
+
+        telProdNpMonIfcPPPNCPBCPStIndex OBJECT-TYPE
+            SYNTAX INTEGER
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Interface number of the node, that indicates the corresponding table
+            entry (it is the table index)."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 1 }
+
+        telProdNpMonIfcPPPNCPBCPStClear OBJECT-TYPE
+            SYNTAX INTEGER{
+                delete(1),
+                ok(2),
+                error(3),
+                undefined(4)
+                }
+            ACCESS read-write
+            STATUS mandatory
+            DESCRIPTION
+            "This variable when is readed shows the output from the last counter
+            restart attempt: the value is 2 (ok) if the restart was performed
+            succesfully, 3 (error) if an error ocurred and 4 (undefined) if nobody
+            has tried to restart the counters yet. In set operations, the value 1
+            (it is the only value that can be assigned by a writing operation)
+            causes a counter restart."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 2 }
+
+        telProdNpMonIfcPPPNCPBCPStConfReqRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Request NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 3 }
+
+        telProdNpMonIfcPPPNCPBCPStConfReqTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Request NCP frames transmitted through the
+            interface number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 4 }
+
+        telProdNpMonIfcPPPNCPBCPStConfAckRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Ack NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 5 }
+
+        telProdNpMonIfcPPPNCPBCPStConfAckTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Ack NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 6 }
+
+        telProdNpMonIfcPPPNCPBCPStConfNakRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Nak NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 7 }
+
+        telProdNpMonIfcPPPNCPBCPStConfNakTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Nak NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 8 }
+
+        telProdNpMonIfcPPPNCPBCPStConfRejRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Reject NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 9 }
+
+        telProdNpMonIfcPPPNCPBCPStConfRejTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Configure Reject NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 10 }
+
+        telProdNpMonIfcPPPNCPBCPStTermReqRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Request NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 11 }
+
+         telProdNpMonIfcPPPNCPBCPStTermReqTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Request NCP frames transmitted through the
+            interface number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 12 }
+
+        telProdNpMonIfcPPPNCPBCPStTermAckRx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Ack NCP frames received through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 13 }
+
+        telProdNpMonIfcPPPNCPBCPStTermAckTx OBJECT-TYPE
+            SYNTAX Counter
+            ACCESS read-only
+            STATUS mandatory
+            DESCRIPTION
+            "Number of Terminate Ack NCP frames transmitted through the interface
+            number shown in the index."
+            ::= { telProdNpMonIfcPPPNCPBCPStatsEntry 14 }
+
+END

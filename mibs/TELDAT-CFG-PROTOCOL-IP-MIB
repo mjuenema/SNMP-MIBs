@@ -1,0 +1,943 @@
+
+
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.com
+
+
+                -- MIB privada de Teldat
+
+                -- MIB de configuracin de IP.
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    --      28-05-13    E. Amorena      XH 2811. Unlimited routing table.
+    -- 1.4  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.3  30-08-11  Benjamçn G.       XI 974 Gateway IEC104/101 en CIT.
+    -- 1.2  08/07/09  I. Mu±oz          Revisin de todas las MIB para evitar
+    --                M.A. Pastor       warnings y errores de compilacin
+    -- 1.1  19/09/05  M.A. Pastor       Balanceo de trﬂfico con peso
+    -- 1.0  01/07/04  J. Molina         Fichero procedente de nucleox.mib
+
+
+    -- Historial de nucleox.mib:
+    -- 1.0 (beta)   18/07/97    Jose Picot Coca & Ignacio Salas Salmern
+            -- Implementacion inicial
+    --------------------------------------------------------------------------
+
+TELDAT-CFG-PROTOCOL-IP-MIB DEFINITIONS ::= BEGIN
+
+-- Tipos importados
+
+    IMPORTS
+        IpAddress
+            FROM RFC1155-SMI
+
+        OBJECT-TYPE
+            FROM RFC-1212
+
+        telProdNpConfProtocol
+            FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+    -- telProdNpConfProtIP group
+
+    telProdNpConfProtIP     OBJECT IDENTIFIER ::= { telProdNpConfProtocol 1 }
+
+
+    -- Grupo telProdNpIPGloGroup
+
+    telProdNpIPGloGroup OBJECT IDENTIFIER ::= { telProdNpConfProtIP 1 }
+
+    telProdNpIPGloDirIPInternal OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Internal IP address of the packets."
+        ::={ telProdNpIPGloGroup 1 }
+
+    telProdNpIPGloRouterID  OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "IP address with which router is identified."
+        ::={ telProdNpIPGloGroup 2 }
+
+    telProdNpIPGloSizeRoutingTable  OBJECT-TYPE
+        SYNTAX  INTEGER(0..1000000000)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Maximum routing table size.
+            0 = unlimited.
+            64..1000000000 = routing table size limit.
+            Default value is 0 (unlimited)."
+        DEFVAL {0}
+        ::={ telProdNpIPGloGroup 3 }
+
+    telProdNpIPGloSizeBuffReassembly    OBJECT-TYPE
+        SYNTAX  INTEGER(2048..65535)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Reassembly buffer size.
+            Default value is 12000"
+        DEFVAL {12000}
+        ::={ telProdNpIPGloGroup 4 }
+
+    telProdNpIPGloSizeRoutingCache  OBJECT-TYPE
+        SYNTAX  INTEGER(64..10000)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Router cache size.
+            Default value is 64."
+        DEFVAL {64}
+        ::={ telProdNpIPGloGroup 5 }
+
+    telProdNpIPGloDirectBroadcast OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Direct broadcast activation.
+            Default value of the device is yes(1)."
+        DEFVAL {1}
+        ::={ telProdNpIPGloGroup 6 }
+
+    telProdNpIPGloMultiwayPaquet OBJECT-TYPE
+        SYNTAX  INTEGER{
+                per-packet-round-robin(1),
+                disabled(2),
+                per-destination(3),
+                per-packet-relative-weights(4)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Multipath activation:
+            (1) Per packet multipath, round-robin strategy.
+            (2) Multipath dissabled.
+            (3) Per source and destination multipath (session).
+            (4) Per packet multipath, relative-weights strategy.
+            Default value is disabled(2)."
+        DEFVAL {2}
+        ::={ telProdNpIPGloGroup 7 }
+
+    telProdNpIPGloHabAccessControl OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Access controls activation.
+            If they are disabled, telProdNpIPCtrlTable table does not exist.
+            Default value of the device is NO(2)."
+        DEFVAL {2}
+        ::={ telProdNpIPGloGroup 8 }
+
+    telProdNpIPDelAllDir OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set_ok(1),
+                set_non_ok(2),
+                indeterminate(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable deletes all rows of the IP addresses table
+            (telProdNpIPDirTable)."
+        ::={ telProdNpIPGloGroup 9 }
+
+    telProdNpIPDelAllRut OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set_ok(1),
+                set_non_ok(2),
+                indeterminate(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable deletes all rows of the IP routes table
+            (telProdNpIPRutTable)."
+        ::={ telProdNpIPGloGroup 10 }
+
+    telProdNpIPDelAllFil OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set_ok(1),
+                set_non_ok(2),
+                indeterminate(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable deletes all rows of the filters table
+            (telProdNpIPFilTable)."
+        ::={ telProdNpIPGloGroup 11 }
+
+    telProdNpIPDelAllCtl OBJECT-TYPE
+        SYNTAX  INTEGER{
+                set_ok(1),
+                set_non_ok(2),
+                indeterminate(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable deletes all rows of the access-controls table
+            (telProdNpIPCtrlTable)."
+        ::={ telProdNpIPGloGroup 12 }
+
+    telProdNpIPGloHabIPClassless OBJECT-TYPE
+        SYNTAX  INTEGER{
+                yes(1),
+                no(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "This variable allows enabling IP Classless.
+            Default value of the device is NO(2)."
+        DEFVAL {2}
+        ::={ telProdNpIPGloGroup 15 }
+
+    telProdNpIPGloDirIPManagement   OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Management IP address for traps."
+        ::={ telProdNpIPGloGroup 16 }
+
+    -- La tabla de direcciones
+
+    -- La tabla de  direcciones contiene la informacion de las
+    -- direcciones ,el numero de interfaz (1¶ indice), el indice de la direccion IP(2¶ indice),
+    -- la variable de control de la tabla ,la direccion IP,
+    -- la mascara asociada a esa direccion IP ,el tipo de Broadcast y el relleno
+    -- Broadcast de esa direccion IP.
+
+    -- Si no hay direcciones IP para ningun interfaz la tabla no existe.
+
+    -- Esta tabla esta intimamente relacionada con la  tabla RIP
+    -- (telNpConfRIPDirTable) .Ambas tienen los mismos indices ,y por lo tanto
+    -- las filas son las mismas y estan asociadas a la misma direccion IP de un interfaz
+    -- de la parte ROUTER .
+
+    -- La creacion de una nueva fila en esta tabla supone que tambien se cree
+    -- en la otra (telNpConfRIPDirTable) con los valores por defecto.
+
+    telProdNpIPDirTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpIPDirEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Addresses list. There are two table indexes: the interface and the
+            IP address index."
+        ::= { telProdNpConfProtIP 2 }
+
+   telProdNpIPDirEntry OBJECT-TYPE
+        SYNTAX  TelProdNpIPDirEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the addresses, the interface number (first
+            address), the IP address index (second index), the table control
+            variable, the IP address, the mask associated to that IP address,
+            the broadcast type and the broadcast stuffing of that IP address."
+        INDEX   { telProdNpIPDirInterfazIndex ,telProdNpIPDirIndex }
+        ::={ telProdNpIPDirTable 1 }
+
+    TelProdNpIPDirEntry ::=
+        SEQUENCE{
+            telProdNpIPDirInterfazIndex
+                INTEGER,
+            telProdNpIPDirIndex
+                INTEGER,
+            telProdNpIPDirStatus
+                INTEGER,
+            telProdNpIPDirIP
+                IpAddress,
+            telProdNpIPDirMascara
+                IpAddress,
+            telProdNpIPDirBroadcastType
+                INTEGER,
+            telProdNpIPDirBroadcastRell
+                INTEGER
+        }
+
+    telProdNpIPDirInterfazIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Interface number associated to that IP address.
+            It is the first table index.
+            The interfaces of the ROUTER part (from the first (LAN) till
+            Router->Node) are the only possible ones."
+        ::={ telProdNpIPDirEntry 1 }
+
+    telProdNpIPDirIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Entry number of the IP address. It is the second table index."
+        ::={ telProdNpIPDirEntry 2 }
+
+    telProdNpIPDirStatus OBJECT-TYPE
+        SYNTAX  INTEGER{
+                valid(1),
+                add(2),
+                delete(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Table control variable.
+            Set to 1 does nothing.
+            Set to 2 adds a new row (IP address) in the table with the default values,
+            and returns 2. If it already existed, it modifies IP address as it is
+            described in the following variable(telProdNpIPDirIP).
+            The new row must be added immediately after the last index.
+            Set to 3 deletes all the table fields corresponding to the index, and
+            returns 3.
+            Get returns 1 if the address exists."
+        ::={ telProdNpIPDirEntry 3 }
+
+    telProdNpIPDirIP OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "IP address of this entry.
+            If it is the first interface (number 1, LAN), default value is 0.0.0.0.
+            If it is another interface, default value is 0.0.0.(interface number).
+            If it is requested a new row for an interface to which a row whith
+            the default values already has been assigned, then default IP address
+            will be 0.0.0.(number), where number is the highest interface number
+            (which can have IP address) + 1. And if this IP address already
+            exists, the following one to the last one which exists will be assigned
+            to the interface (adding 1 to the fourth byte).
+            If it is tried to realize a SET with an existing address in another
+            interface, then it returns ERROR.
+            It is allowed realizing a SET with the same address.
+            If it is realized a SET to an address whose first byte is zero,
+            then it only allows the 0.0.0.(number) format, where number is just
+            like before.
+            If the address first byte is zero, then the mask is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPDirEntry 4 }
+
+    telProdNpIPDirMascara OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Mask associated to this IP address.
+            If it is realized a SET to this variable, and the associate IP
+            address has the first byte to zero, then the mask can only be
+            0.0.0.0. In another case, it returns ERROR.
+            If IP address starts at zero, then default value will be 0.0.0.0.
+            If it isn't so, then default value will be 255.0.0.0."
+        -- DEFVAL {"0.0.0.0 ,255.0.0.0"}
+        ::={ telProdNpIPDirEntry 5 }
+
+    telProdNpIPDirBroadcastType OBJECT-TYPE
+        SYNTAX  INTEGER{
+                net(1),
+                medium-local(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Broadcast type.
+            Default value is net (1)."
+        DEFVAL {1}
+        ::={ telProdNpIPDirEntry 6 }
+
+    telProdNpIPDirBroadcastRell OBJECT-TYPE
+        SYNTAX  INTEGER(0..1)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Broadcast stuffing.
+            Value 0 shows that it is stuffed with zeros.
+            Value 1 shows that it is stuffed with zeros.
+            Default value is 0."
+        DEFVAL {0}
+        ::={ telProdNpIPDirEntry 7 }
+
+    -- La tabla de rutas
+
+    -- La tabla rutas contiene las rutas ,el numero de ruta es el indice ,
+    -- la variable de control de la tabla ,la direccion IP final,
+    -- la mascara asociada a esa direccion IP ,la direccion IP siguiente,
+    -- la mascara asociada a esa direccion IP y el coste .
+
+    -- Si no hay rutas la tabla no existe.
+
+    telProdNpIPRutTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpIPRutEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Routes list. The table index is the route position."
+        ::= { telProdNpConfProtIP 4 }
+
+    telProdNpIPRutEntry OBJECT-TYPE
+        SYNTAX  TelProdNpIPRutEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the routes, the route number (table index),
+            the table control variable, the ending IP address, the mask associated
+            to that IP address, the following IP address, the mask associated to
+            to that IP address and the cost."
+        INDEX   { telProdNpIPRutIndex }
+        ::={ telProdNpIPRutTable 1 }
+
+    TelProdNpIPRutEntry ::=
+        SEQUENCE{
+            telProdNpIPRutIndex
+                INTEGER,
+            telProdNpIPRutStatus
+                INTEGER,
+            telProdNpIPRutDirIPFinal
+                IpAddress,
+            telProdNpIPRutMascara
+                IpAddress,
+            telProdNpIPRutDirIPNext
+                IpAddress,
+            telProdNpIPRutCost
+                INTEGER
+            }
+
+    telProdNpIPRutIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "It is the route position in the table."
+        ::={ telProdNpIPRutEntry 1 }
+
+    telProdNpIPRutStatus OBJECT-TYPE
+        SYNTAX  INTEGER{
+                valid(1),
+                add(2),
+                delete(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Table control variable.
+            Set to 1 does nothing.
+            Set to 2 adds a new row (route) in the table with the default values
+            and returns 2. If it already existed, then it returns error.
+            It must be added immediately after the last index.
+            Set to 3 deletes all table fields corresponding to that route, and
+            returns 3.
+            Get returns 1 if the route exists."
+        ::={ telProdNpIPRutEntry 2 }
+
+    telProdNpIPRutDirIPFinal OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Destination IP address.
+            If address is repeated, then it retuns error (it must be repeated
+            the IP address and the corresponding mask.)
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPRutEntry 3 }
+
+    telProdNpIPRutMascara OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Mask associated to this IP address.
+            If the mask is repeated, then it returns error (it must be repeated
+            the IP address and the corresponding mask.)
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPRutEntry 4 }
+
+    telProdNpIPRutDirIPNext OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "IP address of the next hop.
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPRutEntry 5 }
+
+    telProdNpIPRutCost OBJECT-TYPE
+        SYNTAX  INTEGER(0..255)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Hops cost.
+            Default value is 1."
+        DEFVAL {1}
+        ::={ telProdNpIPRutEntry 6 }
+
+    -- La tabla de control de acceso
+
+    -- La tabla de control de acceso contiene los controles de acceso ,
+    -- el numero de control de acceso es el indice ,
+    -- la variable de control de la tabla ,la prioridad ,el tipo de acceso ,
+    -- la direccion IP origen ,la mascara asociada a la direccion IP origen,
+    -- la direccion IP destino ,la mascara asociada a la direccion IP destino ,
+    -- el protocolo inicial y el final ,el puerto inicial y final.
+
+    -- Si no hay controles de acceso la tabla no existe.
+    -- Si el control de acceso esta deshabilitado
+    -- (telProdNpIPGloHabAccessControl a 2) la tabla no existe.
+
+    telProdNpIPCtrlTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpIPCtrlEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Access control list.
+            The table index is the access control position."
+        ::= { telProdNpConfProtIP 5 }
+
+    telProdNpIPCtrlEntry OBJECT-TYPE
+        SYNTAX  TelProdNpIPCtrlEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the access controls information: the access control
+            number (table index), the table control variable, the priority, the
+            access type, the source IP address, the mask associated to source
+            IP address, the destination IP address, the mask associated to
+            destination IP address, the starting protocol, the ending protocol,
+            the starting port and the ending port."
+        INDEX   { telProdNpIPCtrlIndex }
+        ::={ telProdNpIPCtrlTable 1 }
+
+    TelProdNpIPCtrlEntry ::=
+        SEQUENCE{
+            telProdNpIPCtrlIndex
+                INTEGER,
+            telProdNpIPCtrlStatus
+                INTEGER,
+            telProdNpIPCtrlPriority
+                INTEGER,
+            telProdNpIPCtrlAccessType
+                INTEGER,
+            telProdNpIPCtrlDirIPOrigin
+                IpAddress,
+            telProdNpIPCtrlMasIPOrigin
+                IpAddress,
+            telProdNpIPCtrlDirIPFinal
+                IpAddress,
+            telProdNpIPCtrlMasIPFinal
+                IpAddress,
+            telProdNpIPCtrlProtStart
+                INTEGER,
+            telProdNpIPCtrlProtEnd
+                INTEGER,
+            telProdNpIPCtrlPortStart
+                INTEGER,
+            telProdNpIPCtrlPortEnd
+                INTEGER,
+            telProdNpIPCtrlSrcPortStart
+                INTEGER,
+            telProdNpIPCtrlSrcPortEnd
+                INTEGER
+            }
+
+    telProdNpIPCtrlIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "It is the access control position in the table."
+        ::={ telProdNpIPCtrlEntry 1 }
+
+    telProdNpIPCtrlStatus OBJECT-TYPE
+        SYNTAX  INTEGER{
+            valid(1),
+            add(2),
+            delete(3)
+            }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Table control variable.
+            Set to 1 does nothing.
+            Set to 2 adds a new row (access control) in the table with the default
+            values and returns 2. If it already existed, then it returns error.
+            It must be added immediately after the last index.
+            Set to 3 deletes all table fields corresponding to that access control,
+            and returns 3.
+            Get returns 1 if the control exists."
+        ::={ telProdNpIPCtrlEntry 2 }
+
+    telProdNpIPCtrlPriority OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Access control priority.
+            It coincides with its position in the table.
+            Default value is 1.
+            When realizing a set, the position behind which the access control will
+            be placed, must be indicated."
+        DEFVAL {1}
+        ::={ telProdNpIPCtrlEntry 3 }
+
+    telProdNpIPCtrlAccessType OBJECT-TYPE
+        SYNTAX  INTEGER{
+                exclusive(1),
+                inclusive(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Access control type.
+            Default value is 1 (inclusive)."
+        DEFVAL {2}
+        ::={ telProdNpIPCtrlEntry 4 }
+
+    telProdNpIPCtrlDirIPOrigin OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Source IP address.
+            Default value is 0.0.0.0.
+            If the address is repeated, then it returns error."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPCtrlEntry 5 }
+
+    telProdNpIPCtrlMasIPOrigin OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Mask associated to source IP address.
+            If this condition is not fulfilled, SourceIPAddress & (~(SourceMask) )=0,
+            then the mask is inconsistent.
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPCtrlEntry 6 }
+
+    telProdNpIPCtrlDirIPFinal OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Destination IP address.
+            Default value is 0.0.0.0.
+            If the address is repeated, then it returns error."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPCtrlEntry 7 }
+
+    telProdNpIPCtrlMasIPFinal OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Mask associated to destination IP address.
+            If this condition is not fulfilled, DestinationIPAddress & (~(DestinationMask) )=0,
+            then the mask is inconsistent.
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPCtrlEntry 8 }
+
+    telProdNpIPCtrlProtStart OBJECT-TYPE
+        SYNTAX  INTEGER(0..255)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Starting protocol.
+            If it is tried to introduce a value higher than telProdNpIPCtrlProtEnd,
+            then it returns error.
+            Default value is 0."
+        DEFVAL {0}
+        ::={ telProdNpIPCtrlEntry 9 }
+
+    telProdNpIPCtrlProtEnd OBJECT-TYPE
+        SYNTAX  INTEGER(0..255)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Ending protocol.
+            If it is tried to introduce a value lower than telProdNpIPCtrlProtStart,
+            then it returns error.
+            Default value is 255."
+        DEFVAL {255}
+        ::={ telProdNpIPCtrlEntry 10 }
+
+    telProdNpIPCtrlPortStart OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Starting destination port for UDP or TCP protocol and starting code
+            for ICMP protocol.
+            If it is tried to introduce a value higher than telProdNpIPCtrlPortEnd,
+            then it returns error.
+            Default value is 0."
+        DEFVAL {0}
+        ::={ telProdNpIPCtrlEntry 11 }
+
+    telProdNpIPCtrlPortEnd OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Ending destination port for UDP or TCP protocol and ending code
+            for ICMP protocol.
+            If it is tried to introduce a value lower than telProdNpIPCtrlPortStart,
+            then it returns error.
+            Default value is 65535."
+        DEFVAL {65535}
+        ::={ telProdNpIPCtrlEntry 12 }
+
+    telProdNpIPCtrlSrcPortStart OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Starting source port for UDP or TCP protocol and starting type
+            for ICMP protocol.
+            If it is tried to introduce a value higher than telProdNpIPCtrlSrcPortEnd,
+            then it returns error.
+            Default value is 0."
+        DEFVAL {0}
+        ::={ telProdNpIPCtrlEntry 13 }
+
+    telProdNpIPCtrlSrcPortEnd OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Ending source port for UDP or TCP protocol and endng type
+            for ICMP protocol.
+            If it is tried to introduce a value lower than telProdNpIPCtrlSrcPortStart,
+            then it returns error.
+            Default value is 65535."
+        DEFVAL {65535}
+        ::={ telProdNpIPCtrlEntry 14 }
+
+    -- La tabla de filtros
+
+    -- La tabla de filtros contiene los filtros ,el numero de filtro es el indice ,
+    -- la variable de control de la tabla ,la direccion IP destino ,
+    -- la mascara subred asociada a esa direccion IP .
+
+    -- Si no hay filtros la tabla no existe.
+
+    telProdNpIPFilTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpIPFilEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Filters list.
+            The table index is the filter position."
+        ::= { telProdNpConfProtIP 6 }
+
+    telProdNpIPFilEntry OBJECT-TYPE
+        SYNTAX  TelProdNpIPFilEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the filters, the filter number (table index),
+            the table control variable, the destination IP address and the mask
+            associated to that IP address."
+        INDEX   { telProdNpIPFilIndex }
+        ::={ telProdNpIPFilTable 1 }
+
+    TelProdNpIPFilEntry ::=
+        SEQUENCE{
+            telProdNpIPFilIndex
+                INTEGER,
+            telProdNpIPFilStatus
+                INTEGER,
+            telProdNpIPFilDirIPFinal
+                IpAddress,
+            telProdNpIPFilMasIPNet
+                IpAddress
+            }
+
+    telProdNpIPFilIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "It is the filter position in the table."
+        ::={ telProdNpIPFilEntry 1 }
+
+    telProdNpIPFilStatus OBJECT-TYPE
+        SYNTAX  INTEGER{
+                valid(1),
+                add(2),
+                delete(3)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Table control variable.
+            Set to 1 does nothing.
+            Set to 2 adds a new row (filter) in the table with the default
+            values and returns 2. If it already existed, then it returns error.
+            It must be added immediately after the last index.
+            Set to 3 deletes all table fields corresponding to that filter, and
+            returns 3.
+            Get returns 1 if the filter exists."
+        ::={ telProdNpIPFilEntry 2 }
+
+    telProdNpIPFilDirIPFinal OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Destination IP address.
+            Default value is 0.0.0.0.
+            If address is repeated, then it retuns error (it must be repeated
+            the IP address and the corresponding mask)."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPFilEntry 3 }
+
+    telProdNpIPFilMasIPNet OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Mask associated to this IP address.
+            If mask is repeated, then it retuns error (it must be repeated
+            the IP address and the corresponding mask).
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPFilEntry 4 }
+
+    -- La tabla de rutas de agregacin
+
+    -- El nîmero de ruta de agregacin es el çndice, y cada entrada
+    -- contiene, ademﬂs de ese çndice, la variable de control de la
+    -- tabla, la direccion IP final, la mascara asociada a esa direccion
+    -- IP y el coste.
+
+    -- Si no hay rutas de agregacin la tabla no existe.
+
+    telProdNpIPAggRutTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF TelProdNpIPAggRutEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Aggregation routes table. The table index is the route position."
+        ::= { telProdNpConfProtIP 8 }
+
+    telProdNpIPAggRutEntry OBJECT-TYPE
+        SYNTAX  TelProdNpIPAggRutEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+            "Each entry consists of the routes, the route number (table index),
+            the table control variable, the ending IP address, the mask associated
+            to that IP address and the cost."
+        INDEX   { telProdNpIPAggRutIndex }
+        ::={ telProdNpIPAggRutTable 1 }
+
+    TelProdNpIPAggRutEntry ::=
+        SEQUENCE{
+            telProdNpIPAggRutIndex
+                INTEGER,
+            telProdNpIPAggRutStatus
+                INTEGER,
+            telProdNpIPAggRutDirIPFinal
+                IpAddress,
+            telProdNpIPAggRutMascara
+                IpAddress,
+            telProdNpIPAggRutCost
+                INTEGER
+            }
+
+    telProdNpIPAggRutIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "It is the route position in the table."
+        ::={ telProdNpIPAggRutEntry 1 }
+
+    telProdNpIPAggRutStatus OBJECT-TYPE
+        SYNTAX  INTEGER{
+                valid(1),
+                delete(2)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Table control variable.
+            Set to 1 does nothing.
+            Set to 2 deletes that route.
+            Get returns 1 if the route exists."
+        ::={ telProdNpIPAggRutEntry 2 }
+
+    telProdNpIPAggRutDirIPFinal OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Destination IP address. To introduce a new aggregation route, a SET operation
+            must be carried out, giving this variable a certain value (IP address). The index
+            corresponding to this address must be higher than the entries number
+            of that table.
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPAggRutEntry 3 }
+
+    telProdNpIPAggRutMascara OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+            "Mask associated to this IP address.
+            To introduce a new aggregation route, a SET operation must be carried out,
+            giving this variable a certain value (mask). The index corresponding to this
+            address must be higher than the entries number of that table.
+            Default value is 0.0.0.0."
+        -- DEFVAL {"0.0.0.0"}
+        ::={ telProdNpIPAggRutEntry 4 }
+
+    telProdNpIPAggRutCost OBJECT-TYPE
+        SYNTAX  INTEGER(0..255)
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+            "Hops cost.
+            Default value is 1."
+        DEFVAL {1}
+        ::={ telProdNpIPAggRutEntry 5 }
+
+-- Fin de la tabla de rutas de agregacin
+
+
+
+END

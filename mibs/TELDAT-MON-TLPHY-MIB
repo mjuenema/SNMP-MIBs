@@ -1,0 +1,1043 @@
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+            -- Telefonça IP
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.6  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.5  30/06/10    M.A. Pastor     Compatibilidad con Spectrum
+    -- 1.4  09/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+    --                  M.A. Pastor     warnings y errores de compilacin
+    -- 1.3  08/01/07    M. Fadon        Agregados tipos para facility
+    -- 1.2  23/11/06    P. Marzo        Agregados tipos para noe
+    -- 1.1  15/09/06    R. Chavarrça    Se a±ade 'unknown' a los codecs y a tipo
+    --                                 de CDR. Se corrige el çndice para la tabla
+    --                                 de mensajes
+    -- 1.0  18/05/06    M. Fadon        Implementacin inicial
+--------------------------------------------------------------------------------
+
+TELDAT-MON-TLPHY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Unsigned32
+        FROM SNMPv2-SMI
+
+    DisplayString,
+    TruthValue,
+    DateAndTime,
+    TimeInterval,
+    TEXTUAL-CONVENTION
+        FROM SNMPv2-TC
+
+    telProductsNpMonit
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+
+--
+-- teldatTlphyMonMIB
+--
+
+telProdNpMonTlphy MODULE-IDENTITY
+    LAST-UPDATED    "200605191205Z"
+    ORGANIZATION    "Teldat, S.A."
+    CONTACT-INFO
+        "Teldat, S.A.
+        Customer Service
+
+        Postal: Parque Tecnolgico de Madrid
+                Tres Cantos 28760
+                Madrid, SPAIN
+
+        Tel.: +34 918 076 565
+
+        http://www.teldat.com"
+    DESCRIPTION
+        "This module defines a MIB for IP Telephony monitoring.
+
+        TLPHY MIB
+        |+++ Command group
+        |    |t++ VoIP Ports Command Table
+        |    |+++ Clear Cdr Released
+        |    |+++ File Dump Cdrs
+        |+++ Status group
+        |    |t++ Active Calls stats
+        |    |t++ Active Calls CDRs
+        |    |t++ Released Calls CDRs
+        |    |t++ Active Dial-peers
+        |    |t++ Voice Messages
+        |    |+++ Total Calls
+        |    |+++ Active Calls
+        |    |+++ Mean Call Time
+        |    |+++ Cdr Filename
+        |    |+++ Cdr Last Saved
+        |    |+++ Cdr Last Tried"
+
+    REVISION    "200605191205Z"
+    DESCRIPTION "Initial implementation."
+
+    ::= { telProductsNpMonit 5 }
+
+--
+--  Location of node telProdNpMonTlphy in TELDAT-MIB
+--
+
+-- telproducts              OBJECT IDENTIFIER ::= { teldat 4 }
+-- telProductsNucleox       OBJECT IDENTIFIER ::= { telproducts 1 }
+-- telProductsNpMonit       OBJECT IDENTIFIER ::= { telProductsNucleox 2 }
+-- telProdNpMonTlphy        OBJECT IDENTIFIER ::= { telProductsNpMonit 5 }
+
+--
+--  TLPHY tables index textual convention
+--
+
+TlphyTableIndex ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Integer range to use as index for TLPHY tables"
+    SYNTAX  INTEGER (1 .. 65535)
+
+--
+--  TLPHY codec textual convention
+--
+
+TlphyCodecs ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Codecs for a VoIP call."
+    SYNTAX  INTEGER {
+        unknown(1),
+        g711Alaw(2),
+        g711Ulaw(3),
+        g723_5k3(4),
+        g723_6k4(5),
+        g729(6)
+      }
+
+--
+--  IP Telephony MIB Objects
+--
+
+teldatTlphyObjects    OBJECT IDENTIFIER   ::= { telProdNpMonTlphy 1 }
+
+--
+--  Global TLPHY monitoring variables
+--
+
+--
+--  Global Comand group TLPHY monitoring variables
+--
+
+teldatTlphyCmdObject     OBJECT IDENTIFIER   ::= { teldatTlphyObjects 1 }
+
+teldatTlphyCmdVoipPortTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatTlphyCmdVoipPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of commands available for VoIP ports. Each row represents a port"
+    ::= { teldatTlphyCmdObject 1 }
+
+teldatTlphyCmdVoipPortEntry OBJECT-TYPE
+    SYNTAX      TeldatTlphyCmdVoipPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that are commands to a VoIP port. There are two
+        index: the first is the VoIP interface and the second the line in the
+        interface"
+    INDEX       { teldatTlphyCmdVoipIfIndex,
+                  teldatTlphyCmdVoiplineIndex }
+    ::= { teldatTlphyCmdVoipPortTable 1 }
+
+TeldatTlphyCmdVoipPortEntry ::= SEQUENCE
+{
+    teldatTlphyCmdVoipIfIndex           Unsigned32,
+    teldatTlphyCmdVoiplineIndex         Unsigned32,
+    teldatTlphyCmdVoipPortMakeCall      DisplayString,
+    teldatTlphyCmdVoipPortMakeCnsltCall DisplayString,
+    teldatTlphyCmdVoipPortHangUp        INTEGER,
+    teldatTlphyCmdVoipPortPickUp        INTEGER,
+    teldatTlphyCmdVoipPortRecordMsg     INTEGER,
+    teldatTlphyCmdVoipPortPlayMsg       INTEGER
+}
+
+teldatTlphyCmdVoipIfIndex OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Interface index."
+    ::={ teldatTlphyCmdVoipPortEntry 1 }
+
+teldatTlphyCmdVoiplineIndex OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Line index."
+    ::={ teldatTlphyCmdVoipPortEntry 2 }
+
+teldatTlphyCmdVoipPortMakeCall OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Makes a Call from the VoIP port to the number writen."
+    ::={ teldatTlphyCmdVoipPortEntry 3 }
+
+teldatTlphyCmdVoipPortMakeCnsltCall OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Makes a consult Call from the VoIP port to the number writen. The
+        port must have a call established, wich is placed in hold before
+        making the consult call"
+    ::={ teldatTlphyCmdVoipPortEntry 4 }
+
+teldatTlphyCmdVoipPortHangUp OBJECT-TYPE
+    SYNTAX  INTEGER {
+        execute(1),
+        ok(2),
+        error(3),
+        undefined(4)
+      }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Hangs up the call in the VoIP port."
+    ::={ teldatTlphyCmdVoipPortEntry 5 }
+
+teldatTlphyCmdVoipPortPickUp OBJECT-TYPE
+    SYNTAX  INTEGER {
+        execute(1),
+        ok(2),
+        error(3),
+        undefined(4)
+      }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Pics Up the incoming call in the VoIP port."
+    ::={ teldatTlphyCmdVoipPortEntry 6 }
+
+teldatTlphyCmdVoipPortRecordMsg OBJECT-TYPE
+    SYNTAX  INTEGER (1..9)
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Records a message in the VoIP port and saves it in the number
+        written."
+    ::={ teldatTlphyCmdVoipPortEntry 7 }
+
+teldatTlphyCmdVoipPortPlayMsg OBJECT-TYPE
+    SYNTAX  INTEGER (1..9)
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Plays the message written in the VoIP port."
+    ::={ teldatTlphyCmdVoipPortEntry 8 }
+
+
+teldatTlphyCmdClearCdrRel OBJECT-TYPE
+    SYNTAX  INTEGER {
+        execute(1),
+        ok(2),
+        error(3),
+        undefined(4)
+      }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Clear released calls CDRs."
+    ::={ teldatTlphyCmdObject 2 }
+
+teldatTlphyCmdFileDumpCdrs OBJECT-TYPE
+    SYNTAX  INTEGER {
+        execute(1),
+        ok(2),
+        error(3),
+        undefined(4)
+      }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Dump CDRs to configured file in disk."
+    ::={ teldatTlphyCmdObject 3 }
+
+--
+--  Global Stats group TLPHY monitoring variables
+--
+
+teldatTlphyStatObject     OBJECT IDENTIFIER   ::= { teldatTlphyObjects 2 }
+
+--
+--  Active Call Stats Table, TLPHY monitoring variables
+--
+
+teldatTlphyStatActCallsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatTlphyStatActCallsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of stats of active calls. Each row is an active call."
+    ::= { teldatTlphyStatObject 1 }
+
+teldatTlphyStatActCallsEntry OBJECT-TYPE
+    SYNTAX      TeldatTlphyStatActCallsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that are stats of an active call."
+    INDEX       { teldatTlphyStatActCallIndex }
+
+    ::= { teldatTlphyStatActCallsTable 1 }
+
+TeldatTlphyStatActCallsEntry ::= SEQUENCE
+{
+    teldatTlphyStatActCallIndex      TlphyTableIndex,
+    teldatTlphyStatActCallCdr        Unsigned32,
+    teldatTlphyStatActCallCaller     DisplayString,
+    teldatTlphyStatActCallCalled     DisplayString,
+    teldatTlphyStatActCallInDpeer    Unsigned32,
+    teldatTlphyStatActCallOutDpeer   Unsigned32,
+    teldatTlphyStatActCallOutDynpeer Unsigned32,
+    teldatTlphyStatActCallCodec      TlphyCodecs,
+    teldatTlphyStatActCallVad        TruthValue,
+    teldatTlphyStatActCallNob        INTEGER,
+    teldatTlphyStatActCallFax        TruthValue,
+    teldatTlphyStatActCallDTMFrel    INTEGER,
+    teldatTlphyStatActCallTxB        Unsigned32,
+    teldatTlphyStatActCallRxB        Unsigned32,
+    teldatTlphyStatActCallInPeer     DisplayString,
+    teldatTlphyStatActCallOutPeer    DisplayString,
+    teldatTlphyStatActCallInRtpDly   Unsigned32,
+    teldatTlphyStatActCallOutRtpDly  Unsigned32,
+    teldatTlphyStatActCallInInfo     DisplayString,
+    teldatTlphyStatActCallOutInfo    DisplayString
+}
+
+teldatTlphyStatActCallIndex OBJECT-TYPE
+    SYNTAX  TlphyTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Active Call index."
+    ::={ teldatTlphyStatActCallsEntry 1 }
+
+teldatTlphyStatActCallCdr OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "CDR id of this call."
+    ::={ teldatTlphyStatActCallsEntry 2 }
+
+teldatTlphyStatActCallCaller OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Caller number of the call."
+    ::={ teldatTlphyStatActCallsEntry 3 }
+
+teldatTlphyStatActCallCalled OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Called number of the call."
+    ::={ teldatTlphyStatActCallsEntry 4 }
+
+teldatTlphyStatActCallInDpeer OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Incoming dial-peer of the call."
+    ::={ teldatTlphyStatActCallsEntry 5 }
+
+teldatTlphyStatActCallOutDpeer OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Outgoing dial-peer of the call."
+    ::={ teldatTlphyStatActCallsEntry 6 }
+
+teldatTlphyStatActCallOutDynpeer OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Dynamic Outgoing dial-peer of the call. Is not 0 when Outgoing
+        dial-peer target is dynamic"
+    ::={ teldatTlphyStatActCallsEntry 7 }
+
+teldatTlphyStatActCallCodec OBJECT-TYPE
+    SYNTAX  TlphyCodecs
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Codec used in the call."
+    ::={ teldatTlphyStatActCallsEntry 8 }
+
+teldatTlphyStatActCallVad OBJECT-TYPE
+    SYNTAX  TruthValue
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Voice Activity Detection is active in the call."
+    ::={ teldatTlphyStatActCallsEntry 9 }
+
+teldatTlphyStatActCallNob OBJECT-TYPE
+    SYNTAX  INTEGER (1..6)
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Number of voice blocks per packet used in the call."
+    ::={ teldatTlphyStatActCallsEntry 10 }
+
+teldatTlphyStatActCallFax OBJECT-TYPE
+    SYNTAX  TruthValue
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Fax call."
+    ::={ teldatTlphyStatActCallsEntry 11 }
+
+teldatTlphyStatActCallDTMFrel OBJECT-TYPE
+    SYNTAX  INTEGER {
+        inband(1),
+        h245alphanumeric(2),
+        h245signal(3),
+        rfc2833(4)
+      }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "DTMF relay mode used in the call."
+    ::={ teldatTlphyStatActCallsEntry 12 }
+
+teldatTlphyStatActCallTxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes transmited in the call."
+    ::={ teldatTlphyStatActCallsEntry 13 }
+
+teldatTlphyStatActCallRxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes received in the call."
+    ::={ teldatTlphyStatActCallsEntry 14 }
+
+teldatTlphyStatActCallInPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Incoming peer in the call. The host if call comes from IP or the
+        VoIP port if call is from a Voice Port."
+    ::={ teldatTlphyStatActCallsEntry 15 }
+
+teldatTlphyStatActCallOutPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Outgoing peer in the call. The host if call destination is IP or the
+        VoIP port if destination of call is a Voice Port."
+    ::={ teldatTlphyStatActCallsEntry 16 }
+
+teldatTlphyStatActCallInRtpDly OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Current RTP Delay if call origin is IP."
+    ::={ teldatTlphyStatActCallsEntry 17 }
+
+teldatTlphyStatActCallOutRtpDly OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Current RTP Delay if call destination is IP."
+    ::={ teldatTlphyStatActCallsEntry 18 }
+
+teldatTlphyStatActCallInInfo OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Incoming peer extra info."
+    ::={ teldatTlphyStatActCallsEntry 19 }
+
+teldatTlphyStatActCallOutInfo OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Outgoing peer extra info."
+    ::={ teldatTlphyStatActCallsEntry 20 }
+
+--
+--  Active Call CDRs Table, TLPHY monitoring variables
+--
+
+teldatTlphyStatCdrActTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatTlphyStatCdrActEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of CDRs of active calls. Each row is an active call."
+    ::= { teldatTlphyStatObject 2 }
+
+teldatTlphyStatCdrActEntry OBJECT-TYPE
+    SYNTAX      TeldatTlphyStatCdrActEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects with detail records of an active call."
+    INDEX       { teldatTlphyStatCdrActIndex }
+
+    ::= { teldatTlphyStatCdrActTable 1 }
+
+TeldatTlphyStatCdrActEntry ::= SEQUENCE
+{
+    teldatTlphyStatCdrActIndex      TlphyTableIndex,
+    teldatTlphyStatCdrActCaller     DisplayString,
+    teldatTlphyStatCdrActCalled     DisplayString,
+    teldatTlphyStatCdrActType       INTEGER,
+    teldatTlphyStatCdrActInPeer     DisplayString,
+    teldatTlphyStatCdrActOutPeer    DisplayString,
+    teldatTlphyStatCdrActCodec      TlphyCodecs,
+    teldatTlphyStatCdrActTxB        Unsigned32,
+    teldatTlphyStatCdrActRxB                Unsigned32,
+    teldatTlphyStatCdrActSetup          DateAndTime,
+    teldatTlphyStatCdrActConn           DateAndTime,
+    teldatTlphyStatCdrActDur            TimeInterval
+}
+
+teldatTlphyStatCdrActIndex OBJECT-TYPE
+    SYNTAX  TlphyTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Active Call CDR index."
+    ::={ teldatTlphyStatCdrActEntry 1 }
+
+teldatTlphyStatCdrActCaller OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Caller number of the call."
+    ::={ teldatTlphyStatCdrActEntry 2 }
+
+teldatTlphyStatCdrActCalled OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Called number of the call."
+    ::={ teldatTlphyStatCdrActEntry 3 }
+
+teldatTlphyStatCdrActType OBJECT-TYPE
+    SYNTAX  INTEGER {
+        unknown(1),
+        local(2),
+        h323(3),
+        sipGw(4),
+        sipServer(5),
+        direct(6),
+        noeGw(7),
+        noeServer(8),
+        sip2noe(9)
+     }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Type of the call."
+    ::={ teldatTlphyStatCdrActEntry 4 }
+
+teldatTlphyStatCdrActInPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Incoming peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatTlphyStatCdrActEntry 5 }
+
+teldatTlphyStatCdrActOutPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Outgoing peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatTlphyStatCdrActEntry 6 }
+
+teldatTlphyStatCdrActCodec OBJECT-TYPE
+    SYNTAX  TlphyCodecs
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Codec used in the call."
+    ::={ teldatTlphyStatCdrActEntry 7 }
+
+teldatTlphyStatCdrActTxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes transmited in the call."
+    ::={ teldatTlphyStatCdrActEntry 8 }
+
+teldatTlphyStatCdrActRxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes received in the call."
+    ::={ teldatTlphyStatCdrActEntry 9 }
+
+teldatTlphyStatCdrActSetup OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Setup Time."
+    ::={ teldatTlphyStatCdrActEntry 10 }
+
+teldatTlphyStatCdrActConn OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Connection Time."
+    ::={ teldatTlphyStatCdrActEntry 11 }
+
+teldatTlphyStatCdrActDur OBJECT-TYPE
+    SYNTAX  TimeInterval
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Duration Time."
+    ::={ teldatTlphyStatCdrActEntry 12 }
+
+--
+--  Released Call CDRs Table, TLPHY monitoring variables
+--
+
+teldatTlphyStatCdrRelTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatTlphyStatCdrRelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of CDRs of Released calls. Each row is a Released call."
+    ::= { teldatTlphyStatObject 3 }
+
+teldatTlphyStatCdrRelEntry OBJECT-TYPE
+    SYNTAX      TeldatTlphyStatCdrRelEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects with detail records of a Released call."
+    INDEX       { teldatTlphyStatCdrRelIndex }
+
+    ::= { teldatTlphyStatCdrRelTable 1 }
+
+TeldatTlphyStatCdrRelEntry ::= SEQUENCE
+{
+    teldatTlphyStatCdrRelIndex      TlphyTableIndex,
+    teldatTlphyStatCdrRelCaller     DisplayString,
+    teldatTlphyStatCdrRelCalled     DisplayString,
+    teldatTlphyStatCdrRelType       INTEGER,
+    teldatTlphyStatCdrRelInPeer     DisplayString,
+    teldatTlphyStatCdrRelOutPeer    DisplayString,
+    teldatTlphyStatCdrRelCodec      TlphyCodecs,
+    teldatTlphyStatCdrRelTxB        Unsigned32,
+    teldatTlphyStatCdrRelRxB        Unsigned32,
+    teldatTlphyStatCdrRelCause      INTEGER,
+    teldatTlphyStatCdrRelSetup      DateAndTime,
+    teldatTlphyStatCdrRelConn       DateAndTime,
+    teldatTlphyStatCdrRelDisc       DateAndTime,
+    teldatTlphyStatCdrRelDur        TimeInterval
+}
+
+teldatTlphyStatCdrRelIndex OBJECT-TYPE
+    SYNTAX  TlphyTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Released Call CDR index."
+    ::={ teldatTlphyStatCdrRelEntry 1 }
+
+teldatTlphyStatCdrRelCaller OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Caller number of the call."
+    ::={ teldatTlphyStatCdrRelEntry 2 }
+
+teldatTlphyStatCdrRelCalled OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Called number of the call."
+    ::={ teldatTlphyStatCdrRelEntry 3 }
+
+teldatTlphyStatCdrRelType OBJECT-TYPE
+    SYNTAX  INTEGER {
+        unknown(1),
+        local(2),
+        h323(3),
+        sipGw(4),
+        sipServer(5),
+        direct(6),
+        noeGw(7),
+        noeServer(8),
+        sip2noe(9)
+      }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Type of the call."
+    ::={ teldatTlphyStatCdrRelEntry 4 }
+
+teldatTlphyStatCdrRelInPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Incoming peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatTlphyStatCdrRelEntry 5 }
+
+teldatTlphyStatCdrRelOutPeer OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Outgoing peer of the call. Host if is IP or VoipPort if local port."
+    ::={ teldatTlphyStatCdrRelEntry 6 }
+
+teldatTlphyStatCdrRelCodec OBJECT-TYPE
+    SYNTAX  TlphyCodecs
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Codec used in the call."
+    ::={ teldatTlphyStatCdrRelEntry 7 }
+
+teldatTlphyStatCdrRelTxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes transmited in the call."
+    ::={ teldatTlphyStatCdrRelEntry 8 }
+
+teldatTlphyStatCdrRelRxB OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Bytes received in the call."
+    ::={ teldatTlphyStatCdrRelEntry 9 }
+
+teldatTlphyStatCdrRelCause OBJECT-TYPE
+    SYNTAX  INTEGER (0..255)
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Q.850 release code."
+    ::={ teldatTlphyStatCdrRelEntry 10 }
+
+teldatTlphyStatCdrRelSetup OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Setup Time."
+    ::={ teldatTlphyStatCdrRelEntry 11 }
+
+teldatTlphyStatCdrRelConn OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Connection Time."
+    ::={ teldatTlphyStatCdrRelEntry 12 }
+
+teldatTlphyStatCdrRelDisc OBJECT-TYPE
+    SYNTAX  DateAndTime
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Disconnection Time."
+    ::={ teldatTlphyStatCdrRelEntry 13 }
+
+teldatTlphyStatCdrRelDur OBJECT-TYPE
+    SYNTAX  TimeInterval
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Call Duration Time."
+    ::={ teldatTlphyStatCdrRelEntry 14 }
+
+--
+--  Active Dial-peers Table, TLPHY monitoring variables
+--
+
+teldatTlphyStatActDialpeersTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatTlphyStatActDialpeersEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of active dial peers."
+    ::= { teldatTlphyStatObject 4 }
+
+teldatTlphyStatActDialpeersEntry OBJECT-TYPE
+    SYNTAX      TeldatTlphyStatActDialpeersEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects with dial-peer information."
+    INDEX       { teldatTlphyStatActDialpeersIndex,
+                                teldatTlphyStatActDialpeersDestPatInd }
+
+    ::= { teldatTlphyStatActDialpeersTable 1 }
+
+TeldatTlphyStatActDialpeersEntry ::= SEQUENCE
+{
+    teldatTlphyStatActDialpeersIndex      TlphyTableIndex,
+    teldatTlphyStatActDialpeersDestPatInd TlphyTableIndex,
+    teldatTlphyStatActDialpeersType       INTEGER,
+    teldatTlphyStatActDialpeersMatched    Unsigned32,
+    teldatTlphyStatActDialpeersActCals    Unsigned32,
+    teldatTlphyStatActDialpeersPattn      DisplayString,
+    teldatTlphyStatActDialpeersTarget     DisplayString
+}
+
+teldatTlphyStatActDialpeersIndex OBJECT-TYPE
+    SYNTAX  TlphyTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Dial-peer number."
+    ::={ teldatTlphyStatActDialpeersEntry 1 }
+
+teldatTlphyStatActDialpeersDestPatInd OBJECT-TYPE
+    SYNTAX  TlphyTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Index for the teldatTlphyStatActDialpeersPattn object."
+    ::={ teldatTlphyStatActDialpeersEntry 2 }
+
+teldatTlphyStatActDialpeersType OBJECT-TYPE
+    SYNTAX  INTEGER {
+        voiceport(1),
+        sip(2),
+        h323(3),
+        group(4),
+        direct(5),
+        noe(6),
+        facility(7)
+      }
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Dial-peer type."
+    ::={ teldatTlphyStatActDialpeersEntry 3 }
+
+teldatTlphyStatActDialpeersMatched OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Number of times dial-peer has beeing matched."
+    ::={ teldatTlphyStatActDialpeersEntry 4 }
+
+teldatTlphyStatActDialpeersActCals OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Number of active calls using this dial-peer."
+    ::={ teldatTlphyStatActDialpeersEntry 5 }
+
+teldatTlphyStatActDialpeersPattn OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Destination Pattern. This object is indexed by the second index:
+        teldatTlphyStatActDialpeersDestPatInd."
+    ::={ teldatTlphyStatActDialpeersEntry 6 }
+
+teldatTlphyStatActDialpeersTarget OBJECT-TYPE
+    SYNTAX  DisplayString
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Target of this dial-peer. May be a host or VoicePort."
+    ::={ teldatTlphyStatActDialpeersEntry 7 }
+
+--
+--  Voice Messages Table, TLPHY monitoring variables
+--
+
+teldatTlphyStatMessagesTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatTlphyStatMessagesEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of Voice Messages used."
+    ::= { teldatTlphyStatObject 5 }
+
+teldatTlphyStatMessagesEntry OBJECT-TYPE
+    SYNTAX      TeldatTlphyStatMessagesEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects with voice messages information."
+    INDEX       { teldatTlphyStatMessagesIndex }
+
+    ::= { teldatTlphyStatMessagesTable 1 }
+
+TeldatTlphyStatMessagesEntry ::= SEQUENCE
+{
+    teldatTlphyStatMessagesIndex      TlphyTableIndex,
+    teldatTlphyStatMessagesSize       Unsigned32,
+    teldatTlphyStatMessagesCodec      TlphyCodecs,
+    teldatTlphyStatMessagesVersion    Unsigned32
+}
+
+teldatTlphyStatMessagesIndex OBJECT-TYPE
+    SYNTAX  TlphyTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Voice message number."
+    ::={ teldatTlphyStatMessagesEntry 1 }
+
+teldatTlphyStatMessagesSize OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Size of the voice message."
+    ::={ teldatTlphyStatMessagesEntry 2 }
+
+teldatTlphyStatMessagesCodec OBJECT-TYPE
+    SYNTAX  TlphyCodecs
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Codec of the voice message."
+    ::={ teldatTlphyStatMessagesEntry 3 }
+
+teldatTlphyStatMessagesVersion OBJECT-TYPE
+    SYNTAX  Unsigned32
+    MAX-ACCESS  read-only
+    STATUS  current
+    DESCRIPTION
+        "Version of the voice message."
+    ::={ teldatTlphyStatMessagesEntry 4 }
+
+--
+--  Global Stats, TLPHY monitoring variables
+--
+
+teldatTlphyStatTotalCalls OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Total calls made."
+    ::= { teldatTlphyStatObject 6 }
+
+teldatTlphyStatActiveCalls OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Active calls."
+    ::= { teldatTlphyStatObject 7 }
+
+teldatTlphyStatMeanCallDuration OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Mean call duration."
+    ::= { teldatTlphyStatObject 8 }
+
+teldatTlphyStatCdrFilename OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Filename of CDR file in disk."
+    ::= { teldatTlphyStatObject 9 }
+
+teldatTlphyStatCdrLastSaved OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Last time CDR was dumped to file in disk."
+    ::= { teldatTlphyStatObject 10 }
+
+teldatTlphyStatCdrLastTried OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Last try CDR was dumped to file in disk."
+    ::= { teldatTlphyStatObject 11 }
+
+--
+--  NOTIFICATION DEFINITIONS
+--
+--  This section defines the traps that can be generated by the agent.
+--
+--
+
+teldatTlphyNotificationsPrefix    OBJECT IDENTIFIER ::= { telProdNpMonTlphy 2 }
+teldatTlphyNotifications          OBJECT IDENTIFIER ::= { teldatTlphyNotificationsPrefix 0 }
+
+--
+--  Conformance Information
+--
+
+teldatTlphyMibConformance OBJECT IDENTIFIER ::= { telProdNpMonTlphy 3 }
+teldatTlphyMibCompliances OBJECT IDENTIFIER ::= { teldatTlphyMibConformance 1 }
+teldatTlphyMibGroups      OBJECT IDENTIFIER ::= { teldatTlphyMibConformance 2 }
+
+END
