@@ -26,7 +26,7 @@ for name1 in glob.glob('*'):
             for line in fp:
                 m = re.match(r'^(\S+)\s+DEFINITIONS\s+::=\s+BEGIN', line)
                 if m:
-                    name2 = m.groups()[0].upper()
+                    name2 = f"{m.groups()[0].upper()}.mib"
         except UnicodeDecodeError:
             # Cannot deal with that at the moment
             pass
