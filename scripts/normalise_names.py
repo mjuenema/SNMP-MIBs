@@ -16,7 +16,7 @@ import re
 import sys
 
 # Quick test that we are in the mibs/ folder
-os.stat('XPPC-MIB')
+os.stat('XPPC-MIB.mib')
 
 for name1 in glob.glob('*'):
 #    print(name1, file=sys.stderr)
@@ -24,7 +24,7 @@ for name1 in glob.glob('*'):
     with open(name1, 'rt') as fp:
         try:
             for line in fp:
-                m = re.match(r'^(\S+)\s+DEFINITIONS\s+::=\s+BEGIN', line)
+                m = re.match(r'(\S+)\s+DEFINITIONS\s+::=\s+BEGIN', line)
                 if m:
                     name2 = f"{m.groups()[0].upper()}.mib"
         except UnicodeDecodeError:
