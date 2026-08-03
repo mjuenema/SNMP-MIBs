@@ -1,17 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+
+"""Extract OIDs and identifier from SNMP MIBs and
+   create a JSON file with mappings between them.
+
+   Check miboid.json for the generated output.
 
 """
-Compile MIBs into JSON
-++++++++++++++++++++++
 
-Look up specific ASN.1 MIBs at configured Web and FTP sites,
-compile them into JSON documents and print them out to stdout.
+BASEDIR = '../mibs'
+# Hardcoded as it is expected to execute this script from
+# the directory is is located in.
 
-Try to support both SMIv1 and SMIv2 flavors of SMI as well as
-popular deviations from official syntax found in the wild.
-"""#
+OUTFILE = 'miboid.json'
 
-from __future__ import print_function
 from pysmi.reader import FileReader, HttpReader
 from pysmi.searcher import StubSearcher
 from pysmi.writer import CallbackWriter, FileWriter
@@ -22,30 +23,28 @@ from pysmi import debug
 from multiprocessing import Pool, TimeoutError
 
 import json
-import glob
+import os
+import sys
+import tqdm
 
 
-import progressbar
-
-NUM_WORKERS = 50     # TODO: = number of CPU cores
-
-#debug.setLogger(debug.Debug('reader', 'compiler'))
-
-data = {}
+DATA = {}
 """Holds the entire data structure."""
 
 
 def writer(mib_name, json_doc, context):
-    global data
+    global DATA
 
     d = json.loads(json_doc)
+
+    module = d['meta']['module']
 
     local_data = {}
 
     for k,v in d.items():
         try:
             oid = v['oid'].lower()
-            name = v['name'].lower()
+            name = f"{module}::{v['name'].lower()}"
 
             local_data[name] = oid
             local_data[oid] = name
@@ -55,80 +54,51 @@ def writer(mib_name, json_doc, context):
             # it's ok.
             pass
 
+    DATA.update(local_data)
+
     return local_data
 
 
-def worker(input_mib):
+def worker(input_mib, mibdirs):
 
     try:
-
-        srcDirectories = ['.']
-
-        #httpSources = [
-        #    ('mibs.snmplabs.com', 80, '/asn1/@mib@')
-        #]
 
         mibCompiler = MibCompiler(
             SmiStarParser(), JsonCodeGen(), CallbackWriter(writer)
         )
 
         # search for source MIBs here
-        mibCompiler.addSources(*[FileReader(x) for x in srcDirectories])
-
-        # search for source MIBs at Web sites
-        #mibCompiler.addSources(*[HttpReader(*x) for x in httpSources])
-
-        # never recompile MIBs with MACROs
-        #mibCompiler.addSearchers(StubSearcher(*JsonCodeGen.baseMibs))
+        mibCompiler.addSources(*[FileReader(x) for x in mibdirs])
 
         # Run recursive MIB compilation
         results = mibCompiler.compile(input_mib)
         return results
 
     except KeyError as e:
-        print(inputMib, e)
+        #print(inputMib, e)
+        raise
 
 
 def main():
-    global data
+    global DATA
 
-    input_mibs = glob.glob('*')
+    input_mibs = []
+    mibdirs = []
 
-    with Pool(processes=4) as pool:
-        print(pool.map(worker, input_mibs[:10]))
+    # Find all folders under BASEDIR.
+    # Find all MIB files.
+    for dirpath, dirnames, filenames in os.walk(BASEDIR):
+        mibdirs.append(dirpath)
+
+        for filename in filenames:
+            input_mibs.append(os.path.join(dirpath,filename))
 
 
-#    q = queue.Queue(maxsize=NUM_WORKERS+10)
-#
-#    # Start worker threads
-#    #
-#    threads = []
-#
-#    for i in range(0, NUM_WORKERS):
-#        thread = threading.Thread(target=worker, args=(q,))
-#        threads.append(thread)
-#        thread.start()
-#
-#
-#    for input_mib in progressbar.progressbar(input_mibs):
-#        q.put(input_mib, block=True, timeout=None)
-#
-#
-#    # Wait until all items in the queue have been processed.
-#    #
-#    q.join()
-#
-#
-#    # Wait for all threads to complete.
-#    #
-#    for thread in threads():
-#        threda.join()
-#
-#
-#    # Write data to JSON file.
-#    #
-#    with open('miboid.json', 'wb') as fp:
-#        json.dump(data, fp, indent=2, sort_keys=True)
+    for input_mib in tqdm.tqdm(input_mibs):
+        worker(input_mib, mibdirs)
+
+    with open(OUTFILE, 'wt') as fp:
+        json.dump(DATA, fp)
 
 
 if __name__ == '__main__':
