@@ -25,15 +25,24 @@ from multiprocessing import Pool, TimeoutError
 import json
 import os
 import sys
-import tqdm
+import progress.bar
+import threading
+import multiprocessing.pool
 
 
 DATA = {}
 """Holds the entire data structure."""
 
+LOCK = threading.Lock()
+
+MIBDIRS = []
+
+PROGRESS = None
+
 
 def writer(mib_name, json_doc, context):
     global DATA
+    global LOCK
 
     d = json.loads(json_doc)
 
@@ -54,12 +63,19 @@ def writer(mib_name, json_doc, context):
             # it's ok.
             pass
 
-    DATA.update(local_data)
+    with LOCK:
+        DATA.update(local_data)
 
     return local_data
 
 
-def worker(input_mib, mibdirs):
+def worker(input_mib):
+    global MIBDIRS
+    global PROGRESS
+    global LOCK
+
+    with LOCK:
+        PROGRESS.next()
 
     try:
 
@@ -68,37 +84,41 @@ def worker(input_mib, mibdirs):
         )
 
         # search for source MIBs here
-        mibCompiler.addSources(*[FileReader(x) for x in mibdirs])
+        mibCompiler.addSources(*[FileReader(x) for x in MIBDIRS])
 
         # Run recursive MIB compilation
         results = mibCompiler.compile(input_mib)
         return results
 
     except KeyError as e:
-        #print(inputMib, e)
         raise
 
 
 def main():
     global DATA
+    global MIBDIRS
+    global PROGRESS
 
     input_mibs = []
-    mibdirs = []
 
     # Find all folders under BASEDIR.
     # Find all MIB files.
     for dirpath, dirnames, filenames in os.walk(BASEDIR):
-        mibdirs.append(dirpath)
+        MIBDIRS.append(dirpath)
 
         for filename in filenames:
             input_mibs.append(os.path.join(dirpath,filename))
 
 
-    for input_mib in tqdm.tqdm(input_mibs):
-        worker(input_mib, mibdirs)
+    PROGRESS = progress.bar.Bar('Processing', max=len(input_mibs), suffix='%(index)d/%(max)d %(percent)d%%')
+
+    with multiprocessing.pool.ThreadPool(8) as pool:
+        pool.map(worker, input_mibs)
 
     with open(OUTFILE, 'wt') as fp:
         json.dump(DATA, fp)
+
+    PROGRESS.finish()
 
 
 if __name__ == '__main__':
