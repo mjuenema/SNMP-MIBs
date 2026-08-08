@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 
 
-BASEDIR = '../mibs'
-# Hardcoded as it is expected to execute this script from
-# the directory is is located in.
-
 import pathlib
 import os
 import re
+import sys
 
 REGEX = re.compile(r'(\S+)\s*DEFINITIONS\s*::=\s*BEGIN')
+
+# Implement below through argparse
+try:
+    BASEDIR = sys.argv[1]
+except IndexError:
+    BASEDIR = '../mibs'
+    # Hardcoded as it is expected to execute this script from
+    # the directory is is located in.
 
 def main():
     for dirpath, dirnames, filenames in os.walk(BASEDIR):
