@@ -25,7 +25,7 @@ def main():
                 for line in fp:
                     m = REGEX.search(line)
                     if m:
-                        module = m.groups()[0]
+                        module = m.groups()[0].upper()
                         newpath = filepath.parent / module
                         if newpath != filepath:
                             try:
