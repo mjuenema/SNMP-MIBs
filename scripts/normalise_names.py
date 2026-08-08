@@ -5,67 +5,31 @@ BASEDIR = '../mibs'
 # Hardcoded as it is expected to execute this script from
 # the directory is is located in.
 
-from pysmi.reader import FileReader, HttpReader
-from pysmi.searcher import StubSearcher
-from pysmi.writer import CallbackWriter, FileWriter
-from pysmi.parser import SmiStarParser
-from pysmi.codegen import JsonCodeGen
-from pysmi.compiler import MibCompiler
-from pysmi import debug
-
 import pathlib
 import os
+import re
 
-MODULE = None
-"""Don't know how to pass that info between `writer()` and `worker()`."""
-
-MIBDIRS = []
-
-def writer(mib_name, parsed, context):
-    global MODULE
-
-    # See parsed.json for an example of `parsed`.
-    d = json.loads(parsed)
-
-    # Extract the module name and put it into the global variable.
-    MODULE = d['meta']['module']
-
-def worker(filepath):
-    global MIBDIRS
-    global MODULE
-    print(filepath)
-
-    mibCompiler = MibCompiler(
-        SmiStarParser(), JsonCodeGen(), CallbackWriter(writer)
-    )
-
-    # search for source MIBs here
-    mibCompiler.addSources(*[FileReader(x) for x in MIBDIRS])
-
-    # Run recursive MIB compilation
-    result = mibCompiler.compile(filepath)
-
-    # At this stage the global variable module will contain
-    # the proper name of the MIB file. 
-
-    oldpath = pathlib.Path(filepath)
-    newpath = oldpath.parent / MODULE
-
-    print(f"mv {oldpath} {newpath}")
-
+REGEX = re.compile(r'(\S+)\s*DEFINITIONS\s*::=\s*BEGIN')
 
 def main():
-    global MIBDIRS
-
-    # Find all folders under BASEDIR.
-    # Find all MIB files.
-    for dirpath, dirnames, filenames in os.walk(BASEDIR):
-        MIBDIRS.append(dirpath)
-
     for dirpath, dirnames, filenames in os.walk(BASEDIR):
         for filename in filenames:
-            filepath = os.path.join(dirpath, filename)
-            worker(filepath)
+            filepath = pathlib.Path(os.path.join(dirpath, filename))
+
+            with open(filepath, 'rt', encoding='utf-8', errors='ignore') as fp:
+                for line in fp:
+                    m = REGEX.search(line)
+                    if m:
+                        module = m.groups()[0]
+                        newpath = filepath.parent / module
+                        if newpath != filepath:
+                            try:
+                                print(f"mv {filepath} {newpath}")
+                                filepath.rename(newpath)
+                            except FileNotFoundError:
+                                pass
+                        break
+
 
 if __name__ == '__main__':
     main()
