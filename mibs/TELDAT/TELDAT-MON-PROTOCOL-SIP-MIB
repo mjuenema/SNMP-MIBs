@@ -1,0 +1,453 @@
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+            -- Protocolo SIP
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.2  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.1  30/06/10    M.A. Pastor     Compatibilidad con Spectrum
+    -- 1.0  16/05/06    M. Fadon        Implementacin inicial
+--------------------------------------------------------------------------------
+
+TELDAT-MON-PROTOCOL-SIP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Unsigned32
+        FROM SNMPv2-SMI
+
+    DisplayString,
+    TEXTUAL-CONVENTION
+        FROM SNMPv2-TC
+
+    telProdNpMonProtocols
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+--
+-- teldatSipMonMIB
+--
+
+telProdNpMonProtSip MODULE-IDENTITY
+    LAST-UPDATED    "200605181401Z"
+    ORGANIZATION    "Teldat, S.A."
+    CONTACT-INFO
+        "Teldat, S.A.
+        Customer Service
+
+        Postal: Parque Tecnolgico de Madrid
+                Tres Cantos 28760
+                Madrid, SPAIN
+
+        Tel.: +34 918 076 565
+
+        http://www.teldat.com"
+    DESCRIPTION
+        "This module defines a MIB for Session Initiation Protocol (SIP)
+        wich is a signaling protocol for establishing VoIP calls.
+
+        SIP MIB
+        |+++ Clear Transaction Stats
+        |+++ Clear UA Stats
+        |+++ Active Proxy
+        |t++ Local Peers Registered
+        |t++ Phones Localy Registered
+        |+++ Transaction Stats Group
+        |    |+++ APIs invoked
+        |    |+++ Requests parsed
+        |    |+++ Responses parsed
+        |    |+++ Requests sent
+        |    |+++ Responses sent
+        |    |+++ Memory errors
+        |    |+++ Network errors
+        |    |+++ Protocol errors
+        |+++ Ua Stats Group
+        |    |+++ Calls Received
+        |    |+++ Remote Calls Established
+        |    |+++ Remote Calls Rejected
+        |    |+++ Calls Initiated
+        |    |+++ Calls Established
+        |    |+++ Calls Rejected
+        |    |+++ Calls Terminated
+        |    |+++ Transactions Sent
+        |    |+++ Transactions Received"
+
+    REVISION    "200605181401Z"
+    DESCRIPTION "Initial implementation."
+
+    ::= {telProdNpMonProtocols 13}
+
+--
+--  Location of node telProdNpMonProtSip in TELDAT-MIB
+--
+
+-- telproducts              OBJECT IDENTIFIER ::= { teldat 4 }
+-- telProductsNucleox       OBJECT IDENTIFIER ::= { telproducts 1 }
+-- telProductsNpMonit       OBJECT IDENTIFIER ::= { telProductsNucleox 2 }
+-- telProdNpMonProtocols    OBJECT IDENTIFIER ::= { telProductsNpMonit 3 }
+-- telProdNpMonProtSip      OBJECT IDENTIFIER ::= { telProdNpMonProtocols 13 }
+
+--
+--  SIP tables index textual convention
+--
+
+SipTableIndex ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Integer range to use as index for SIP tables"
+    SYNTAX  INTEGER (1 .. 65535)
+
+--
+--  Session Initiation Protocol (SIP) MIB Objects
+--
+
+teldatSipObjects    OBJECT IDENTIFIER   ::= { telProdNpMonProtSip 1 }
+
+--
+--  Global SIP monitoring variables
+--
+
+teldatSipClearTranStats OBJECT-TYPE
+    SYNTAX INTEGER {
+        clear(1),
+        ok(2),
+        error(3),
+        undefined(4)
+      }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Clear Transaction Level Stats."
+    ::= { teldatSipObjects 1 }
+
+teldatSipClearUAStats OBJECT-TYPE
+    SYNTAX INTEGER {
+        clear(1),
+        ok(2),
+        error(3),
+        undefined(4)
+      }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Clear UserAgent Level Stats."
+    ::= { teldatSipObjects 2 }
+
+teldatSipActiveProxy OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Proxy Server currently active."
+    ::= { teldatSipObjects 3 }
+
+--
+--  Global SIP Loca Peers Registered Table
+--
+
+teldatSipLocPeerRegTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatSipLocPeerRegEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table with the local peers currently registered in the Active Proxy
+        Server and the expiration time."
+    ::= { teldatSipObjects 4 }
+
+teldatSipLocPeerRegEntry OBJECT-TYPE
+    SYNTAX      TeldatSipLocPeerRegEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that define a peer registered."
+    INDEX       { teldatSipLocPeerRegIndex }
+    ::= { teldatSipLocPeerRegTable 1 }
+
+TeldatSipLocPeerRegEntry ::= SEQUENCE
+{
+    teldatSipLocPeerRegIndex         SipTableIndex,
+    teldatSipLocPeerRegUser          DisplayString,
+    teldatSipLocPeerRegLocation      DisplayString,
+    teldatSipLocPeerRegExpiration    Unsigned32
+}
+
+teldatSipLocPeerRegIndex OBJECT-TYPE
+    SYNTAX      SipTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Uniquely identifies a row in the teldatSipLocPeerRegTable."
+    ::= { teldatSipLocPeerRegEntry 1 }
+
+teldatSipLocPeerRegUser OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "User URI of registered user."
+    ::= { teldatSipLocPeerRegEntry 2 }
+
+teldatSipLocPeerRegLocation OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Location URI of registered user."
+    ::= { teldatSipLocPeerRegEntry 3 }
+
+teldatSipLocPeerRegExpiration OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Time left to expire the registration."
+    ::= { teldatSipLocPeerRegEntry 4 }
+
+
+--
+--  Global SIP Phone Localy Registered Table
+--
+
+teldatSipPhoneLocRegTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TeldatSipPhoneLocRegEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table with the SIP phones localy registered in the router and the
+        expiration time."
+    ::= { teldatSipObjects 5 }
+
+teldatSipPhoneLocRegEntry OBJECT-TYPE
+    SYNTAX      TeldatSipPhoneLocRegEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that define a peer registered."
+    INDEX       { teldatSipPhoneLocRegIndex }
+    ::= { teldatSipPhoneLocRegTable 1 }
+
+TeldatSipPhoneLocRegEntry ::= SEQUENCE
+{
+    teldatSipPhoneLocRegIndex         SipTableIndex,
+    teldatSipPhoneLocRegUser          DisplayString,
+    teldatSipPhoneLocRegLocation      DisplayString,
+    teldatSipPhoneLocRegExpiration    Unsigned32
+}
+
+teldatSipPhoneLocRegIndex OBJECT-TYPE
+    SYNTAX      SipTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Uniquely identifies a row in the teldatSipPhoneLocRegTable."
+    ::= { teldatSipPhoneLocRegEntry 1 }
+
+teldatSipPhoneLocRegUser OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "User URI of registered user."
+    ::= { teldatSipPhoneLocRegEntry 2 }
+
+teldatSipPhoneLocRegLocation OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Location URI of registered user."
+    ::= { teldatSipPhoneLocRegEntry 3 }
+
+teldatSipPhoneLocRegExpiration OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Time left to expire the registration."
+    ::= { teldatSipPhoneLocRegEntry 4 }
+
+
+--
+--  Global SIP Transaction Stats Group
+--
+
+teldatSipTransStatsObject  OBJECT IDENTIFIER   ::= { teldatSipObjects 6 }
+
+teldatSipTransStatsAPIsInvoked          OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP API primitives requested."
+    ::= { teldatSipTransStatsObject 1 }
+
+teldatSipTransStatsRequestsParsed       OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP requestes parsed."
+    ::= { teldatSipTransStatsObject 2 }
+
+teldatSipTransStatsResponsesParsed      OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP responses parsed."
+    ::= { teldatSipTransStatsObject 3 }
+
+teldatSipTransStatsRequestsSent         OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP requests sent."
+    ::= { teldatSipTransStatsObject 4 }
+
+teldatSipTransStatsResponsesSent        OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP responses sent."
+    ::= { teldatSipTransStatsObject 5 }
+
+teldatSipTransStatsMemoryErrors         OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP memory errors."
+    ::= { teldatSipTransStatsObject 6 }
+
+teldatSipTransStatsNetworkErrors        OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP network errors."
+    ::= { teldatSipTransStatsObject 7 }
+
+teldatSipTransStatsProtocolErrors       OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP protocol errors."
+    ::= { teldatSipTransStatsObject 8 }
+
+
+--
+--  Global SIP UA Stats Group
+--
+
+teldatSipUAStatsObject     OBJECT IDENTIFIER   ::= { teldatSipObjects 7 }
+
+teldatSipUAStatsCallsReceived          OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP calls recived."
+    ::= { teldatSipUAStatsObject 1 }
+
+teldatSipUAStatsRemoteCallsEstablished OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP calls recived and established."
+    ::= { teldatSipUAStatsObject 2 }
+
+teldatSipUAStatsRemoteCallsRejected    OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP calls recived and rejected."
+    ::= { teldatSipUAStatsObject 3 }
+
+teldatSipUAStatsCallsInitiated         OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP calls initiated."
+    ::= { teldatSipUAStatsObject 4 }
+
+teldatSipUAStatsCallsEstablished       OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP calls initiated and established."
+    ::= { teldatSipUAStatsObject 5 }
+
+teldatSipUAStatsCallsRejected          OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP calls initiated and rejected."
+    ::= { teldatSipUAStatsObject 6 }
+
+teldatSipUAStatsCallsTerminated        OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP calls terminated."
+    ::= { teldatSipUAStatsObject 7 }
+
+teldatSipUAStatsTransactionsSent       OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP transactions sent."
+    ::= { teldatSipUAStatsObject 8 }
+
+teldatSipUAStatsTransactionsReceived   OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of SIP transactions recived."
+    ::= { teldatSipUAStatsObject 9 }
+
+--
+--  NOTIFICATION DEFINITIONS
+--
+--  This section defines the traps that can be generated by the agent.
+--
+--
+
+teldatSipNotificationsPrefix    OBJECT IDENTIFIER ::= { telProdNpMonProtSip 2 }
+teldatSipNotifications          OBJECT IDENTIFIER ::= { teldatSipNotificationsPrefix 0 }
+
+--
+--  Conformance Information
+--
+
+teldatSipMibConformance OBJECT IDENTIFIER ::= { telProdNpMonProtSip 3 }
+teldatSipMibCompliances OBJECT IDENTIFIER ::= { teldatSipMibConformance 1 }
+teldatSipMibGroups      OBJECT IDENTIFIER ::= { teldatSipMibConformance 2 }
+
+END

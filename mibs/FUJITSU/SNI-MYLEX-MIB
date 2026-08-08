@@ -1,0 +1,2137 @@
+SNI-MYLEX-MIB DEFINITIONS ::= BEGIN
+
+-- SNI RAID Controller MIB for Mylex DAC 960
+
+--
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1997
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001
+-- All rights reserved
+--
+--
+-- Changes:     Scl 97/11/28:   Object "mylexAdapterId" renamed to "mylexAdapterHostTargetId".
+--                              New objects "mylexAdapterHostChannelNumber" and
+--                              "mylexAdapterHostControllerNumber" added for matching the correct
+--                              adapter to HD MIB adapters.
+--                              New enum value "scsi(6)" for "mylexBusType" added (for DAC960SX support).
+
+IMPORTS
+    OBJECT-TYPE                     FROM RFC1212
+    TRAP-TYPE                       FROM RFC-1215
+    DisplayString                   FROM RFC1213-MIB
+    Counter, Gauge, enterprises     FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+
+
+-- SNI Trap MIB:            000..199, 300..399  (enterprise "sni"!!)
+-- SNI Mylex MIB:           200..299  (this MIB)
+-- SNI ServerControl MIB:   600..699
+-- SNI ServerView MIB:      700..749
+-- SNI Harddisk MIB:        750..800
+
+-- SNI Server Management MIB nodes
+
+    sni                 OBJECT IDENTIFIER       ::= { enterprises    231 }
+
+    sniProductMibs      OBJECT IDENTIFIER       ::= { sni              2 }
+    sniExtensions       OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+    sniServerMgmt       OBJECT IDENTIFIER       ::= { sniExtensions    2 }
+    sniInventory        OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+    sniCommon           OBJECT IDENTIFIER       ::= { sniServerMgmt    2 }
+      sniBios           OBJECT IDENTIFIER       ::= { sniCommon        1 }
+      sniEisa           OBJECT IDENTIFIER       ::= { sniCommon        2 }
+      sniHd             OBJECT IDENTIFIER       ::= { sniCommon        3 }
+      sniBus            OBJECT IDENTIFIER       ::= { sniCommon        4 }
+      sniServerControl  OBJECT IDENTIFIER       ::= { sniCommon        5 }
+    sniPcSpecific       OBJECT IDENTIFIER       ::= { sniServerMgmt    3 }
+    sniScb              OBJECT IDENTIFIER       ::= { sniServerMgmt    4 }
+    sniOsSpecific       OBJECT IDENTIFIER       ::= { sniServerMgmt    5 }
+      sniNetware        OBJECT IDENTIFIER       ::= { sniOsSpecific    1 }
+      sniWinNt          OBJECT IDENTIFIER       ::= { sniOsSpecific    2 }
+      sniOs2            OBJECT IDENTIFIER       ::= { sniOsSpecific    3 }
+      sniUnix           OBJECT IDENTIFIER       ::= { sniOsSpecific    4 }
+    sniOemComponents    OBJECT IDENTIFIER       ::= { sniServerMgmt    6 }
+      sniOemDpt         OBJECT IDENTIFIER       ::= { sniOemComponents 1 }
+      sniOemMylex       OBJECT IDENTIFIER       ::= { sniOemComponents 2 }
+        sniMlxDiskArray OBJECT IDENTIFIER       ::= { sniOemMylex      1 }
+    sniSecurity         OBJECT IDENTIFIER       ::= { sniServerMgmt    7 }
+      sniSmSecurity     OBJECT IDENTIFIER       ::= { sniSecurity      1 }
+    sniServerView       OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+    sniTrapMib          OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+
+
+-- =================================================================================
+--
+-- The Mylex SNMP Agent's Info group (for debugging and info)
+--
+
+sniMylexAgentInfo   OBJECT IDENTIFIER       ::= { sniMlxDiskArray 1 }
+
+
+mylexAgentId    OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex SNMP agent ID string"
+    ::= { sniMylexAgentInfo 1 }
+
+mylexAgentCompany   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex SNMP agent company string"
+    ::= { sniMylexAgentInfo 2 }
+
+mylexAgentVersion   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex SNMP agent version string"
+    ::= { sniMylexAgentInfo 3 }
+
+mylexAgentBuild   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex SNMP agent build date and time string"
+    ::= { sniMylexAgentInfo 4 }
+
+mylexAgentVersionMajor   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex SNMP agent major version number"
+    ::= { sniMylexAgentInfo 5 }
+
+mylexAgentVersionMinor   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex SNMP agent minor version number (to be displayed with 2 digits)"
+    ::= { sniMylexAgentInfo 6 }
+
+mylexApiLastErrorMsg OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Message string of last error occurred with Mylex API"
+    ::= { sniMylexAgentInfo 7 }
+
+mylexApiRelease OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex API library release number"
+    ::= { sniMylexAgentInfo 8 }
+
+mylexApiRevision OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Mylex API library revision number"
+    ::= { sniMylexAgentInfo 9 }
+
+
+
+-- =================================================================================
+--
+-- The Mylex Administration Info group
+--
+
+------------------------------------------------------------------------------------
+
+mylexAdapterHostTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MylexAdapterHost
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Mylex adapter host information table.
+                 Only for SCSI-to-SCSI adapters (DAC960SX).
+                 Defines for each Mylex adapter to which host controller,
+                 bus and target the adapter is connected to."
+    ::= { sniMlxDiskArray 2 }
+
+mylexAdapterHost OBJECT-TYPE
+    SYNTAX      MylexAdapterHost
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION ""
+    INDEX { mylexAdapterNum }
+    ::= { mylexAdapterHostTable 1 }
+
+
+MylexAdapterHost ::= SEQUENCE
+    {
+    mylexAdapterNum
+        INTEGER,
+    mylexAdapterHostTargetId
+        INTEGER,
+    mylexAdapterHostChannelNumber
+        INTEGER,
+    mylexAdapterHostControllerNumber
+        INTEGER
+        }
+
+
+mylexAdapterNum OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Adapter number (index)"
+    ::= { mylexAdapterHost 1 }
+
+mylexAdapterHostTargetId  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Target ID of the Mylex SCSI-to-SCSI Adapter.
+                 Will be 0xFFFF for local adapters."
+    ::= { mylexAdapterHost 2 }
+
+mylexAdapterHostChannelNumber  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "SCSI host channel number the Mylex SCSI-to-SCSI Adapter
+                 is connected to; will be 0 for local adapters."
+    ::= { mylexAdapterHost 3 }
+
+mylexAdapterHostControllerNumber  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "SCSI host controller number the Mylex SCSI-to-SCSI Adapter
+                 is connected to; will be 0 for local adapters."
+    ::= { mylexAdapterHost 4 }
+
+------------------------------------------------------------------------------------
+
+mylexAdapterInfoTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MylexAdapterInfoEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Mylex Adapter Info table"
+    ::= { sniMlxDiskArray 3 }
+
+mylexAdapterInfoEntry OBJECT-TYPE
+    SYNTAX      MylexAdapterInfoEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Mylex Adapter Info table entry"
+    INDEX { mylexAdapterInfoId }
+    ::= { mylexAdapterInfoTable 1 }
+
+
+MylexAdapterInfoEntry ::= SEQUENCE
+    {
+    mylexAdapterInfoId          INTEGER,
+    mylexModel                  DisplayString,
+    mylexCacheSize              INTEGER,
+    mylexBaseAddress            INTEGER,
+    mylexBusType                INTEGER,
+    mylexInterruptIRQ           INTEGER,
+    mylexFirmwareVersion        DisplayString,
+    mylexBIOSVersion            DisplayString,
+    mylexDefaultRebuildRate     INTEGER,
+    mylexNumChannels            Gauge,
+    mylexMaxChannels            INTEGER,
+    mylexNumLogicalDrives       Gauge,
+    mylexMaxLogicalDrives       INTEGER,
+    mylexNumPhysicalDevices     Gauge,
+    mylexMaxPhysicalDevices     INTEGER,
+    mylexStripeSize             INTEGER,
+    mylexFlashEEpromSize        INTEGER,
+    mylexPhysicalSectorSize     INTEGER,
+    mylexLogicalSectorSize      INTEGER,
+    mylexSlotNumber             INTEGER,
+    mylexVendorName             DisplayString
+    }
+
+
+mylexAdapterInfoId OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Adapter number (index)"
+    ::= { mylexAdapterInfoEntry 1 }
+
+mylexModel      OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Adapter model/submodel"
+    ::= { mylexAdapterInfoEntry 2 }
+
+mylexCacheSize  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Size of cache RAM module (kBytes); -1 if unknown"
+    ::= { mylexAdapterInfoEntry 3 }
+
+mylexBaseAddress OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "I/O base address (-1 if unknown)"
+    ::= { mylexAdapterInfoEntry 4 }
+
+mylexBusType    OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        isa     (1),
+        eisa    (2),
+        mcas    (3),
+        turbo   (4),
+        pci     (5),
+        scsi    (6),
+        other   (99)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Bus type (EISA/MCAS/PCI ...) "
+    ::= { mylexAdapterInfoEntry 9 }
+
+mylexInterruptIRQ OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Interrupt request line (IRQ); -1 if unknown"
+    ::= { mylexAdapterInfoEntry 10 }
+
+mylexFirmwareVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Firmware version"
+    ::= { mylexAdapterInfoEntry 11 }
+
+mylexBIOSVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "BIOS version"
+    ::= { mylexAdapterInfoEntry 12 }
+
+mylexDefaultRebuildRate OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Default rebuild/check rate (%)"
+    ::= { mylexAdapterInfoEntry 13 }
+
+mylexNumChannels OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Current number of channels"
+    ::= { mylexAdapterInfoEntry 14 }
+
+mylexMaxChannels OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Maximum number of channels"
+    ::= { mylexAdapterInfoEntry 15 }
+
+mylexNumLogicalDrives OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Current number of logical drives "
+    ::= { mylexAdapterInfoEntry 16 }
+
+mylexMaxLogicalDrives OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Maximum logical drives"
+    ::= { mylexAdapterInfoEntry 17 }
+
+mylexNumPhysicalDevices OBJECT-TYPE
+    SYNTAX      Gauge
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Current number of physical devices"
+    ::= { mylexAdapterInfoEntry 18 }
+
+mylexMaxPhysicalDevices OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Maximum physical devices"
+    ::= { mylexAdapterInfoEntry 19 }
+
+mylexStripeSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Stripe Size (8K chunks)"
+    ::= { mylexAdapterInfoEntry 20 }
+
+mylexFlashEEpromSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Size of flash EEPROM (kBytes)"
+    ::= { mylexAdapterInfoEntry 21 }
+
+mylexPhysicalSectorSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Size of a physical sector (Bytes)"
+    ::= { mylexAdapterInfoEntry 22 }
+
+mylexLogicalSectorSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Size of logical sector (Bytes)"
+    ::= { mylexAdapterInfoEntry 23 }
+
+mylexSlotNumber OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Slot number the adapter is in"
+    ::= { mylexAdapterInfoEntry 24 }
+
+mylexVendorName OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Name of the adapter vendor"
+    ::= { mylexAdapterInfoEntry 25 }
+
+------------------------------------------------------------------------------------
+
+mylexPhysicalDeviceInfoTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MylexPhysicalDeviceInfoEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Physical device info table"
+    ::= { sniMlxDiskArray 4 }
+
+
+mylexPhysicalDeviceInfoEntry OBJECT-TYPE
+    SYNTAX      MylexPhysicalDeviceInfoEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Physical device info table entry"
+    INDEX { mylexPhysicalDeviceAdapterId,
+            mylexPhysicalDeviceChannelNr,
+            mylexPhysicalDeviceDevNr
+          }
+    ::= { mylexPhysicalDeviceInfoTable 1 }
+
+
+MylexPhysicalDeviceInfoEntry ::= SEQUENCE
+    {
+    mylexPhysicalDeviceAdapterId            INTEGER,
+    mylexPhysicalDeviceChannelNr            INTEGER,
+    mylexPhysicalDeviceDevNr                INTEGER,
+    mylexPhysicalDeviceModel                DisplayString,
+    mylexPhysicalDeviceCapacity             INTEGER,
+    mylexPhysicalDeviceStatus               INTEGER,
+    mylexPhysicalDeviceRebuildRate          INTEGER,
+    mylexPhysicalDeviceParityErrors         Counter,
+    mylexPhysicalDeviceSoftErrors           Counter,
+    mylexPhysicalDeviceHardErrors           Counter,
+    mylexPhysicalDeviceMiscErrors           Counter,
+    mylexPhysicalDeviceDiskConfigured       INTEGER,
+    mylexPhysicalDeviceScsiDeviceType       INTEGER,
+    mylexPhysicalDeviceParamFastScsi        INTEGER,
+    mylexPhysicalDeviceParamWideScsi        INTEGER,
+    mylexPhysicalDeviceParamTaggedQueueing  INTEGER,
+    mylexPhysicalDeviceSmartCompliant       INTEGER,
+    mylexPhysicalDeviceSmartMonitoring      INTEGER,
+    mylexPhysicalDeviceSmartStatus          INTEGER
+    }
+
+
+mylexPhysicalDeviceAdapterId     OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Adapter number (index)"
+    ::= { mylexPhysicalDeviceInfoEntry 1 }
+
+mylexPhysicalDeviceChannelNr     OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Channel number (index)"
+    ::= { mylexPhysicalDeviceInfoEntry 2 }
+
+mylexPhysicalDeviceDevNr      OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Physical device number (index)"
+    ::= { mylexPhysicalDeviceInfoEntry 3 }
+
+mylexPhysicalDeviceModel      OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Physical device model name"
+    ::= { mylexPhysicalDeviceInfoEntry 5 }
+
+mylexPhysicalDeviceCapacity OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Disk capacity (MBytes; only for configured DAC disks)"
+    ::= { mylexPhysicalDeviceInfoEntry 6 }
+
+mylexPhysicalDeviceStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        dead    (1),
+        online  (2),
+        standby (3),
+        rebuild (4),
+        unknown (9)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Disk status (only for configured DAC disks)"
+    ::= { mylexPhysicalDeviceInfoEntry 7 }
+
+mylexPhysicalDeviceRebuildRate OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Rebuild rate (only for configured DAC disks)"
+    ::= { mylexPhysicalDeviceInfoEntry 8 }
+
+mylexPhysicalDeviceParityErrors OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Parity error count (only for configured DAC disks)"
+    ::= { mylexPhysicalDeviceInfoEntry 9 }
+
+mylexPhysicalDeviceSoftErrors OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Soft error count (only for configured DAC disks)"
+    ::= { mylexPhysicalDeviceInfoEntry 10 }
+
+mylexPhysicalDeviceHardErrors OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Hardware error count (only for configured DAC disks)"
+    ::= { mylexPhysicalDeviceInfoEntry 11 }
+
+mylexPhysicalDeviceMiscErrors OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Miscellaneous error count (only for configured DAC disks)"
+    ::= { mylexPhysicalDeviceInfoEntry 12 }
+
+mylexPhysicalDeviceDiskConfigured OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        true    (1),
+        false   (2)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Device is a configured DAC disk"
+    ::= { mylexPhysicalDeviceInfoEntry 13 }
+
+mylexPhysicalDeviceScsiDeviceType OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        disk        (1),
+        tape        (2),
+        printer     (3),
+        processor   (4),
+        writeOnce   (5),
+        cdRom       (6),
+        scanner     (7),
+        optical     (8),
+        jukebox     (9),
+        commDev     (10),
+        host        (98),
+        unknown     (99)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "SCSI device type"
+    ::= { mylexPhysicalDeviceInfoEntry 14 }
+
+mylexPhysicalDeviceParamFastScsi OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        true    (1),
+        false   (2)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "SCSI device parameter: Fast SCSI"
+    ::= { mylexPhysicalDeviceInfoEntry 15 }
+
+mylexPhysicalDeviceParamWideScsi OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        true    (1),
+        false   (2)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "SCSI device parameter: Wide SCSI"
+    ::= { mylexPhysicalDeviceInfoEntry 16 }
+
+mylexPhysicalDeviceParamTaggedQueueing OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        true    (1),
+        false   (2)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "SCSI device parameter: Tagged queueing"
+    ::= { mylexPhysicalDeviceInfoEntry 17 }
+
+
+mylexPhysicalDeviceSmartCompliant OBJECT-TYPE
+    SYNTAX  INTEGER {
+        true(1),
+        false(2)
+        }
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "Is this device SMART (Self Monitoring Analysis and Reporting Technology)
+         compliant? If SMART information cannot be obtained, false(2) must be reported."
+    ::= { mylexPhysicalDeviceInfoEntry 18 }
+
+mylexPhysicalDeviceSmartMonitoring OBJECT-TYPE
+    SYNTAX  INTEGER {
+        enable(1),
+        disable(2),
+        not-available(3)
+        }
+    ACCESS  read-write
+    STATUS  mandatory
+    DESCRIPTION
+        "In write mode, only enable and disable are allowed.
+        An error will be reported if you try to enable a non Smart
+        compliant device.
+        In read mode, not-available(3) is returned if the device is not Smart
+        compliant. Disable will be reported, if one option or more
+        has changed after the initial configuration of the agent."
+    ::= { mylexPhysicalDeviceInfoEntry 19 }
+
+mylexPhysicalDeviceSmartStatus OBJECT-TYPE
+    SYNTAX  INTEGER {
+        ok(1),
+        failure-predicted(2),
+        not-available(3)
+        }
+    ACCESS  read-only
+    STATUS  mandatory
+    DESCRIPTION
+        "If not SmartCompliant or SmartMonitoring disabled,
+        not-available(3) must be reported."
+    ::= { mylexPhysicalDeviceInfoEntry 20 }
+
+------------------------------------------------------------------------------------
+
+mylexLogicalInfoTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MylexLogicalInfoEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Logical drive info table"
+    ::= { sniMlxDiskArray 5 }
+
+mylexLogicalInfoEntry OBJECT-TYPE
+    SYNTAX      MylexLogicalInfoEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Logical drive info table entry"
+    INDEX { mylexLogicalInfoAdapterId, mylexLogicalInfoLogDrvNum }
+    ::= { mylexLogicalInfoTable 1 }
+
+
+MylexLogicalInfoEntry ::= SEQUENCE
+    {
+    mylexLogicalInfoAdapterId   INTEGER,
+    mylexLogicalInfoLogDrvNum   INTEGER,
+    mylexLogicalInfoStatus      INTEGER,
+    mylexLogicalInfoSize        INTEGER,
+    mylexLogicalInfoTotalSize   INTEGER,
+    mylexLogicalInfoRaidLevel   INTEGER,
+    mylexLogicalInfoWriteBack   INTEGER
+    }
+
+mylexLogicalInfoAdapterId   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Adapter number (index)"
+    ::= { mylexLogicalInfoEntry 1}
+
+mylexLogicalInfoLogDrvNum  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Logical drive number (index)"
+    ::= { mylexLogicalInfoEntry 2 }
+
+mylexLogicalInfoStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        online      (1),
+        critical    (2),
+        offline     (3),
+        unknown     (9)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Logical drive status"
+    ::= { mylexLogicalInfoEntry 3 }
+
+mylexLogicalInfoSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Actual size of drive at RAID level (MBytes)"
+    ::= { mylexLogicalInfoEntry 4 }
+
+mylexLogicalInfoTotalSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Total physical size (MBytes)"
+    ::= { mylexLogicalInfoEntry 5 }
+
+mylexLogicalInfoRaidLevel OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Drive RAID level"
+    ::= { mylexLogicalInfoEntry 6 }
+
+mylexLogicalInfoWriteBack OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        writeBack       (1),
+        writeThrough    (2)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Cache write back / write through"
+    ::= { mylexLogicalInfoEntry 7 }
+
+
+------------------------------------------------------------------------------------
+
+mylexLogicalDriveContentsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MylexLogicalDriveContentsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Table of physical devices that belong to a logical drive"
+    ::= { sniMlxDiskArray 6 }
+
+mylexLogicalDriveContentsEntry OBJECT-TYPE
+    SYNTAX      MylexLogicalDriveContentsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Table entry of physical devices that belong to a logical drive"
+    INDEX
+        {
+        mylexLogicalDriveContentsAdapterId,
+        mylexLogicalDriveContentsLogDrvNum,
+        mylexLogicalDriveContentsPhysIndex
+        }
+    ::= { mylexLogicalDriveContentsTable 1 }
+
+
+MylexLogicalDriveContentsEntry ::= SEQUENCE
+    {
+    mylexLogicalDriveContentsAdapterId     INTEGER,
+    mylexLogicalDriveContentsLogDrvNum     INTEGER,
+    mylexLogicalDriveContentsPhysIndex     INTEGER,
+    mylexLogicalDriveContentsChannelNr     INTEGER,
+    mylexLogicalDriveContentsPhysDevNr     INTEGER
+    }
+
+
+mylexLogicalDriveContentsAdapterId    OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Adapter number (index)"
+    ::= { mylexLogicalDriveContentsEntry 1 }
+
+mylexLogicalDriveContentsLogDrvNum    OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Logical drive number (index)"
+    ::= { mylexLogicalDriveContentsEntry 2 }
+
+mylexLogicalDriveContentsPhysIndex    OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Physical device number belonging to this logical drive (index)"
+    ::= { mylexLogicalDriveContentsEntry 3 }
+
+mylexLogicalDriveContentsChannelNr    OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Channel number of the physical device"
+    ::= { mylexLogicalDriveContentsEntry 4 }
+
+mylexLogicalDriveContentsPhysDevNr    OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "SCSI Id of the physical device"
+    ::= { mylexLogicalDriveContentsEntry 5 }
+
+
+------------------------------------------------------------------------------------
+
+mylexAdapterGeneralStatusTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF MylexAdapterGeneralStatusEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Table of general adapter status"
+    ::= { sniMlxDiskArray 7 }
+
+mylexAdapterGeneralStatusEntry OBJECT-TYPE
+    SYNTAX      MylexAdapterGeneralStatusEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Table entry of general adapter status"
+    INDEX { mylexAdapterGeneralStatusAdapterId  }
+    ::= { mylexAdapterGeneralStatusTable 1 }
+
+
+MylexAdapterGeneralStatusEntry ::= SEQUENCE
+    {
+    mylexAdapterGeneralStatusAdapterId     INTEGER,
+    mylexAdapterGeneralStatus              INTEGER
+    }
+
+
+mylexAdapterGeneralStatusAdapterId    OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Adapter number (index)"
+    ::= { mylexAdapterGeneralStatusEntry 1 }
+
+mylexAdapterGeneralStatus   OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+        ok      (1),
+        fail    (2)
+        }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "General adapter status"
+    ::= { mylexAdapterGeneralStatusEntry 2 }
+
+
+-- =================================================================================
+--
+-- The Mylex Trap Info group
+--
+-- These variables are all not-accessible;
+-- they are sent with the traps only.
+
+
+mylexTrapInfo   OBJECT IDENTIFIER ::= { sniMlxDiskArray 8 }
+
+
+mylexTrapTime   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Trap time (in seconds since 1/1/1970)"
+    ::= { mylexTrapInfo 1 }
+
+mylexRebuildOldDevice   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Device number of the failed physical disk that enforced a rebuild"
+    ::= { mylexTrapInfo 2 }
+
+mylexRebuildOldChannel  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Channel number of the failed physical disk that enforced a rebuild"
+    ::= { mylexTrapInfo 3 }
+
+mylexRebuildNewDevice   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Device number of the new physical disk while rebuild"
+    ::= { mylexTrapInfo 4 }
+
+mylexRebuildNewChannel  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Channel number of the new physical disk while Rebuild"
+    ::= { mylexTrapInfo 5 }
+
+mylexStatusCurrentDrive  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Number of the current logical drive being rebuilt/checked"
+    ::= { mylexTrapInfo 6 }
+
+mylexStatusCurrentDriveSize OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Size of current logical drive being rebuilt/checked (MBytes)"
+    ::= { mylexTrapInfo 7 }
+
+mylexStatusBlocksRemaining   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Blocks remaining while rebuild/check (MBytes)"
+    ::= { mylexTrapInfo 8 }
+
+mylexBadBlocks  OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Number of bad blocks after rebuild/check error"
+    ::= { mylexTrapInfo 9 }
+
+mylexLogicalDrive   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Logical drive number (in a logical drive trap)"
+    ::= { mylexTrapInfo 10 }
+
+mylexPhysDevice   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Physical device number (in a physical device trap)"
+    ::= { mylexTrapInfo 11 }
+
+mylexPhysChannel   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Physical channel number (in a physical device trap)"
+    ::= { mylexTrapInfo 12 }
+
+mylexTrapServerName   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Server name this trap comes from"
+    ::= { mylexTrapInfo 13 }
+
+mylexTrapSlotNumber   OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Slot number of the adapter generating this trap"
+    ::= { mylexTrapInfo 14 }
+
+mylexTrapString1   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "General purpose string 1 for trap parameters"
+    ::= { mylexTrapInfo 15 }
+
+mylexTrapString2   OBJECT-TYPE
+    SYNTAX      DisplayString
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "General purpose string 2 for trap parameters"
+    ::= { mylexTrapInfo 16 }
+
+
+
+-- =================================================================================
+--
+-- The Mylex Trap definitions
+--
+
+------------------------------------------------------------------------------------
+--
+-- Rebuild event group
+
+
+mylexAutoRebuildStarted TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexRebuildOldDevice,
+    mylexRebuildOldChannel,
+    mylexRebuildNewDevice,
+    mylexRebuildNewChannel
+    }
+DESCRIPTION "Automatic rebuild was started"
+--#TYPE         "Automatic rebuild started"
+--#SUMMARY      "Automatic rebuild of device %d on channel %d was started"
+--#SUMMARY      "at disk array adapter in slot %d."
+--#SUMMARY      "The standby device %d at channel %d will be used (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 5, 6, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 200
+
+
+mylexManualRebuildStarted TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Manual rebuild was started"
+--#TYPE         "Manual rebuild started"
+--#SUMMARY      "Manual rebuild was started at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 201
+
+
+mylexRebuildDone TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Rebuild successfully completed"
+--#TYPE         "Rebuild done"
+--#SUMMARY      "Rebuild was successfully completed at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 202
+
+
+mylexRebuildCanceled TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Rebuild cancelled"
+--#TYPE         "Rebuild cancelled"
+--#SUMMARY      "Rebuild was cancelled at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 203
+
+
+mylexRebuildStatus TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive,
+    mylexStatusCurrentDriveSize,
+    mylexStatusBlocksRemaining
+    }
+DESCRIPTION "Rebuild status"
+--#TYPE         "Rebuild status"
+--#SUMMARY      "Rebuild status at disk array adapter in slot %d:"
+--#SUMMARY      "current drive=%d, drive size=%d MBytes; %d MBytes remaining (Server %s)."
+--#ARGUMENTS    { 1, 3, 4, 5, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 204
+
+
+mylexRebuildError TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexBadBlocks
+    }
+DESCRIPTION "Rebuild error, bad blocks detected"
+--#TYPE         "Rebuild error"
+--#SUMMARY      "Rebuild error at disk array adapter in slot %d:"
+--#SUMMARY      "%d bad blocks detected (Server %s)."
+--#ARGUMENTS    { 1, 3, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 205
+
+
+mylexRebuildNewDeviceFailed TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Rebuild finished, new device failed"
+--#TYPE         "Rebuild device failed"
+--#SUMMARY      "Rebuild finished at disk array adapter in slot %d:"
+--#SUMMARY      "new device failed (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 206
+
+
+mylexRebuildLogicalDriveFailed TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexBadBlocks
+    }
+DESCRIPTION "Rebuild finished, logical drive failed"
+--#TYPE         "Rebuild drive failed"
+--#SUMMARY      "Rebuild finished at disk array adapter in slot %d:"
+--#SUMMARY      "logical drive failed, %d bad blocks detected (Server %s)."
+--#ARGUMENTS    { 1, 3, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 207
+
+
+------------------------------------------------------------------------------------
+--
+-- Parity check event group
+
+
+mylexParityCheckStarted TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Parity check was started"
+--#TYPE         "Parity check started"
+--#SUMMARY      "Parity check was started at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 208
+
+
+mylexParityCheckDone TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Parity check successfully completed"
+--#TYPE         "Parity check done"
+--#SUMMARY      "Parity check was successfully completed at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 209
+
+
+mylexParityCheckCanceled TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Parity check cancelled"
+--#TYPE         "Parity check cancelled"
+--#SUMMARY      "Parity check was cancelled at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 210
+
+
+mylexParityCheckStatus TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive,
+    mylexStatusCurrentDriveSize,
+    mylexStatusBlocksRemaining
+    }
+DESCRIPTION "Parity check status"
+--#TYPE         "Parity check status"
+--#SUMMARY      "Parity check status at disk array adapter in slot %d:"
+--#SUMMARY      "current drive=%d, drive size=%d MB; %d MBytes remaining (Server %s)."
+--#ARGUMENTS    { 1, 3, 4, 5, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 211
+
+
+mylexParityCheckError TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexBadBlocks
+    }
+DESCRIPTION "Parity check error, bad blocks detected"
+--#TYPE         "Parity check error"
+--#SUMMARY      "Parity check error at disk array adapter in slot %d:"
+--#SUMMARY      "%d bad blocks detected (Server %s)."
+--#ARGUMENTS    { 1, 3, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 212
+
+
+mylexParityCheckLogicalDriveFailed  TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexBadBlocks
+    }
+DESCRIPTION "Parity check finished, logical drive failed"
+--#TYPE         "Parity check: drive failed"
+--#SUMMARY      "Parity check finished at disk array adapter in slot %d;"
+--#SUMMARY      "logical drive failed: %d bad blocks detected (Server %s)."
+--#ARGUMENTS    { 1, 3, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 213
+
+
+------------------------------------------------------------------------------------
+--
+-- Logical drive event group
+
+
+mylexLogicalDriveOffline    TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexLogicalDrive
+    }
+DESCRIPTION "Logical drive went offline"
+--#TYPE         "Logical drive offline"
+--#SUMMARY      "Logical drive %d at disk array adapter in slot %d is offline (Server %s)."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     CRITICAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 214
+
+
+mylexLogicalDriveCritical TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexLogicalDrive
+    }
+DESCRIPTION "Logical drive went critical"
+--#TYPE         "Logical drive critical"
+--#SUMMARY      "Logical drive %d at disk array adapter in slot %d is critical (Server %s)."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 215
+
+
+mylexLogicalDriveOnline TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexLogicalDrive
+    }
+DESCRIPTION "Logical drive went online"
+--#TYPE         "Logical drive online"
+--#SUMMARY      "Logical drive %d at disk array adapter in slot %d is online (Server %s)."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 216
+
+
+------------------------------------------------------------------------------------
+--
+-- Physical device event group
+
+
+mylexPhysicalDeviceDied TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device died"
+--#TYPE         "Physical device dead"
+--#SUMMARY      "Physical device %d on channel %d at disk array adapter in slot %d is DEAD (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     CRITICAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 217
+
+
+mylexPhysicalDeviceAlive    TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device online"
+--#TYPE         "Physical device online"
+--#SUMMARY      "Physical device %d on channel %d at disk array adapter in slot %d is now ONLINE (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 218
+
+
+------------------------------------------------------------------------------------
+--
+-- Miscellaneous event group
+
+
+mylexWriteBackError TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexBadBlocks
+    }
+DESCRIPTION "Write back error"
+--#TYPE         "Write back error"
+--#SUMMARY      "Controller cache write back error at disk array adapter in slot %d:"
+--#SUMMARY      "%d bad blocks (Server %s)."
+--#ARGUMENTS    { 1, 3, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 219
+
+
+mylexStateChangeTableFull TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "State-change table threshold reached"
+--#TYPE         "Cache change table full"
+--#SUMMARY      "Cache state-change table full at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 220
+
+
+mylexAdapterDied TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Adapter died"
+--#TYPE         "Disk controller died"
+--#SUMMARY      "Connection to disk array controller in slot %d on server %s lost."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     CRITICAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 221
+
+
+------------------------------------------------------------------------------------
+--
+-- Additional system drive event group
+
+
+mylexAutoRebuildStarted2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Automatic rebuild was started"
+--#TYPE         "Automatic rebuild started"
+--#SUMMARY      "Automatic rebuild of system drive %d was started"
+--#SUMMARY      "at disk array adapter in slot %d at server %s"
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 222
+
+
+mylexManualRebuildStarted2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Manual rebuild was started"
+--#TYPE         "Manual rebuild started"
+--#SUMMARY      "Manual rebuild of system drive %d was started"
+--#SUMMARY      "at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 223
+
+
+mylexRebuildDone2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Rebuild successfully completed"
+--#TYPE         "Rebuild done"
+--#SUMMARY      "Rebuild of system drive %d was successfully completed at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 224
+
+
+mylexRebuildCanceled2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Rebuild cancelled"
+--#TYPE         "Rebuild cancelled"
+--#SUMMARY      "Rebuild of system drive %d was cancelled at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 225
+
+
+mylexRebuildError2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Rebuild error, bad blocks detected"
+--#TYPE         "Rebuild error"
+--#SUMMARY      "Rebuild error on system drive %d at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 226
+
+
+mylexRebuildNewDeviceFailed2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Rebuild finished, new device failed"
+--#TYPE         "Rebuild device failed"
+--#SUMMARY      "Rebuild of system drive %d finished at disk array adapter in slot %d:"
+--#SUMMARY      "new device failed at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 227
+
+
+mylexRebuildLogicalDriveFailed2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Rebuild finished, logical drive failed"
+--#TYPE         "Rebuild drive failed"
+--#SUMMARY      "Rebuild of system drive %d finished at disk array adapter in slot %d:"
+--#SUMMARY      "system drive failed at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 228
+
+mylexInitializationStarted TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "System drive initialization started"
+--#TYPE         "Initialization started"
+--#SUMMARY      "Initialization of system drive %d started at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 229
+
+mylexInitializationDone TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "System drive initialization done"
+--#TYPE         "Initialization done"
+--#SUMMARY      "Initialization of system drive %d successfully finished at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 230
+
+mylexInitializationCanceled TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "System drive initialization canceled"
+--#TYPE         "Initialization canceled"
+--#SUMMARY      "Initialization of system drive %d canceled at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 231
+
+mylexInitializationFailed TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "System drive initialization failed"
+--#TYPE         "Initialization failed"
+--#SUMMARY      "Initialization of system drive %d failed at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 232
+
+mylexSystemDriveCreated TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "New system drive created"
+--#TYPE         "System drive created"
+--#SUMMARY      "New system drive %d created at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 233
+
+mylexSystemDriveDeleted TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "System drive deleted"
+--#TYPE         "System drive deleted"
+--#SUMMARY      "System drive %d deleted at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 234
+
+mylexRaidExpansionStarted TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "RAID capacity expansion started"
+--#TYPE         "RAID expansion started"
+--#SUMMARY      "RAID capacity expansion on system drive %d started at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 235
+
+mylexRaidExpansionDone TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "RAID capacity expansion successfully finished"
+--#TYPE         "RAID expansion done"
+--#SUMMARY      "RAID capacity expansion on system drive %d successfully finished at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 236
+
+mylexRaidExpansionFailed TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "RAID capacity expansion failed"
+--#TYPE         "RAID expansion failed"
+--#SUMMARY      "RAID capacity expansion failed on system drive %d at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 237
+
+mylexSystemDriveBadBlock TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "Bad block(s) detected on system drive"
+--#TYPE         "Bad block"
+--#SUMMARY      "Bad block(s) detected on system drive %d at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     MINOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 238
+
+mylexSystemDriveSizeChanged TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "System drive size was changed"
+--#TYPE         "System drive size changed"
+--#SUMMARY      "Size of system drive %d was changed at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 239
+
+mylexRaidTypeChanged TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexStatusCurrentDrive
+    }
+DESCRIPTION "System drive RAID type was changed"
+--#TYPE         "RAID type changed"
+--#SUMMARY      "RAID type of system drive %d was changed at disk array adapter in slot %d at server %s."
+--#ARGUMENTS    { 3, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 240
+
+
+------------------------------------------------------------------------------------
+--
+-- Additional physical device event group
+
+
+mylexPhysicalDeviceHotspare TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device now hotspare (standby)"
+--#TYPE         "Physical device hotspare"
+--#SUMMARY      "Physical device %d on channel %d at disk array adapter in slot %d is now HOTSPARE (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     INFORMATIONAL
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 250
+
+mylexPhysicalDeviceHardError TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device hard error"
+--#TYPE         "Physical device hard error"
+--#SUMMARY      "Hard error occurred at physical device %d on channel %d at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MINOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 251
+
+mylexPhysicalDeviceSoftError TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device soft error"
+--#TYPE         "Physical device soft error"
+--#SUMMARY      "Soft error occurred at physical device %d on channel %d at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MINOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 252
+
+mylexPhysicalDeviceParityError TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device parity error"
+--#TYPE         "Physical device parity error"
+--#SUMMARY      "Parity error occurred at physical device %d on channel %d at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MINOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 253
+
+mylexPhysicalDeviceMiscError TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device miscellaneous error"
+--#TYPE         "Physical device miscellaneous error"
+--#SUMMARY      "Miscellaneous error occurred at physical device %d on channel %d at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MINOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 254
+
+
+mylexPhysicalDevicePrefailure TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device prefailure"
+--#TYPE         "Physical device prefailure"
+--#SUMMARY      "Prefailure alert from physical device %d on channel %d at disk array adapter in slot %d (Server %s)."
+--#SUMMARY      "Device will fail in near future!"
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 255
+
+mylexPhysicalDeviceUnconfigured TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device unconfigured"
+--#TYPE         "Physical device unconfigured"
+--#SUMMARY      "Physical device %d on channel %d at disk array adapter in slot %d is unconfigured (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 256
+
+mylexPhysicalDeviceAdded TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device added"
+--#TYPE         "Physical device added"
+--#SUMMARY      "Physical device %d on channel %d at disk array adapter in slot %d was added (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 257
+
+mylexPhysicalDeviceRemoved TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+DESCRIPTION "Physical device removed"
+--#TYPE         "Physical device removed"
+--#SUMMARY      "Physical device %d on channel %d at disk array adapter in slot %d was removed (Server %s)."
+--#ARGUMENTS    { 3, 4, 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 258
+
+
+------------------------------------------------------------------------------------
+--
+-- Additional miscellaneous event group
+
+
+mylexWriteBackError2 TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+DESCRIPTION "Write back error"
+--#TYPE         "Write back error"
+--#SUMMARY      "Controller cache write back error at disk array adapter in slot %d (Server %s)."
+--#ARGUMENTS    { 1, 0 }
+--#SEVERITY     MAJOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 260
+
+
+mylexGamDriverMissing TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexTrapString1
+    }
+DESCRIPTION "Mylex GAM driver missing or failed to start"
+--#TYPE         "Missing GAM driver"
+--#SUMMARY      "GAM driver is either not installed or has failed to start; required version: %s (server %s)."
+--#ARGUMENTS    { 3, 0 }
+--#SEVERITY     MINOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 261
+
+mylexGamDriverIncorrectVersion TRAP-TYPE
+ENTERPRISE  sniServerMgmt
+VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexTrapString1,
+    mylexTrapString2
+    }
+DESCRIPTION "Mylex GAM driver does not have the correct version"
+--#TYPE         "Incorrect GAM driver version"
+--#SUMMARY      "Incorrect version of GAM driver installed (%s); required version: %s (server %s)."
+--#ARGUMENTS    { 3, 4, 0 }
+--#SEVERITY     MINOR
+--#TIMEINDEX    2
+--#STATE        OPERATIONAL
+::= 262
+
+
+-- =================================================================================
+--
+-- SMART support traps
+--
+
+mylexSMARTFailurePredicted TRAP-TYPE
+    ENTERPRISE      sniServerMgmt
+    VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+    DESCRIPTION     "Sent if a failure (S.M.A.R.T) has been predicted on a physical disk."
+     --#TYPE        "SMART predicted disk failure"
+     --#SUMMARY     "SMART predicts failure for disk %d on channel %d at disk array adapter in slot %d (Server %s)."
+     --#ARGUMENTS   { 3, 4, 1, 0 }
+     --#SEVERITY    CRITICAL
+     --#TIMEINDEX   1
+     --#STATE       DEGRADED
+     ::=  270
+
+mylexSMARTConfigurationChanged TRAP-TYPE
+    ENTERPRISE      sniServerMgmt
+    VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime,
+    mylexPhysDevice,
+    mylexPhysChannel
+    }
+    DESCRIPTION    "S.M.A.R.T configuration has been changed."
+     --#TYPE        "SMART configuration changed"
+     --#SUMMARY     "SMART configuration has been changed for disk %d on channel %d at disk array adapter in slot %d (Server %s)."
+     --#ARGUMENTS   { 3, 4, 1, 0 }
+     --#SEVERITY    INFORMATIONAL
+     --#TIMEINDEX   1
+     --#STATE       OPERATIONAL
+     ::=  271
+
+
+-- =================================================================================
+--
+-- BBU support traps
+--
+
+mylexBBUFound TRAP-TYPE
+    ENTERPRISE      sniServerMgmt
+    VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+    DESCRIPTION     "Battery Backup Unit found"
+     --#TYPE        "BBU found"
+     --#SUMMARY     "A Battery Backup Unit was found on SCSI controller in slot %d (Server %s)."
+     --#ARGUMENTS   { 1, 0 }
+     --#SEVERITY    INFORMATIONAL
+     --#TIMEINDEX   1
+     --#STATE       OPERATIONAL
+     ::= 275
+
+mylexBBUPowerLow TRAP-TYPE
+    ENTERPRISE      sniServerMgmt
+    VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+    DESCRIPTION     "Battery Backup Unit power is low"
+     --#TYPE        "BBU power low"
+     --#SUMMARY     "The Battery Backup Unit power on SCSI controller in slot %d is low (Server %s)."
+     --#SUMMARY     "If this messages happens without power failure, replace the BBU."
+     --#ARGUMENTS   { 1, 0 }
+     --#SEVERITY    CRITICAL
+     --#TIMEINDEX   1
+     --#STATE       OPERATIONAL
+     ::= 276
+
+mylexBBUPowerOK TRAP-TYPE
+    ENTERPRISE      sniServerMgmt
+    VARIABLES
+    {
+    mylexTrapServerName,
+    mylexTrapSlotNumber,
+    mylexTrapTime
+    }
+    DESCRIPTION     "Battery Backup Unit power is OK"
+     --#TYPE        "BBU power OK"
+     --#SUMMARY     "The Battery Backup Unit power on SCSI controller in slot %d is OK (Server %s)."
+     --#ARGUMENTS   { 1, 0 }
+     --#SEVERITY    INFORMATIONAL
+     --#TIMEINDEX   1
+     --#STATE       OPERATIONAL
+     ::= 277
+
+END

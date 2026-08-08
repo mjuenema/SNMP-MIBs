@@ -1,0 +1,5710 @@
+SNI-SERVER-CONTROL-MIB DEFINITIONS ::= BEGIN
+
+-- ServerView MIB for systemboard and server controlling
+--
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1995-1997
+-- Copyright (C) Siemens AG 1998-2000
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001-2007
+-- All rights reserved
+--
+--
+-- MIB Revision: 4.71.00
+--
+
+IMPORTS
+	OBJECT-TYPE                            FROM RFC-1212
+	mib-2                                  FROM RFC1213-MIB
+	DisplayString                          FROM RFC1213-MIB
+	PhysAddress                            FROM RFC1213-MIB
+	Counter, Gauge, IpAddress, enterprises FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't support IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET STRING
+-- PhysAddress   ::= OCTET STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+
+-- Server Management (ServerView) MIB nodes
+
+-- sni:                         1.3.6.1.4.1.231
+--  sniProductMibs:			    1.3.6.1.4.1.231.2
+--   sniExtensions:			    1.3.6.1.4.1.231.2.10
+--    sniServerMgmt:			1.3.6.1.4.1.231.2.10.2
+--     sniCommon:			    1.3.6.1.4.1.231.2.10.2.2
+--      sniServerControl MIB:   1.3.6.1.4.1.231.2.10.2.2.5
+--
+
+-- Trap IDs for all ServerView MIBs:
+-- Trap enterprise is "sniServerMgmt".
+
+-- ServerView Trap MIB:             000..399  (enterprise "sni"!!)
+-- ServerView Mylex MIB:            200..299
+-- ServerView ServerControl MIB:    600..699  (this MIB)
+-- ServerView ServerView MIB:       700..749
+-- ServerView Harddisk MIB:         750..800
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+  
+-- ServerControl-MIB groups
+
+	agentInfo			OBJECT IDENTIFIER		::= { sniServerControl 1  }
+	environment			OBJECT IDENTIFIER		::= { sniServerControl 2  }
+	errorHandling		OBJECT IDENTIFIER		::= { sniServerControl 3  }
+	systemBoard			OBJECT IDENTIFIER		::= { sniServerControl 4  }
+	pagerSetup			OBJECT IDENTIFIER		::= { sniServerControl 5  }
+	standardBiosSetup	OBJECT IDENTIFIER		::= { sniServerControl 7  }
+	serverBiosSetup		OBJECT IDENTIFIER		::= { sniServerControl 8  }
+	powerOnOff			OBJECT IDENTIFIER		::= { sniServerControl 9  }
+	systemControlInfo	OBJECT IDENTIFIER		::= { sniServerControl 10 }
+	powerSupply			OBJECT IDENTIFIER		::= { sniServerControl 11 }
+	uninterruptablePowerSupply OBJECT IDENTIFIER ::= { sniServerControl 12 }
+	diagnostics			OBJECT IDENTIFIER		::= { sniServerControl 13 }
+	management			OBJECT IDENTIFIER		::= { sniServerControl 14 }
+	trapInfo			OBJECT IDENTIFIER		::= { sniServerControl 20 }
+
+
+
+
+-- **********************************************************************************************
+
+--
+-- GROUP: agentInfo
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       agentInfo group:            1.3.6.1.4.1.231.2.10.2.2.5.1
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines agent specific information like agent name, vendor name and versions 
+-- as well as the agent's write and shutdown permission by SET commands.
+
+--
+-- **********************************************************************************************
+
+agentId OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Agent identification string"
+	::= { agentInfo 1 }
+
+agentCompany OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Agent's company name"
+	::= { agentInfo 2 }
+
+agentVersionString OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Agent's version string <Major>.<Minor> (i.e. 1.05)"
+	::= { agentInfo 3 }
+
+agentBuild OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Compilation time and date of agent program"
+	::= { agentInfo 4 }
+
+agentVersionMajor OBJECT-TYPE
+	SYNTAX	INTEGER(0..9)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Agent's major version (numerical)"
+	::= { agentInfo 5 }
+
+agentVersionMinor OBJECT-TYPE
+	SYNTAX	INTEGER(0..99)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Agent's minor version (numerical)"
+	::= { agentInfo 6 }
+
+agentWriteAllowed OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		write-not-allowed(2),
+		write-allowed(3)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Defines whether writable objects can be written (except shutdown/power-off
+                     operations)"
+	::= { agentInfo 7 }
+
+agentShutdownAllowed OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		shutdown-not-allowed(2),
+		shutdown-allowed(3)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Defines whether shutdown/power-off objects can be written
+                     "
+	::= { agentInfo 8 }
+
+
+-- **********************************************************************************************
+
+--
+-- GROUP: environment
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       environment group:          1.3.6.1.4.1.231.2.10.2.2.5.2
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines server environmental information about temperature sensors and fans.
+
+--
+-- **********************************************************************************************
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: temperatureSensorsTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       environment group:          1.3.6.1.4.1.231.2.10.2.2.5.2
+--        temperatureSensorsTable:   1.3.6.1.4.1.231.2.10.2.2.5.2.1
+--
+-- Implementation of this table is optional
+--
+-- This table defines information about temperature sensors. The number of entries in this table 
+-- can be obtained from object cabinetNumberTempSensors of CabinetInfos table.
+-- ----------------------------------------------------------------------------------------------
+
+temperatureSensorsTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF TemperatureSensors
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with data of all configured temperature sensors"
+	::= { environment 1 }
+
+temperatureSensors OBJECT-TYPE
+	SYNTAX	TemperatureSensors
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ tempCabinetId, tempSensorNumber }
+	::= { temperatureSensorsTable 1 }
+
+TemperatureSensors ::= 
+	SEQUENCE {
+		tempCabinetId
+			INTEGER,
+		tempSensorNumber
+			INTEGER,
+		tempSensorStatus
+			INTEGER,
+		tempSensorPurpose
+			INTEGER,
+		tempLowerWarningLevel
+			INTEGER,
+		tempUpperWarningLevel
+			INTEGER,
+		tempLowerCriticalLevel
+			INTEGER,
+		tempUpperCriticalLevel
+			INTEGER,
+		tempLowerDamageLevel
+			INTEGER,
+		tempUpperDamageLevel
+			INTEGER,
+		tempCurrentValue
+			Gauge,
+		tempCriticalReaction
+			INTEGER,
+        tempSensorDesignation 
+        	DisplayString
+
+	}
+
+tempCabinetId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"ID of the cabinet the temperature sensor is in (index, 0 based)"
+	::= { temperatureSensors 1 }
+
+tempSensorNumber OBJECT-TYPE
+	SYNTAX	INTEGER(0..255)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of the sensor in this cabinet (index, 0 based)"
+	::= { temperatureSensors 2 }
+
+tempSensorStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		sensor-disabled(2),
+		ok(3),
+		sensor-fail(4),
+		warning-temp-warm(5),
+		warning-temp-cold(6),
+		critical-temp-warm(7),
+		critical-temp-cold(8),
+		damage-temp-warm(9),
+		damage-temp-cold(10),
+		not-available(99)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of this temperature sensor (OK, critical or shutdown
+ temperature reached...). The cold and the damage temperature status levels
+ are no longer supported (values 6, 8, 9, 10).
+ Status not-available(99) can be a sensor of a cpu that is not installed.
+ Status sensor-disabled(2) is currently not used."
+	::= { temperatureSensors 3 }
+
+tempSensorPurpose OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),				-- obsolete, no no longer use
+		cpu(3),
+		ambient(4),
+		housing(5),
+		not-available(6),		-- obsolete, no no longer use
+		io-board(7),
+		power-backplane(8)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Purpose of this temperature sensor (CPU, ambient, housing...).
+				 Purposes disable(2) and not-available(6) are no longer used."
+	::= { temperatureSensors 4 }
+
+tempLowerWarningLevel OBJECT-TYPE
+	SYNTAX	INTEGER(0..127)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Object made obsolete - no longer supported"
+	::= { temperatureSensors 5 }
+
+tempUpperWarningLevel OBJECT-TYPE
+	SYNTAX	INTEGER(0..127)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"System sends a temperature warning when temperature rises ABOVE
+                        this level (degrees Celsius)"
+	::= { temperatureSensors 6 }
+
+tempLowerCriticalLevel OBJECT-TYPE
+	SYNTAX	INTEGER(0..127)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Object made obsolete - no longer supported"
+	::= { temperatureSensors 7 }
+
+tempUpperCriticalLevel OBJECT-TYPE
+	SYNTAX	INTEGER(0..127)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"System becomes critical when temperature rises ABOVE this level (degrees Celsius).
+ A system shutdown is performed if object tempCriticalReaction is set to shutdown-and-poweroff."
+	::= { temperatureSensors 8 }
+
+tempLowerDamageLevel OBJECT-TYPE
+	SYNTAX	INTEGER(0..127)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Object made obsolete - no longer supported"
+	::= { temperatureSensors 9 }
+
+tempUpperDamageLevel OBJECT-TYPE
+	SYNTAX	INTEGER(0..127)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Object made obsolete - no longer supported"
+	::= { temperatureSensors 10 }
+
+tempCurrentValue OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Current temperature value (degrees Celsius; -1: unknown temperature,
+                        problem with sensor, see tempSensorStatus) "
+	::= { temperatureSensors 11 }
+
+tempCriticalReaction OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		continue(2),
+		shutdown-and-poweroff(3)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Reaction when a temperature gets critical (shutdown and power-off, continue...).
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { temperatureSensors 12 }
+
+tempSensorDesignation OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	optional
+	DESCRIPTION "String describing the purpose of each temperature sensor in a 
+                 housing (e.g. CPU, ambient,...). This object will substitute 
+                 the tempSensorPurpose object."
+	::= { temperatureSensors 13 }
+
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: fansTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       environment group:          1.3.6.1.4.1.231.2.10.2.2.5.2
+--        fansTable:                 1.3.6.1.4.1.231.2.10.2.2.5.2.2
+--
+-- Implementation of this table is optional
+--
+-- This table defines information about fans in the system. The number of entries in this table 
+-- can be obtained from object cabinetNumberFans of CabinetInfos table.
+-- ----------------------------------------------------------------------------------------------
+
+
+fansTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF Fans
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with data of all configured cooling devices (fans)"
+	::= { environment 2 }
+
+fans OBJECT-TYPE
+	SYNTAX	Fans
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ fanCabinetId, fanNumber }
+	::= { fansTable 1 }
+
+Fans ::= 
+	SEQUENCE {
+		fanCabinetId
+			INTEGER,
+		fanNumber
+			INTEGER,
+		fanStatus
+			INTEGER,
+		fanPurpose
+			INTEGER,
+		fanPositionX
+			INTEGER,
+		fanPositionY
+			INTEGER,
+		fanPositionZ
+			INTEGER,
+		fanCurrentSpeed
+			Gauge,
+		fanNominalMaximumSpeed
+			INTEGER,
+		fanCurrentMaximumSpeed
+			Gauge,
+		fanMaximumSpeedCriticalLevel
+			INTEGER,
+		fanMinimumSpeed
+			INTEGER,
+		fanFailReaction
+			INTEGER,
+		fanFailShutdownDelay
+			INTEGER,
+        fanDesignation 
+        	DisplayString,
+        fanIdentification 
+        	DisplayString
+	}
+
+fanCabinetId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"ID of the cabinet the cooling device (fan) is in (index, 0 based)"
+	::= { fans 1 }
+
+fanNumber OBJECT-TYPE
+	SYNTAX	INTEGER(0..255)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of the fan in this cabinet (index, 0 based)"
+	::= { fans 2 }
+
+fanStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disabled(2),
+		ok(3),
+		fail(4),
+		prefailure-predicted(5),
+		redundant-fan-failed(6),
+		not-manageable(7),
+		not-present(8)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of this fan (OK, failed...).
+ Status disabled(2) is no longer used.
+ Status prefailure-predicted(5) means the fan will fail in near future.
+ Status redundant-fan-failed(6) means a redundant fan has failed, the system
+     is not yet critical.
+ Status not-manageable(7) is a fan that is available but has no management facilities.
+ Status not-present(8) can be a hot-plug fan that is currently removed."
+	::= { fans 3 }
+
+fanPurpose OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		cpu-onchip(3),
+		component(4),
+		housing(5),
+		power-supply(6),
+		not-available(7)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Purpose of this fan (housing, component, CPU on-chip, power supply...).
+ Purpose disabled(2) is currently not used."
+	::= { fans 4 }
+
+fanPositionX OBJECT-TYPE
+	SYNTAX	INTEGER(0..100)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Fax X position - obsolete; for fan indentifying use fanIdentification object"
+	::= { fans 5 }
+
+fanPositionY OBJECT-TYPE
+	SYNTAX	INTEGER(0..100)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Fax Y position - obsolete; for fan indentifying use fanIdentification object"
+	::= { fans 6 }
+
+fanPositionZ OBJECT-TYPE
+	SYNTAX	INTEGER(0..100)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Fax Z position - obsolete; for fan indentifying use fanIdentification object"
+	::= { fans 7 }
+
+fanCurrentSpeed OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Current speed of the fan (in revolutions per minute, -1 = unknown)"
+	::= { fans 8 }
+
+fanNominalMaximumSpeed OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Nominal speed of the fan (in revolutions per minute)
+                        on maximum power; the speed is measured the first time
+                        the agent is installed and than compared daily to the
+                        current speed on maximum power to detect a fan
+                        prefailure (-1 = unknown)."
+	::= { fans 9 }
+
+fanCurrentMaximumSpeed OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Current speed of the fan (in revolutions per minute) on maximum power (-1 = unknown)."
+	::= { fans 10 }
+
+fanMaximumSpeedCriticalLevel OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Obsolete - no longer supported."
+	::= { fans 11 }
+
+fanMinimumSpeed OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Obsolete - no longer supported."
+	::= { fans 12 }
+
+fanFailReaction OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		continue(2),
+		shutdown-and-poweroff(3)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Reaction when a fan has failed (shutdown and power-off, continue...).
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { fans 14 }
+
+fanFailShutdownDelay OBJECT-TYPE
+	SYNTAX	INTEGER(0..300)
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Delay time (in seconds) when shutdown should commit on fan fail
+                        (if shutdown-and-off is configured, 
+                        0 = immediately, -1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { fans 15 }
+
+fanDesignation OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	optional
+	DESCRIPTION "String describing the purpose of each fan in a housing (e.g. CPU, Power Supply,...).
+                 This object will substitute the fanPurpose object."
+	::= { fans 16 }
+
+fanIdentification OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	optional
+	DESCRIPTION "String identifying each fan in a housing (e.g. CPU0, CPU1, PS0...)"
+	::= { fans 17 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENTS: global fan test objects 
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       environment group:          1.3.6.1.4.1.231.2.10.2.2.5.2
+--
+-- These objects supplies methods for fan testing
+-- ----------------------------------------------------------------------------------------------
+
+fanDailyTestTime OBJECT-TYPE
+	SYNTAX	INTEGER(0..1439)
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Daily time when to automatically test fan speeds (in minutes since
+ midnight; -1 = unknown, automatic fan test not supported).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { environment 3 }
+
+fanStartTest OBJECT-TYPE
+	SYNTAX	INTEGER{
+		start-test(1)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Start test of all fans to get the speed at maximum power
+ (this test is normally started automatically once a day).
+ Reading this object just returns the value 0."
+	::= { environment 4 }
+
+
+
+-- **********************************************************************************************
+
+--
+-- GROUP: errorHandling
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       errorHandling group:        1.3.6.1.4.1.231.2.10.2.2.5.3
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines the system error and event log tables and watchdog information.
+
+--
+-- **********************************************************************************************
+
+
+-- Message data of the following message log entries. Valid for the MIB tables 
+-- "eventLogTable" and "errorLogTable". The messages encoded as binary data with 
+-- following format: 
+--
+--   --------------------------------------------------------------------------------
+--  |   MessageTime    | ErrorCode  | CabinetNumber | ObjectId | AddParams (max. 15) |
+--  |     (DWORD)      |  (WORD)    |    (DWORD)    |  (DWORD) |     (DWORDs)        |
+--   --------------------------------------------------------------------------------
+--
+--  MessageTime:   Time and date (GMT) when this message occured (seconds since 1/1/1970, 0:00 AM);
+--                   0x00000000 if time is unknown.
+--  ErrorCode:     Error message number, upper 2 bits are severity: 
+--                   00 = Informational, 01 = minor, 10 = major, 11 = critical
+--                   LSB: ErrorDetail, MSB: ErrorClass and Severity.
+--  CabinetNumber: Number of the cabinet (server, storage extension) where this message comes from.
+--  ObjectId:      Object number that created the message (e.g. Fan 2 = object ID 2).
+--  AddParams:     Additional parameters specifying additional message details (depending on the 
+--                   error code; the number of arguments (0..15) is defined by the message size)
+--                  
+--  The log messages can be decoded by using the message file ERRMSG.INI.
+--  Each MIB table entry can contain only one message entry!
+--
+--  Special handling for ErrorCode 3F00: 
+--    Messages with this error code are are not encoded, but all bytes of the 
+--    arguments (CabinetNumber, ObjectId and all AddParams) have to be interpreted 
+--    as clear text (DisplayString):
+--
+--   ----------------------------------------------------------
+--  |   MessageTime    | ErrorCode  | Clear text message text  |
+--  |     (DWORD)      |  (3F00)    |     (DisplayString)      |
+--   ----------------------------------------------------------
+--
+--  The severity is inserted into the error code as for "normal" error codes.
+--
+-- 
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: eventLogTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       errorHandling group:        1.3.6.1.4.1.231.2.10.2.2.5.3
+--        eventLogTable:             1.3.6.1.4.1.231.2.10.2.2.5.3.1
+--
+-- Implementation of this table is optional
+--
+-- This table defines the system message log table for non-critial errors and informational 
+-- messages. The number of entries in this table can be obtained from object eventLogMaxEntries.
+-- ----------------------------------------------------------------------------------------------
+
+eventLogTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF EventLog
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with event log entries (can also contain critical errors when 
+                     an ErrorLog for critical errors is not available)"
+	::= { errorHandling 1 }
+
+eventLog OBJECT-TYPE
+	SYNTAX	EventLog
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ eventLogEntryNumber }
+	::= { eventLogTable 1 }
+
+EventLog ::= 
+	SEQUENCE {
+		eventLogEntryNumber
+			INTEGER,
+		eventLogMessageData
+			OCTET STRING
+	}
+
+eventLogEntryNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Entry number in eventLogTable (index, 0 based)"
+	::= { eventLog 1 }
+
+eventLogMessageData OBJECT-TYPE
+	SYNTAX	OCTET STRING
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION 
+"Non-critical message log entry as described above"
+	::= { eventLog 2 }
+
+-- ----------------------------------------------------------------------------------------------
+
+eventLogMaxEntries OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of EventLog entries (can be used to directly get all table
+ entries with one varbind list)"
+	::= { errorHandling 2 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: errorLogTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       errorHandling group:        1.3.6.1.4.1.231.2.10.2.2.5.3
+--        errorLogTable:             1.3.6.1.4.1.231.2.10.2.2.5.3.3
+--
+-- Implementation of this table is optional
+--
+-- This table defines the system error log table for major and critial errors. The number of 
+-- entries in this table can be obtained from object errorLogMaxEntries.
+-- ----------------------------------------------------------------------------------------------
+
+errorLogTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF ErrorLog
+	ACCESS	not-accessible
+	STATUS	optional
+	DESCRIPTION
+"Table with major and critial error log entries (can be missing on
+ some hardware platforms)"
+	::= { errorHandling 3 }
+
+errorLog OBJECT-TYPE
+	SYNTAX	ErrorLog
+	ACCESS	not-accessible
+	STATUS	optional
+	DESCRIPTION ""
+	INDEX	{ errorLogEntryNumber }
+	::= { errorLogTable 1 }
+
+ErrorLog ::= 
+	SEQUENCE {
+		errorLogEntryNumber
+			INTEGER,
+		errorLogMessageData
+			OCTET STRING
+	}
+
+errorLogEntryNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Entry number in critical errorLogTable (index, 0 based)"
+	::= { errorLog 1 }
+
+errorLogMessageData OBJECT-TYPE
+	SYNTAX	OCTET STRING
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Major/critical message log entry as described above"
+	::= { errorLog 2 }
+
+-- ----------------------------------------------------------------------------------------------
+
+errorLogMaxEntries OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of ErrorLog entries (can be used to directly get all table
+                     entries with one varbind list)"
+	::= { errorHandling 4 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: hardware watchdog
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       errorHandling group:        1.3.6.1.4.1.231.2.10.2.2.5.3
+--
+-- The hardware watchdog is a timer that is periodically reloaded by the server management BIOS.
+-- If the BIOS stops working (usually because of a hardware failure), the system will be rebooted.
+-- ----------------------------------------------------------------------------------------------
+
+hardwareWatchdogStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3),
+		not-available(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the hardware watchdog (periodically restarted
+ by the server management BIOS). 
+ The hardware watchdog is only supported on SMI based management hardware,
+ not for micro controller hardware."
+	::= { errorHandling 5 }
+
+hardwareWatchdogTime OBJECT-TYPE
+	SYNTAX	INTEGER(1..99)
+
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION
+"Timeout time of the hardware watchdog (in seconds, -1 = unknown)"
+	::= { errorHandling 6 }
+
+hardwareWatchdogEnable OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Enable/disable the hardware watchdog.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { errorHandling 7 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: software watchdog
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       errorHandling group:        1.3.6.1.4.1.231.2.10.2.2.5.3
+--
+-- The software watchdog is a timer that is periodically reloaded by the server control agent.
+-- If the system crashes and the agent stops working (usually because of a software problem), 
+-- the system will be rebooted.
+-- ----------------------------------------------------------------------------------------------
+
+softwareWatchdogStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3),
+		not-available(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the software watchdog (periodically restarted
+                     by the server management agent)"
+	::= { errorHandling 8 }
+
+softwareWatchdogTime OBJECT-TYPE
+	SYNTAX	INTEGER(1..120)
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Timeout time of the software watchdog (in minutes, -1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { errorHandling 9 }
+
+softwareWatchdogEnable OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION "Enable/disable the software watchdog.
+				 The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { errorHandling 10 }
+
+softwareWatchdogAction OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		continue(2),
+		reboot(3),
+		nmi(4),
+        power-cycle(5)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Behavior when the software watchdog timeout occurs (reboot, continue...).
+ This value is only used if the watchdog is enabled. If set to continue
+ and the watchdog has timeout, it will only be logged and no reset happens.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { errorHandling 11 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: boot watchdog
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       errorHandling group:        1.3.6.1.4.1.231.2.10.2.2.5.3
+--
+-- The boot watchdog is a timer that is once started by the server control agent.
+-- If the system crashes and the agent stops working (usually because of a software problem), 
+-- the system will be rebooted.
+-- ----------------------------------------------------------------------------------------------
+
+bootWatchdogStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3),
+		not-available(4)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the boot watchdog (started at system boot, reset by the server management agent).
+ If the SC agent is not started within the specified time, the management controller assumes
+ the system did not boot correctly and executes system reboot."
+	::= { errorHandling 12 }
+
+bootWatchdogTime OBJECT-TYPE
+	SYNTAX	INTEGER(1..120)
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Timeout time of the boot watchdog (in minutes, -1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { errorHandling 13 }
+
+bootWatchdogEnable OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION 
+"Enable/disable the boot watchdog. 
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { errorHandling 14 }
+
+bootWatchdogAction OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		continue(2),
+		reboot(3),
+		nmi(4),
+        power-cycle(5)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Behavior when the boot watchdog timeout occurs (reboot, continue...).
+ This value is only used if the watchdog is enabled. If set to continue
+ and the watchdog has timeout, it will only be logged and no reset happens.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { errorHandling 15 }
+
+
+-- **********************************************************************************************
+
+--
+-- GROUP: systemBoard
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines the system board component information (CPU, memory modules, cache,
+-- utilization, BIOS).
+
+--
+-- **********************************************************************************************
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: cpuTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--        cpuTable:                  1.3.6.1.4.1.231.2.10.2.2.5.4.1
+--
+-- Implementation of this table is optional
+--
+-- This table defines the CPU information. The number of entries in 
+-- this table can be obtained from object sniScNumberCpuSockets
+-- ----------------------------------------------------------------------------------------------
+
+cpuTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF Cpu
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with CPU information"
+	::= { systemBoard 1 }
+
+cpu OBJECT-TYPE
+	SYNTAX	Cpu
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+" "
+	INDEX	{ cpuTableIndex }
+	::= { cpuTable 1 }
+
+Cpu ::= 
+	SEQUENCE {
+		cpuTableIndex
+			INTEGER,
+		cpuType
+			INTEGER,
+		cpuFrequency
+			INTEGER,
+		cpuStep
+			INTEGER,
+		cpuStatus
+			INTEGER,
+		cpuModel
+			INTEGER,
+		cpuName
+			DisplayString,
+		cpuSocketDesignation
+			DisplayString,
+		cpuManufacturer
+			DisplayString,
+        cpuNrLogicalsPerPhysical
+            INTEGER,
+        cpuCacheL1Size
+            INTEGER,
+        cpuCacheL2Size
+            INTEGER,
+        cpuCacheL3Size
+            INTEGER,
+        cpuNrCoresPerPhysical
+			INTEGER
+	}
+
+cpuTableIndex OBJECT-TYPE
+	SYNTAX	INTEGER(0..31)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of the CPU in the CpuTable (index, 0 based)"
+	::= { cpu 1 }
+
+cpuType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		i386(3),
+		i486(4),
+		pentium(5),
+		pentium-pro(6),
+        	unknown-mips(101),
+        r2000(102),
+        r3000(103),
+        r4000(104),
+        r5000(105),
+        r10000(110),
+        r12000(112)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the CPU (486, Pentium, R2000...)"
+	::= { cpu 2 }
+
+cpuFrequency OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Frequency of the CPU (in MHz, -1 = unknown)"
+	::= { cpu 3 }
+
+cpuStep OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Step (version) of the CPU (-1 = unknown)"
+	::= { cpu 4 }
+
+cpuStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disabled(2),
+		ok(3),
+		not-present(4),
+		error(5),
+		fail(6),
+		missing-termination(7),
+		prefailure-warning(8)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION		"Status of a CPU:
+     unknown(1)            : CPU status could not be evaluated
+     disabled(2)           : CPU was manually disabled in BIOS setup
+     ok(3)                 : CPU is available and operating properly
+     not-present(4)        : CPU is not available, empty socket
+     error(5)              : CPU has encountered errors but is still in use
+     fail(6)               : CPU has failed and is disabled
+     missing-termination(7): CPU socket needs a terminator module when not populated but the terminator is missing
+     prefailure-warning(8) : CPU has too many correctable errors within a certain time period"
+	::= { cpu 6 }
+
+cpuModel OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Model of the CPU (-1 = unknown)"
+	::= { cpu 7 }
+
+cpuName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Name of the CPU (e.g. 'Pentium', 'Pentium Pro' ...) as text string"
+	::= { cpu 8 }
+
+cpuSocketDesignation OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "String containing the socket designation of a CPU.
+				 This is the same text that is written on the system board."
+	::= { cpu 9 }
+
+cpuManufacturer OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "String containing the CPU manufacturer."
+	::= { cpu 10 }
+
+cpuNrLogicalsPerPhysical OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of logical CPUs within one physical CPU (for hyper-threading and multi-core CPUs).
+				 This is the sum of all cores and all logical CPUs of a hyper-threading CPU."
+	::= { cpu 11 }
+
+cpuCacheL1Size OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Level 1 cache size (kByte) of a physical CPU (0 if unknown or not available)."
+	::= { cpu 12 }
+
+cpuCacheL2Size OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Level 2 cache size (kByte) of a physical CPU (0 if unknown or not available)."
+	::= { cpu 13 }
+
+cpuCacheL3Size OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Level 3 cache size (kByte) of a physical CPU (0 if unknown or not available)."
+	::= { cpu 14 }
+
+cpuNrCoresPerPhysical OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of cores within one physical CPU (for multi-core CPUs)."
+	::= { cpu 15 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: second level cache
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--
+-- These objects describe the system board's second level cache
+-- ----------------------------------------------------------------------------------------------
+
+secondLevelCacheSize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Size of the second level cache (in kBytes, 0 if not available or disabled, -1 = unknown).
+	             Object will be made obsolete in next releases; use cpuCacheL2Size instead!"
+	::= { systemBoard 2 }
+
+secondLevelCacheWritePolicy OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		write-back(2),
+		write-through(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Write policy of the second level cache (write-back, write-through).
+				Object will be made obsolete in next releases (no longer required)."
+	::= { systemBoard 3 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: main memory
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--
+-- These objects describe the system's main memory
+-- ----------------------------------------------------------------------------------------------
+
+physicalMemorySize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Size of the whole physical memory on the system board
+                     (in MBytes, -1 = unknown)"
+	::= { systemBoard 4 }
+
+baseMemorySize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Size of the base memory (below 1 MB) on the system
+                     board (in kBytes, -1 = unknown)"
+	::= { systemBoard 5 }
+
+extendedMemorySize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Size of the extended memory (above 1 MB) on the system
+                     board (in MBytes, -1 = unknown)"
+	::= { systemBoard 6 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: bus utilization 
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--
+-- These objects give information about the PCI and EISA bus utilization.
+-- They should be only used for older implementations. For new implementations now use
+-- the pciUtilizationTable.
+-- ----------------------------------------------------------------------------------------------
+
+utilizationMethod OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		take-snapshot-now(2),
+		get-current-values(3)
+	}
+
+	ACCESS	read-write
+	STATUS	optional
+	DESCRIPTION
+"Method to get utilization values:
+                        take-snapshot-now: get all values and store them to
+                            have all values at one certain time (set this object
+                            each time you want to get new values)
+                        get-current-values (default): get the values directly
+                            without buffering.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { systemBoard 7 }
+
+utilizationPciLoad OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	optional
+	DESCRIPTION "Load on the PCI bus (in percent; -1 if unknown); 
+				 do no longer use this object for new implementations;
+				 object replaced by pciUtilizationTable."
+	::= { systemBoard 8 }
+
+utilizationEisaLoad OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	optional
+	DESCRIPTION "Load on the EISA bus (in percent; -1 if unknown)"
+	::= { systemBoard 9 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: memoryModulesTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--        memoryModulesTable:        1.3.6.1.4.1.231.2.10.2.2.5.4.10
+--
+-- Implementation of this table is optional
+--
+-- This table defines the main memory module information table. The number of entries in 
+-- this table can be obtained from object sniScNumberMemoryModules.
+-- ----------------------------------------------------------------------------------------------
+
+memoryModulesTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF MemoryModules
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with memory module descripitions"
+	::= { systemBoard 10 }
+
+memoryModules OBJECT-TYPE
+	SYNTAX	MemoryModules
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ memModuleNumber }
+	::= { memoryModulesTable 1 }
+
+MemoryModules ::= 
+	SEQUENCE {
+		memModuleNumber
+			INTEGER,
+		memModuleBank
+			INTEGER,
+		memModuleStatus
+			INTEGER,
+		memModuleErrors
+			Counter,
+		memModuleStartAddress
+			INTEGER,
+		memModuleSize
+			INTEGER,
+		memModuleType
+			INTEGER,
+		memModuleType2
+			INTEGER,
+		memModuleSocketDesignation
+			DisplayString,
+		memModuleCorrectableErrors
+			Counter,
+		memModuleApproved
+			INTEGER,
+		memModuleStartAddressMB
+			INTEGER,
+		memModuleSizeMB
+			INTEGER
+		}
+
+memModuleNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Module number (index, 0 based)"
+	::= { memoryModules 1 }
+
+memModuleBank OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Bank number the module belongs to (-1 = unknown)."
+	::= { memoryModules 2 }
+
+memModuleStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+        unknown(1),
+        error(2),
+        ok(3),
+        not-available(4),
+        fail(5),
+        prefailure-warning(6),   
+        hot-spare(7),
+        mirror(8),
+        disabled(9),
+        raid(10)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the memory module socket (OK, fail, disabled...).
+     unknown(1)            : module status could not be evaluated
+     error(2)              : module has encountered errors but is still in use
+     ok(3)                 : module is available and operating properly
+     not-available(4)      : empty socket, module is not available
+     fail(5)               : module has failed and is disabled
+     prefailure-warning(6) : module has too many correctable errors within a certain time period
+     hot-space(7)          : module is a hot-spare (standby) module, which can be used 
+                                as a run-time-replacement for failed modules
+     mirror(8)             : module is part of a mirror
+     disabled(9)           : module was manually disabled in BIOS setup
+     raid(10)              : module is part of a memory module RAID system"
+	::= { memoryModules 3 }
+
+memModuleErrors OBJECT-TYPE
+	SYNTAX	Counter
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of (parity) errors in this module since last error count reset
+                 (-1 = unknown)"
+	::= { memoryModules 4 }
+
+memModuleStartAddress OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Start address of the bank this memory belongs to (-1 = unknown).
+                 This object is obsolete when the main memory size exceeds 4 GByte.
+                 Use new object memModuleStartAddressMB instead."
+	::= { memoryModules 5 }
+
+memModuleSize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Size of this memory module (in bytes, -1 = unknown).
+                 This object is obsolete when the module's size exceeds 4 GByte.
+                 Use new object memModuleSizeMB instead."
+	::= { memoryModules 6 }
+
+memModuleType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		other(2),
+		no-parity(3),
+		parity(4),
+		parity-or-edc(5),
+		edc(6),
+		edo(7),
+		synchrone-edo(8)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Type of memory module (Parity, NoParity, ECD, EDO...).
+	             Will be made obsolete in next agent releases!!!
+				 Use memModuleType2 for newer implementations!"
+	::= { memoryModules 7 }
+
+memModuleType2 OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Information about the type of a memory module (Parity, ECC, EDO, SIMM, DIMM...).
+                     The type is a combination of one or more bits.
+				 Bit field: Bit 0 - Other
+							Bit 1 - Unknown
+							Bit 2 - Standard
+							Bit 3 - Fast page mode
+							Bit 4 - EDO
+							Bit 5 - Parity
+							Bit 6 - ECC
+							Bit 7 - SIMM
+							Bit 8 - DIMM   
+							Bit 9 - RIMM   
+				 Unused bits are set to zero."
+	::= { memoryModules 8 }
+
+memModuleSocketDesignation OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "String containing the socket designation of a memory module.
+				 This is the same text that is written on the system board."
+	::= { memoryModules 9 }
+
+memModuleCorrectableErrors OBJECT-TYPE
+	SYNTAX	Counter
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of correctable errors in this module since last error count reset
+                        (-1 = unknown)"
+	::= { memoryModules 10 }
+
+memModuleApproved OBJECT-TYPE
+	SYNTAX	INTEGER{
+        unknown(1),
+		no(2),
+		yes(3)
+    }
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Information whether the memory module has been approved by the system vendor.
+	             unknown(1) is given when a module is not available or module cannot be accessed;
+				 no(2) when no approval information is found;
+				 yes(3) when a valid approval information is found in the module."
+	::= { memoryModules 11 }
+
+memModuleStartAddressMB OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Start address (in MBytes) of the bank this memory belongs to (-1 = unknown).
+                 This object makes the object memModuleStartAddress obsolete (4 GByte limit)."
+	::= { memoryModules 12 }
+
+memModuleSizeMB OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Size (in MBytes) of this memory module (-1 = unknown).
+                 This object makes the object memModuleSize obsolete (4 GByte limit)."
+	::= { memoryModules 13 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: memory module error counters 
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--
+-- These objects supplies methods for resetting the module error counters
+-- ----------------------------------------------------------------------------------------------
+
+memoryErrorCounterReset OBJECT-TYPE
+	SYNTAX	INTEGER{
+		reset(1)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Reset the memory module error counters (and set a new start time),
+ reading this object just returns the value 0."
+	::= { systemBoard 11 }
+
+memoryErrorCounterStartTime OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Time when memory module error counters were started
+ (seconds since 1/1/1970, -1 = unknown)"
+	::= { systemBoard 12 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: pciUtilizationTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--        pciUtilizationTable:       1.3.6.1.4.1.231.2.10.2.2.5.4.13
+--
+-- Implementation of this table is optional
+--
+-- This table defines the PCI utilization information table. The number of entries in 
+-- this table can be obtained from object sniScNumberPciBusses.
+-- ----------------------------------------------------------------------------------------------
+
+pciUtilizationTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF PciUtilization
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION "Table with PCI bus utilization data; independent of utilizationMethod object,
+				 update method for this table is always get-current-values. The number of entries 
+				 in this table can be read from MIB object sniScNumberPciBusses."
+	::= { systemBoard 13 }
+
+pciUtilization OBJECT-TYPE
+	SYNTAX	PciUtilization
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ pciUtilBusNumber }
+	::= { pciUtilizationTable 1 }
+
+PciUtilization ::= 
+	SEQUENCE {
+		pciUtilBusNumber
+			INTEGER,
+		pciUtilBusLoad
+			Gauge,
+		pciUtilBusTransferRate
+			Gauge,
+		pciUtilBusEfficiency
+			Gauge
+	}
+
+pciUtilBusNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "PCI bus number (index, 1..n)"
+	::= { pciUtilization 1 }
+
+pciUtilBusLoad OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "PCI bus load (in percent, 0xffffffff if unknown)"
+	::= { pciUtilization 2 }
+
+pciUtilBusTransferRate OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "PCI bus data transfer rate (in MBytes/second, 0xffffffff if unknown)"
+	::= { pciUtilization 3 }
+
+pciUtilBusEfficiency OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "PCI bus efficiency, ratio of data transfer rate through bus load (in percent);
+	             avarage value over all devices on this PCI bus; optimum value is 100 percent
+				 (0xffffffff if unknown)."
+	::= { pciUtilization 4 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: system board table entries
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemBoard group:          1.3.6.1.4.1.231.2.10.2.2.5.4
+--
+-- These objects supplies the number of entries for the tables in the system board group
+-- ----------------------------------------------------------------------------------------------
+
+sniScBiosVersionString OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "String containing complete BIOS version, e.g. V4.05 R1.03.887"
+	::= { systemBoard 14 }
+
+sniScNumberCpuSockets OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of CPU sockets available on the system board. This is not the number
+	             of currently installed CPUs! This object also describes the number of entries
+				 in the 'cpuTable' (-1 = unknown)."
+	::= { systemBoard 15 }
+
+sniScNumberMemoryModules OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of memory module sockets available on the system board (or memory extension
+				 board). This is not the number of currently installed memory modules! This object 
+				 also describes the number of entries in the 'memoryModulesTable' (-1 = unknown)."
+	::= { systemBoard 16 }
+
+sniScNumberPciBusses OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of PCI busses available in the system (-1 = unknown). "
+	::= { systemBoard 17 }
+
+totalMemoryUsage OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Total system memory usage (virtual and physical, in KBytes, -1 = unknown)"
+	::= { systemBoard 18 }
+
+totalMemoryUsagePercent OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Total system memory usage (virtual and physical, in percent, -1 = unknown)"
+	::= { systemBoard 19 }
+
+physicalMemoryUsage OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Physical system memory usage (in KBytes, -1 = unknown)"
+	::= { systemBoard 20 }
+
+physicalMemoryUsagePercent OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Physical system memory usage (in percent, -1 = unknown)"
+	::= { systemBoard 21 }
+
+totalMemoryAvailable OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Total system memory available (virtual and physical, in KBytes, -1 = unknown)"
+	::= { systemBoard 22 }
+
+physicalMemoryAvailable OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Physical system memory available (in KBytes, -1 = unknown)"
+	::= { systemBoard 23 }
+	
+physicalMemoryOsSize OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Total size of the whole physical memory available to the operating system; 
+				 this value is similar to 'physicalMemorySize', but may be less if the system
+				 has mirror or hot spare memory modules (in MBytes, -1 = unknown)"
+	::= { systemBoard 24 }
+
+	
+
+-- **********************************************************************************************
+
+--
+-- GROUP: pagerSetup
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       pagerSetup group:           1.3.6.1.4.1.231.2.10.2.2.5.5
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines the server emergency pager information and settings.
+
+--
+-- **********************************************************************************************
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: pagerUserTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       pagerSetup group:           1.3.6.1.4.1.231.2.10.2.2.5.5
+--        pagerUserTable:            1.3.6.1.4.1.231.2.10.2.2.5.5.1
+--
+-- Implementation of this table is optional
+--
+-- This table defines the server pager information table. The number of entries is fixed 
+-- to ONE in the current implementations!
+-- ----------------------------------------------------------------------------------------------
+
+pagerUserTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF PagerUser
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with info of the users that should be paged"
+	::= { pagerSetup 1 }
+
+pagerUser OBJECT-TYPE
+	SYNTAX	PagerUser
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ pagerUserIndex }
+	::= { pagerUserTable 1 }
+
+PagerUser ::= 
+	SEQUENCE {
+		pagerUserIndex
+			INTEGER,
+		pagerType
+			INTEGER,
+		pagerUserName
+			DisplayString,
+		pagerUserDescription
+			DisplayString,
+		pagerActive
+			INTEGER,
+		pagerNumber
+			DisplayString,
+		pagerServiceProviderNumber
+			DisplayString,
+		pagerActivityPrompt
+			DisplayString,
+		pagerTimeModel
+			DisplayString
+	}
+
+pagerUserIndex OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Index into pager user table (0 based)"
+	::= { pagerUser 1 }
+
+pagerType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		not-available(2),
+		signal(3),
+		numeric(4),
+		alfa-numeric(5)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the installed pager (signal, numeric, alfa-numeric).
+ The value unknown(1) and not-available(2) cannot be set, 
+ a SET will deliver 'badValue'."
+	::= { pagerUser 2 }
+
+pagerUserName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Name of the pager user"
+	::= { pagerUser 3 }
+
+pagerUserDescription OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Description (function, optional) of the pager user"
+	::= { pagerUser 4 }
+
+pagerActive OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		not-active(2),
+		active(3)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Describes whether this pager is active and should be called.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { pagerUser 5 }
+
+pagerNumber OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"User ID number of the user's pager"
+	::= { pagerUser 6 }
+
+pagerServiceProviderNumber OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Telephone dial number of the pager service provider (can also contain
+                        additional modem dial characters)"
+	::= { pagerUser 7 }
+
+pagerActivityPrompt OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Prompt string that should be received before pager number can
+ be sent"
+	::= { pagerUser 8 }
+
+pagerTimeModel OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Encoded string containing a pager time model (when should which user
+ be paged); this value is currently not used."
+	::= { pagerUser 9 }
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: pager settings 
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       pagerSetup group:           1.3.6.1.4.1.231.2.10.2.2.5.5
+--
+-- These objects supplies objects for setting the server pager properties
+-- ----------------------------------------------------------------------------------------------
+
+pagerInitString OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Init string that will be sent to the pager modem
+                     before the dialing begins"
+	::= { pagerSetup 2 }
+
+pagerServerNumber OBJECT-TYPE
+	SYNTAX	INTEGER(0..65535)
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Number of this server. It is sent together with the
+                     error number as a message to the 
+                     user's pager (-1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { pagerSetup 3 }
+
+pagerComPort OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		com1(2),
+		com2(3),
+		com3(4),
+		com4(5)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"COM port number (1...4) the pager modem is connected to.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { pagerSetup 4 }
+
+pagerComPortBaudRate OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Baud rate of the pager COM port. Following values are supported:
+                     1200, 2400, 4800, 9600, 19200 
+                     (-1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { pagerSetup 5 }
+
+pagerComPortParity OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		even(2),
+		odd(3),
+		none(4),
+		mark(5),
+		space(6)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Parity check configuration for the pager COM port.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { pagerSetup 6 }
+
+pagerComPortNumBits OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Number of bits per byte on the pager COM port (7, 8, -1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { pagerSetup 7 }
+
+pagerComPortFlowControl OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		none(2),
+		hardware(3),
+		xon-xoff(4)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Flow control method of the pager COM port (Hardware, XON/XOFF...).
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { pagerSetup 8 }
+
+pagerModemName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Optional modem name or type; can be used just as info
+ to be displayed."
+	::= { pagerSetup 9 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP: standardBiosSetup
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       standardBiosSetup group:    1.3.6.1.4.1.231.2.10.2.2.5.7
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines settings in the standard BIOS setup.
+--
+-- **********************************************************************************************
+
+stdSetupPasswordEnable OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Tells whether a password is configured for the
+ standard BIOS (read-only)"
+	::= { standardBiosSetup 1 }
+
+stdSetupBootSource OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		standard(2),
+		diag-system(4)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION "Source medium to boot from: Normal system or diagnostic system
+                    standard(2):    standard boot
+                    diag-system(4): boot from alternate diagnostic system
+                 The source the diagnostic system is booted from is selected in
+				 object 'srvSetupRebootFailAction'.
+				 The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { standardBiosSetup 2 }
+
+stdSetupPostErrorHalt OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		halt-on-any-error(2),
+		no-halt-on-any-error(3),
+		other(9)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Describes what to do when a POST error has occured (halt on any 
+                     error, no halt on any error...).
+ The values unknown(1) and other(9) cannot be set, a SET will deliver 'badValue'."
+	::= { standardBiosSetup 3 }
+
+stdSetupSerialInterface1 OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		com-1(3),
+		com-2(4),
+		com-3(5),
+		com-4(6),
+		auto(9)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"The COM port which the on-board serial interface 1 is mapped to (1...4).
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { standardBiosSetup 4 }
+
+stdSetupSerialInterface2 OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		com-1(3),
+		com-2(4),
+		com-3(5),
+		com-4(6),
+		auto(9)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"The COM port which the on-board serial interface 2 is mapped to (1...4).
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { standardBiosSetup 5 }
+
+stdSetupParallelInterface OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		lpt-1(3),
+		lpt-2(4),
+		lpt-3(5),
+		auto(9)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"The LPT port which the on-board parallel interface is mapped to (1...3).
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { standardBiosSetup 6 }
+
+stdSetupFloppyController OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Describes whether the floppy controller is enabled.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { standardBiosSetup 7 }
+
+stdSetupHarddiskController OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		primary(3),
+        primary-and-secondary(4)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Describes whether the IDE harddisk controller is enabled.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+
+	::= { standardBiosSetup 8 }
+
+stdSetupMouseController OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Describes whether the mouse port controller is enabled.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+
+	::= { standardBiosSetup 9 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP: serverBiosSetup
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       serverBiosSetup group:      1.3.6.1.4.1.231.2.10.2.2.5.8
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines settings in the server management part of the BIOS setup.
+--
+-- **********************************************************************************************
+
+srvSetupCabinetId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Cabinet ID number of this server (-1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'.
+ Use this number as cabinetId for all tables containing a cabinet index.
+ If unknown is delivered, 0 should be used as cabinet index."
+	::= { serverBiosSetup 1 }
+
+srvSetupServerRackSlot OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	optional
+	DESCRIPTION
+"Slot number (in a rack) this server is in (only for rack servers; -1 = unknown).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'.
+ This object is currently not used."
+	::= { serverBiosSetup 2 }
+
+srvSetupServerGroupStart OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	obsolete
+	DESCRIPTION 
+		"deleted"
+	::= { serverBiosSetup 3 }
+
+srvSetupServerGroupEnd OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	obsolete
+	DESCRIPTION 
+		"deleted"
+	::= { serverBiosSetup 4 }
+
+srvSetupServerGroupMembers OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	obsolete
+	DESCRIPTION 
+		"deleted"
+	::= { serverBiosSetup 5 }
+
+srvSetupSeGroupStart OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	obsolete
+	DESCRIPTION 
+		"deleted"
+	::= { serverBiosSetup 6 }
+
+srvSetupSeGroupEnd OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	obsolete
+	DESCRIPTION 
+		"deleted"
+	::= { serverBiosSetup 7 }
+
+srvSetupSeGroupMembers OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	obsolete
+	DESCRIPTION 
+		"deleted"
+	::= { serverBiosSetup 8 }
+
+srvSetupRemoteOnEnable OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		disable(2),
+		enable(3),
+		not-available(4)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Describes whether remote-on via RI modem line is enabled or not available.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { serverBiosSetup 9 }
+
+srvSetupMaxRestartRetries OBJECT-TYPE
+	SYNTAX	INTEGER(0..7)
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION  "Maximum number of retries to reboot/restart the server when a 
+                     shutdown (and power-off) had occured. After
+                     this number of retries the action defined in 
+                     'srvSetupRebootFailAction' will be executed
+                     (-1 = unknown, no retries).
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { serverBiosSetup 10 }
+
+srvSetupRebootFailAction OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		switch-off(2),
+		ide-diag-disk(3),
+		no-diag-system(4),
+        remote-image-disk(5),
+        pxe(6),
+		rsb-usb(7),
+		bmc-remote(8)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION  "Describes the action on a specified number of failed reboot retries
+				  (srvSetupMaxRestartRetries=0):
+					unknown(1)           - diagnostic system cannot be determined (cannot be SET)
+					switch-off(2)        - no diag system, final power-off
+					ide-diag-disk(3)     - boot diag system from IDE disk
+					no-diag-system(4)    - no diag system available
+					remote-image-disk(5) - boot from remote image (over LAN)
+					pxe(6)               - boot from PXE (Preboot eXecution Environment)
+					rsb-usb(7)           - boot from RSB remote source (via USB interface)
+					bmc-remote(8)        - boot from BMC from remote storage
+				 This value is also the source to be booted from when object 'stdSetupBootSource'
+				 is set to 'diag-system'."
+	::= { serverBiosSetup 11 }
+
+srvSetupRebootFailPager OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		pager-disabled(2),
+		page-on-every-error-reboot(3)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Describes whether the pager should be activated when reboot 
+ after error shutdown had occured.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { serverBiosSetup 12 }
+
+srvSetupSeGroupNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION  "Group number for storage extension communication bus.
+                      Legal values are 0..9, -1 = unknown.
+                      The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { serverBiosSetup 13 }
+
+
+srvSetupRestartRetriesDefault OBJECT-TYPE
+	SYNTAX	INTEGER(0..7)
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION  "Default number of retries to reboot/restart the server when a 
+                  shutdown (and power-off) had occured. This value will be copied
+				  to object srvSetupMaxRestartRetries by the user to reset the counter 
+				  to its original (default) value (-1 = unknown, no retries).
+				  The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { serverBiosSetup 14 }
+
+
+
+-- **********************************************************************************************
+--
+-- GROUP: powerOnOff
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerOnOff group:           1.3.6.1.4.1.231.2.10.2.2.5.9
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines power on/off information.
+--
+-- **********************************************************************************************
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: onOffTimesTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemControlInfo group:    1.3.6.1.4.1.231.2.10.2.2.5.9
+--        onOffTimesTable:           1.3.6.1.4.1.231.2.10.2.2.5.9.1
+--
+-- Implementation of this table is mandatory
+--
+-- This table defines the server's power on/off times. Here the times are defined when the
+-- server automatically switches on or off. Each table entry represents a day of the week.
+-- ----------------------------------------------------------------------------------------------
+
+onOffTimesTable OBJECT-TYPE
+	SYNTAX	     SEQUENCE OF OnOffTimes
+	ACCESS	     not-accessible
+	STATUS	     mandatory
+	DESCRIPTION  "Table with system power on/off times; power-on will
+                     be performed by the real-time clock, power-off (with
+                     shutdown) by the operating system (system control
+                     service); table must be enabled before using"
+	::= { powerOnOff 1 }
+
+onOffTimes OBJECT-TYPE
+	SYNTAX	     OnOffTimes
+	ACCESS	     not-accessible
+	STATUS	     mandatory
+	DESCRIPTION  ""
+	INDEX	{ onOffWeekday }
+	::= { onOffTimesTable 1 }
+
+OnOffTimes ::= 
+	SEQUENCE {
+		onOffWeekday
+			INTEGER,
+		onTime
+			INTEGER,
+		offTime
+			INTEGER
+	}
+
+onOffWeekday OBJECT-TYPE
+	SYNTAX	INTEGER(1..7)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Day of the week the times should act upon (index, 1 based);
+ 1 = Sunday, 2 = Monday..."
+	::= { onOffTimes 1 }
+
+onTime OBJECT-TYPE
+	SYNTAX	INTEGER
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Time the system should be switched on (by the real-time clock; 
+ in minutes since midnight; -1 = disabled, no on time).
+ Only values -1 and 0..1439 are allowed."
+	::= { onOffTimes 2 }
+
+offTime OBJECT-TYPE
+	SYNTAX	INTEGER
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Time the system should be switched off (by the operating system; 
+ in minutes since midnight; -1 = disabled, no off time).
+ Only values -1 and 0..1439 are allowed."
+	::= { onOffTimes 3 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: execute shutdown 
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerOnOff group:           1.3.6.1.4.1.231.2.10.2.2.5.9
+--
+-- These objects define values for a user controlled shutdown
+-- ----------------------------------------------------------------------------------------------
+
+shutdownDelayTime OBJECT-TYPE
+	SYNTAX	     INTEGER(0..120)
+	ACCESS	     read-write
+	STATUS	     mandatory
+	DESCRIPTION  "The delay time (in minutes) the agent should wait before executing
+                     a shutdown (with doShutdown); 
+                     0  = default = shutdown immediately;
+                     -1 = unknown.
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'."
+	::= { powerOnOff 2 }
+
+doShutdown OBJECT-TYPE
+	SYNTAX	INTEGER{
+		shutdown(1),
+		shutdown-and-off(2),
+		shutdown-and-reboot(3),
+		abort-pending-shutdown(4)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Execute a shutdown; argument tells what kind of shutdown:
+                     shutdown: wait for user to switch off or reboot
+                     shutdown-and-off: switch off after shutdown
+                     shutdown-and-reboot: reboot after shutdown
+                     abort-pending-shutdown: abort a delayed shutdown
+                         immediately (if not already initiated)
+ Reading this object just returns the value 0."
+	::= { powerOnOff 3 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: power off/on statistics
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerOnOff group:           1.3.6.1.4.1.231.2.10.2.2.5.9
+--
+-- These objects define statistics about power off/on
+-- ----------------------------------------------------------------------------------------------
+
+powerOnCounts OBJECT-TYPE
+	SYNTAX	Counter
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Tells how often the server was switched on in its life (-1 = unknown)"
+	::= { powerOnOff 4 }
+
+powerOnDurationHours OBJECT-TYPE
+	SYNTAX	Counter
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Tells how long the system was switched on in its life (in hours; -1 = unknown)"
+	::= { powerOnOff 5 }
+
+powerOffDurationHours OBJECT-TYPE
+	SYNTAX	Counter
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Tells how long the system was switched off in its life (in hours; -1 = unknown)"
+	::= { powerOnOff 6 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: common off/on data
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerOnOff group:           1.3.6.1.4.1.231.2.10.2.2.5.9
+--
+-- These objects define other common power off/on information
+-- ----------------------------------------------------------------------------------------------
+
+errorOffRestartDelay OBJECT-TYPE
+	SYNTAX	INTEGER(1..30)
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Delay (in minutes) when the system should be automatically switched on 
+                     again (by real-time clock) after an error 
+                     power-off (-1 = no switch-on function).
+ The value unknown(-1) cannot be set, a SET will deliver 'badValue'.
+ On some platforms only the values 1, 2, 3, 5, 7, 10, 15 and 20 can be set. 
+ Values between these numbers will be rounded."
+	::= { powerOnOff 7 }
+
+lastPostStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		ok(2),
+		errors(3)
+	}
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Describes whether the last (current) POST (power on self test) was errornous.
+                 Object is now obsolete - use object systemBootStatus instead!"
+	::= { powerOnOff 8 }
+
+lastPowerOffSource OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		software-command(2),
+		power-button(3),
+		ac-fail(4),
+		clock(5),
+		fan-fail(6),
+		temperature-critical(7),
+		temperature-damage(8),
+		power-supply-failure(9),
+        watchdog(10),
+        remote-off(11),
+        hardware-fail(12),
+        peripheral-bus-error(13),
+        cpu-error(14),
+		nmi(20),
+        hardware-reset(23),
+        warmstart(24),
+		reset-button(25),
+		ac-fail-reboot(26),
+		keyboard(29),
+		remote-manager(31),
+		remote-manager-reset(32),
+        power-limiting(35),
+        MMB-continuous-operation(36),
+        watchdog-power-cycle(37),
+        firmware-restart(242),
+		housing-opened(243)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Reason why the system was switched off last time"
+	::= { powerOnOff 9 }
+
+lastPowerOnSource OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		software-command(2),
+		power-button(3),
+		ac-fail(4),
+		clock(5),
+		fan-fail(6),
+		temperature-critical(7),
+		temperature-damage(8),
+		power-supply-failure(9),
+        watchdog(10),
+        remote-on(11),
+        hardware-fail(12),
+        peripheral-bus-error(13),
+        cpu-error(14),
+        nmi(20),
+        hardware-reset(23),
+        warmstart(24),
+		reset-button(25),
+		ac-fail-reboot(26),
+		mgmt-processor-fail(27),
+		pci-pme(28),
+		keyboard(29),
+		chipcard-reader(30),
+		remote-manager(31),
+		remote-manager-reset(32),
+        power-cycle(33),
+		firmware-restart(242),
+		housing-closed(243)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Source the system was switched on from"
+	::= { powerOnOff 10 }
+
+powerOnTime OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Time and Date the system was booted (seconds since 1/1/1970; -1 = unknown)"
+	::= { powerOnOff 11 }
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: power and boot status monitoring (service processor specific)
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerOnOff group:           1.3.6.1.4.1.231.2.10.2.2.5.9
+--
+-- These objects allow to control power state and monitoring via a service
+-- processor
+-- ----------------------------------------------------------------------------------------------
+
+doPowerOnOff OBJECT-TYPE
+	SYNTAX	INTEGER{
+		on(1),
+		off(2),
+		power-cycle(3),
+		reset(4),
+		nmi(5)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION "Switch the server on or off; argument tells what kind of action:
+                     on: switch power on
+                     off: switch power off
+                     power-cycle: switch power off and switch power on again
+                     reset: perform a server reset
+					 nmi: perform a non-maskable interrupt (NMI, mainly for debugging purpose)"
+	::= { powerOnOff 12 }
+
+systemBootResult OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		os-boot-successful(2),
+		diagnostic-boot-successful(3),
+		no-boot-cpu(4),
+		no-bootable-media(5),
+		os-failed-to-load(6),
+		diagnostic-boot-failed(7),
+		hardware-failure(8)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Result of the last server boot."
+	::= { powerOnOff 13 }
+
+systemBootStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		off(2),
+		no-boot-cpu(3),
+		self-test(4),
+		setup(5),
+		os-boot(6),
+		diagnostic-boot(7),
+		os-running(8),
+		diagnostic-running(9),
+		os-shutdown(10),
+		diagnostic-shutdown(11),
+		reset(12)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Status of the current boot process."
+	::= { powerOnOff 14 }
+
+-- **********************************************************************************************
+--
+-- GROUP: systemControlInfo
+-- Implementation of this group is mandatory
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemControlInfo group:    1.3.6.1.4.1.231.2.10.2.2.5.10
+--
+-- This group defines cabinet specific information.
+--
+-- **********************************************************************************************
+
+numberCabinetsConfigured OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of configured cabinets (server and storage extensions, 
+ at least 1: the server itself)"
+	::= { systemControlInfo 1 }
+
+numberCabinetsDetected OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of detected cabinets (server and storage extensions, 
+ at least 1: the server itself).
+ This is also the number of entries in cabinetInfosTable."
+	::= { systemControlInfo 2 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: cabinetInfosTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       systemControlInfo group:    1.3.6.1.4.1.231.2.10.2.2.5.10
+--        cabinetInfosTable:         1.3.6.1.4.1.231.2.10.2.2.5.10.3
+--
+-- Implementation of this table is mandatory
+--
+-- This table defines information about cabinets. The number of entries in this table 
+-- can be obtained from object numberCabinetsDetected. At least one table entry is available
+-- (the server cabinet).
+-- ----------------------------------------------------------------------------------------------
+
+cabinetInfosTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF CabinetInfos
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with data of all configured cabinets"
+	::= { systemControlInfo 3 }
+
+cabinetInfos OBJECT-TYPE
+	SYNTAX	CabinetInfos
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ cabinetId }
+	::= { cabinetInfosTable 1 }
+
+CabinetInfos ::= 
+	SEQUENCE {
+		cabinetId
+			INTEGER,
+		cabinetLocation
+			DisplayString,
+		cabinetIdentNumber
+			DisplayString,
+		cabinetSystemName
+			DisplayString,
+		cabinetNumberFans
+			INTEGER,
+		cabinetNumberTempSensors
+			INTEGER,
+		cabinetNumberPowerSupplies
+			INTEGER,
+		cabinetPowerSupplySlots
+			INTEGER,
+		cabinetUpsUsed
+			INTEGER,
+		cabinetBoardSerialNumber
+			DisplayString,
+		cabinetBoardRevision
+			INTEGER,
+		cabinetBoardId
+			DisplayString,
+		cabinetManagementControllerType
+			DisplayString,
+		cabinetControllerFirmwareMajor
+			INTEGER,
+		cabinetControllerFirmwareMinor
+			INTEGER,
+		cabinetAttribute
+			INTEGER,
+		cabinetPowerOnStatus
+			INTEGER,
+		cabinetStatusSummary
+			INTEGER,
+		cabinetLastPoweroffSource
+			INTEGER,
+		cabinetActionAfterAcFail
+			INTEGER,
+		cabinetBbuUsed
+			INTEGER,
+		cabinetSystemType
+			INTEGER,
+		cabinetStatusDetail
+			INTEGER,
+        cabinetHousingType
+		    DisplayString,
+		cabinetFrontDoorStatus
+			INTEGER,
+		cabinetHousingOpenStatus
+			INTEGER,
+		sieScCabinetNumberVoltages
+			INTEGER,
+		sieScCabinetControllerFirmware
+		    DisplayString,
+		sieScCabinetBoardRevisionString
+			DisplayString,
+		sieScCabinetAdministrativeURL
+			DisplayString,
+		sieScRemcsId
+			DisplayString
+	}
+
+cabinetId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Cabinet ID number, index into the cabinet table"
+	::= { cabinetInfos 1 }
+
+cabinetLocation OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"The place where the cabinet is located (user can store
+                        any string here to identify the cabinet location)"
+	::= { cabinetInfos 2 }
+
+cabinetIdentNumber OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"System ident number (serial number) - will be a number like 'XYZZ 12345678'.
+ XYZZ     is the cabinet identifier and is mandatory. It will
+          be used to identify the cabinet model name (i.e. PCD-5S).
+ 12345678 is the cabinet serial number and is optional.
+ Cabinet identifier and serial number are separated by a blank character!"
+	::= { cabinetInfos 3 }
+
+cabinetSystemName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"System name string (i.e. PCD-5S, Primergy 150...)"
+	::= { cabinetInfos 4 }
+
+cabinetNumberFans OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The number of configured cooling devices (fans) in this cabinet
+                        (-1 = unknown)"
+	::= { cabinetInfos 5 }
+
+cabinetNumberTempSensors OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The number of configured temperature sensors in this cabinet
+                        (-1 = unknown)"
+	::= { cabinetInfos 6 }
+
+cabinetNumberPowerSupplies OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The number of available power supplies in this cabinet (-1 = unknown)"
+	::= { cabinetInfos 7 }
+
+cabinetPowerSupplySlots OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The number of power supply slots in this cabinet (is the
+ maximum number of installable power supplies;
+ 0 if no hot-plug slots available; -1 = unknown)"
+	::= { cabinetInfos 8 }
+
+cabinetUpsUsed OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Uninterruptable power supply for this cabinet available:
+                            0:    No UPS
+                            1..n: Index in UPS table
+                            -1:    unknown"
+	::= { cabinetInfos 9 }
+
+cabinetBoardSerialNumber OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Serial number of the cabinet's system board"
+	::= { cabinetInfos 10 }
+
+cabinetBoardRevision OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION
+"Revision (GS) of the cabinet's system board (-1 = unknown).
+ Value obsolete, use sieScCabinetBoardRevisionString instead!"
+	::= { cabinetInfos 11 }
+
+cabinetBoardId OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Identifier string of the cabinet's system board"
+	::= { cabinetInfos 12 }
+
+cabinetManagementControllerType OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the cabinet's system management controller
+ (i.e. SNI System Control Board)"
+	::= { cabinetInfos 13 }
+
+cabinetControllerFirmwareMajor OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Firmware version (major number) of the cabinet's system 
+                 management controller (-1 = unknown).
+				 This object will be replaced by sieScCabinetControllerFirmware
+				 in future versions."
+	::= { cabinetInfos 14 }
+
+cabinetControllerFirmwareMinor OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Firmware version (minor number) of the cabinet's system 
+                 management controller (-1 = unknown).
+				 This object will be replaced by sieScCabinetControllerFirmware
+				 in future versions."
+	::= { cabinetInfos 15 }
+
+cabinetAttribute OBJECT-TYPE
+	SYNTAX	INTEGER{
+		other(1),
+		standalone-server(2),
+		primary-server(3),
+		secondary-server(4),
+		storage-extension(5)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Attribute of a cabinet (Primary/secondary server, storage extension...)"
+	::= { cabinetInfos 16 }
+
+cabinetPowerOnStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		off(2),
+		on(3),
+		disconnected(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Power-on state of the cabinet"
+	::= { cabinetInfos 17 }
+
+cabinetStatusSummary OBJECT-TYPE
+	SYNTAX	INTEGER{
+		ok(1),
+		degraded(2),
+		error(3),
+		fail(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Describes the status of a cabinet (OK, degraded, error...)"
+	::= { cabinetInfos 18 }
+
+cabinetLastPoweroffSource OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		software-off(2),
+		power-switch(3),
+		power-fail(4),
+		clock(5),
+		fan-failure(6),
+		critical-temperature(7),
+		damage-temperature(8),
+		power-supply-failure(9),
+		remote-off(11)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The source from which the cabinet was powered off last time"
+	::= { cabinetInfos 19 }
+
+cabinetActionAfterAcFail OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		not-available(2),
+		as-before(3),
+		remain-off(4),
+        switch-on(5)
+	}
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION
+"Action on AC power resume after AC has failed.
+     not-available(2) : function not available, behavior is hardware-defined.
+     as-before(3)     : server gets the same power state as before the AC fail.
+     remain-off(4)    : server remains off on power resume.
+     switch-on(5)     : server is always switched on on power resume.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { cabinetInfos 20 }
+
+cabinetBbuUsed OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		false(2),
+		true(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Battery buffering unit for this cabinet available.
+ The value unknown(1) cannot be set, a SET will deliver 'badValue'."
+	::= { cabinetInfos 21 }
+
+cabinetSystemType OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION
+            "Value is obsolete.
+             This value should no longer be used for cabinet identification. 
+			 Use cabinetHousingType to identify the
+             housing type and cabinetSystemName for the type of the cabinet!"
+	::= { cabinetInfos 22 }
+
+cabinetStatusDetail OBJECT-TYPE
+	SYNTAX	INTEGER{
+		ok(1),
+		selftestWarning(2),
+		selftestFailure(4),
+		powerFailure(8),
+		fanFailure(16),
+		temperatureFailure(32),
+		communicationFailure(64),
+		powerOff(128),
+		temperatureWarning(256),
+		bbuError(512)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"More detailed status information from this cabinet.
+                        
+        The StatusDetail object is set to reflect the new status.
+        ok:                             (status ok)             
+            no failures detected.
+        selftestWarning:                (status degraded)
+            the SCB firmware issued a warning condition.
+        selftestFailure:                (status error)
+            the SCB firmware detected a failure
+            that prevents it from functioning.
+        powerFailure:                   (status degraded)
+            the AC input at the power supply or
+            the AC input at the UPS failed.
+        fanFailure:                     (status error)
+            A fan in this cabinet failed.
+            The system is going to shut down.
+        temperatureFailure:             (status error)
+            A sensor in this cabinet detected an over temperature.
+            The system is going to shut down.
+        communicationFailure:           (status error)
+            The SCB in the CPU cabinet has lost communication
+            with the SCB in this cabinet.
+            The system is going to shut down.
+        powerOff:                       (status degraded)
+            The cabinet is switched off.
+                        "
+	::= { cabinetInfos 23 }
+
+cabinetHousingType OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+            "Type string for cabinet housing type (i.e. 'P300' for all PRIMERGY 3xx housings);
+			 this object should be used to identify the cabinet instead of using object 
+			 cabinetSystemType (i.e. for painting pictures in management applications)"
+	::= { cabinetInfos 24 }
+
+cabinetFrontDoorStatus OBJECT-TYPE
+	SYNTAX	INTEGER {
+		unknown(1),
+		open(2),
+		closed(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Status of the cabinet's front door"
+	::= { cabinetInfos 25 }
+
+cabinetHousingOpenStatus OBJECT-TYPE
+	SYNTAX	INTEGER {
+		unknown(1),
+		open(2),
+		closed(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Status describing whether the housing is open or closed"
+	::= { cabinetInfos 26 }
+
+sieScCabinetNumberVoltages OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Number of entries in power supply voltage table"
+	::= { cabinetInfos 27 }
+
+sieScCabinetControllerFirmware OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+            "The cabinet's system management controller firmware version  
+			 (i.e. '1.1.4.88'). This object will replace the previous objects
+			 cabinetControllerFirmwareMinor and cabinetControllerFirmwareMajor."
+	::= { cabinetInfos 28 }
+
+sieScCabinetBoardRevisionString OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Revision string (GS, WGS...) of the cabinet's system board.
+ This object replaces the previous object cabinetBoardRevision."
+	::= { cabinetInfos 29 }
+
+sieScCabinetAdministrativeURL OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Provides a URL that may be used by a front-end to start a web
+ browser and connect it directly to the cabinet's administrative
+ web server (e.g. https://10.0.0.2:443/foobar.html)."
+	::= { cabinetInfos 30 }
+
+sieScRemcsId OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "REMCS system identification string (binary data):
+            Format of Fujitsu REMCS ID (40byte)
+            Format = TTMMMMMMMMMMMMmmmmmmmmmmmmCCnnnnnnnnnnnn
+            TT     :  2byte : Type ID for Company Name
+            MM...M : 12byte : Model Name
+            mm...m : 12byte : Device Name
+            CC     :  2byte : Checksum
+            nn...n : 12byte : Serial number"
+	::= { cabinetInfos 31 }
+
+-- --------------------------------------------------------------------------------------------
+
+statusSummary OBJECT-TYPE
+	SYNTAX	INTEGER{
+		ok(1),
+		degraded(2),
+		error(3),
+		fail(4)
+	}
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Value is obsolete"
+	::= { systemControlInfo 4 }
+
+serverType OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	obsolete
+	DESCRIPTION "Value is obsolete.
+                 This value should no longer be used for server identification. 
+				 Use serverHousingType to identify the
+                 housing type and cabinetSystemName for the type of the server!"
+	::= { systemControlInfo 5 }
+
+
+serverHousingType OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+            "Type string for cabinet housing type (i.e. 'P300' for all PRIMERGY 3xx housings);
+			 this object should be used to identify the cabinet instead of using object 
+			 serverType (i.e. for painting pictures in management applications). This is the
+			 same value as from object cabinetHousingType for the server cabinet."
+	::= { systemControlInfo 6 }
+
+
+serverUUID OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+            "Universal Unique ID (UUID) number - this is a world wide unique ID number of the
+             server. Can be used for identifying a server. The UUID string format is like this:
+             157E465A-A4AC-D711-A847-DD85CECD12EC"
+	::= { systemControlInfo 7 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP: powerSupply
+-- Implementation of this group is mandatory
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerSupply group:          1.3.6.1.4.1.231.2.10.2.2.5.11
+--
+-- This group defines information about the power supply of a cabinet.
+--
+-- **********************************************************************************************
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: powerSuppliesTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerSupply group:          1.3.6.1.4.1.231.2.10.2.2.5.11
+--        powerSuppliesTable:        1.3.6.1.4.1.231.2.10.2.2.5.11.1
+--
+-- Implementation of this table is mandatory
+--
+-- This table defines information about power supply groups. In current systems we have only one
+-- power supply group.
+-- ----------------------------------------------------------------------------------------------
+
+powerSuppliesTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF PowerSupplies
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with power supply groups in the cabinets"
+	::= { powerSupply 1 }
+
+powerSupplies OBJECT-TYPE
+	SYNTAX	PowerSupplies
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ powerSupplyCabinetId }
+	::= { powerSuppliesTable 1 }
+
+PowerSupplies ::= 
+	SEQUENCE {
+		powerSupplyCabinetId
+			INTEGER,
+		powerSupplyStatus
+			INTEGER,
+		powerSupplyRedundancy
+			INTEGER
+	}
+
+powerSupplyCabinetId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Cabinet ID, index into the power supply table (0 based)"
+	::= { powerSupplies 1 }
+
+powerSupplyStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		ok(2),
+		degraded(3),
+		critical(4)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the cabinet's power supply group; 
+                            ok:       all units OK, number >= minimum
+                            degraded: one or more units failed,
+                                      number OK >= minimum
+                            critical: number OK < minimum."
+	::= { powerSupplies 2 }
+
+powerSupplyRedundancy OBJECT-TYPE
+	SYNTAX	INTEGER(1..10)
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of available redundant power supply units (i.e. 2 units minimum, 
+ 3 available -> redundancy is 1, -1 = unknown)"
+	::= { powerSupplies 3 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: powerSupplyUnitsTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerSupply group:          1.3.6.1.4.1.231.2.10.2.2.5.11
+--        powerSupplyUnitsTable:     1.3.6.1.4.1.231.2.10.2.2.5.11.2
+--
+-- Implementation of this table is mandatory
+--
+-- This table defines information about power supply units.
+-- ----------------------------------------------------------------------------------------------
+
+powerSupplyUnitsTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF PowerSupplyUnits
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with info about the configured power supply units"
+	::= { powerSupply 2 }
+
+powerSupplyUnits OBJECT-TYPE
+	SYNTAX	PowerSupplyUnits
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ powerSupplyUnitCabinetId, powerSupplyUnitNumber }
+	::= { powerSupplyUnitsTable 1 }
+
+PowerSupplyUnits ::= 
+	SEQUENCE {
+		powerSupplyUnitCabinetId
+			INTEGER,
+		powerSupplyUnitNumber
+			INTEGER,
+		powerSupplyUnitStatus
+			INTEGER,
+		powerSupplyUnitDesignation
+			DisplayString
+	}
+
+powerSupplyUnitCabinetId OBJECT-TYPE
+	SYNTAX	INTEGER
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Cabinet ID, index into the power supply unit table (0 based)"
+	::= { powerSupplyUnits 1 }
+
+powerSupplyUnitNumber OBJECT-TYPE
+	SYNTAX	INTEGER(0..9)
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Power supply unit number, index into power supply unit table (0 based)"
+	::= { powerSupplyUnits 2 }
+
+powerSupplyUnitStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		not-present(2),
+		ok(3),
+		failed(4),
+		ac-fail(5),
+		dc-fail(6),
+		critical-temperature(7),
+		not-manageable(8),
+		fan-failure-predicted(9),
+		fan-failure(10)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Status of the power supply unit (OK, failed, not present...)"
+	::= { powerSupplyUnits 3 }
+
+powerSupplyUnitDesignation OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply unit designation. This string specifies a name/designation for 
+	             the power supply unit. The designation string may not be available on some platforms."
+	::= { powerSupplyUnits 4 }
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: sniScVoltageTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerSupply group:          1.3.6.1.4.1.231.2.10.2.2.5.11
+--        sniScVoltageTable:         1.3.6.1.4.1.231.2.10.2.2.5.11.4
+--
+-- Implementation of this table is mandatory
+--
+-- This table defines information about voltages of a power supply.
+-- ----------------------------------------------------------------------------------------------
+
+
+-- The number of voltages can be found in the cabinetInfosTable
+
+sniScVoltageTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SniScVoltages
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION "Table with power supply voltage information"
+	::= { powerSupply 4 }
+
+sniScVoltages OBJECT-TYPE
+	SYNTAX	SniScVoltages
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ sniScVoltageCabinetNumber, sniScVoltageNumber }
+	::= { sniScVoltageTable 1 }
+
+SniScVoltages ::= 
+	SEQUENCE {
+		sniScVoltageCabinetNumber
+			INTEGER,
+		sniScVoltageNumber
+			INTEGER,
+		sniScVoltageStatus
+			INTEGER,
+		sniScVoltageDesignation
+			DisplayString,
+		sniScVoltageMinimumValue
+			INTEGER,
+		sniScVoltageMaximumValue
+			INTEGER,
+		sniScVoltageCurrentValue
+			Gauge,
+		sniScVoltageNominalValue
+			INTEGER,
+		sniScVoltageOutputLoad
+			Gauge
+	}
+
+sniScVoltageCabinetNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Cabinet number, index into the power supply voltage table (0 based)"
+	::= { sniScVoltages 1 }
+
+sniScVoltageNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply voltage number, index into power supply voltage table (0 based)"
+	::= { sniScVoltages 2 }
+
+sniScVoltageStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		not-available(2),
+		ok(3),
+		too-low(4),
+		too-high(5),
+		out-of-range(6),
+		battery-prefailure(7)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Status of the power supply voltage; 'not-available' maybe the 
+				 voltage of an empty CPU socket; 'out-of-range' comes when the 
+				 voltage is out of range; 'prefailure' is used for battery voltages 
+				 and informs that the battery is predicted to fail in near future."
+	::= { sniScVoltages 3 }
+
+sniScVoltageDesignation OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply voltage designation. This string specifies the
+	             voltage by clear text (e.g. 5V, 12V, 3.3V...)"
+	::= { sniScVoltages 4 }
+
+sniScVoltageMinimumValue OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply voltage minimum level (1/100th Volts; -1 = unknown)"
+	::= { sniScVoltages 5 }
+
+sniScVoltageMaximumValue OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply voltage maximum level (1/100th Volts; -1 = unknown)"
+	::= { sniScVoltages 6 }
+
+sniScVoltageCurrentValue OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply voltage current level, negative voltages are reported as negative 
+	             values (1/100th Volts, e.g. 330 means 3.30 Volts; -177 (0xFFFFFF4F) means -1.77 Volts;
+				 0xFFFFFFFF = unknown)"
+	::= { sniScVoltages 7 }
+
+sniScVoltageNominalValue OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply voltage nominal level (1/100th Volts; -1 = unknown)"
+	::= { sniScVoltages 8 }
+
+sniScVoltageOutputLoad OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "Power supply output load in percent of maximum load; 0xFFFFFFFF = unknown"
+	::= { sniScVoltages 9 }
+
+
+
+-- **********************************************************************************************
+--
+-- GROUP: uninterruptablePowerSupply
+-- Implementation of this group is mandatory
+--
+--      sniServerControl MIB:               1.3.6.1.4.1.231.2.10.2.2.5
+--       uninterruptablePowerSupply group:  1.3.6.1.4.1.231.2.10.2.2.5.12
+--
+-- This group defines information about the power supply of a cabinet.
+--
+-- **********************************************************************************************
+
+upsCount OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of uninterruptable power supplies (UPS) in this system
+                     (-1 = unknown)"
+	::= { uninterruptablePowerSupply 1 }
+
+
+-- ----------------------------------------------------------------------------------------------
+-- TABLE: upsInfosTable
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       powerSupply group:          1.3.6.1.4.1.231.2.10.2.2.5.12
+--        upsInfosTable:             1.3.6.1.4.1.231.2.10.2.2.5.12.2
+--
+-- Implementation of this table is optional
+--
+-- This table defines information about uninterruptable power supplies (UPS).
+-- The index of a UPS for a cabinet can be found in the cabinetUpsUsed object of the
+-- cabinetInfos  table.
+-- ----------------------------------------------------------------------------------------------
+
+upsInfosTable OBJECT-TYPE
+	SYNTAX	    SEQUENCE OF UpsInfos
+	ACCESS	    not-accessible
+	STATUS	    mandatory
+	DESCRIPTION "Table with uninterruptable power supplies used in this system.
+                     The index is the UPS number used in the system.
+                     One or more server or storage-extension objects
+                     can reference to a UPS entry in this table."
+	::= { uninterruptablePowerSupply 2 }
+
+upsInfos OBJECT-TYPE
+	SYNTAX	    UpsInfos
+	ACCESS	    not-accessible
+	STATUS	    mandatory
+	DESCRIPTION ""
+	INDEX	{ upsNumber }
+	::= { upsInfosTable 1 }
+
+UpsInfos ::= 
+	SEQUENCE {
+		upsNumber
+			INTEGER,
+		upsDetected
+			INTEGER,
+		upsDischargeTime
+			INTEGER,
+		upsVendor
+			DisplayString,
+		upsType
+			DisplayString,
+		upsOemAgent
+			DisplayString,
+		upsOemAgentAddress
+			IpAddress,
+		upsTimeOnBatterySeconds
+			Counter
+	}
+
+upsNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Number of the UPS in this table (index, 1 based)"
+	::= { upsInfos 1 }
+
+upsDetected OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		false(2),
+		true(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Tells whether the UPS was detected"
+	::= { upsInfos 2 }
+
+upsDischargeTime OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Maximum time this UPS will be discharged, after that a shutdown
+                        will be performed (seconds; -1 = unknown)"
+	::= { upsInfos 3 }
+
+upsVendor OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Vendor name of the UPS"
+	::= { upsInfos 4 }
+
+upsType OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Type of the UPS; can be used to identify an OEM UPS with 
+                        an OEM agent"
+	::= { upsInfos 5 }
+
+upsOemAgent OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Object identifier of an OEM UPS MIB; no agent if empty OID"
+	::= { upsInfos 6 }
+
+upsOemAgentAddress OBJECT-TYPE
+	SYNTAX	IpAddress
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"IP address of an OEM UPS SNMP agent; no agent if empty"
+	::= { upsInfos 7 }
+
+upsTimeOnBatterySeconds OBJECT-TYPE
+	SYNTAX	Counter
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Time (in seconds) the UPS is running on battery since power fail
+                        (will be cleared on power recovery)"
+	::= { upsInfos 8 }
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: service processor backup battery
+--
+--      sniServerControl MIB:               1.3.6.1.4.1.231.2.10.2.2.5
+--       uninterruptablePowerSupply group:  1.3.6.1.4.1.231.2.10.2.2.5.12
+--
+-- These objects define information about the service processor's backup
+-- battery
+-- ----------------------------------------------------------------------------------------------
+
+spbbuStatus OBJECT-TYPE
+	SYNTAX	INTEGER{
+		unknown(1),
+		not-present(2),
+		ok(3),
+		on-battery(4),
+		recharging(5),
+		failed(6),
+        discharging(7)
+	}
+	ACCESS	read-only
+	STATUS	optional
+	DESCRIPTION "Status of the service processor's backup battery (not present, OK, recharging)"
+	::= { uninterruptablePowerSupply 3 }
+
+spbbuDischargeTime OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	optional
+	DESCRIPTION "Maximum time this backup battery will be discharged, after that a shutdown
+                 will be performed (seconds; -1 = unknown)"
+	::= { uninterruptablePowerSupply 4 }
+
+spbbuTimeOnBatterySeconds OBJECT-TYPE
+	SYNTAX	Counter
+	ACCESS	read-only
+	STATUS	optional
+	DESCRIPTION "Time (in seconds) the backup battery is running on battery since power fail
+                 (will be cleared on power recovery)"
+	::= { uninterruptablePowerSupply 5 }
+
+spbbuDoChargeCycle OBJECT-TYPE
+	SYNTAX	INTEGER{
+		recharge(1)
+	}
+	ACCESS	read-write
+	STATUS	optional
+	DESCRIPTION "Perform a discharge/charge cycle on the backup battery.
+				 Reading this object just returns the value 0."
+	::= { uninterruptablePowerSupply 6 }
+
+spbbuChargeStatus OBJECT-TYPE
+	SYNTAX	Gauge
+	ACCESS	read-only
+	STATUS	optional
+	DESCRIPTION "Reads the current charge level of the rechargeable battery
+	             (in percent of the maximum capacity)."
+	::= { uninterruptablePowerSupply 7 }
+
+
+-- **********************************************************************************************
+
+--
+-- GROUP: management
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       management group:           1.3.6.1.4.1.231.2.10.2.2.5.14
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines server management information.
+
+
+-- TABLE: interfaceParameters
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       management group:           1.3.6.1.4.1.231.2.10.2.2.5.14
+--        interfaceParametersTable:  1.3.6.1.4.1.231.2.10.2.2.5.14.1
+--
+-- Implementation of this table is mandatory
+--
+-- This table defines information about the parameters of the management channel interfaces.
+
+--
+-- **********************************************************************************************
+
+interfaceParametersTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF InterfaceParameters
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with the interface parameters of all management channels, which are
+ controlled by this server."
+	::= { management 1 }
+
+interfaceParameters OBJECT-TYPE
+	SYNTAX	InterfaceParameters
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"The interface parameters of the designated management channel interface."
+	INDEX	{ interfaceCabinetId, interfaceNumber }
+	::= { interfaceParametersTable 1 }
+
+InterfaceParameters ::= 
+	SEQUENCE {
+		interfaceCabinetId
+			INTEGER,
+		interfaceNumber
+			INTEGER,
+		interfaceType
+			INTEGER,
+		ipAddress
+			IpAddress,
+		ipAdressNetMask
+			IpAddress,
+		physicalAddress
+			PhysAddress,
+		phoneNumber
+			DisplayString,
+		interfaceChannelType
+			INTEGER,
+		dhcpConfigured
+			INTEGER,
+		controllerType
+			DisplayString,
+		controllerModel
+			DisplayString,
+		controllerFWVersion
+			DisplayString
+	}
+
+interfaceCabinetId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"CabinetId of the cabinet where the management channel interface resides."
+	::= { interfaceParameters 1 }
+
+interfaceNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Index number of the channel management interface (index, 0 based)."
+	::= { interfaceParameters 2 }
+
+interfaceType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		other(1),
+		lan(2),
+		dial-up(3)
+	}
+
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The interface type of the interface."
+	::= { interfaceParameters 3 }
+
+ipAddress OBJECT-TYPE
+	SYNTAX	IpAddress
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The IP v4 address of the interface."
+	::= { interfaceParameters 4 }
+
+ipAdressNetMask OBJECT-TYPE
+	SYNTAX	IpAddress
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The IP v4 subnet mask of the interface."
+	::= { interfaceParameters 5 }
+
+physicalAddress OBJECT-TYPE
+	SYNTAX	PhysAddress
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The interface address of the physical layer of the interface (MAC address)."
+	::= { interfaceParameters 6 }
+
+phoneNumber OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The telephone dial number of this interface. Only useful if the interfaceType 
+ is of type dial-up(3)."
+	::= { interfaceParameters 7 }
+
+interfaceChannelType OBJECT-TYPE
+	SYNTAX	INTEGER{
+			unknown(1),
+			primary(2),
+			secondary(3),
+            management-blade(4),
+			secondary-remote(5),
+			secondary-remote-backup(6),
+			baseboard-controller(7)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "The managegement channel type of the interface:
+	               primary:                 local operating system interface
+				   secondary:               local management controller LAN interface
+				   management-blade:        management blade interface (in a blade server chassis)
+				   secondary-remote:        remote management controller (in an RSB concentrator environment)
+				   secondary-remote-backup: backup remote management controller
+				   baseboard-controller:    baseboard management controller"
+	::= { interfaceParameters 8 }
+
+dhcpConfigured OBJECT-TYPE
+	SYNTAX	INTEGER{
+			unknown(1),
+			configured(2),
+			not-configured(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Defines if the ip address should be requested by a dhcp service."
+	::= { interfaceParameters 9 }
+
+controllerType OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "The type of the remote or baseboard management controller (for identification),
+			 like 'RSB', 'RSB S2', 'RSB S2 LP'... These names will not be changed
+			 if defined once." 
+	::= { interfaceParameters 10 }
+
+controllerModel OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "The model name of the remote management controller (for displaying),
+			 like 'Remote Service Board', 'RemoteView Service Board S2'...
+			 This name should not be used for identification, only for displaying
+			 (can be changed in different firmware versions)!" 
+	::= { interfaceParameters 11 }
+
+controllerFWVersion OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "The FW version of the remote or baseboard management controller as string;"
+	::= { interfaceParameters 12 }
+
+
+
+-- TABLE: serviceComponents
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       management group:           1.3.6.1.4.1.231.2.10.2.2.5.14
+--        serviceComponentsTable:    1.3.6.1.4.1.231.2.10.2.2.5.14.2
+--
+-- Implementation of this table is mandatory
+--
+-- This table defines information about the components attached to
+-- the service processor or service board
+
+serviceComponentsTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF ServiceComponents
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Table with the components attached to the service processor"
+	::= { management 2 }
+
+serviceComponents OBJECT-TYPE
+	SYNTAX	ServiceComponents
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"The components attached to the service processor"
+	INDEX	{ serviceComponentProcessorId, serviceComponentId }
+	::= { serviceComponentsTable 1 }
+
+ServiceComponents ::= 
+	SEQUENCE {
+		serviceComponentProcessorId
+			INTEGER,
+		serviceComponentId
+			INTEGER,
+		serviceComponentName
+			DisplayString,
+		serviceComponentType
+			INTEGER,
+		serviceComponentStatus
+			INTEGER
+	}
+
+serviceComponentProcessorId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Id of the service processor this component is attached to (index, 0 based)"
+	::= { serviceComponents 1 }
+
+serviceComponentId OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Index number of the service component (index, 0 based)"
+	::= { serviceComponents 2 }
+
+serviceComponentName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The name of the component in human readable form"
+	::= { serviceComponents 3 }
+
+serviceComponentType OBJECT-TYPE
+	SYNTAX	INTEGER{
+		other(1),
+		lan(2),
+		dial-up(3),
+		accumulator(4)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The type of the componen we are dealing with."
+	::= { serviceComponents 4 }
+
+serviceComponentStatus OBJECT-TYPE
+	SYNTAX      INTEGER {
+		ok(1),
+		degraded(2),
+		error(3),
+		failed(4)
+		}
+	ACCESS  read-only
+	STATUS  mandatory
+	DESCRIPTION
+		"Describes the status of the component managed by the service processor. 
+		 Degraded means that some problems have occurred. 
+		 Error that the component has reported an error that prevents 
+		 the component form working. 
+		 Failed means that the component is no longer reacting to the 
+		 agents requests."
+	::= { serviceComponents 5 }
+
+-- ----------------------------------------------------------------------------------------------
+-- COMPONENT: properties 
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       management group:           1.3.6.1.4.1.231.2.10.2.2.5.14
+--
+-- These objects supplies objects for setting the server management properties
+-- ----------------------------------------------------------------------------------------------
+
+channelType OBJECT-TYPE
+	SYNTAX	INTEGER{
+			unknown(1),
+			primary(2),
+			secondary(3)
+	}
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION "The managegement channel type of the currently used management channel."
+	::= { management 3 }
+
+
+-- **********************************************************************************************
+--
+-- GROUP: diagnostics
+-- Implementation of this group is mandatory
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       diagnostics group:          1.3.6.1.4.1.231.2.10.2.2.5.13
+--
+-- This group defines diagnostic information.
+--
+-- **********************************************************************************************
+
+sendTestTrap OBJECT-TYPE
+	SYNTAX	INTEGER{
+		send-trap(1)
+	}
+
+	ACCESS	read-write
+	STATUS	mandatory
+	DESCRIPTION "Send a trap to the manager application(s) to test connection and trap
+                    configuration; trap cannot be disabled.
+					Reading this object just returns the value 0."
+	::= { diagnostics 1 }
+
+
+
+-- **********************************************************************************************
+--
+-- GROUP: trapInfo
+-- Implementation of this group is mandatory
+--
+--      sniServerControl MIB:        1.3.6.1.4.1.231.2.10.2.2.5
+--       trapInfo group:             1.3.6.1.4.1.231.2.10.2.2.5.20
+--
+-- This group defines the trap parameter variables. They are not directly accessible, but
+-- sent together with traps.
+--
+-- **********************************************************************************************
+
+trapServerName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Name of server the trap occured"
+	::= { trapInfo 1 }
+
+trapTime OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Time the trap occured (in seconds since 01/01/1970 00:00h)"
+	::= { trapInfo 2 }
+
+trapCabinetNumber OBJECT-TYPE
+	SYNTAX	INTEGER(0..999)
+
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Number of the cabinet where the trap was generated"
+	::= { trapInfo 3 }
+
+trapObjectNumber OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Number of the object that generated the trap (fan, temperature sensor...)"
+	::= { trapInfo 4 }
+
+trapString OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Additional string to be displayed in the trap text"
+	::= { trapInfo 5 }
+
+trapMinutesRemaining OBJECT-TYPE
+	SYNTAX INTEGER
+	ACCESS not-accessible
+	STATUS mandatory
+	DESCRIPTION
+	    "The estimated remaining BBU/UPS capacity in minutes.
+	     In the current implementation this is the time remaining
+	     until the system will shut down."
+	::= { trapInfo 6 }
+
+trapSecondsOnBattery OBJECT-TYPE
+	SYNTAX INTEGER
+	ACCESS not-accessible
+	STATUS mandatory
+	DESCRIPTION
+	    "See scbUPSSecondsOnBattery/scbBBUSecondsOnBattery."
+	::= { trapInfo 7 }
+
+trapConfigLowBattTime OBJECT-TYPE
+	SYNTAX INTEGER
+	ACCESS not-accessible
+	STATUS mandatory
+	DESCRIPTION
+	    "The value of trapMinutesRemaining at which
+	     a shut down is initiated. In the current implementation
+	     this is always 0."
+	::= { trapInfo 8 }
+
+trapNumValue OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION
+"Additional numeric value to be displayed in the trap text"
+	::= { trapInfo 9 }
+
+trapManagementInterfaceNumber OBJECT-TYPE
+	SYNTAX INTEGER
+	ACCESS not-accessible
+	STATUS mandatory
+	DESCRIPTION
+	    "The number of the management channel interface."
+	::= { trapInfo 10 }
+
+
+-- **********************************************************************************************
+--
+-- TRAP definitions
+--
+--      Trap ID range:       600..699
+--      Trap enterprise:     sniServerMgmt (1.3.6.1.4.1.231.2.10.2)
+--
+-- **********************************************************************************************
+
+
+testTrap TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "Test trap to verify trap connection."
+	--#TYPE         "Test trap"
+	--#SUMMARY      "Test trap from server %s (no error)."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#HELP        "Note: This is no error condition."   
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 600
+
+fanError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated fan failed."
+	--#TYPE         "Fan failed"
+	--#SUMMARY      "Fan %d failed in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP        "Action: Replace defect fan. Attention: Do not operate system with cover removed. Proper airflow will not be guaranteed!"
+	--#HELPTAG		0
+	--#STATE        NONOPERATIONAL
+	::= 601
+
+tempOk TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The temperature of the indicated sensor has
+	     decreased to the normal level."
+	--#TYPE         "Temperature normal"
+	--#SUMMARY      "Temperature at sensor %d in cabinet %d of server %s is within normal range."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 602
+
+tempWarn TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The temperature of the indicated sensor has
+	     reached the warning level."
+	--#TYPE         "Temperature warning"
+	--#SUMMARY      "Temperature at sensor %d in cabinet %d of server %s has reached the warning level."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP        "Action: Check fan openings.\nCheck fans.\n Reduce ambient temperature. Attention: Do not operate system with cover removed. Proper airflow will not be guaranteed!"
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 603
+
+tempCritical TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The temperature of the indicated sensor is out of tolerance range.
+	     The system will shut down and power off if shutdown is enabled."
+	--#TYPE         "Temperature critical"
+	--#SUMMARY      "Temperature at sensor %d in cabinet %d of server %s has reached the critical level."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check fan openings\nCheck fans\nReduce ambient temperature.\nLet the system cool down before restart. Attention: Do not operate system with cover removed. Proper airflow will not be guaranteed!"
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 604
+
+trapOnBattery TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapMinutesRemaining,
+		trapSecondsOnBattery,
+		trapConfigLowBattTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "The UPS is operating on battery power or the power supply
+	     is drawing current from the backup battery unit (BBU).
+	     This status is persistent and is resent at one minute intervals
+	     until the mains returns or the system is switched off."
+	--#TYPE         "AC failed, on battery"
+	--#SUMMARY      "AC failure. Cabinet %d is running on battery power since %d seconds."
+	--#SUMMARY      "In %d minutes server %s will shutdown."
+	--#ARGUMENTS    { 5, 3, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check mains line voltage."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 606
+
+trapOnMains TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "The mains voltage returned after a power failure."
+	--#TYPE         "AC OK"
+	--#SUMMARY      "Mains returned after power failure in cabinet %d at server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 607
+
+selftestWarning TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION 
+	    "Currently the only possible warning is: SCB battery (nearly) empty."
+	--#TYPE         "Controller selftest warning"
+	--#SUMMARY      "The Server Management controller in cabinet %d has detected an minor problem during selftest of server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     MINOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 608
+
+selftestError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION "The Server Management controller failed."
+	--#TYPE         "Controller selftest error"
+	--#SUMMARY      "The Server Management controller in cabinet %d of server %s failed."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 609
+
+svCommunicationFailure TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION "Communication with the Server Management controller lost."
+	--#TYPE         "Communication lost"
+	--#SUMMARY      "Communication with the Server Management controller in cabinet %d of server %s lost."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     MINOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 610
+
+scbUnconfiguredUPSDetected TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "A UPS has been detected, but no UPS is configured. This trap will be repeated every 60 minutes until the condition is removed."
+	--#TYPE         "UPS not configured"
+	--#SUMMARY      "UPS detected by server %s, but no UPS is configured."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 611
+
+scbUPSNotdetected TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "A UPS is configured, but no UPS has been detected. This trap will be repeated every 60 minutes until the condition is removed."
+	--#TYPE         "UPS not detected"
+	--#SUMMARY      "A UPS is configured but no UPS detected by server %s."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check connections to UPS."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 612
+
+scbUnconfiguredBBUDetected TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION 
+	    "A BBU has been detected, but no BBU is configured. This trap will be repeated every 60 minutes
+	     until the condition is removed."
+	--#TYPE         "BBU not configured"
+	--#SUMMARY      "BBU detected by server %s, but no BBU is configured."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 613
+
+scbBBUNotdetected TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION 
+	    "A BBU is configured, but no BBU has been detected. This trap will be repeated every 60 minutes
+	     until the condition is removed."
+	--#TYPE         "BBU not detected"
+	--#SUMMARY      "A BBU is configured but no BBU is detected by server %s."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 614
+
+notEnoughCabinets TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "One or more storage extensions missing."
+	--#TYPE         "SE's missing"
+	--#SUMMARY      "The actual number of storage extensions at server %s is lower than the configured."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check connection to SE cabinets\n Update configuration."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 615
+
+tooManyCabinets TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION		
+		"The actual number of storage extensions is higher than the configured number."
+	--#TYPE         "Too many SE's"
+	--#SUMMARY      "The actual number of storage extensions at server %s is higher than the configured."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     MINOR
+	--#TIMEINDEX    1
+	--#HELP			"Action: Update configuration."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 616
+
+cabinetSwitchedOff TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "The cabinet has been switched off."
+	--#TYPE         "Cabinet switched off"
+	--#SUMMARY      "Cabinet %d was switched off because of %s (server %s)."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#HELP			"Note: For obvious reasons this trap cannot be sent when the main cabinet is switched off."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 617
+
+cabinetSwitchedOn TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "The cabinet has been switched on."
+	--#TYPE         "Cabinet switched on"
+	--#SUMMARY      "Cabinet %d was switched on because of %s (server %s)."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 618
+
+internalError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapObjectNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "The agent has detected an internal error."
+	--#TYPE         "Internal error"
+	--#SUMMARY      "Internal error #%d in server management controller software."
+	--#SUMMARY      "(module %s at server %s)."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 620
+
+serverShutdown TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapString
+	}
+	DESCRIPTION
+	    "The server is being shut down."
+	--#TYPE         "Server shutdown"
+	--#SUMMARY      "The reason %s causes a shutdown at server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 621
+
+fanCriticalError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated fan became critical."
+	--#TYPE         "Fan will fail"
+	--#SUMMARY      "Fan %d will fail in near future in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 622
+
+cabinetNotConfigured TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "The agent has detected a mismatch in the configuration of the server."
+	--#TYPE         "Cabinet not configured"
+	--#SUMMARY      "Cabinet %d at server %s is not configured. Depending on the system type,"
+	--#SUMMARY      "run Server Configuration Utility (SCU) or Storage Extension  Manager (SEMAN) "
+	--#SUMMARY      "and configure the cabinet!"
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 623
+
+powerSupplyRemoved TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapObjectNumber,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "One hot-replace power supply was removed."
+	--#TYPE         "Power supply removed"
+	--#SUMMARY      "Power supply %d in cabinet %d at server %s was removed."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 624
+
+powerSupplyAdded TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapObjectNumber,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "One hot-replace power supply was added."
+	--#TYPE         "Power supply added"
+	--#SUMMARY      "Power supply %d in cabinet %d at server %s was added."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 625
+
+powerSupplyFailed TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapObjectNumber,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "One hot-replace power supply failed."
+	--#TYPE         "Power supply failed"
+	--#SUMMARY      "Power supply %d in cabinet %d at server %s failed."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Action: Replace defect power supply. Attention: Power supply redundancy is lost. To restore redundancy replace defect power supply as soon as possible!"
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 626
+
+powerSupplyOk TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapObjectNumber,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "Power supply is working again."
+	--#TYPE         "Power supply OK"
+	--#SUMMARY      "Power supply %d in cabinet %d at server %s is working again."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 627
+
+powerSupplyStatusCritical TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "Power supply status has become critical."
+	--#TYPE         "Power supply critical"
+	--#SUMMARY      "Insufficiant operating power supplies available in cabinet %d at server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Replace defective power supply.\nInstall additional power supply."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 628
+
+fanOk TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated fan is OK again."
+	--#TYPE         "Fan OK"
+	--#SUMMARY      "Fan %d in cabinet %d of server %s is working again."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 629
+
+tempSensorBroken TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated temperature sensor is broken."
+	--#TYPE         "Temperature sensor broken"
+	--#SUMMARY      "Temperature sensor %d in cabinet %d of server %s is broken or not connected."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check connection or replace temperature sensor."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 630
+
+serverManagementDisabled TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "The server management BIOS is disabled."
+	--#TYPE         "Server management disabled"
+	--#SUMMARY      "Server management BIOS on server %s is disabled. Enable it to have full"
+	--#SUMMARY      "server management functionality!"
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 631
+  
+trapAcFail TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "Mains failed in the specified cabinet. This can only happen in 
+		 storage extension cabinets without UPS or BBU. A server will not have 
+		 time to send this event."
+	--#TYPE         "AC failed"
+	--#SUMMARY      "AC failure in cabinet %d of server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check line voltage / power supply of cabinet."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 632
+
+trapDuplicateCabinetId TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "Two ore more cabinets (server or storage extension) have the same ID number.
+		 The system will not run properly."
+	--#TYPE         "Duplicate cabinet ID"
+	--#SUMMARY      "Two or more cabinets have the same ID %d on server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check cabinet IDs and update configuration."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 633
+
+trapEventLog TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "An error message was written into the systemboard's event/error log.
+		 This could have happened when an error occured before the agent was running 
+		 or any error without a specific event message. See server management event/error log
+		 for detailed error description."
+	--#TYPE         "Error in event log"
+	--#SUMMARY      "An error was recorded on server %s. See server management"
+	--#SUMMARY      "event / error log (Recovery) for detailed information."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 634
+
+tempSensorOk TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated broken temperature sensor is OK again."
+	--#TYPE         "Temperature sensor OK"
+	--#SUMMARY      "Temperature sensor %d in cabinet %d of server %s is working again."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 635
+
+
+svCommunicationEstablished TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION "Communication with the Server Management controller established again."
+	--#TYPE         "Communication established"
+	--#SUMMARY      "Communication with the Server Management controller in cabinet %d of server %s established again."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 636
+
+
+correctableMemErrorAddr TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "A correctable memory error at specified address was detected."
+	--#TYPE         "Correctable memory error"
+	--#SUMMARY      "Correctable memory error at address %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: In case of a persistent error try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 637
+
+  
+uncorrectableMemErrorAddr TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "An uncorrectable memory error at specified address was detected."
+	--#TYPE         "Uncorrectable memory error"
+	--#SUMMARY      "Uncorrectable memory error at address %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module."
+	--#HELPTAG		0
+	--#STATE        NONOPERATIONAL
+	::= 638
+
+
+correctableMemErrorBank TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "A correctable memory error at specified bank was detected."
+	--#TYPE         "Correctable memory error"
+	--#SUMMARY      "Correctable memory error at bank %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: In case of a persistent error try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 639
+
+
+uncorrectableMemErrorBank TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "An uncorrectable memory error at specified bank was detected."
+	--#TYPE         "Uncorrectable memory error"
+	--#SUMMARY      "Uncorrectable memory error at bank %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module"
+	--#HELPTAG		0
+	--#STATE        NONOPERATIONAL
+	::= 640
+
+
+correctableMemErrorModule TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "A correctable memory error at specified module was detected."
+	--#TYPE         "Correctable memory error"
+	--#SUMMARY      "Correctable memory error at module %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: In case of a persistent error try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 641
+
+
+uncorrectableMemErrorModule TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "An uncorrectable memory error at specified module was detected."
+	--#TYPE         "Uncorrectable memory error"
+	--#SUMMARY      "Uncorrectable memory error at module %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module."
+	--#HELPTAG		0
+	--#STATE        NONOPERATIONAL
+	::= 642
+
+
+correctableMemError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "A correctable memory error at unknown address was detected."
+	--#TYPE         "Correctable memory error"
+	--#SUMMARY      "Correctable memory error in cabinet %d of server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: In case of a persistent error try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 643
+
+  
+uncorrectableMemError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "An uncorrectable memory error at unknown address was detected."
+	--#TYPE         "Uncorrectable memory error"
+	--#SUMMARY      "Uncorrectable memory error in cabinet %d of server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Try to locate defect memory module:\nGo to window View / System Board / Memory Modules.\nReplace defect memory module."
+	--#HELPTAG		0
+	--#STATE        NONOPERATIONAL
+	::= 644
+
+powerOffTimeReached TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapMinutesRemaining
+	}
+	DESCRIPTION "The power-off time is reached! System will shutdown in after delay."
+	--#TYPE         "Power off time reached"
+	--#SUMMARY      "The power-off time is reached in cabinet %d on server %s! System shutdown in %d minutes."
+	--#ARGUMENTS    { 2, 0, 3 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 645
+
+
+
+frontDoorStatusChanged TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION "The front door status has changed."
+	--#TYPE         "Front door status changed"
+	--#SUMMARY      "The front door status of cabinet %d on server %s has changed."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 646
+
+housingOpenStatusChanged TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION "The housing open status has changed"
+	--#TYPE         "Housing open status changed"
+	--#SUMMARY      "The housing open status of cabinet %d on server %s has changed."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 647
+
+
+
+sniScRedundantFanFailed TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated redundant fan failed."
+	--#TYPE         "Redundant fan failed"
+	--#SUMMARY      "The redundant fan %d failed in cabinet %d of server %s."
+	--#SUMMARY      "System can become critical if another fan in this group fails."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 648
+
+sniScRedundantPowerSupplyFailed TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapObjectNumber,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "One redundant hot-replace power supply failed."
+	--#TYPE         "Redundant power supply failed"
+	--#SUMMARY      "Redundant power supply %d in cabinet %d at server %s failed."
+	--#SUMMARY      "System can become critical if another power supply fails."
+	--#ARGUMENTS    { 2, 3, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 649
+
+
+
+sniScVoltageOk TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "Power supply voltage is within normal range again."
+	--#TYPE         "Voltage OK"
+	--#SUMMARY      "Power supply voltage %d (%s) in cabinet %d at server %s is within normal range again."
+	--#ARGUMENTS    { 3, 4, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 650
+
+sniScVoltageTooLow TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "Power supply voltage is too low."
+	--#TYPE         "Voltage too low"
+	--#SUMMARY      "Power supply voltage %d (%s) in cabinet %d at server %s is too low."
+	--#ARGUMENTS    { 3, 4, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 651
+
+sniScVoltageTooHigh TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "Power supply voltage is too high."
+	--#TYPE         "Voltage too high"
+	--#SUMMARY      "Power supply voltage %d (%s) in cabinet %d at server %s is too high."
+	--#ARGUMENTS    { 3, 4, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 652
+
+
+sniScFanAdded TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated hot-plug fan was inserted."
+	--#TYPE         "Fan added"
+	--#SUMMARY      "The fan %d was added into cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 653
+
+sniScFanRemoved TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "The indicated hot-plug fan was removed."
+	--#TYPE         "Fan removed"
+	--#SUMMARY      "The fan %d was removed from cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 654
+
+
+sniScShutdownCancelled TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "This event will be sent if a pending server shutdown has been cancelled by the user."
+	--#TYPE         "Shutdown cancelled"
+	--#SUMMARY      "Shutdown at server %s cancelled by the user."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 655
+
+sniScCpuSpeedChanged TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapNumValue
+	}
+	DESCRIPTION
+	    "The CPU clock frequency has been reduced because of a temperature problem."
+	--#TYPE         "CPU speed changed"
+	--#SUMMARY      "CPU speed at server %s changed to %d percent of its maximum speed."
+	--#SUMMARY      "The CPU speed can be changed by the server management because of temperature problems."
+	--#ARGUMENTS    { 0, 2 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 656
+
+sieScPowerOn TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapString
+	}
+	DESCRIPTION
+	    "The server has been powered on."
+	--#TYPE         "Power on"
+	--#SUMMARY      "The reason %s causes a power on at server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 657
+
+sieScNoBootCpu TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "The system boot failed because no valid boot CPU has been found."
+	--#TYPE         "No boot cpu"
+	--#SUMMARY      "System boot of the server %s failed, because no valid boot cpu available."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 658
+
+sieScPostError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapString
+	}
+	DESCRIPTION
+	    "This trap will be sent when the system boot fails, because the power on 
+		selftest (POST) has reported an error."		
+	--#TYPE         "Post error"
+	--#SUMMARY      "The reason %s causes a power on at server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 659
+
+sieScSetupEntered TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "This trap will be sent when the bios setup has been entered."
+	--#TYPE         "Setup entered"
+	--#SUMMARY      "The bios setup is entered at server %s."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 660
+
+sieScBootError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapString
+	}
+	DESCRIPTION
+	    "This trap will be sent when no bootable operating system can be found."
+	--#TYPE         "Boot error"
+	--#SUMMARY      "No bootable operation system found at server %s."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 661
+
+sieScBootWatchdogExpired TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "This trap will be sent when the boot watchdog expires."
+	--#TYPE         "Boot watchdog expired"
+	--#SUMMARY      "Boot watchdog of server %s expired."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 662
+
+sieScSoftwareWatchdogExpired TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "This trap will be sent when the software watchdog expires."
+	--#TYPE         "Software watchdog expired"
+	--#SUMMARY      "Software watchdog of server %s expired."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 663
+
+sieScUserAuthenticationFailure TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapManagementInterfaceNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "This trap will be sent when an user authentication failure is detected via PPP, FTP, 
+		 HTTP or telnet fails."
+	--#TYPE         "User authentication failure"
+	--#SUMMARY      "User authentication failure detected at server %s, interface %d, performing protocol %s."
+	--#ARGUMENTS    { 0, 2, 3 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 664
+
+sieScDiagnosticBoot TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "This trap will be sent when a server is reset and diagnostic
+		boot is enabled. The value in trapString specifies the primary
+		channel i.e. the server name (from which the primary IP address
+		may be derived)."
+	--#TYPE         "Diagnostic boot"
+	--#SUMMARY      "Server %s is performing a diagnostic boot."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 665
+
+sieScBootRetryCountZero TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+	    "This trap will be sent when a boot retry counter gets zero on power up"
+	--#TYPE         "Boot retry counter zero"
+	--#SUMMARY      "Boot retry counter is zero on server %s."
+	--#SUMMARY      "On next critical error shutdown the server will no longer try to reboot."
+	--#SUMMARY      "System will run diagnostic system or switch off."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 666
+
+sieScMessageLogFull TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+        trapCabinetNumber
+	}
+	DESCRIPTION
+	    "The System Event Log is full. No more messages can be logged.
+         This trap will not occur on wrap-around log types."
+	--#TYPE         "Message log full"
+	--#SUMMARY      "The System Event Log on server %s in cabinet %d is full."
+    --#SUMMARY      "No more messages can be logged."
+	--#SUMMARY      "Please clear unneeded log entries as soon as possible!"
+	--#ARGUMENTS    { 0, 2 }
+	--#SEVERITY     MINOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 667
+
+memErrorModulePrefailure TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "A memory module is predicted to fail (prefailure)."
+	--#TYPE         "Memory module prefailure"
+	--#SUMMARY      "Memory module failure is predicted for module %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Warning: A memory module failure is predicted. Too many errors have occured implying that the module could fail in near future. Action: Replace the failing module."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 668
+
+memErrorModuleFailing TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "A memory module is failing."
+	--#TYPE         "Memory module failing"
+	--#SUMMARY      "Memory module %d in cabinet %d of server %s is failing. Too many errors have occured."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Warning: A memory module is failing. Action: Replace the failing module immediately!"
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 669
+
+memErrorModuleReplaced TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "A memory module had failed and was replaced by a hot-spare module."
+	--#TYPE         "Memory module replaced"
+	--#SUMMARY      "Memory module %d in cabinet %d of server %s had failed"
+	--#SUMMARY      "and was replaced by a hot-spare module."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Warning: A memory module had failed. So many errors had occured that its bank was taken out of service and replaced by a hot-spare bank. Action: Replace the failed module immediately!"
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 670
+
+sniScPowerSupplyRedundancyLost TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "Power supply redundancy no longer available."
+	--#TYPE         "Power supply redundancy lost"
+	--#SUMMARY      "Power supply redundancy in cabinet %d at server %s lost."
+	--#SUMMARY      "System will become critical if a power supply fails."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     MINOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 671
+
+sieScMessageLogWarning TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapNumValue
+	}
+	DESCRIPTION 
+	    "The warning threshold for the number of System Event Log entries has been exceeded."
+	--#TYPE         "Message log warning"
+	--#SUMMARY      "The System Event Log for cabinet %d at server %s has exceeded %d%% of its capacity."
+	--#ARGUMENTS    { 2, 0, 3 }
+	--#SEVERITY     MINOR
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 672
+
+sieScCpuPrefailure TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber
+	}
+	DESCRIPTION
+	    "A CPU is predicted to fail (prefailure)."
+	--#TYPE         "CPU prefailure"
+	--#SUMMARY      "CPU failure is predicted for CPU %d in cabinet %d of server %s."
+	--#ARGUMENTS    { 3, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#HELP			"Warning: A CPU failure is predicted. Too many errors have occured implying that the CPU could fail in near future. Action: Replace the failing CPU."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 673
+
+sieScPowerFail TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "DC power failed in the specified cabinet. This is the result of the system's
+		 power-good sensor monitoring. The system may stop when this condition occurs."
+	--#TYPE         "Power failed"
+	--#SUMMARY      "DC power failure in cabinet %d of server %s."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: Check power supply units; add additional power supply.\nReplace power supply unit(s); check AC power."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 674
+
+sieScBiosSelftestError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "A critical error happend while BIOS selftest. This error needs to be acknowledged
+		 to clear the error condition."
+	--#TYPE         "Critical BIOS selftest error"
+	--#SUMMARY      "A critical error happend while BIOS selftest in cabinet %d of server %s."
+	--#SUMMARY      "See server management message log (recovery log) for detailed information."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: See message log (recovery log) to get the error reason and fix the problem.\nPress 'Acknowledge BIOS selftest status' in ServerView to get the\nerror condition cleared when the problem is fixed."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 675
+
+sieScBiosSelftestWatchdogExpired TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime
+	}
+	DESCRIPTION
+		 "This trap will be sent when the BIOS selftest watchdog expires. This watchdog 
+		  expires when the BIOS selftest cannot be finished in a certain time period."
+	--#TYPE         "BIOS selftest watchdog expired"
+	--#SUMMARY      "BIOS selftest watchdog of server %s expired."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 676
+ 
+
+sniScVoltageFailure TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "Power supply voltage is out of range."
+	--#TYPE         "Voltage out of range"
+	--#SUMMARY      "Power supply voltage %d (%s) in cabinet %d at server %s is out of range."
+	--#ARGUMENTS    { 3, 4, 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#STATE        NONOPERATIONAL
+	::= 677
+
+sniScBatteryVoltagePrefailure TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber,
+		trapObjectNumber,
+		trapString
+	}
+	DESCRIPTION
+	    "Battery is predicted to fail."
+	--#TYPE         "Battery failure predicted"
+	--#SUMMARY      "Battery voltage %d (%s) in cabinet %d at server %s: Battery is predicted to fail in near future."
+	--#ARGUMENTS    { 3, 4, 2, 0 }
+	--#SEVERITY     MAJOR
+	--#TIMEINDEX    1
+	--#STATE        DEGRADED
+	::= 678
+
+sieScSevereSystemError TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		trapServerName,
+		trapTime,
+		trapCabinetNumber
+	}
+	DESCRIPTION
+	    "The system was restarted after a severe problem. See server management message log (recovery log) for detailed information."
+	--#TYPE         "The system was restarted after a severe problem"
+	--#SUMMARY      "The system was restarted after a severe problem at cabinet %d of server %s."
+	--#SUMMARY      "See server management message log (recovery log) for detailed information."
+	--#ARGUMENTS    { 2, 0 }
+	--#SEVERITY     CRITICAL
+	--#TIMEINDEX    1
+	--#HELP			"Action: See message log (recovery log) to get the error reason and fix the problem."
+	--#HELPTAG		0
+	--#STATE        OPERATIONAL
+	::= 679
+
+
+END
+

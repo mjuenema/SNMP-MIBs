@@ -1,0 +1,4524 @@
+--*****************************************************************
+-- ADC-INTERREACH-SPECTRUM-MIB.mib : MIB file name
+--
+-- Copyright (c) 2010 by ADC Telecommunications, Inc.,
+--               2011-2012 by Tyco Electronics Corporation
+-- All rights reserved.
+--
+--*****************************************************************
+
+ADC-INTERREACH-SPECTRUM-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+    Integer32, Counter32
+        FROM SNMPv2-SMI
+    DisplayString
+        FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF
+    UnitId1, UnitId2, UnitId3, UnitType, LatAndLong, RauIntPath, RauIntPathDir
+        FROM ADC-FWU-IRS-TC-MIB
+    adc, fwuTrapSequenceNumber, fwuTrapTimeStamp, fwuNotificationStatus,
+    fwuHstName, fwuRmtName, fwuSystemAlarmCode
+        FROM ADC-FLEXWAVE-URH-MIB;
+
+interReachSpectrumMibModule MODULE-IDENTITY
+    LAST-UPDATED "201208280000Z"
+    ORGANIZATION "Tyco Electronics Corporation"
+    CONTACT-INFO
+       "Postal: TE Connectivity
+                541 E. Trimble Rd.
+                San Jose, CA 95131
+                USA
+
+        Tel:    North America
+                1-800-366-3891  (Sales)
+                1-800-366-3891  (Technical Assistance)
+
+                Europe
+                +32-2-712-65 00  (Sales)
+                +32-2-712-65 42  (Technical Assistance)
+
+                Europe Toll Free
+                0180 2232923  (Germany)
+                0800 960236   (UK)
+                900 983291    (Spain)
+                0800 914032   (France)
+                0800 782374   (Italy)
+
+                Elsewhere
+                1-952-917-3000  (Sales)
+                1-952-917-3475  (Technical Assistance)
+
+        E-mail: WirelessSupport@te.com"
+
+    DESCRIPTION
+       "The MIB module for the ADC InterReach Spectrum System IF
+        Expansion Units (IFEUs) and Remote Antenna Units (RAUs)."
+
+    REVISION    "201208280000Z"
+    DESCRIPTION
+       "Updated for software release 8.0:
+            1. For more consistency with ADC-FLEXWAVE-URH-MIB, changed the
+               varbinds (OBJECTS) of all notifications to:
+                  fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+                  irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1,
+                  fwuHstName, irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode,
+                  fwuNotificationStatus
+            2. Added irsUnitGenCatalogNumber to irsUnitGenTable.
+            3. Added irsRauBandAdditionalGain to irsRauBandTable.
+            4. Updated contact info."
+
+    REVISION    "201104200000Z"
+    DESCRIPTION
+       "Updated for software release 7.2:
+            1. Changed notifications to use fwuNotificationStatus and
+               fwuTrapCode instead of fwuSystemAlarmSeverity and
+               fwuSystemAlarmCode.
+            2. Added new notifications:
+                  irsIfeuUnknownHwIdFault
+                  irsRauUnknownHwIdFault
+                  irsRauBandPath1AFwdSysTestBlockedFault
+                  irsRauBandPath2AFwdSysTestBlockedFault
+                  irsRauBandPath3AFwdSysTestBlockedFault
+                  irsRauBandPath1BFwdSysTestBlockedFault
+                  irsRauBandPath2BFwdSysTestBlockedFault
+                  irsRauBandPath3BFwdSysTestBlockedFault"
+
+    REVISION    "201009100000Z"
+    DESCRIPTION
+       "Initial version of this MIB for software release 7.0."
+
+    ::= { interReachSpectrum 1 }
+
+-- OBJECT IDENTIFIERS
+
+interReach             OBJECT IDENTIFIER ::= {adc                          20}
+interReachSpectrum     OBJECT IDENTIFIER ::= {interReach                    1}
+irsUnitObjects         OBJECT IDENTIFIER ::= {interReachSpectrumMibModule   1}
+irsGeneralObjects      OBJECT IDENTIFIER ::= {interReachSpectrumMibModule   2}
+irsNotificationObjects OBJECT IDENTIFIER ::= {interReachSpectrumMibModule  99}
+irsNotifications       OBJECT IDENTIFIER ::= {interReachSpectrumMibModule 100}
+irsMIBConformance      OBJECT IDENTIFIER ::= {interReachSpectrumMibModule 200}
+
+-- irsUnitObjects
+
+irsUnitStatusTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IrsUnitStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "This table contains the current overall status of the IFEUs and
+        RAUs in the system.  Rows are automatically created and deleted
+        by the agent according to the status of the IFEUs and RAUs."
+    ::= {irsUnitObjects 1}
+
+irsUnitStatusEntry OBJECT-TYPE
+    SYNTAX      IrsUnitStatusEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "An entry (conceptual row) in the irsUnitStatusTable."
+    INDEX {
+        irsUnitStatusUnitId1,
+        irsUnitStatusUnitId2,
+        irsUnitStatusUnitId3
+    }
+    ::= {irsUnitStatusTable 1}
+
+IrsUnitStatusEntry ::=
+    SEQUENCE {
+        irsUnitStatusUnitId1  UnitId1,
+        irsUnitStatusUnitId2  UnitId2,
+        irsUnitStatusUnitId3  UnitId3,
+        irsUnitStatusStatus   INTEGER
+    }
+
+irsUnitStatusUnitId1 OBJECT-TYPE
+    SYNTAX      UnitId1
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The first portion of a unit's node address, indicating the host
+        number."
+    ::= {irsUnitStatusEntry 1}
+
+irsUnitStatusUnitId2 OBJECT-TYPE
+    SYNTAX      UnitId2
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The second portion of a unit's node address, indicating the
+        remote DART chassis address."
+    ::= {irsUnitStatusEntry 2}
+
+irsUnitStatusUnitId3 OBJECT-TYPE
+    SYNTAX      UnitId3
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The third portion of a unit's node address, indicating the
+        address of an IFEU, MRAU, or SRAU."
+    ::= {irsUnitStatusEntry 3}
+
+irsUnitStatusStatus OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    noComms(67),       -- C
+                    disconnect(68),    -- D
+                    safeMode(69),      -- E
+                    majorAlarm(70),    -- F
+                    portMissWired(71), -- G
+                    outOfService(76),  -- L
+                    boardTestMode(77), -- M
+                    noConnect(78),     -- N
+                    okay(79),          -- O
+                    portShort(82),     -- R
+                    portTrip(84),      -- T
+                    bandLockout(85),   -- U
+                    wrongUnit(86),     -- V
+                    minorAlarm(87),    -- W
+                    faultLockout(88),  -- X
+                    frozen(90)         -- Z
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The unit's overall status.  Units with a status of okay or one
+        which generally indicates the unit is communicating should be
+        present in other tables such as the irsUnitGenTable.  Units
+        with a status of noComms, disconnect, portMissWired, noConnect,
+        portShort, or portTrip will not be present in other tables."
+    ::= {irsUnitStatusEntry 4}
+
+-- irsUnitGenTable
+
+irsUnitGenTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IrsUnitGenEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "This table contains general state and configuration data for
+        IFEUs and RAUs.  Rows are automatically created and deleted by
+        the agent according to the status of the IFEUs and RAUs."
+    ::= {irsUnitObjects 2}
+
+irsUnitGenEntry OBJECT-TYPE
+    SYNTAX      IrsUnitGenEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "An entry (conceptual row) in the irsUnitGenTable."
+    INDEX {
+        irsUnitGenUnitId1,
+        irsUnitGenUnitId2,
+        irsUnitGenUnitId3
+    }
+    ::= {irsUnitGenTable 1}
+
+IrsUnitGenEntry ::=
+    SEQUENCE {
+        irsUnitGenUnitId1        UnitId1,
+        irsUnitGenUnitId2        UnitId2,
+        irsUnitGenUnitId3        UnitId3,
+        irsUnitGenType           UnitType,
+        irsUnitGenTypeName       DisplayString,
+        irsUnitGenSn             DisplayString,
+        irsUnitGenEpn            DisplayString,
+        irsUnitGenHwId           DisplayString,
+        irsUnitGenFwVer          DisplayString,
+        irsUnitGenLabel          DisplayString,
+        irsUnitGenUpTime         Counter32,
+        irsUnitGenMajorAlarmCode DisplayString,
+        irsUnitGenMinorAlarmCode DisplayString,
+        irsUnitGenTemperature    DisplayString,
+        irsUnitGenReboot         DisplayString,
+        irsUnitGenInOutService   INTEGER,
+        irsUnitGenCatalogNumber  DisplayString
+    }
+
+irsUnitGenUnitId1 OBJECT-TYPE
+    SYNTAX      UnitId1
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The first portion of a unit's node address, indicating the host
+        number."
+    ::= {irsUnitGenEntry 1}
+
+irsUnitGenUnitId2 OBJECT-TYPE
+    SYNTAX      UnitId2
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The second portion of a unit's node address, indicating the
+        remote DART chassis address."
+    ::= {irsUnitGenEntry 2}
+
+irsUnitGenUnitId3 OBJECT-TYPE
+    SYNTAX      UnitId3
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The third portion of a unit's node address, indicating the
+        address of an IFEU, MRAU, or SRAU."
+    ::= {irsUnitGenEntry 3}
+
+irsUnitGenType OBJECT-TYPE
+    SYNTAX      UnitType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The basic type of a unit."
+    ::= {irsUnitGenEntry 4}
+
+irsUnitGenTypeName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The full type name of a unit."
+    ::= {irsUnitGenEntry 5}
+
+irsUnitGenSn OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The serial numbers of the modules in the unit, separated by
+        commas."
+    ::= {irsUnitGenEntry 6}
+
+irsUnitGenEpn OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The engineering part number(s) of the unit and/or the modules in
+        the unit, separated by commas."
+    ::= {irsUnitGenEntry 7}
+
+irsUnitGenHwId OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The hardware IDs of the modules in the unit, separated by
+        commas."
+    ::= {irsUnitGenEntry 8}
+
+irsUnitGenFwVer OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The firmware version of the unit."
+    ::= {irsUnitGenEntry 9}
+
+irsUnitGenLabel OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "The user settable label of the unit."
+    ::= {irsUnitGenEntry 10}
+
+irsUnitGenUpTime OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The time in seconds since the unit last started up."
+    ::= {irsUnitGenEntry 11}
+
+irsUnitGenMajorAlarmCode OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The major alarm codes, comma separated."
+    ::= {irsUnitGenEntry 12}
+
+irsUnitGenMinorAlarmCode OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The minor alarm codes, comma separated."
+    ::= {irsUnitGenEntry 13}
+
+irsUnitGenTemperature OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The unit temperatures, comma separated.  For an IFEU, these are
+        the temperatures of the DL and UL boards.  For an RAU, these are
+        the temperature of the main board followed by the temperatures
+        of the RF boards."
+    ::= {irsUnitGenEntry 14}
+
+irsUnitGenReboot OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "Reboot a unit by setting this string to SoftReset or HardReset
+        which will cause a soft or hard reset respectively to be
+        performed in the unit.  RF will be temporarily lost while the
+        unit boots up.  Any child units under the unit being reset will
+        also be reset.  Thus performing a reset on an IFEU has the
+        effect of also resetting all the MRAUs and SRAUs under it."
+    ::= {irsUnitGenEntry 15}
+
+irsUnitGenInOutService OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    outOfService(1),
+                    inService(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "The in-service or out-of-service setting of a unit."
+    ::= {irsUnitGenEntry 16}
+
+irsUnitGenCatalogNumber OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The TE catalog part number(s) of the unit and/or the modules in
+        the unit, separated by commas."
+    ::= {irsUnitGenEntry 17}
+
+
+-- irsRauObjects
+
+irsRauObjects OBJECT IDENTIFIER ::= {irsUnitObjects 3}
+
+-- irsRauGenTable
+
+irsRauGenTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IrsRauGenEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Table of RAU general parameters.  Rows are automatically
+        created and deleted by the agent according to the status of
+        the RAUs."
+    ::= {irsRauObjects 1}
+
+irsRauGenEntry OBJECT-TYPE
+    SYNTAX      IrsRauGenEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "An entry (conceptual row) in the irsRauGenTable."
+    INDEX {
+        irsRauGenUnitId1,
+        irsRauGenUnitId2,
+        irsRauGenUnitId3
+    }
+    ::= {irsRauGenTable 1}
+
+IrsRauGenEntry ::=
+    SEQUENCE {
+        irsRauGenUnitId1                    UnitId1,
+        irsRauGenUnitId2                    UnitId2,
+        irsRauGenUnitId3                    UnitId3,
+        irsRauGenLatitude                   LatAndLong,
+        irsRauGenLongitude                  LatAndLong,
+        irsRauGenAntennaDisconnectAlarmMask INTEGER
+    }
+
+irsRauGenUnitId1 OBJECT-TYPE
+    SYNTAX      UnitId1
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The first portion of a unit's node address, indicating the host
+        number."
+    ::= {irsRauGenEntry 1}
+
+irsRauGenUnitId2 OBJECT-TYPE
+    SYNTAX      UnitId2
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The second portion of a unit's node address, indicating the
+        remote DART chassis address."
+    ::= {irsRauGenEntry 2}
+
+irsRauGenUnitId3 OBJECT-TYPE
+    SYNTAX      UnitId3
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The third portion of a unit's node address, indicating the
+        address of an IFEU, MRAU, or SRAU."
+    ::= {irsRauGenEntry 3}
+
+irsRauGenLatitude OBJECT-TYPE
+    SYNTAX      LatAndLong
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "The RAU's latitude.  It is of the format:
+            N/S (+|-)ddd.dddddd
+        where 'N/S' speaks to latitude.  If the data is not present to
+        the decimal then zeros must be inserted.  i.e.
+            N/S +001.100000 is valid while
+            N/S 1.123456 is not."
+    ::= {irsRauGenEntry 4}
+
+irsRauGenLongitude OBJECT-TYPE
+    SYNTAX      LatAndLong
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "The RAU's longitude.  It is of the format:
+            E/W (+|-)ddd.dddddd
+        where 'E/W' speaks to longitude.  If the data is not present to
+        the decimal then zeros must be inserted.  i.e.
+            E/W 001.123000 is valid while
+            E/W 1.1230000 is not."
+    ::= {irsRauGenEntry 5}
+
+irsRauGenAntennaDisconnectAlarmMask OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    disable(1),
+                    enable(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "Enable or disable RAU's antenna disconnect alarm."
+    ::= {irsRauGenEntry 6}
+
+-- irsRauBandTable
+
+irsRauBandTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IrsRauBandEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Table of RAU band parameters.  Each row of the table contains
+        the band settings for one band of one RAU.  Rows are
+        automatically created and deleted by the agent according to the
+        status of the RAUs."
+    ::= {irsRauObjects 2}
+
+irsRauBandEntry OBJECT-TYPE
+    SYNTAX      IrsRauBandEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "An entry (conceptual row) in the irsRauBandTable."
+    INDEX {
+        irsRauBandUnitId1,
+        irsRauBandUnitId2,
+        irsRauBandUnitId3,
+        irsRauBandId
+    }
+    ::= {irsRauBandTable 1}
+
+IrsRauBandEntry ::=
+    SEQUENCE {
+        irsRauBandUnitId1        UnitId1,
+        irsRauBandUnitId2        UnitId2,
+        irsRauBandUnitId3        UnitId3,
+        irsRauBandId             Integer32,
+        irsRauBandIntPath        RauIntPath,
+        irsRauBandName           DisplayString,
+        irsRauBandState          BITS,
+        irsRauBandUserLockout    INTEGER,
+        irsRauBandAdditionalGain Integer32
+    }
+
+irsRauBandUnitId1 OBJECT-TYPE
+    SYNTAX      UnitId1
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The first portion of a unit's node address, indicating the host
+        number."
+    ::= {irsRauBandEntry 1}
+
+irsRauBandUnitId2 OBJECT-TYPE
+    SYNTAX      UnitId2
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The second portion of a unit's node address, indicating the
+        remote DART chassis address."
+    ::= {irsRauBandEntry 2}
+
+irsRauBandUnitId3 OBJECT-TYPE
+    SYNTAX      UnitId3
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The third portion of a unit's node address, indicating the
+        address of an IFEU, MRAU, or SRAU."
+    ::= {irsRauBandEntry 3}
+
+irsRauBandId OBJECT-TYPE
+    SYNTAX      Integer32 (1..6)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The RAU band ID.  These are consecutive integers starting at 1
+        and going up to the number of bands supported by the particular
+        type of RAU."
+    ::= {irsRauBandEntry 4}
+
+irsRauBandIntPath OBJECT-TYPE
+    SYNTAX      RauIntPath
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The RAU internal path used for the band.  This variable can be
+        used for correlating bands with paths such as to determine the
+        band associated with a notification for a particular RAU path."
+    ::= {irsRauBandEntry 5}
+
+irsRauBandName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "A descriptive name of the band including any RAU MIMO path
+        designation such as:
+           Upper C 700, Path 1"
+    ::= {irsRauBandEntry 6}
+
+irsRauBandState OBJECT-TYPE
+    SYNTAX      BITS {
+                    normal(0),
+                    unlinked(1),
+                    internalAlarmShutdown(2),
+                    upstreamAlarmShutdown(3),
+                    userLockout(4),
+                    dartStandby(5)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The band state represented by 6 bits:
+            bit 0: band state is normal
+            bit 1: band has not been linked to any DARTs
+            bit 2: band is shutdown due to an internal major alarm
+            bit 3: band is shutdown due to an upstream major alarm
+            bi3 4: band is locked out of service by user
+            bit 5: associated DART is in standby"
+   ::= {irsRauBandEntry 7}
+
+irsRauBandUserLockout OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    lockout(1),
+                    notLockout(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS current
+    DESCRIPTION
+       "The band lockout setting (also readable as the userLockout bit
+        in irsRauBandState).  Setting this value to 2 will cause the
+        band to be put out of service."
+    ::= {irsRauBandEntry 8}
+
+irsRauBandAdditionalGain OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "RAU band additional gain beyond that of a standard RAU in units
+        of dB."
+    ::= {irsRauBandEntry 9}
+
+-- irsRauAttenuatorTable
+
+irsRauAttenuatorTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IrsRauAttenuatorEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Table of RAU attenuator settings.  Each row of the table
+        contains settings for one attenuator of one RAU.  Rows are
+        automatically created and deleted by the agent according to the
+        status of the RAUs."
+    ::= {irsRauObjects 3}
+
+irsRauAttenuatorEntry OBJECT-TYPE
+    SYNTAX      IrsRauAttenuatorEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "An entry (conceptual row) in the irsRauAttenuatorTable."
+    INDEX {
+        irsRauAttenuatorUnitId1,
+        irsRauAttenuatorUnitId2,
+        irsRauAttenuatorUnitId3,
+        irsRauAttenuatorId
+    }
+    ::= {irsRauAttenuatorTable 1}
+
+IrsRauAttenuatorEntry ::=
+    SEQUENCE {
+        irsRauAttenuatorUnitId1     UnitId1,
+        irsRauAttenuatorUnitId2     UnitId2,
+        irsRauAttenuatorUnitId3     UnitId3,
+        irsRauAttenuatorId          Integer32,
+        irsRauAttenuatorIntPath     RauIntPathDir,
+        irsRauAttenuatorName        DisplayString,
+        irsRauAttenuatorAttenuation Integer32
+    }
+
+irsRauAttenuatorUnitId1 OBJECT-TYPE
+    SYNTAX      UnitId1
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The first portion of a unit's node address, indicating the host
+        number."
+    ::= {irsRauAttenuatorEntry 1}
+
+irsRauAttenuatorUnitId2 OBJECT-TYPE
+    SYNTAX      UnitId2
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The second portion of a unit's node address, indicating the
+        remote DART chassis address."
+    ::= {irsRauAttenuatorEntry 2}
+
+irsRauAttenuatorUnitId3 OBJECT-TYPE
+    SYNTAX      UnitId3
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The third portion of a unit's node address, indicating the
+        address of an IFEU, MRAU, or SRAU."
+    ::= {irsRauAttenuatorEntry 3}
+
+irsRauAttenuatorId OBJECT-TYPE
+    SYNTAX      Integer32 (1..12)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "The RAU attenuator ID.  These are consecutive integers starting
+        at 1 and going up to the number of attenuators supported by the
+        particular type of RAU."
+    ::= {irsRauAttenuatorEntry 4}
+
+irsRauAttenuatorIntPath OBJECT-TYPE
+    SYNTAX      RauIntPathDir
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The RAU internal path and direction to which the attenuator
+        applies."
+    ::= {irsRauAttenuatorEntry 5}
+
+irsRauAttenuatorName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "A descriptive name of the attenuator including which bands,
+        direction, and MIMO paths it may apply to, such as:
+            Upper C 700, Lower ABC 700, Path 1 Fwd"
+    ::= {irsRauAttenuatorEntry 6}
+
+irsRauAttenuatorAttenuation OBJECT-TYPE
+    SYNTAX      Integer32 (0 | 10)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "Attenuator setting 0 or 10 in units of dB."
+    ::= {irsRauAttenuatorEntry 7}
+
+-- irsGeneralObjects
+
+irsSystemInfo OBJECT IDENTIFIER ::= {irsGeneralObjects 1}
+
+irsAgentVersionNum OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+       "The version of the SNMP subagent for the Spectrum IFEUs and
+        RAUs."
+    ::= {irsSystemInfo 1}
+
+irsSystemSettings OBJECT IDENTIFIER ::= {irsGeneralObjects 2}
+
+irsRauAntennaDisconnectAlarmSeverity OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    minor(1),
+                    major(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+       "The RAUs' antenna disconnect alarm severity global setting."
+    ::= {irsSystemSettings 1}
+
+-- irsNotificationObjects
+
+--fwuTrapSequenceNumber OBJECT-TYPE
+--    SYNTAX      Counter32
+--    MAX-ACCESS  accessible-for-notify
+--    STATUS      current
+--    DESCRIPTION
+--       "This variable is the total number of traps raised by the agent.
+--        This is included with each trap sent by the agent."
+--    ::=  {  fwuNotifObjects  1  }
+
+--fwuTrapTimeStamp OBJECT-TYPE
+--    SYNTAX      DateAndTime
+--    MAX-ACCESS  accessible-for-notify
+--    STATUS      current
+--    DESCRIPTION
+--       "This variable gives the time stamp when trap was raised."
+--    ::=  {  fwuNotifObjects  2  }
+
+irsNotifyUnitId1 OBJECT-TYPE
+    SYNTAX      UnitId1
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+       "The first portion of a unit's node address, indicating the host
+        number."
+    ::= {irsNotificationObjects 3}
+
+irsNotifyUnitId2 OBJECT-TYPE
+    SYNTAX      UnitId2
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+       "The second portion of a unit's node address, indicating the
+        remote DART chassis address."
+    ::= {irsNotificationObjects 4}
+
+irsNotifyUnitId3 OBJECT-TYPE
+    SYNTAX      UnitId3
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+       "The third portion of a unit's node address, indicating the
+        address of an IFEU, MRAU, or SRAU."
+    ::= {irsNotificationObjects 5}
+
+irsNotifyUnitType OBJECT-TYPE
+    SYNTAX      UnitType
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+       "Unique ID for the notification."
+    ::= {irsNotificationObjects 6}
+
+-- irsNotifications
+
+irsIfeuNotifications       OBJECT IDENTIFIER ::= {irsNotifications     1}
+irsRauNotifications        OBJECT IDENTIFIER ::= {irsNotifications     2}
+irsIfeuNotificationsPrefix OBJECT IDENTIFIER ::= {irsIfeuNotifications 0}
+irsRauNotificationsPrefix  OBJECT IDENTIFIER ::= {irsRauNotifications  0}
+
+-- IFEU major alarms
+
+irsIfeuPowerUpResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unit was power-cycled."
+    ::= { irsIfeuNotificationsPrefix 1 }
+
+irsIfeuHwResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unit was rebooted."
+    ::= { irsIfeuNotificationsPrefix 2 }
+
+irsIfeuWatchdogResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Software error occurred and recovered."
+    ::= { irsIfeuNotificationsPrefix 3 }
+
+irsIfeuSwResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Software reset occurred and recovered."
+    ::= { irsIfeuNotificationsPrefix 4 }
+
+irsIfeuExternalResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Microprocessor reset occurred and recovered."
+    ::= { irsIfeuNotificationsPrefix 5 }
+
+irsIfeuBrownoutResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware error occurred and recovered."
+    ::= { irsIfeuNotificationsPrefix 6 }
+
+irsIfeuFwDnldFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Firmware download occurred successfully."
+    ::= { irsIfeuNotificationsPrefix 7 }
+
+irsIfeuMemoryErrorFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Firmware download failed checksum.  Reverted to previous
+        firmware version."
+    ::= { irsIfeuNotificationsPrefix 8 }
+
+irsIfeuFwdRefPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward reference PLL unlocked."
+    ::= { irsIfeuNotificationsPrefix 9 }
+
+irsIfeuFwdHighFreqPilotPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "High frequency forward pilot PLL unlocked."
+    ::= { irsIfeuNotificationsPrefix 10 }
+
+irsIfeuFwdLowFreqPilotFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot, Low Frequency)."
+    ::= { irsIfeuNotificationsPrefix 11 }
+
+irsIfeuFwdHighFreqPilotFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot, High Frequency)."
+    ::= { irsIfeuNotificationsPrefix 12 }
+
+-- { irsIfeuNotificationsPrefix  13 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  14 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  15 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  16 } reserved for future use
+
+irsIfeuSoftwareIncompatibilityFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Firmware incompatible with system."
+    ::= { irsIfeuNotificationsPrefix 17 }
+
+-- { irsIfeuNotificationsPrefix  18 } reserved for future use
+
+irsIfeuBandFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsIfeuNotificationsPrefix 19 }
+
+irsIfeuUnitCommandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU commanded out-of-service by user."
+    ::= { irsIfeuNotificationsPrefix 20 }
+
+irsIfeuUnitFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsIfeuNotificationsPrefix 21 }
+
+-- { irsIfeuNotificationsPrefix  22 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  23 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  24 } reserved for future use
+
+irsIfeuFwdBoardDisconnectedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "FWD Module not present."
+    ::= { irsIfeuNotificationsPrefix 25 }
+
+irsIfeuRevBoardDisconnectedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "REV Module not present."
+    ::= { irsIfeuNotificationsPrefix 26 }
+
+irsIfeuFwdBoardDcPowerBadFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "FWD Module internal DC voltages outside of specification."
+    ::= { irsIfeuNotificationsPrefix 27 }
+
+irsIfeuRevBoardDcPowerBadFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "REV Module internal DC voltages outside of specification."
+    ::= { irsIfeuNotificationsPrefix 28 }
+
+-- { irsIfeuNotificationsPrefix  29 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  30 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  31 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  32 } reserved for future use
+
+irsIfeuPowerCassette1FailureFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit input fault on Power Rectifier Module #1."
+    ::= { irsIfeuNotificationsPrefix 33 }
+
+irsIfeuPowerCassette2FailureFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit input fault on Power Rectifier Module #2."
+    ::= { irsIfeuNotificationsPrefix 34 }
+
+irsIfeuPowerCassette3FailureFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit input fault on Power Rectifier Module #3."
+    ::= { irsIfeuNotificationsPrefix 35 }
+
+irsIfeuPowerCassette1HighTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Rectifier Module #1 shutdown due to high temperature."
+    ::= { irsIfeuNotificationsPrefix 36 }
+
+irsIfeuPowerCassette2HighTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Rectifier Module #2 shutdown due to high temperature."
+    ::= { irsIfeuNotificationsPrefix 37 }
+
+irsIfeuPowerCassette3HighTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Rectifier Module #3 shutdown due to high temperature."
+    ::= { irsIfeuNotificationsPrefix 38 }
+
+-- { irsIfeuNotificationsPrefix  39 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  40 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix  41 } through
+-- { irsIfeuNotificationsPrefix 128 } reserved for future use
+
+-- IFEU major port alarms
+
+irsIfeuPort1DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 1 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 129 }
+
+irsIfeuPort2DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 2 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 130 }
+
+irsIfeuPort3DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 3 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 131 }
+
+irsIfeuPort4DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 4 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 132 }
+
+irsIfeuPort5DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 5 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 133 }
+
+irsIfeuPort6DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 6 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 134 }
+
+irsIfeuPort7DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 7 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 135 }
+
+irsIfeuPort8DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU disconnected from port 8 of IFEU."
+    ::= { irsIfeuNotificationsPrefix 136 }
+
+irsIfeuPort1NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 1."
+    ::= { irsIfeuNotificationsPrefix 137 }
+
+irsIfeuPort2NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 2."
+    ::= { irsIfeuNotificationsPrefix 138 }
+
+irsIfeuPort3NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 3."
+    ::= { irsIfeuNotificationsPrefix 139 }
+
+irsIfeuPort4NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 4."
+    ::= { irsIfeuNotificationsPrefix 140 }
+
+irsIfeuPort5NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 5."
+    ::= { irsIfeuNotificationsPrefix 141 }
+
+irsIfeuPort6NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 6."
+    ::= { irsIfeuNotificationsPrefix 142 }
+
+irsIfeuPort7NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 7."
+    ::= { irsIfeuNotificationsPrefix 143 }
+
+irsIfeuPort8NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU unable to communicate with MRAU on port 8."
+    ::= { irsIfeuNotificationsPrefix 144 }
+
+irsIfeuPort1ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 145 }
+
+irsIfeuPort2ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 146 }
+
+irsIfeuPort3ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 147 }
+
+irsIfeuPort4ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 148 }
+
+irsIfeuPort5ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 149 }
+
+irsIfeuPort6ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 150 }
+
+irsIfeuPort7ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 151 }
+
+irsIfeuPort8ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or MRAU problem."
+    ::= { irsIfeuNotificationsPrefix 152 }
+
+irsIfeuPort1TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 1 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 153 }
+
+irsIfeuPort2TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 2 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 154 }
+
+irsIfeuPort3TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 3 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 155 }
+
+irsIfeuPort4TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 4 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 156 }
+
+irsIfeuPort5TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 5 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 157 }
+
+irsIfeuPort6TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 6 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 158 }
+
+irsIfeuPort7TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 7 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 159 }
+
+irsIfeuPort8TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU on port 8 drawing too much current."
+    ::= { irsIfeuNotificationsPrefix 160 }
+
+irsIfeuPort1FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 1 forward/reverse CATV cables not paired correctly."
+    ::= { irsIfeuNotificationsPrefix 161 }
+
+irsIfeuPort2FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 2 forward/reverse CATV cables not paired correctly."
+    ::= { irsIfeuNotificationsPrefix 162 }
+
+irsIfeuPort3FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 3 forward/reverse CATV cables not paired correctly."
+    ::= { irsIfeuNotificationsPrefix 163 }
+
+irsIfeuPort4FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 4 forward/reverse CATV cables not paired correctly."
+    ::= { irsIfeuNotificationsPrefix 164 }
+
+irsIfeuPort5FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 5 forward/reverse CATV cables not paired correctly."
+    ::= { irsIfeuNotificationsPrefix 165 }
+
+irsIfeuPort6FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 6 forward/reverse CATV cables not paired correctly"
+    ::= { irsIfeuNotificationsPrefix 166 }
+
+irsIfeuPort7FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 7 forward/reverse CATV cables not paired correctly."
+    ::= { irsIfeuNotificationsPrefix 167 }
+
+irsIfeuPort8FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 8 forward/reverse CATV cables not paired correctly."
+    ::= { irsIfeuNotificationsPrefix 168 }
+
+irsIfeuPort1InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 1 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 169 }
+
+irsIfeuPort2InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 2 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 170 }
+
+irsIfeuPort3InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 3 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 171 }
+
+irsIfeuPort4InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 4 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 172 }
+
+irsIfeuPort5InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 5 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 173 }
+
+irsIfeuPort6InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 6 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 174 }
+
+irsIfeuPort7InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 7 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 175 }
+
+irsIfeuPort8InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 8 is not an MRAU."
+    ::= { irsIfeuNotificationsPrefix 176 }
+
+-- { irsIfeuNotificationsPrefix 177 } through
+-- { irsIfeuNotificationsPrefix 256 } reserved for future use
+
+-- IFEU minor alarms
+
+irsIfeuNoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "No communications with DRU."
+    ::= { irsIfeuNotificationsPrefix 257 }
+
+irsIfeuFwdBoardOverTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU FWD Module temperature above operating limit."
+    ::= { irsIfeuNotificationsPrefix 258 }
+
+irsIfeuRevBoardOverTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "IFEU REV Module temperature above operating limit."
+    ::= { irsIfeuNotificationsPrefix 259 }
+
+irsIfeuFan1FailureFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Fan 1 not functioning."
+    ::= { irsIfeuNotificationsPrefix 260 }
+
+irsIfeuFan2FailureFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Fan 2 not functioning."
+    ::= { irsIfeuNotificationsPrefix 261 }
+
+irsIfeuUnknownHwIdFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to determine IFEU hardware configuration."
+    ::= { irsIfeuNotificationsPrefix 262 }
+
+-- { irsIfeuNotificationsPrefix 263 } reserved for future use
+
+-- { irsIfeuNotificationsPrefix 264 } reserved for future use
+
+irsIfeu5vDcFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Controller Module internal 5 VDC voltage outside of
+        specification."
+    ::= { irsIfeuNotificationsPrefix 265 }
+
+irsIfeu24vDcFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Controller Module internal 24 VDC voltage outside of
+        specification."
+    ::= { irsIfeuNotificationsPrefix 266 }
+
+irsIfeu3vDcFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Controller Module internal 3 VDC voltage outside of
+        specification."
+    ::= { irsIfeuNotificationsPrefix 267 }
+
+irsIfeu6vDcFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Controller Module internal 6 VDC voltage outside of
+        specification."
+    ::= { irsIfeuNotificationsPrefix 268 }
+
+irsIfeu54vDcFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Controller Module internal 54 VDC voltage outside of
+        specification."
+    ::= { irsIfeuNotificationsPrefix 269 }
+
+irsIfeuPowerSupplyCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Missing cable or communications error with Power Supply Unit."
+    ::= { irsIfeuNotificationsPrefix 270 }
+
+-- { irsIfeuNotificationsPrefix 271 } reserved for future use
+
+irsIfeuSystemOperationSuspendedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System operation suspended (freeze mode)."
+    ::= { irsIfeuNotificationsPrefix 272 }
+
+irsIfeuPort1FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 1)."
+    ::= { irsIfeuNotificationsPrefix 273 }
+
+irsIfeuPort2FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 2)."
+    ::= { irsIfeuNotificationsPrefix 274 }
+
+irsIfeuPort3FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 3)."
+    ::= { irsIfeuNotificationsPrefix 275 }
+
+irsIfeuPort4FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 4)."
+    ::= { irsIfeuNotificationsPrefix 276 }
+
+irsIfeuPort5FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 5)."
+    ::= { irsIfeuNotificationsPrefix 277 }
+
+irsIfeuPort6FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 6)."
+    ::= { irsIfeuNotificationsPrefix 278 }
+
+irsIfeuPort7FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 7)."
+    ::= { irsIfeuNotificationsPrefix 279 }
+
+irsIfeuPort8FwdIfPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward Pilot - Port 8)."
+    ::= { irsIfeuNotificationsPrefix 280 }
+
+irsIfeuPort1CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 1)."
+    ::= { irsIfeuNotificationsPrefix 281 }
+
+irsIfeuPort2CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 2)."
+    ::= { irsIfeuNotificationsPrefix 282 }
+
+irsIfeuPort3CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 3)."
+    ::= { irsIfeuNotificationsPrefix 283 }
+
+irsIfeuPort4CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 4)."
+    ::= { irsIfeuNotificationsPrefix 284 }
+
+irsIfeuPort5CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 5)."
+    ::= { irsIfeuNotificationsPrefix 285 }
+
+irsIfeuPort6CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 6)."
+    ::= { irsIfeuNotificationsPrefix 286 }
+
+irsIfeuPort7CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 7)."
+    ::= { irsIfeuNotificationsPrefix 287 }
+
+irsIfeuPort8CalToneNotPresentFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Calibration test tone not present (Port 8)."
+    ::= { irsIfeuNotificationsPrefix 288 }
+
+irsIfeuPort1RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 1)."
+    ::= { irsIfeuNotificationsPrefix 289 }
+
+irsIfeuPort2RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 2)."
+    ::= { irsIfeuNotificationsPrefix 290 }
+
+irsIfeuPort3RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 3)."
+    ::= { irsIfeuNotificationsPrefix 291 }
+
+irsIfeuPort4RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 4)."
+    ::= { irsIfeuNotificationsPrefix 292 }
+
+irsIfeuPort5RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 5)."
+    ::= { irsIfeuNotificationsPrefix 293 }
+
+irsIfeuPort6RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 6)."
+    ::= { irsIfeuNotificationsPrefix 294 }
+
+irsIfeuPort7RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 7)."
+    ::= { irsIfeuNotificationsPrefix 295 }
+
+irsIfeuPort8RevLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 8)."
+    ::= { irsIfeuNotificationsPrefix 296 }
+
+irsIfeuPort1RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 1)."
+    ::= { irsIfeuNotificationsPrefix 297 }
+
+irsIfeuPort2RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 2)."
+    ::= { irsIfeuNotificationsPrefix 298 }
+
+irsIfeuPort3RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 3)."
+    ::= { irsIfeuNotificationsPrefix 299 }
+
+irsIfeuPort4RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 4)."
+    ::= { irsIfeuNotificationsPrefix 300 }
+
+irsIfeuPort5RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 5)."
+    ::= { irsIfeuNotificationsPrefix 301 }
+
+irsIfeuPort6RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 6)."
+    ::= { irsIfeuNotificationsPrefix 302 }
+
+irsIfeuPort7RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 7)."
+    ::= { irsIfeuNotificationsPrefix 303 }
+
+irsIfeuPort8RevHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable RF loss too high (Port 8)."
+    ::= { irsIfeuNotificationsPrefix 304 }
+
+irsIfeuPort1RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 1)."
+    ::= { irsIfeuNotificationsPrefix 305 }
+
+irsIfeuPort2RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 2)."
+    ::= { irsIfeuNotificationsPrefix 306 }
+
+irsIfeuPort3RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 3)."
+    ::= { irsIfeuNotificationsPrefix 307 }
+
+irsIfeuPort4RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 4)."
+    ::= { irsIfeuNotificationsPrefix 308 }
+
+irsIfeuPort5RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 5)."
+    ::= { irsIfeuNotificationsPrefix 309 }
+
+irsIfeuPort6RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 6)."
+    ::= { irsIfeuNotificationsPrefix 310 }
+
+irsIfeuPort7RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 7)."
+    ::= { irsIfeuNotificationsPrefix 311 }
+
+irsIfeuPort8RevLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 8)."
+    ::= { irsIfeuNotificationsPrefix 312 }
+
+irsIfeuPort1RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 1)."
+    ::= { irsIfeuNotificationsPrefix 313 }
+
+irsIfeuPort2RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 2)."
+    ::= { irsIfeuNotificationsPrefix 314 }
+
+irsIfeuPort3RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 3)."
+    ::= { irsIfeuNotificationsPrefix 315 }
+
+irsIfeuPort4RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 4)."
+    ::= { irsIfeuNotificationsPrefix 316 }
+
+irsIfeuPort5RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 5)."
+    ::= { irsIfeuNotificationsPrefix 317 }
+
+irsIfeuPort6RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 6)."
+    ::= { irsIfeuNotificationsPrefix 318 }
+
+irsIfeuPort7RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 7)."
+    ::= { irsIfeuNotificationsPrefix 319 }
+
+irsIfeuPort8RevHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path exceeds maximum gain (Port 8)."
+    ::= { irsIfeuNotificationsPrefix 320 }
+
+irsIfeuPort1FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 1)."
+    ::= { irsIfeuNotificationsPrefix 321 }
+
+irsIfeuPort2FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 2)."
+    ::= { irsIfeuNotificationsPrefix 322 }
+
+irsIfeuPort3FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 3)."
+    ::= { irsIfeuNotificationsPrefix 323 }
+
+irsIfeuPort4FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 4)."
+    ::= { irsIfeuNotificationsPrefix 324 }
+
+irsIfeuPort5FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 5)."
+    ::= { irsIfeuNotificationsPrefix 325 }
+
+irsIfeuPort6FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 6)."
+    ::= { irsIfeuNotificationsPrefix 326 }
+
+irsIfeuPort7FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 7)."
+    ::= { irsIfeuNotificationsPrefix 327 }
+
+irsIfeuPort8FwdCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable current exceeds specification (Port 8)."
+    ::= { irsIfeuNotificationsPrefix 328 }
+
+irsIfeuPort1RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 1)."
+    ::= { irsIfeuNotificationsPrefix 329 }
+
+irsIfeuPort2RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 2)."
+    ::= { irsIfeuNotificationsPrefix 330 }
+
+irsIfeuPort3RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 3)."
+    ::= { irsIfeuNotificationsPrefix 331 }
+
+irsIfeuPort4RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 4)."
+    ::= { irsIfeuNotificationsPrefix 332 }
+
+irsIfeuPort5RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 5)."
+    ::= { irsIfeuNotificationsPrefix 333 }
+
+irsIfeuPort6RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 6)."
+    ::= { irsIfeuNotificationsPrefix 334 }
+
+irsIfeuPort7RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 7)."
+    ::= { irsIfeuNotificationsPrefix 335 }
+
+irsIfeuPort8RevCurrentHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse CATV cable current exceeds specification (Port 8)."
+    ::= { irsIfeuNotificationsPrefix 336 }
+
+irsIfeuCassette1HighTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit temperature above operating limit (Power
+        Rectifier Module #1)."
+    ::= { irsIfeuNotificationsPrefix 337 }
+
+irsIfeuCassette1OutputBadFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit output voltage outside specification (Power
+        Rectifier Module #1)."
+    ::= { irsIfeuNotificationsPrefix 338 }
+
+irsIfeuCassette1Fan1Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #1 not functioning (Power Rectifier
+        Module #1)."
+    ::= { irsIfeuNotificationsPrefix 339 }
+
+irsIfeuCassette1Fan2Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #2 not functioning (Power Rectifier
+        Module #1)."
+    ::= { irsIfeuNotificationsPrefix 340 }
+
+irsIfeuCassette1Fan3Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #3 not functioning (Power Rectifier
+        Module #1)."
+    ::= { irsIfeuNotificationsPrefix 341 }
+
+irsIfeuCassette1Unused NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Rectifier Module is present but not powered on."
+    ::= { irsIfeuNotificationsPrefix 342 }
+
+-- { irsIfeuNotificationsPrefix 343 } reserved for future use
+
+irsIfeuCassette1HighLoadingFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit load high (Power Rectifier Module #1)."
+    ::= { irsIfeuNotificationsPrefix 344 }
+
+irsIfeuCassette2HighTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit temperature above operating limit (Power
+        Rectifier Module #2)."
+    ::= { irsIfeuNotificationsPrefix 345 }
+
+irsIfeuCassette2OutputBadFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit output voltage outside specification (Power
+        Rectifier Module #2)."
+    ::= { irsIfeuNotificationsPrefix 346 }
+
+irsIfeuCassette2Fan1Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #1 not functioning (Power Rectifier
+        Module #2)."
+    ::= { irsIfeuNotificationsPrefix 347 }
+
+irsIfeuCassette2Fan2Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #2 not functioning (Power Rectifier
+        Module #2)."
+    ::= { irsIfeuNotificationsPrefix 348 }
+
+irsIfeuCassette2Fan3Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #3 not functioning (Power Rectifier
+        Module #2)."
+    ::= { irsIfeuNotificationsPrefix 349 }
+
+irsIfeuCassette2Unused NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Rectifier Module is present but not powered on."
+    ::= { irsIfeuNotificationsPrefix 350 }
+
+-- { irsIfeuNotificationsPrefix 351 } reserved for future use
+
+irsIfeuCassette2HighLoadingFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit load high (Power Rectifier Module #2)."
+    ::= { irsIfeuNotificationsPrefix 352 }
+
+irsIfeuCassette3HighTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit temperature above operating limit (Power
+        Rectifier Module #3)."
+    ::= { irsIfeuNotificationsPrefix 353 }
+
+irsIfeuCassette3OutputBadFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit output voltage outside specification (Power
+        Rectifier Module #3)."
+    ::= { irsIfeuNotificationsPrefix 354 }
+
+irsIfeuCassette3Fan1Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #1 not functioning (Power Rectifier
+        Module #3)."
+    ::= { irsIfeuNotificationsPrefix 355 }
+
+irsIfeuCassette3Fan2Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #2 not functioning (Power Rectifier
+        Module #3)."
+    ::= { irsIfeuNotificationsPrefix 356 }
+
+irsIfeuCassette3Fan3Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit fan #3 not functioning (Power Rectifier
+        Module #3)."
+    ::= { irsIfeuNotificationsPrefix 357 }
+
+irsIfeuCassette3Unused NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Rectifier Module is present but not powered on."
+    ::= { irsIfeuNotificationsPrefix 358 }
+
+-- { irsIfeuNotificationsPrefix 359 } reserved for future use
+
+irsIfeuCassette3HighLoadingFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Power Supply Unit load high (Power Rectifier Module #3)."
+    ::= { irsIfeuNotificationsPrefix 360 }
+
+-- RAU major alarms
+
+irsRauPowerUpResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unit was power-cycled."
+    ::= { irsRauNotificationsPrefix 1 }
+
+irsRauHwResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unit was rebooted."
+    ::= { irsRauNotificationsPrefix 2 }
+
+irsRauWatchdogResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Software error occurred and recovered."
+    ::= { irsRauNotificationsPrefix 3 }
+
+irsRauSwResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Software reset occurred and recovered."
+    ::= { irsRauNotificationsPrefix 4 }
+
+irsRauExternalResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Microprocessor reset occurred and recovered."
+    ::= { irsRauNotificationsPrefix 5 }
+
+irsRauBrownoutResetFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware error occurred and recovered."
+    ::= { irsRauNotificationsPrefix 6 }
+
+irsRauFwDnldFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Firmware download occurred successfully."
+    ::= { irsRauNotificationsPrefix 7 }
+
+irsRauMemoryErrorFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Firmware download failed checksum.  Reverted to previous
+        firmware version."
+    ::= { irsRauNotificationsPrefix 8 }
+
+irsRauRevLowFreqPilotFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse Pilot, Low Frequency)."
+    ::= { irsRauNotificationsPrefix 9 }
+
+irsRauRevHighFreqPilotFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse Pilot, High Frequency)."
+    ::= { irsRauNotificationsPrefix 10 }
+
+irsRauRfCableDisconnect1Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "External RF SMA cable 1 disconnected."
+    ::= { irsRauNotificationsPrefix 11 }
+
+irsRauRfCableDisconnect2Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "External RF SMA cable 2 disconnected (Future tri-band units)."
+    ::= { irsRauNotificationsPrefix 12 }
+
+irsRauAntennaDisconnectPort1Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Antenna disconnected (Band 1)."
+    ::= { irsRauNotificationsPrefix 13 }
+
+irsRauAntennaDisconnectPort2Fault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Antenna disconnected (Band 2)."
+    ::= { irsRauNotificationsPrefix 14 }
+
+-- { irsRauNotificationsPrefix  15 } reserved for future use
+
+-- { irsRauNotificationsPrefix  16 } reserved for future use
+
+irsRauSoftwareIncompatibilityFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Firmware incompatible with system."
+    ::= { irsRauNotificationsPrefix 17 }
+
+irsRauIncompatibleBandsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "RAU frequencies not compatible with configured DART links."
+    ::= { irsRauNotificationsPrefix 18 }
+
+irsRauDcVoltageLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "RAU input voltage below specified limit."
+    ::= { irsRauNotificationsPrefix 19 }
+
+irsRauUnitComandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "RAU commanded out-of-service by user."
+    ::= { irsRauNotificationsPrefix 20 }
+
+irsRauUnitFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "RAU commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsRauNotificationsPrefix 21 }
+
+irsRauCantPowerUpSrauFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "DC Voltage too low to power up SRAUs."
+    ::= { irsRauNotificationsPrefix 22 }
+
+-- { irsRauNotificationsPrefix  23 } reserved for future use
+
+-- { irsRauNotificationsPrefix  24 } reserved for future use
+
+irsRauBandPath1AFwdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 25 }
+
+irsRauBandPath2AFwdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 26 }
+
+irsRauBandPath3AFwdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 27 }
+
+irsRauBandPath1BFwdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 28 }
+
+irsRauBandPath2BFwdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 29 }
+
+irsRauBandPath3BFwdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Forward RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 30 }
+
+-- { irsRauNotificationsPrefix  31 } reserved for future use
+
+-- { irsRauNotificationsPrefix  32 } reserved for future use
+
+irsRauBandPath1ARevPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 33 }
+
+irsRauBandPath2ARevPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 34 }
+
+irsRauBandPath3ARevPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 35 }
+
+irsRauBandPath1BRevPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 36 }
+
+irsRauBandPath2BRevPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 37 }
+
+irsRauBandPath3BRevPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Reverse RF Path PLL)."
+    ::= { irsRauNotificationsPrefix 38 }
+
+-- { irsRauNotificationsPrefix  39 } reserved for future use
+
+-- { irsRauNotificationsPrefix  40 } reserved for future use
+
+irsRauBandPath1AFwdPowerAmpFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Power Amplifier)."
+    ::= { irsRauNotificationsPrefix 41 }
+
+irsRauBandPath2AFwdPowerAmpFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Power Amplifier)."
+    ::= { irsRauNotificationsPrefix 42 }
+
+irsRauBandPath3AFwdPowerAmpFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Power Amplifier)."
+    ::= { irsRauNotificationsPrefix 43 }
+
+irsRauBandPath1BFwdPowerAmpFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Power Amplifier)."
+    ::= { irsRauNotificationsPrefix 44 }
+
+irsRauBandPath2BFwdPowerAmpFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Power Amplifier)."
+    ::= { irsRauNotificationsPrefix 45 }
+
+irsRauBandPath3BFwdPowerAmpFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Hardware fault (Power Amplifier)."
+    ::= { irsRauNotificationsPrefix 46 }
+
+-- { irsRauNotificationsPrefix  47 } reserved for future use
+
+-- { irsRauNotificationsPrefix  48 } reserved for future use
+
+irsRauBandPath1ABandCommandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded out-of-service by user."
+    ::= { irsRauNotificationsPrefix 49 }
+
+irsRauBandPath2ABandCommandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded out-of-service by user."
+    ::= { irsRauNotificationsPrefix 50 }
+
+irsRauBandPath3ABandCommandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded out-of-service by user."
+    ::= { irsRauNotificationsPrefix 51 }
+
+irsRauBandPath1BBandCommandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded out-of-service by user."
+    ::= { irsRauNotificationsPrefix 52 }
+
+irsRauBandPath2BBandCommandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded out-of-service by user."
+    ::= { irsRauNotificationsPrefix 53 }
+
+irsRauBandPath3BBandCommandedLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded out-of-service by user."
+    ::= { irsRauNotificationsPrefix 54 }
+
+-- { irsRauNotificationsPrefix  55 } reserved for future use
+
+-- { irsRauNotificationsPrefix  56 } reserved for future use
+
+irsRauBandPath1ABandFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsRauNotificationsPrefix 57 }
+
+irsRauBandPath2ABandFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsRauNotificationsPrefix 58 }
+
+irsRauBandPath3ABandFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsRauNotificationsPrefix 59 }
+
+irsRauBandPath1BBandFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsRauNotificationsPrefix 60 }
+
+irsRauBandPath2BBandFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsRauNotificationsPrefix 61 }
+
+irsRauBandPath3BBandFaultLockoutFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Band commanded shutdown due to major alarm in a unit that is
+        upstream (closer to the Host)."
+    ::= { irsRauNotificationsPrefix 62 }
+
+-- { irsRauNotificationsPrefix  63 } reserved for future use
+
+-- { irsRauNotificationsPrefix  64 } reserved for future use
+
+-- { irsRauNotificationsPrefix  65 } through
+-- { irsRauNotificationsPrefix 128 } reserved for future use
+
+-- RAU major port alarms
+
+irsRauPort1DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "SRAU disconnected from port 1 of MRAU."
+    ::= { irsRauNotificationsPrefix 129 }
+
+irsRauPort2DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "SRAU disconnected from port 2 of MRAU."
+    ::= { irsRauNotificationsPrefix 130 }
+
+irsRauPort3DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "SRAU disconnected from port 3 of MRAU."
+    ::= { irsRauNotificationsPrefix 131 }
+
+-- { irsRauNotificationsPrefix 132 } reserved for future use
+
+-- { irsRauNotificationsPrefix 133 } reserved for future use
+
+-- { irsRauNotificationsPrefix 134 } reserved for future use
+
+-- { irsRauNotificationsPrefix 135 } reserved for future use
+
+-- { irsRauNotificationsPrefix 136 } reserved for future use
+
+irsRauPort1NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU unable to communicate with SRAU on port 1."
+    ::= { irsRauNotificationsPrefix 137 }
+
+irsRauPort2NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU unable to communicate with SRAU on port 2."
+    ::= { irsRauNotificationsPrefix 138 }
+
+irsRauPort3NoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "MRAU unable to communicate with SRAU on port 3."
+    ::= { irsRauNotificationsPrefix 139 }
+
+-- { irsRauNotificationsPrefix 140 } reserved for future use
+
+-- { irsRauNotificationsPrefix 141 } reserved for future use
+
+-- { irsRauNotificationsPrefix 142 } reserved for future use
+
+-- { irsRauNotificationsPrefix 143 } reserved for future use
+
+-- { irsRauNotificationsPrefix 144 } reserved for future use
+
+irsRauPort1ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the CATV cable, or SRAU problem."
+    ::= { irsRauNotificationsPrefix 145 }
+
+irsRauPort2ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the coax cable, or SRAU problem."
+    ::= { irsRauNotificationsPrefix 146 }
+
+irsRauPort3ShortFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Possible electrical short in the coax cable, or SRAU problem."
+    ::= { irsRauNotificationsPrefix 147 }
+
+-- { irsRauNotificationsPrefix 148 } reserved for future use
+
+-- { irsRauNotificationsPrefix 149 } reserved for future use
+
+-- { irsRauNotificationsPrefix 150 } reserved for future use
+
+-- { irsRauNotificationsPrefix 151 } reserved for future use
+
+-- { irsRauNotificationsPrefix 152 } reserved for future use
+
+irsRauPort1TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "SRAU on port 1 drawing too much current."
+    ::= { irsRauNotificationsPrefix 153 }
+
+irsRauPort2TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "SRAU on port 2 drawing too much current."
+    ::= { irsRauNotificationsPrefix 154 }
+
+irsRauPort3TripFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "SRAU on port 3 drawing too much current."
+    ::= { irsRauNotificationsPrefix 155 }
+
+-- { irsRauNotificationsPrefix 156 } reserved for future use
+
+-- { irsRauNotificationsPrefix 157 } reserved for future use
+
+-- { irsRauNotificationsPrefix 158 } reserved for future use
+
+-- { irsRauNotificationsPrefix 159 } reserved for future use
+
+-- { irsRauNotificationsPrefix 160 } reserved for future use
+
+irsRauPort1FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 1 forward/reverse CATV cables not paired correctly."
+    ::= { irsRauNotificationsPrefix 161 }
+
+irsRauPort2FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 2 forward/reverse CATV cables not paired correctly."
+    ::= { irsRauNotificationsPrefix 162 }
+
+irsRauPort3FwdRevCoaxMisPairedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Port 3 forward/reverse CATV cables not paired correctly."
+    ::= { irsRauNotificationsPrefix 163 }
+
+-- { irsRauNotificationsPrefix 164 } reserved for future use
+
+-- { irsRauNotificationsPrefix 165 } reserved for future use
+
+-- { irsRauNotificationsPrefix 166 } reserved for future use
+
+-- { irsRauNotificationsPrefix 167 } reserved for future use
+
+-- { irsRauNotificationsPrefix 168 } reserved for future use
+
+irsRauPort1InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 1 is not an SRAU."
+    ::= { irsRauNotificationsPrefix 169 }
+
+irsRauPort2InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 2 is not an SRAU."
+    ::= { irsRauNotificationsPrefix 170 }
+
+irsRauPort3InvalidUnitTypeFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "The unit connected to port 3 is not an SRAU."
+    ::= { irsRauNotificationsPrefix 171 }
+
+-- { irsRauNotificationsPrefix 172 } reserved for future use
+
+-- { irsRauNotificationsPrefix 173 } reserved for future use
+
+-- { irsRauNotificationsPrefix 174 } reserved for future use
+
+-- { irsRauNotificationsPrefix 175 } reserved for future use
+
+-- { irsRauNotificationsPrefix 176 } reserved for future use
+
+-- { irsRauNotificationsPrefix 177 } through
+-- { irsRauNotificationsPrefix 256 } reserved for future use
+
+-- RAU minor alarms
+
+irsRauNoCommsFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "No communications from IFEU or MRAU."
+    ::= { irsRauNotificationsPrefix 257 }
+
+irsRauHighTempFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "RAU temperature above operating limit."
+    ::= { irsRauNotificationsPrefix 258 }
+
+irsRauFwdLowFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable RF loss too high."
+    ::= { irsRauNotificationsPrefix 259 }
+
+irsRauFwdHighFreqPilotLowFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward CATV cable RF loss too high."
+    ::= { irsRauNotificationsPrefix 260 }
+
+irsRauFwdLowFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward RF path exceeds maximum gain."
+    ::= { irsRauNotificationsPrefix 261 }
+
+irsRauFwdHighFreqPilotHighFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Forward RF path exceeds maximum gain."
+    ::= { irsRauNotificationsPrefix 262 }
+
+irsRauRevFdFailureFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Reverse RF path problem in the MRAU.  Unable to complete
+        reverse system end-to-end test."
+    ::= { irsRauNotificationsPrefix 263 }
+
+irsRauUnknownHwIdFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to determine RAU hardware configuration."
+    ::= { irsRauNotificationsPrefix 264 }
+
+-- { irsRauNotificationsPrefix 265 } reserved for future use
+
+-- { irsRauNotificationsPrefix 266 } reserved for future use
+
+irsRauRfCable1DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "External RF SMA cable 1 disconnected."
+    ::= { irsRauNotificationsPrefix 267 }
+
+irsRauRfCable2DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "External RF SMA cable 2 disconnected (Future tri-band units)."
+    ::= { irsRauNotificationsPrefix 268 }
+
+irsRauAntennaPort1DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Antenna disconnected (Band 1)."
+    ::= { irsRauNotificationsPrefix 269 }
+
+irsRauAntennaPort2DisconnectFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Antenna disconnected (Band 2)."
+    ::= { irsRauNotificationsPrefix 270 }
+
+-- { irsRauNotificationsPrefix 271 } reserved for future use
+
+irsRauSystemOperationSuspendedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System operation suspended (freeze mode)."
+    ::= { irsRauNotificationsPrefix 272 }
+
+irsRauBandPath1ASysTestRequiredFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System test has not been executed on this RF band."
+    ::= { irsRauNotificationsPrefix 273 }
+
+irsRauBandPath2ASysTestRequiredFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System test has not been executed on this RF band."
+    ::= { irsRauNotificationsPrefix 274 }
+
+irsRauBandPath3ASysTestRequiredFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System test has not been executed on this RF band."
+    ::= { irsRauNotificationsPrefix 275 }
+
+irsRauBandPath1BSysTestRequiredFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System test has not been executed on this RF band."
+    ::= { irsRauNotificationsPrefix 276 }
+
+irsRauBandPath2BSysTestRequiredFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System test has not been executed on this RF band."
+    ::= { irsRauNotificationsPrefix 277 }
+
+irsRauBandPath3BSysTestRequiredFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System test has not been executed on this RF band."
+    ::= { irsRauNotificationsPrefix 278 }
+
+-- { irsRauNotificationsPrefix 279 } reserved for future use
+
+-- { irsRauNotificationsPrefix 280 } reserved for future use
+
+irsRauBandPath1AFwdSysTestNotCompletedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on forward path."
+    ::= { irsRauNotificationsPrefix 281 }
+
+irsRauBandPath2AFwdSysTestNotCompletedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on forward path."
+    ::= { irsRauNotificationsPrefix 282 }
+
+irsRauBandPath3AFwdSysTestNotCompletedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on forward path."
+    ::= { irsRauNotificationsPrefix 283 }
+
+irsRauBandPath1BFwdSysTestNotCompletedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on forward path."
+    ::= { irsRauNotificationsPrefix 284 }
+
+irsRauBandPath2BFwdSysTestNotCompletedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on forward path."
+    ::= { irsRauNotificationsPrefix 285 }
+
+irsRauBandPath3BFwdSysTestNotCompletedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on forward path."
+    ::= { irsRauNotificationsPrefix 286 }
+
+-- { irsRauNotificationsPrefix 287 } reserved for future use
+
+-- { irsRauNotificationsPrefix 288 } reserved for future use
+
+irsRauBandPath1ARevPathFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on reverse path."
+    ::= { irsRauNotificationsPrefix 289 }
+
+irsRauBandPath2ARevPathFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on reverse path."
+    ::= { irsRauNotificationsPrefix 290 }
+
+irsRauBandPath3ARevPathFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on reverse path."
+    ::= { irsRauNotificationsPrefix 291 }
+
+irsRauBandPath1BRevPathFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on reverse path."
+    ::= { irsRauNotificationsPrefix 292 }
+
+irsRauBandPath2BRevPathFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on reverse path."
+    ::= { irsRauNotificationsPrefix 293 }
+
+irsRauBandPath3BRevPathFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "System end-to-end test failed on reverse path."
+    ::= { irsRauNotificationsPrefix 294 }
+
+-- { irsRauNotificationsPrefix 295 } reserved for future use
+
+-- { irsRauNotificationsPrefix 296 } reserved for future use
+
+irsRauBandPath1ARevFdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to generate reverse test tone."
+    ::= { irsRauNotificationsPrefix 297 }
+
+irsRauBandPath2ARevFdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to generate reverse test tone."
+    ::= { irsRauNotificationsPrefix 298 }
+
+irsRauBandPath3ARevFdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to generate reverse test tone."
+    ::= { irsRauNotificationsPrefix 299 }
+
+irsRauBandPath1BRevFdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to generate reverse test tone."
+    ::= { irsRauNotificationsPrefix 300 }
+
+irsRauBandPath2BRevFdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to generate reverse test tone."
+    ::= { irsRauNotificationsPrefix 301 }
+
+irsRauBandPath3BRevFdPllUnlockFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to generate reverse test tone."
+    ::= { irsRauNotificationsPrefix 302 }
+
+-- { irsRauNotificationsPrefix 303 } reserved for future use
+
+-- { irsRauNotificationsPrefix 304 } reserved for future use
+
+irsRauBandPath1AFwdSysTestBlockedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to execute FWD system test due to detection of external
+        signal in the same band at the RAU."
+    ::= { irsRauNotificationsPrefix 305 }
+
+irsRauBandPath2AFwdSysTestBlockedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to execute FWD system test due to detection of external
+        signal in the same band at the RAU."
+    ::= { irsRauNotificationsPrefix 306 }
+
+irsRauBandPath3AFwdSysTestBlockedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to execute FWD system test due to detection of external
+        signal in the same band at the RAU."
+    ::= { irsRauNotificationsPrefix 307 }
+
+irsRauBandPath1BFwdSysTestBlockedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to execute FWD system test due to detection of external
+        signal in the same band at the RAU."
+    ::= { irsRauNotificationsPrefix 308 }
+
+irsRauBandPath2BFwdSysTestBlockedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to execute FWD system test due to detection of external
+        signal in the same band at the RAU."
+    ::= { irsRauNotificationsPrefix 309 }
+
+irsRauBandPath3BFwdSysTestBlockedFault NOTIFICATION-TYPE
+    OBJECTS {
+        fwuTrapSequenceNumber, fwuTrapTimeStamp, irsNotifyUnitId3,
+        irsNotifyUnitType, irsUnitGenLabel, irsNotifyUnitId1, fwuHstName,
+        irsNotifyUnitId2, fwuRmtName, fwuSystemAlarmCode, fwuNotificationStatus
+    }
+    STATUS  current
+    DESCRIPTION
+       "Unable to execute FWD system test due to detection of external
+        signal in the same band at the RAU."
+    ::= { irsRauNotificationsPrefix 310 }
+
+-- conformance information
+
+irsMIBCompliances  OBJECT IDENTIFIER ::= {irsMIBConformance 1}
+irsMIBGroups       OBJECT IDENTIFIER ::= {irsMIBConformance 2}
+
+-- compliance statements
+
+irsBasicCompliance MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION
+       "The compliance statement for InterReach Spectrum entities which
+        implement the ADC-INTERREACH-SPECTRUM-MIB."
+    MODULE -- This Module
+    MANDATORY-GROUPS {
+        irsUnitObjectsGroup,
+        irsNotificationObjectsGroup,
+        irsNotificationsGroup
+    }
+    ::= {irsMIBCompliances 1}
+
+irsUnitObjectsGroup OBJECT-GROUP
+    OBJECTS {
+        irsUnitStatusStatus,
+        irsUnitGenType,
+        irsUnitGenTypeName,
+        irsUnitGenSn,
+        irsUnitGenEpn,
+        irsUnitGenHwId,
+        irsUnitGenFwVer,
+        irsUnitGenLabel,
+        irsUnitGenUpTime,
+        irsUnitGenMajorAlarmCode,
+        irsUnitGenMinorAlarmCode,
+        irsUnitGenTemperature,
+        irsUnitGenReboot,
+        irsUnitGenInOutService,
+        irsUnitGenCatalogNumber,
+        irsRauGenLatitude,
+        irsRauGenLongitude,
+        irsRauGenAntennaDisconnectAlarmMask,
+        irsRauBandIntPath,
+        irsRauBandName,
+        irsRauBandState,
+        irsRauBandUserLockout,
+        irsRauBandAdditionalGain,
+        irsRauAttenuatorIntPath,
+        irsRauAttenuatorName,
+        irsRauAttenuatorAttenuation,
+        irsAgentVersionNum,
+        irsRauAntennaDisconnectAlarmSeverity
+    }
+    STATUS current
+    DESCRIPTION
+       "A collection of objects providing unit related instrumentation
+        and control of an agent."
+    ::= {irsMIBGroups 1}
+
+irsNotificationObjectsGroup OBJECT-GROUP
+    OBJECTS {
+        irsNotifyUnitId1,
+        irsNotifyUnitId2,
+        irsNotifyUnitId3,
+        irsNotifyUnitType
+    }
+    STATUS current
+    DESCRIPTION
+       "This is the minimum set of objects required in order to support
+        the irsNotificationObjects group."
+    ::= {irsMIBGroups 2}
+
+irsNotificationsGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        -- IFEU major alarms
+        irsIfeuPowerUpResetFault,
+        irsIfeuHwResetFault,
+        irsIfeuWatchdogResetFault,
+        irsIfeuSwResetFault,
+        irsIfeuExternalResetFault,
+        irsIfeuBrownoutResetFault,
+        irsIfeuFwDnldFault,
+        irsIfeuMemoryErrorFault,
+        irsIfeuFwdRefPllUnlockFault,
+        irsIfeuFwdHighFreqPilotPllUnlockFault,
+        irsIfeuFwdLowFreqPilotFault,
+        irsIfeuFwdHighFreqPilotFault,
+        irsIfeuSoftwareIncompatibilityFault,
+        irsIfeuBandFaultLockoutFault,
+        irsIfeuUnitCommandedLockoutFault,
+        irsIfeuUnitFaultLockoutFault,
+        irsIfeuFwdBoardDisconnectedFault,
+        irsIfeuRevBoardDisconnectedFault,
+        irsIfeuFwdBoardDcPowerBadFault,
+        irsIfeuRevBoardDcPowerBadFault,
+        irsIfeuPowerCassette1FailureFault,
+        irsIfeuPowerCassette2FailureFault,
+        irsIfeuPowerCassette3FailureFault,
+        irsIfeuPowerCassette1HighTempFault,
+        irsIfeuPowerCassette2HighTempFault,
+        irsIfeuPowerCassette3HighTempFault,
+
+        -- IFEU major (port) alarms
+        irsIfeuPort1DisconnectFault,
+        irsIfeuPort2DisconnectFault,
+        irsIfeuPort3DisconnectFault,
+        irsIfeuPort4DisconnectFault,
+        irsIfeuPort5DisconnectFault,
+        irsIfeuPort6DisconnectFault,
+        irsIfeuPort7DisconnectFault,
+        irsIfeuPort8DisconnectFault,
+        irsIfeuPort1NoCommsFault,
+        irsIfeuPort2NoCommsFault,
+        irsIfeuPort3NoCommsFault,
+        irsIfeuPort4NoCommsFault,
+        irsIfeuPort5NoCommsFault,
+        irsIfeuPort6NoCommsFault,
+        irsIfeuPort7NoCommsFault,
+        irsIfeuPort8NoCommsFault,
+        irsIfeuPort1ShortFault,
+        irsIfeuPort2ShortFault,
+        irsIfeuPort3ShortFault,
+        irsIfeuPort4ShortFault,
+        irsIfeuPort5ShortFault,
+        irsIfeuPort6ShortFault,
+        irsIfeuPort7ShortFault,
+        irsIfeuPort8ShortFault,
+        irsIfeuPort1TripFault,
+        irsIfeuPort2TripFault,
+        irsIfeuPort3TripFault,
+        irsIfeuPort4TripFault,
+        irsIfeuPort5TripFault,
+        irsIfeuPort6TripFault,
+        irsIfeuPort7TripFault,
+        irsIfeuPort8TripFault,
+        irsIfeuPort1FwdRevCoaxMisPairedFault,
+        irsIfeuPort2FwdRevCoaxMisPairedFault,
+        irsIfeuPort3FwdRevCoaxMisPairedFault,
+        irsIfeuPort4FwdRevCoaxMisPairedFault,
+        irsIfeuPort5FwdRevCoaxMisPairedFault,
+        irsIfeuPort6FwdRevCoaxMisPairedFault,
+        irsIfeuPort7FwdRevCoaxMisPairedFault,
+        irsIfeuPort8FwdRevCoaxMisPairedFault,
+        irsIfeuPort1InvalidUnitTypeFault,
+        irsIfeuPort2InvalidUnitTypeFault,
+        irsIfeuPort3InvalidUnitTypeFault,
+        irsIfeuPort4InvalidUnitTypeFault,
+        irsIfeuPort5InvalidUnitTypeFault,
+        irsIfeuPort6InvalidUnitTypeFault,
+        irsIfeuPort7InvalidUnitTypeFault,
+        irsIfeuPort8InvalidUnitTypeFault,
+
+        -- IFEU minor alarms
+        irsIfeuNoCommsFault,
+        irsIfeuFwdBoardOverTempFault,
+        irsIfeuRevBoardOverTempFault,
+        irsIfeuFan1FailureFault,
+        irsIfeuFan2FailureFault,
+        irsIfeuUnknownHwIdFault,
+        irsIfeu5vDcFault,
+        irsIfeu24vDcFault,
+        irsIfeu3vDcFault,
+        irsIfeu6vDcFault,
+        irsIfeu54vDcFault,
+        irsIfeuPowerSupplyCommsFault,
+        irsIfeuSystemOperationSuspendedFault,
+        irsIfeuPort1FwdIfPilotLowFault,
+        irsIfeuPort2FwdIfPilotLowFault,
+        irsIfeuPort3FwdIfPilotLowFault,
+        irsIfeuPort4FwdIfPilotLowFault,
+        irsIfeuPort5FwdIfPilotLowFault,
+        irsIfeuPort6FwdIfPilotLowFault,
+        irsIfeuPort7FwdIfPilotLowFault,
+        irsIfeuPort8FwdIfPilotLowFault,
+        irsIfeuPort1CalToneNotPresentFault,
+        irsIfeuPort2CalToneNotPresentFault,
+        irsIfeuPort3CalToneNotPresentFault,
+        irsIfeuPort4CalToneNotPresentFault,
+        irsIfeuPort5CalToneNotPresentFault,
+        irsIfeuPort6CalToneNotPresentFault,
+        irsIfeuPort7CalToneNotPresentFault,
+        irsIfeuPort8CalToneNotPresentFault,
+        irsIfeuPort1RevLowFreqPilotLowFault,
+        irsIfeuPort2RevLowFreqPilotLowFault,
+        irsIfeuPort3RevLowFreqPilotLowFault,
+        irsIfeuPort4RevLowFreqPilotLowFault,
+        irsIfeuPort5RevLowFreqPilotLowFault,
+        irsIfeuPort6RevLowFreqPilotLowFault,
+        irsIfeuPort7RevLowFreqPilotLowFault,
+        irsIfeuPort8RevLowFreqPilotLowFault,
+        irsIfeuPort1RevHighFreqPilotLowFault,
+        irsIfeuPort2RevHighFreqPilotLowFault,
+        irsIfeuPort3RevHighFreqPilotLowFault,
+        irsIfeuPort4RevHighFreqPilotLowFault,
+        irsIfeuPort5RevHighFreqPilotLowFault,
+        irsIfeuPort6RevHighFreqPilotLowFault,
+        irsIfeuPort7RevHighFreqPilotLowFault,
+        irsIfeuPort8RevHighFreqPilotLowFault,
+        irsIfeuPort1RevLowFreqPilotHighFault,
+        irsIfeuPort2RevLowFreqPilotHighFault,
+        irsIfeuPort3RevLowFreqPilotHighFault,
+        irsIfeuPort4RevLowFreqPilotHighFault,
+        irsIfeuPort5RevLowFreqPilotHighFault,
+        irsIfeuPort6RevLowFreqPilotHighFault,
+        irsIfeuPort7RevLowFreqPilotHighFault,
+        irsIfeuPort8RevLowFreqPilotHighFault,
+        irsIfeuPort1RevHighFreqPilotHighFault,
+        irsIfeuPort2RevHighFreqPilotHighFault,
+        irsIfeuPort3RevHighFreqPilotHighFault,
+        irsIfeuPort4RevHighFreqPilotHighFault,
+        irsIfeuPort5RevHighFreqPilotHighFault,
+        irsIfeuPort6RevHighFreqPilotHighFault,
+        irsIfeuPort7RevHighFreqPilotHighFault,
+        irsIfeuPort8RevHighFreqPilotHighFault,
+        irsIfeuPort1FwdCurrentHighFault,
+        irsIfeuPort2FwdCurrentHighFault,
+        irsIfeuPort3FwdCurrentHighFault,
+        irsIfeuPort4FwdCurrentHighFault,
+        irsIfeuPort5FwdCurrentHighFault,
+        irsIfeuPort6FwdCurrentHighFault,
+        irsIfeuPort7FwdCurrentHighFault,
+        irsIfeuPort8FwdCurrentHighFault,
+        irsIfeuPort1RevCurrentHighFault,
+        irsIfeuPort2RevCurrentHighFault,
+        irsIfeuPort3RevCurrentHighFault,
+        irsIfeuPort4RevCurrentHighFault,
+        irsIfeuPort5RevCurrentHighFault,
+        irsIfeuPort6RevCurrentHighFault,
+        irsIfeuPort7RevCurrentHighFault,
+        irsIfeuPort8RevCurrentHighFault,
+        irsIfeuCassette1HighTempFault,
+        irsIfeuCassette1OutputBadFault,
+        irsIfeuCassette1Fan1Fault,
+        irsIfeuCassette1Fan2Fault,
+        irsIfeuCassette1Fan3Fault,
+        irsIfeuCassette1Unused,
+        irsIfeuCassette1HighLoadingFault,
+        irsIfeuCassette2HighTempFault,
+        irsIfeuCassette2OutputBadFault,
+        irsIfeuCassette2Fan1Fault,
+        irsIfeuCassette2Fan2Fault,
+        irsIfeuCassette2Fan3Fault,
+        irsIfeuCassette2Unused,
+        irsIfeuCassette2HighLoadingFault,
+        irsIfeuCassette3HighTempFault,
+        irsIfeuCassette3OutputBadFault,
+        irsIfeuCassette3Fan1Fault,
+        irsIfeuCassette3Fan2Fault,
+        irsIfeuCassette3Fan3Fault,
+        irsIfeuCassette3Unused,
+        irsIfeuCassette3HighLoadingFault,
+
+        -- RAU major alarms
+        irsRauPowerUpResetFault,
+        irsRauHwResetFault,
+        irsRauWatchdogResetFault,
+        irsRauSwResetFault,
+        irsRauExternalResetFault,
+        irsRauBrownoutResetFault,
+        irsRauFwDnldFault,
+        irsRauMemoryErrorFault,
+        irsRauRevLowFreqPilotFault,
+        irsRauRevHighFreqPilotFault,
+        irsRauRfCableDisconnect1Fault,
+        irsRauRfCableDisconnect2Fault,
+        irsRauAntennaDisconnectPort1Fault,
+        irsRauAntennaDisconnectPort2Fault,
+        irsRauSoftwareIncompatibilityFault,
+        irsRauIncompatibleBandsFault,
+        irsRauDcVoltageLowFault,
+        irsRauUnitComandedLockoutFault,
+        irsRauUnitFaultLockoutFault,
+        irsRauCantPowerUpSrauFault,
+        irsRauBandPath1AFwdPllUnlockFault,
+        irsRauBandPath2AFwdPllUnlockFault,
+        irsRauBandPath3AFwdPllUnlockFault,
+        irsRauBandPath1BFwdPllUnlockFault,
+        irsRauBandPath2BFwdPllUnlockFault,
+        irsRauBandPath3BFwdPllUnlockFault,
+        irsRauBandPath1ARevPllUnlockFault,
+        irsRauBandPath2ARevPllUnlockFault,
+        irsRauBandPath3ARevPllUnlockFault,
+        irsRauBandPath1BRevPllUnlockFault,
+        irsRauBandPath2BRevPllUnlockFault,
+        irsRauBandPath3BRevPllUnlockFault,
+        irsRauBandPath1AFwdPowerAmpFault,
+        irsRauBandPath2AFwdPowerAmpFault,
+        irsRauBandPath3AFwdPowerAmpFault,
+        irsRauBandPath1BFwdPowerAmpFault,
+        irsRauBandPath2BFwdPowerAmpFault,
+        irsRauBandPath3BFwdPowerAmpFault,
+        irsRauBandPath1ABandCommandedLockoutFault,
+        irsRauBandPath2ABandCommandedLockoutFault,
+        irsRauBandPath3ABandCommandedLockoutFault,
+        irsRauBandPath1BBandCommandedLockoutFault,
+        irsRauBandPath2BBandCommandedLockoutFault,
+        irsRauBandPath3BBandCommandedLockoutFault,
+        irsRauBandPath1ABandFaultLockoutFault,
+        irsRauBandPath2ABandFaultLockoutFault,
+        irsRauBandPath3ABandFaultLockoutFault,
+        irsRauBandPath1BBandFaultLockoutFault,
+        irsRauBandPath2BBandFaultLockoutFault,
+        irsRauBandPath3BBandFaultLockoutFault,
+
+        -- RAU major (port) alarms
+        irsRauPort1DisconnectFault,
+        irsRauPort2DisconnectFault,
+        irsRauPort3DisconnectFault,
+        irsRauPort1NoCommsFault,
+        irsRauPort2NoCommsFault,
+        irsRauPort3NoCommsFault,
+        irsRauPort1ShortFault,
+        irsRauPort2ShortFault,
+        irsRauPort3ShortFault,
+        irsRauPort1TripFault,
+        irsRauPort2TripFault,
+        irsRauPort3TripFault,
+        irsRauPort1FwdRevCoaxMisPairedFault,
+        irsRauPort2FwdRevCoaxMisPairedFault,
+        irsRauPort3FwdRevCoaxMisPairedFault,
+        irsRauPort1InvalidUnitTypeFault,
+        irsRauPort2InvalidUnitTypeFault,
+        irsRauPort3InvalidUnitTypeFault,
+
+        -- RAU minor alarms
+        irsRauNoCommsFault,
+        irsRauHighTempFault,
+        irsRauFwdLowFreqPilotLowFault,
+        irsRauFwdHighFreqPilotLowFault,
+        irsRauFwdLowFreqPilotHighFault,
+        irsRauFwdHighFreqPilotHighFault,
+        irsRauRevFdFailureFault,
+        irsRauUnknownHwIdFault,
+        irsRauRfCable1DisconnectFault,
+        irsRauRfCable2DisconnectFault,
+        irsRauAntennaPort1DisconnectFault,
+        irsRauAntennaPort2DisconnectFault,
+        irsRauSystemOperationSuspendedFault,
+        irsRauBandPath1ASysTestRequiredFault,
+        irsRauBandPath2ASysTestRequiredFault,
+        irsRauBandPath3ASysTestRequiredFault,
+        irsRauBandPath1BSysTestRequiredFault,
+        irsRauBandPath2BSysTestRequiredFault,
+        irsRauBandPath3BSysTestRequiredFault,
+        irsRauBandPath1AFwdSysTestNotCompletedFault,
+        irsRauBandPath2AFwdSysTestNotCompletedFault,
+        irsRauBandPath3AFwdSysTestNotCompletedFault,
+        irsRauBandPath1BFwdSysTestNotCompletedFault,
+        irsRauBandPath2BFwdSysTestNotCompletedFault,
+        irsRauBandPath3BFwdSysTestNotCompletedFault,
+        irsRauBandPath1ARevPathFault,
+        irsRauBandPath2ARevPathFault,
+        irsRauBandPath3ARevPathFault,
+        irsRauBandPath1BRevPathFault,
+        irsRauBandPath2BRevPathFault,
+        irsRauBandPath3BRevPathFault,
+        irsRauBandPath1ARevFdPllUnlockFault,
+        irsRauBandPath2ARevFdPllUnlockFault,
+        irsRauBandPath3ARevFdPllUnlockFault,
+        irsRauBandPath1BRevFdPllUnlockFault,
+        irsRauBandPath2BRevFdPllUnlockFault,
+        irsRauBandPath3BRevFdPllUnlockFault,
+        irsRauBandPath1AFwdSysTestBlockedFault,
+        irsRauBandPath2AFwdSysTestBlockedFault,
+        irsRauBandPath3AFwdSysTestBlockedFault,
+        irsRauBandPath1BFwdSysTestBlockedFault,
+        irsRauBandPath2BFwdSysTestBlockedFault,
+        irsRauBandPath3BFwdSysTestBlockedFault
+    }
+    STATUS current
+    DESCRIPTION
+       "A collection of notifications."
+    ::= {irsMIBGroups 3}
+
+END

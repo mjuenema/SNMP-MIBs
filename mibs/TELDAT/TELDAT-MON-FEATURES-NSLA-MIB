@@ -1,0 +1,631 @@
+
+
+                -- Teldat, S.A.
+
+                -- Parque Tecnolgico de Madrid
+
+                -- 28760, Tres Cantos (Madrid)
+
+                -- Tlf: +34-918076565
+
+                -- Fax: +34-918076521
+
+                -- e-mail: id@teldat.es
+
+
+            -- MIB privada de Teldat
+
+            -- Facilidad NSLA
+
+
+    -- Historial:
+    --      07/02/14    M.A. Pastor     XH 3523. Errors with HP Openview 9.20
+    -- 1.3  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+    -- 1.2  30/06/10    M.A. Pastor     Compatibilidad con Spectrum
+    -- 1.1  04/07/06    C. Torres       Se agregan las variables teldatNslaFilterLastSample ,teldatNslaFilterTotalSamples
+    --                                  a la MIB de monitorizacin NSLA.
+    -- 1.0  16/05/06    M. Fadon        Implementacin inicial
+--------------------------------------------------------------------------------
+
+TELDAT-MON-FEATURES-NSLA-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    MODULE-IDENTITY,
+    OBJECT-TYPE,
+    Unsigned32
+        FROM SNMPv2-SMI
+
+    DisplayString,
+    TruthValue,
+    TEXTUAL-CONVENTION
+        FROM SNMPv2-TC
+
+    telProdNpMonFeatures
+        FROM TELDAT-SW-STRUCTURE-MIB;
+
+--
+-- teldatNslaMonMIB
+--
+
+telProdNpMonFeatNsla MODULE-IDENTITY
+    LAST-UPDATED    "200605161401Z"
+    ORGANIZATION    "Teldat, S.A."
+    CONTACT-INFO
+        "Teldat, S.A.
+        Customer Service
+
+        Postal: Parque Tecnolgico de Madrid
+                Tres Cantos 28760
+                Madrid, SPAIN
+
+        Tel.: +34 918 076 565
+
+        http://www.teldat.com"
+    DESCRIPTION
+        "This module defines a MIB for Network Level Service Advisor (NSLA)
+        wich provides a way of filtering and logic processing the result of
+        Network Service Monitor (NSM) operations and Level Indicator updates
+        and generates a boolean result to be used in several router modules:
+        MIB for management of Teldat feature Network Level Service Advisor.
+
+        The table structure overview is as follows (t: indicates a table,
+        at: indicates an augmented table, and it: indicates table with the same
+        indices/control as parent table):
+
+        NSLA MIB
+        |t++ Filter  Table
+        |t++ Advisor Table
+        |t++ Alarm   Table
+        |+++ NSLA Enabled
+        |+++ NSLA Muted"
+
+    REVISION    "200605161401Z"
+    DESCRIPTION "Initial implementation."
+
+    ::= { telProdNpMonFeatures 7 }
+
+--
+--  Location of node telProdNpMonFeatNsla in TELDAT-MIB
+--
+
+-- telproducts          OBJECT IDENTIFIER   ::= { teldat 4 }
+-- telProductsNucleox   OBJECT IDENTIFIER   ::= { telproducts 1 }
+-- telProductsNpMonit   OBJECT IDENTIFIER   ::= { telProductsNucleox 2 }
+-- telProdNpMonFeatures OBJECT IDENTIFIER   ::= { telProductsNpMonit 4 }
+-- telProdNpMonFeatNsla OBJECT IDENTIFIER   ::= { telProdNpMonFeatures 7 }
+
+--
+--  NSLA table index textual convention
+--
+
+NslaTableIndex ::= TEXTUAL-CONVENTION
+    STATUS  current
+    DESCRIPTION
+        "Integer range to use as index for NSLA tables"
+    SYNTAX  INTEGER (1 .. 65535)
+
+--
+--  Network Service Level Advisor (NSLA) MIB Objects
+--
+
+teldatNslaObjects    OBJECT IDENTIFIER   ::= { telProdNpMonFeatNsla 1 }
+
+--
+--  Global NSLA monitoring variables
+--
+
+--  Filter NSLA table
+
+teldatNslaFilterTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNslaFilterEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of NSLA monitoring definitions.
+
+        The NSLA administration control is in multiple tables. This table
+        controls the Filters state."
+
+    ::= { teldatNslaObjects 1 }
+
+teldatNslaFilterEntry OBJECT-TYPE
+    SYNTAX      TeldatNslaFilterEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that define an Filter control row."
+    INDEX       { teldatNslaFilterIndex }
+    ::= { teldatNslaFilterTable 1 }
+
+TeldatNslaFilterEntry ::= SEQUENCE
+{
+    teldatNslaFilterIndex            NslaTableIndex,
+    teldatNslaFilterOutput           TruthValue,
+    teldatNslaFilterUserActivate     INTEGER,
+    teldatNslaFilterUserEnable       INTEGER,
+    teldatNslaFilterUserMute         INTEGER,
+    teldatNslaFilterCfgEnable        INTEGER,
+    teldatNslaFilterCfgMute          INTEGER,
+    teldatNslaFilterCfgInvert        INTEGER,
+    teldatNslaFilterToggles          Unsigned32,
+    teldatNslaFilterOverActTh        Unsigned32,
+    teldatNslaFilterUnderDeactTh     Unsigned32,
+    teldatNslaFilterActPercent       INTEGER,
+    teldatNslaFilterActTime          Unsigned32,
+    teldatNslaFilterDeactPercent     INTEGER,
+    teldatNslaFilterDeactTime        Unsigned32,
+    teldatNslaFilterLastSample       INTEGER,
+    teldatNslaFilterTotalSamples     Unsigned32
+}
+
+teldatNslaFilterIndex OBJECT-TYPE
+    SYNTAX      NslaTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Uniquely identifies a row in the teldatNslaFilterTable."
+    ::= { teldatNslaFilterEntry 1 }
+
+teldatNslaFilterOutput OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This is the output value of the Filter of this row."
+    ::= { teldatNslaFilterEntry 2 }
+
+teldatNslaFilterUserActivate OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2),
+            normal(3)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Force the Output of the Filter. Can be enabled, disabled or normal
+        wich means that the output is the current output of the Filter."
+    DEFVAL      { normal }
+    ::= { teldatNslaFilterEntry 3 }
+
+teldatNslaFilterUserEnable OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "With this object the Filter can be enabled/disabled."
+    DEFVAL      { enabled }
+    ::= { teldatNslaFilterEntry 4 }
+
+teldatNslaFilterUserMute OBJECT-TYPE
+    SYNTAX      INTEGER {
+            muted(1),
+            unmuted(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "With this object the Filter can be muted/unmuted."
+    DEFVAL      { unmuted }
+    ::= { teldatNslaFilterEntry 5 }
+
+teldatNslaFilterCfgEnable OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Enabled/disabled configuration of the Filter."
+    ::= { teldatNslaFilterEntry 6 }
+
+teldatNslaFilterCfgMute OBJECT-TYPE
+    SYNTAX      INTEGER {
+            muted(1),
+            unmuted(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Muted/unmuted configuration of the Filter."
+    ::= { teldatNslaFilterEntry 7 }
+
+teldatNslaFilterCfgInvert OBJECT-TYPE
+    SYNTAX      INTEGER {
+            normal(1),
+            inverted(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Normal/inverted configuration of the Filter."
+    ::= { teldatNslaFilterEntry 8 }
+
+teldatNslaFilterToggles OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of current toggles of the Filter."
+    ::= { teldatNslaFilterEntry 9 }
+
+teldatNslaFilterOverActTh OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of samples over the activation threshold of the Filter."
+    ::= { teldatNslaFilterEntry 10 }
+
+teldatNslaFilterUnderDeactTh OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Number of samples under the deactivation threshold of the Filter."
+    ::= { teldatNslaFilterEntry 11 }
+
+teldatNslaFilterActPercent OBJECT-TYPE
+    SYNTAX      INTEGER (0..100)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Current percentage of samples over the activation threshold in the
+        filtering window."
+    ::= { teldatNslaFilterEntry 12 }
+
+teldatNslaFilterActTime OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS       "seconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Time since window activation."
+    ::= { teldatNslaFilterEntry 13 }
+
+teldatNslaFilterDeactPercent OBJECT-TYPE
+    SYNTAX      INTEGER (0..100)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Current percentage of samples under the deactivation threshold in the
+        filtering window."
+    ::= { teldatNslaFilterEntry 14 }
+
+teldatNslaFilterDeactTime OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS       "seconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Time since window deactivation."
+    ::= { teldatNslaFilterEntry 15 }
+
+
+teldatNslaFilterLastSample OBJECT-TYPE
+    SYNTAX       INTEGER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Numbers of samples required to execute the calculations."
+    ::= { teldatNslaFilterEntry 16 }
+
+teldatNslaFilterTotalSamples OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Total number of samples"
+    ::= { teldatNslaFilterEntry 17 }
+
+--  Alarm NSLA table
+
+teldatNslaAlarmTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNslaAlarmEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of NSLA monitoring definitions.
+
+        The NSLA administration control is in multiple tables. This table
+        controls the Alarms state."
+
+    ::= { teldatNslaObjects 2 }
+
+teldatNslaAlarmEntry OBJECT-TYPE
+    SYNTAX      TeldatNslaAlarmEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that define an Alarm control row."
+    INDEX       { teldatNslaAlarmIndex }
+    ::= { teldatNslaAlarmTable 1 }
+
+TeldatNslaAlarmEntry ::= SEQUENCE
+{
+    teldatNslaAlarmIndex            NslaTableIndex,
+    teldatNslaAlarmOutput           TruthValue,
+    teldatNslaAlarmUserActivate     INTEGER,
+    teldatNslaAlarmUserEnable       INTEGER,
+    teldatNslaAlarmUserMute         INTEGER,
+    teldatNslaAlarmCfgEnable        INTEGER,
+    teldatNslaAlarmCfgMute          INTEGER,
+    teldatNslaAlarmCfgInvert        INTEGER,
+    teldatNslaAlarmExpression       DisplayString
+}
+
+teldatNslaAlarmIndex OBJECT-TYPE
+    SYNTAX      NslaTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Uniquely identifies a row in the teldatNslaAlarmTable."
+    ::= { teldatNslaAlarmEntry 1 }
+
+teldatNslaAlarmOutput OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This is the output value of the Alarm of this row."
+    ::= { teldatNslaAlarmEntry 2 }
+
+teldatNslaAlarmUserActivate OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2),
+            normal(3)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Force the Output of the Alarm. Can be enabled, disabled or normal
+        wich means that the output is the current output of the Alarm."
+    DEFVAL      { normal }
+    ::= { teldatNslaAlarmEntry 3 }
+
+teldatNslaAlarmUserEnable OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "With this object the Alarm can be enabled/disabled."
+    DEFVAL      { enabled }
+    ::= { teldatNslaAlarmEntry 4 }
+
+teldatNslaAlarmUserMute OBJECT-TYPE
+    SYNTAX      INTEGER {
+            muted(1),
+            unmuted(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "With this object the Alarm can be muted/unmuted."
+    DEFVAL      { unmuted }
+    ::= { teldatNslaAlarmEntry 5 }
+
+teldatNslaAlarmCfgEnable OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Enabled/disabled configuration of the Alarm."
+    ::= { teldatNslaAlarmEntry 6 }
+
+teldatNslaAlarmCfgMute OBJECT-TYPE
+    SYNTAX      INTEGER {
+            muted(1),
+            unmuted(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Muted/unmuted configuration of the Alarm."
+    ::= { teldatNslaAlarmEntry 7 }
+
+teldatNslaAlarmCfgInvert OBJECT-TYPE
+    SYNTAX      INTEGER {
+            normal(1),
+            inverted(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Normal/inverted configuration of the Alarm."
+    ::= { teldatNslaAlarmEntry 8 }
+
+teldatNslaAlarmExpression OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Alarm boolean expression."
+    ::= { teldatNslaAlarmEntry 9 }
+
+--  Advisor NSLA table
+
+teldatNslaAdvisorTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF TeldatNslaAdvisorEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of NSLA monitoring definitions.
+
+        The NSLA administration control is in multiple tables. This table
+        controls the Advisors state."
+
+    ::= { teldatNslaObjects 3 }
+
+teldatNslaAdvisorEntry OBJECT-TYPE
+    SYNTAX      TeldatNslaAdvisorEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A base list of objects that define an Advisor control row."
+    INDEX       { teldatNslaAdvisorIndex }
+    ::= { teldatNslaAdvisorTable 1 }
+
+TeldatNslaAdvisorEntry ::= SEQUENCE
+{
+    teldatNslaAdvisorIndex            NslaTableIndex,
+    teldatNslaAdvisorOutput           TruthValue,
+    teldatNslaAdvisorUserActivate     INTEGER,
+    teldatNslaAdvisorUserEnable       INTEGER,
+    teldatNslaAdvisorUserMute         INTEGER,
+    teldatNslaAdvisorCfgEnable        INTEGER,
+    teldatNslaAdvisorCfgMute          INTEGER,
+    teldatNslaAdvisorCfgInvert        INTEGER,
+    teldatNslaAdvisorExpression       DisplayString
+}
+
+teldatNslaAdvisorIndex OBJECT-TYPE
+    SYNTAX      NslaTableIndex
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Uniquely identifies a row in the teldatNslaAdvisorTable."
+    ::= { teldatNslaAdvisorEntry 1 }
+
+teldatNslaAdvisorOutput OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This is the output value of the Advisor of this row."
+    ::= { teldatNslaAdvisorEntry 2 }
+
+teldatNslaAdvisorUserActivate OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2),
+            normal(3)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Force the Output of the Advisor. Can be enabled, disabled or normal
+        wich means that the output is the current output of the Advisor."
+    DEFVAL      { normal }
+    ::= { teldatNslaAdvisorEntry 3 }
+
+teldatNslaAdvisorUserEnable OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "With this object the Advisor can be enabled/disabled."
+    DEFVAL      { enabled }
+    ::= { teldatNslaAdvisorEntry 4 }
+
+teldatNslaAdvisorUserMute OBJECT-TYPE
+    SYNTAX      INTEGER {
+            muted(1),
+            unmuted(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "With this object the Advisor can be muted/unmuted."
+    DEFVAL      { unmuted }
+    ::= { teldatNslaAdvisorEntry 5 }
+
+teldatNslaAdvisorCfgEnable OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Enabled/disabled configuration of the Advisor."
+    ::= { teldatNslaAdvisorEntry 6 }
+
+teldatNslaAdvisorCfgMute OBJECT-TYPE
+    SYNTAX      INTEGER {
+            muted(1),
+            unmuted(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Muted/unmuted configuration of the Advisor."
+    ::= { teldatNslaAdvisorEntry 7 }
+
+teldatNslaAdvisorCfgInvert OBJECT-TYPE
+    SYNTAX      INTEGER {
+            normal(1),
+            inverted(2)
+            }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Normal/inverted configuration of the Advisor."
+    ::= { teldatNslaAdvisorEntry 8 }
+
+teldatNslaAdvisorExpression OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Advisor boolean expression."
+    ::= { teldatNslaAdvisorEntry 9 }
+
+--  Global enable NSLA
+
+teldatNslaGlobalEnabled OBJECT-TYPE
+    SYNTAX      INTEGER {
+            enabled(1),
+            disabled(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Global NSLA enable state."
+    ::= { teldatNslaObjects 4 }
+
+--  Global mute NSLA
+
+teldatNslaGlobalMute OBJECT-TYPE
+    SYNTAX      INTEGER {
+            muted(1),
+            unmuted(2)
+            }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Global NSLA mute state."
+    ::= { teldatNslaObjects 5 }
+
+--
+--  NOTIFICATION DEFINITIONS
+--
+--  This section defines the traps that can be generated by the agent.
+--
+--
+
+teldatNslaNotificationsPrefix    OBJECT IDENTIFIER ::= { telProdNpMonFeatNsla 2 }
+teldatNslaNotifications          OBJECT IDENTIFIER ::= { teldatNslaNotificationsPrefix 0 }
+
+--
+--  Conformance Information
+--
+
+teldatNslaMibConformance OBJECT IDENTIFIER ::= { telProdNpMonFeatNsla 3 }
+teldatNslaMibCompliances OBJECT IDENTIFIER ::= { teldatNslaMibConformance 1 }
+teldatNslaMibGroups      OBJECT IDENTIFIER ::= { teldatNslaMibConformance 2 }
+
+END

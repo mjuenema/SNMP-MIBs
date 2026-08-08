@@ -1,0 +1,539 @@
+SERVERVIEW-STATUS-MIB DEFINITIONS ::= BEGIN
+
+-- Fujitsu Siemens ServerView - Status MIB
+--
+-- $Copyright$
+-- Copyright (C) Siemens AG 1998
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2000,2001
+-- All rights reserved
+--
+-- MIB Revision: 4.51.00.02
+--
+
+IMPORTS
+	OBJECT-TYPE                            FROM RFC-1212
+	mib-2                                  FROM RFC1213-MIB
+	DisplayString                          FROM RFC1213-MIB
+	Counter, Gauge, IpAddress, enterprises FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+-- Fujitsu Siemens Server Management MIB nodes
+
+-- sni:                         1.3.6.1.4.1.231
+--  sniProductMibs:			    1.3.6.1.4.1.231.2
+--   sniExtensions:			    1.3.6.1.4.1.231.2.10
+--    sniServerMgmt:			1.3.6.1.4.1.231.2.10.2
+--      sieStatusMIB:			1.3.6.1.4.1.231.2.10.2.11
+--
+
+-- Trap IDs for all ServerView MIBs:
+-- Trap enterprise is "sniServerMgmt".
+
+-- Siemens Trap MIB:			000..399  (enterprise "sni"!!)
+-- Siemens Mylex MIB:			200..299
+-- Siemens ServerControl MIB:	600..699
+-- Siemens ServerView MIB:		700..749
+-- Siemens Harddisk MIB:        750..799
+-- Siemens NT Cluster MIB:		800..999
+-- Siemens PCI Hotplug MIB:		1000..1099
+-- Siemens Status MIB:			1100..1199  (this MIB)
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+	sieStatusAgent		OBJECT IDENTIFIER		::= { sniServerMgmt    11 }
+
+  
+-- Status-MIB groups
+
+	sieStAgentInfo		 OBJECT IDENTIFIER		::= { sieStatusAgent 1  }
+	sieStSystemStatus	 OBJECT IDENTIFIER		::= { sieStatusAgent 2  }
+	sieStSubsystemStatus OBJECT IDENTIFIER		::= { sieStatusAgent 3  }
+	sieStComponentStatus OBJECT IDENTIFIER		::= { sieStatusAgent 4  }
+	sieStAgentParameters OBJECT IDENTIFIER		::= { sieStatusAgent 5  }
+	sieStTrapParameters	 OBJECT IDENTIFIER		::= { sieStatusAgent 10 }
+
+
+
+-- **********************************************************************************************
+
+-- GROUP: sieStAgentInfo
+--
+--      sieStatusAgent MIB:       1.3.6.1.4.1.231.2.10.2.11
+--       sieStAgentInfo group:	  1.3.6.1.4.1.231.2.10.2.11.1
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines agent specific information like agent name, vendor and versions 
+
+-- **********************************************************************************************
+
+sieStAgentId OBJECT-TYPE
+	SYNTAX 	DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Agent identification string"
+	::= { sieStAgentInfo 1 }
+
+sieStAgentCompany OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION 	"Agent company name"
+	::= { sieStAgentInfo 2 }
+
+sieStAgentVersionString OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Agent version string <Major>.<Minor> (i.e. 1.05)"
+	::= { sieStAgentInfo 3 }
+
+sieStAgentBuild OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Build time and date of agent program implementation"
+	::= { sieStAgentInfo 4 }
+
+
+-- **********************************************************************************************
+
+-- GROUP: sieStSystemStatus
+--
+--    sieStatus MIB:                1.3.6.1.4.1.231.2.10.2.11
+--    sieStSystemStatus group:      1.3.6.1.4.1.231.2.10.2.11.2
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines the status of the complete system; this is the worst value of all
+-- subsystem status values.
+
+-- **********************************************************************************************
+
+sieStSystemStatusValue OBJECT-TYPE
+	SYNTAX	INTEGER {
+			ok(1),
+			degraded(2),
+			error(3),
+			failed(4),
+			unknown(5)
+	}
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Overall status of this system:
+				 ok(1):       all subsystems and components working properly, no failure
+				 degraded(2): at least one component has a problem, system can still work
+				 error(3):    severe problem, system will not work
+				 failed(4):   any agent or other management component has failed
+				 unknown(5):  none of the subsystems had a valid status (e.g. during initialization)"
+	::= { sieStSystemStatus 1 }
+
+sieStSystemLastErrorMessage OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Error message text of the component that has failed last. Empty string,
+				 if no error has happened since reboot. This object is not supported by 
+				 all components and can therefore be empty although an error happened."
+	::= { sieStSystemStatus 2 }
+
+sieStSubsystemList OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"List if subsystems included in this system, separated 
+				by blank spaces. E.g. 'Environment PowerSupply MassStorage'"
+	::= { sieStSystemStatus 3 }
+
+sieStSystemIdentify OBJECT-TYPE
+	SYNTAX	INTEGER {
+			off(1),
+			on(2),
+			not-available(3)
+	}
+	ACCESS		read-write
+	STATUS		mandatory
+	DESCRIPTION	"Sets the signal IDENTIFY for the system:
+				 off(1):           clear the identify signal / signal is off
+				 on(2):	           set the IDENTIFY signal 
+				 not-available(3): identify signal ist not available (this value cannot be set)
+                 Setting IDENTIFY by the ServerView application normally sets a LED
+				 to have the possibility to identify a system selected by ServerView."
+	::= { sieStSystemStatus 4 }
+
+
+-- **********************************************************************************************
+
+-- GROUP: sieStSubsystemStatus
+--
+--    sieStatus MIB:        		1.3.6.1.4.1.231.2.10.2.11
+-- 	  sieStSubsystemStatus group:	1.3.6.1.4.1.231.2.10.2.11.3
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines the status of the subsystems; these are the worst values of the
+-- component status values.
+
+-- **********************************************************************************************
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sieStSubsystemTable
+-- STATUS       mandatory
+-- DESCRIPTION  "This table contains the monitored subsystems that are considered in system status calculation."
+--
+--      sieStSubsystemTable: 1.3.6.1.4.1.231.2.10.2.11.3.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+sieStSubsystemTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieStSubsystems
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Table containing the monitored subsystems"
+	::= { sieStSubsystemStatus 1 }
+
+sieStSubsystems OBJECT-TYPE
+	SYNTAX	SieStSubsystems
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ sieStSubsystemNumber }
+	::= { sieStSubsystemTable 1 }
+
+
+SieStSubsystems ::= 
+	SEQUENCE {
+		sieStSubsystemNumber
+			INTEGER,
+		sieStSubsystemName
+			DisplayString,
+		sieStSubsystemStatusValue
+			INTEGER,
+		sieStSubsystemLastErrorMessage
+			DisplayString,
+		sieStSubsystemComponents
+			DisplayString,
+		sieStSubsystemDisplayName
+			DisplayString
+	}
+
+
+sieStSubsystemNumber OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Subsystem number (index, 1..n)"
+	::= { sieStSubsystems 1 }
+
+sieStSubsystemName 	OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Subsystem name. This name identifies the subsystem and will never 
+				 be changed if once defined. This name is a string like 'Environment', 
+				 'PowerSupply', 'MassStorage' etc."
+	::= { sieStSubsystems 2 }
+
+sieStSubsystemStatusValue OBJECT-TYPE
+	SYNTAX		INTEGER {
+			ok(1),
+			degraded(2),
+			error(3),
+			failed(4),
+			unknown(5)
+	}
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Subsystem status value:
+				 ok(1):       all components in this subsystem working properly
+				 degraded(2): at least one component has a problem, system can still work
+				 error(3):    severe problem, system will not work
+				 failed(4):   any agent or other management component has failed
+				 unknown(5):  none of the components had a valid status (initialization)"
+	::= { sieStSubsystems 3 }
+
+sieStSubsystemLastErrorMessage OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Error message text of the component that has failed last. Empty string,
+				 if no error has happened since reboot. This object is not supported by 
+				 all components and can therefore be empty although an error happened."
+	::= { sieStSubsystems 4 }
+
+sieStSubsystemComponents OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"List if components (short names) included in this subsystem, separated 
+				 by blank spaces; e.g. 'SvPowerSupply OemUpsAPC'"
+	::= { sieStSubsystems 5 }
+
+sieStSubsystemDisplayName OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Subsystem display name string."
+	::= { sieStSubsystems 6 }
+
+
+-- ----------------------------------------------------------------------------------------------
+
+sieStNumberSubsystems OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Number of available subsystems; this is the number of entries in the subsystem table"
+	::= { sieStSubsystemStatus 2 }
+
+
+
+-- **********************************************************************************************
+
+-- GROUP: sieStComponentStatus
+--
+--    sieStatus MIB:        		1.3.6.1.4.1.231.2.10.2.11
+-- 	  sieStComponentStatus group:	1.3.6.1.4.1.231.2.10.2.11.4
+--
+-- Implementation of this group is optional
+--
+-- This group defines the status of the components. These status values are directly read
+-- from the components.
+
+-- **********************************************************************************************
+
+-- ----------------------------------------------------------------------------------------------
+--
+-- TABLE        sieStComponentTable
+-- STATUS       mandatory
+-- DESCRIPTION  "This table contains the monitored components that are considered in subsystem status calculation."
+--
+--      sieStComponentTable: 1.3.6.1.4.1.231.2.10.2.11.4.1
+--
+-- ----------------------------------------------------------------------------------------------
+
+sieStComponentTable OBJECT-TYPE
+	SYNTAX	SEQUENCE OF SieStComponents
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION "Table containing the monitored components"
+	::= { sieStComponentStatus 1 }
+
+sieStComponents OBJECT-TYPE
+	SYNTAX	SieStComponents
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION ""
+	INDEX	{ sieStComponentNumber }
+	::= { sieStComponentTable 1 }
+
+
+SieStComponents ::= 
+	SEQUENCE {
+		sieStComponentNumber
+			INTEGER,
+		sieStComponentName
+			DisplayString,
+		sieStComponentStatusValue
+			INTEGER,
+		sieStComponentLastErrorMessage
+			DisplayString,
+		sieStComponentDisplayName
+			DisplayString,
+		sieStComponentConfirmFailure
+			INTEGER
+	}
+
+
+sieStComponentNumber OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Component number (index, 1..n)"
+	::= { sieStComponents 1 }
+
+sieStComponentName 	OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Component name/tag. This name identifies the component and will never 
+				 be changed if once defined. This name is a string like 'SvEnvironment', 
+				 'SvVoltages', 'OemUpsAPC' etc."
+	::= { sieStComponents 2 }
+
+sieStComponentStatusValue OBJECT-TYPE
+	SYNTAX		INTEGER {
+			ok(1),
+			degraded(2),
+			error(3),
+			failed(4),
+			unknown(5)
+	}
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Component status value:
+				 ok(1):       component is working properly
+				 degraded(2): has a problem, system can still work
+				 error(3):    severe problem, system will not work
+				 failed(4):   agent or management component has failed
+				 unknown(5):  component had no valid status (initialization)"
+	::= { sieStComponents 3 }
+
+sieStComponentLastErrorMessage OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Error message text of the current component. Empty string,
+				 if no error has happened since reboot. This object is not supported by 
+				 all components and can therefore be empty although an error happened."
+	::= { sieStComponents 4 }
+
+sieStComponentDisplayName OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Component display name string."
+	::= { sieStComponents 5 }
+
+sieStComponentConfirmFailure OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Confirm a failure status of a component that does not automatically 
+                 reset its status (e.g. BIOS selftest error). The error condition is 
+                 removed after the failure has been confirmed.
+                 GET values: 0  - no failure to confirm; SET not possible
+                             >0 - component failure; SET a zero value to confirm
+                 SET values: 0  - confirm failure and remove error condition
+                             (setting other values than 0 is not possible)"
+	::= { sieStComponents 6 }
+
+
+-- ----------------------------------------------------------------------------------------------
+
+sieStNumberComponents OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Number of available components; this is the number of entries in the component table"
+	::= { sieStComponentStatus 2 }
+
+
+-- **********************************************************************************************
+
+-- GROUP: sieStAgentParameters
+--
+--    sieStatus MIB:        		1.3.6.1.4.1.231.2.10.2.11
+-- 	  sieStAgentParameters group:	1.3.6.1.4.1.231.2.10.2.11.5
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines agent depending parameters, i.e. target system, applications
+
+-- **********************************************************************************************
+
+sieStAgentType OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION	"Type of agent (i.e. 'Desktop' or 'Server').
+                 This field can be used to launch the correct management front end
+                 application (DeskView or ServerView) in enterprise management systems."
+	::= { sieStAgentParameters 1 }
+
+
+
+-- **********************************************************************************************
+
+-- GROUP: sieStTrapParameters
+--
+--    sieStatus MIB:        		1.3.6.1.4.1.231.2.10.2.11
+-- 	  sieStTrapParameters group:	1.3.6.1.4.1.231.2.10.2.11.10
+--
+-- Implementation of this group is mandatory
+--
+-- This group defines the trap parameters. The objects are not-accessible and only sent
+-- to the manager as trap parameters.
+
+-- **********************************************************************************************
+
+
+sieStTrapParamServerName OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION "Name of server the trap occured at"
+	::= { sieStTrapParameters 1 }
+
+sieStTrapParamTimestamp OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	not-accessible
+	STATUS	mandatory
+	DESCRIPTION "Time the trap occured (in seconds since 01/01/1970 00:00h)"
+	::= { sieStTrapParameters 2 }
+
+
+-- **********************************************************************************************
+
+-- GROUP: Trap definitions
+--
+--    Trap enterprise:        		sniServerMgmt (1.3.6.1.4.1.231.2.10.2)
+--    Trap numbers:					1100..1199
+--
+
+-- **********************************************************************************************
+
+
+sieStTrapStatusChanged TRAP-TYPE
+	ENTERPRISE sniServerMgmt
+	VARIABLES {
+		sieStTrapParamServerName,
+		sieStTrapParamTimestamp
+	}
+	DESCRIPTION	    "System status has changed."
+	--#TYPE         "Status changed"
+	--#SUMMARY      "System status has changed at server %s."
+	--#ARGUMENTS    { 0 }
+	--#SEVERITY     INFORMATIONAL
+	--#TIMEINDEX    1
+	--#STATE        OPERATIONAL
+	::= 1100
+
+
+END
+
+
+

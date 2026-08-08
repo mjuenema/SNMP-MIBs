@@ -1,0 +1,1460 @@
+--MibName=rcRateLimit
+-- *****************************************************************
+-- RAISECOM-RC3026BANDWIDTHMANAGE-MIB.MIB:  Raisecom Bandwidth Manage MIB file
+--
+-- May 2003, yuanqingguo
+--
+-- Copyright (c) 1994-2000, 2001 by Raisecom, Inc.
+-- All rights reserved.       
+-- 
+-- *****************************************************************
+SWITCH-RATELIMIT-MIB  DEFINITIONS ::= BEGIN
+
+IMPORTS 
+       Counter64
+                FROM SNMPv2-SMI
+       iscomSwitch     
+                FROM RAISECOM-BASE-MIB
+       RowStatus
+                FROM SNMPv2-TC
+       ifIndex  FROM IF-MIB    
+        
+       ClearVar,                           
+       EnableVar
+                FROM SWITCH-TC;
+                 
+       rcRateLimit MODULE-IDENTITY
+       LAST-UPDATED    "200412200000Z"
+       ORGANIZATION    "Raisecom, Inc."
+       CONTACT-INFO
+                       "Raise Systems
+                        
+                        Postal: Beijing,
+                        China
+
+                        Tel: 86-010-82884499
+
+                        E-mail: yuanqingguo@raisecom.com"
+       DESCRIPTION
+                       "description of rate limit manage object."
+       ::= { iscomSwitch 2}    
+
+EntryStatus ::= INTEGER
+                         { valid(1),
+                           createRequest(2),
+                           underCreation(3),
+                           invalid(4)
+                         }  
+        ClearVar ::= TEXTUAL-CONVENTION
+    	STATUS      current
+    	DESCRIPTION
+        	"clear the statistic."
+    	SYNTAX    INTEGER {clear(1)}  
+
+rcUplinkPort OBJECT-TYPE 
+    SYNTAX       INTEGER 
+    MAX-ACCESS   read-write
+    STATUS       deprecated
+    DESCRIPTION
+      "The uplink port based 1."
+    ::= { rcRateLimit 1}
+---------------------------------rate-limit for port-------------  
+rcRateLimitPortTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RcRateLimitPortEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+      "A table of rate-limit for port and associated properties."
+    ::= { rcRateLimit 2}
+
+rcRateLimitPortEntry OBJECT-TYPE
+    SYNTAX      RcRateLimitPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "Table entry for rate-limit of port and status information."
+    INDEX { rcRateLimitPortIndex }
+    ::= { rcRateLimitPortTable 1 }
+
+RcRateLimitPortEntry ::= SEQUENCE 
+{
+    rcRateLimitPortIndex             INTEGER,
+    rcRateLimitPortRule              INTEGER,
+    rcRateLimitPortIngressRate       INTEGER,
+    rcRateLimitPortIngressBurst      INTEGER,
+    rcRateLimitPortEgressRate        INTEGER,
+    rcRateLimitPortEgressBurst       INTEGER,
+    rcRateLimitPortOperIngressRate       INTEGER,
+    rcRateLimitPortOperIngressBurst      INTEGER,
+    rcRateLimitPortOperEgressRate        INTEGER,
+    rcRateLimitPortOperEgressBurst       INTEGER    
+}
+             
+rcRateLimitPortIndex   OBJECT-TYPE
+    SYNTAX      INTEGER 
+    ACCESS      read-only
+    STATUS      current
+    DESCRIPTION
+      "The value of ifIndex that identifies the rate-limit of port which based 1."    
+    ::= { rcRateLimitPortEntry 1 }    
+    
+rcRateLimitPortRule   OBJECT-TYPE
+    SYNTAX    INTEGER 
+    {   
+       none(0),   
+       ingress(1),
+       egress(2),
+       both(3)             
+    }
+    ACCESS     read-create
+    STATUS     obsolete
+    DESCRIPTION
+       "A rule of rate-limit for the port."  
+    DEFVAL {none}    
+    ::= { rcRateLimitPortEntry 2 }    
+    
+rcRateLimitPortIngressRate   OBJECT-TYPE
+    SYNTAX    INTEGER    
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the ingress rate( kbps) of the port."    
+    ::= { rcRateLimitPortEntry 3 }    
+    
+rcRateLimitPortIngressBurst   OBJECT-TYPE
+    SYNTAX    INTEGER    
+    UNITS     "kB"            
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the ingress burst( kB) of the port."    
+    ::= { rcRateLimitPortEntry 4 } 
+        
+rcRateLimitPortEgressRate   OBJECT-TYPE
+    SYNTAX    INTEGER     
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+       "The value is the egress rate( kbps) of the port."    
+    ::= { rcRateLimitPortEntry 5 }    
+    
+rcRateLimitPortEgressBurst   OBJECT-TYPE
+    SYNTAX    INTEGER    
+    UNITS     "kB"                
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the egress burst( kB) of the port."    
+    ::= { rcRateLimitPortEntry 6 } 
+    
+rcRateLimitPortOperIngressRate   OBJECT-TYPE
+    SYNTAX    INTEGER    
+    UNITS     "kbps"
+    ACCESS    read-only
+    STATUS    current
+    DESCRIPTION
+      "The value is the actual ingress rate( kbps) of the port."    
+    ::= { rcRateLimitPortEntry 7 }    
+    
+rcRateLimitPortOperIngressBurst   OBJECT-TYPE
+    SYNTAX    INTEGER    
+    UNITS     "kB"            
+    ACCESS    read-only
+    STATUS    current
+    DESCRIPTION
+      "The value is the actual ingress burst( kB) of the port."    
+    ::= { rcRateLimitPortEntry 8 } 
+        
+rcRateLimitPortOperEgressRate   OBJECT-TYPE
+    SYNTAX    INTEGER     
+    UNITS     "kbps"
+    ACCESS    read-only
+    STATUS    current
+    DESCRIPTION
+       "The value is the actual egress rate( kbps) of the port."    
+    ::= { rcRateLimitPortEntry 9 }    
+    
+rcRateLimitPortOperEgressBurst   OBJECT-TYPE
+    SYNTAX    INTEGER    
+    UNITS     "kB"                
+    ACCESS    read-only
+    STATUS    current
+    DESCRIPTION
+      "The value is the actual egress burst( kB) of the port."    
+    ::= { rcRateLimitPortEntry 10 }   
+        
+----------------------------------rate-limit for vlan  
+rcRateLimitVlanTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RcRateLimitVlanEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+      "A table of rate-limit for vlan and associated properties."
+    ::= { rcRateLimit 3}
+
+rcRateLimitVlanEntry OBJECT-TYPE
+    SYNTAX      RcRateLimitVlanEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+       "Table entry for rate-limit of vlan and status information."
+    INDEX { rcRateLimitVlanType,rcRateLimitVlanCVlanID,rcRateLimitVlanSPVlanID }
+    ::= { rcRateLimitVlanTable 1 }
+
+RcRateLimitVlanEntry ::= SEQUENCE 
+{
+    rcRateLimitVlanType                INTEGER,
+    rcRateLimitVlanCVlanID             INTEGER,
+    rcRateLimitVlanSPVlanID            INTEGER,
+    rcRateLimitVlanRate                INTEGER,
+    rcRateLimitVlanBurst               INTEGER,  
+    rcRateLimitVlanRowStatus           RowStatus,
+    rcRateLimitVlanStatsEnable         EnableVar,
+    rcRateLimitVlanStatHwStatus        EnableVar
+}
+             
+rcRateLimitVlanType   OBJECT-TYPE
+     SYNTAX    INTEGER {single(1),double(2)}
+     ACCESS    not-accessible
+     STATUS    current
+     DESCRIPTION
+       "vlan type,single(1), double(2)?"    
+     ::= { rcRateLimitVlanEntry 1 }    
+    
+rcRateLimitVlanCVlanID   OBJECT-TYPE
+     SYNTAX    INTEGER (1..4094)
+     ACCESS    not-accessible
+     STATUS    current
+     DESCRIPTION
+       "The vlan ID which identifies the customer vlan  of rate limitation."    
+     ::= { rcRateLimitVlanEntry 2 }    
+    
+rcRateLimitVlanSPVlanID   OBJECT-TYPE
+     SYNTAX    INTEGER (0..4094)
+     ACCESS    not-accessible
+     STATUS    current
+     DESCRIPTION
+       "The vlan ID which identifies the service provider vlan  of rate limitation."    
+     ::= { rcRateLimitVlanEntry 3 }    
+
+rcRateLimitVlanRate   OBJECT-TYPE
+     SYNTAX    INTEGER        
+     UNITS     "kbps"
+     ACCESS    read-create
+     STATUS    current
+     DESCRIPTION
+       "The value is the input rate( kbps) of the vlan."    
+     ::= { rcRateLimitVlanEntry 4 }    
+    
+rcRateLimitVlanBurst   OBJECT-TYPE
+     SYNTAX    INTEGER    
+     UNITS     "kB"
+     ACCESS    read-create
+     STATUS    current
+     DESCRIPTION
+       "The value is the input burst( kB) of the vlan." 
+     ::= { rcRateLimitVlanEntry 5 }  
+       
+rcRateLimitVlanRowStatus   OBJECT-TYPE
+     SYNTAX      RowStatus
+     MAX-ACCESS  read-create
+     STATUS      current
+     DESCRIPTION
+       "The status of this entry."
+    ::= { rcRateLimitVlanEntry 6 }   
+
+rcRateLimitVlanStatsEnable   OBJECT-TYPE
+     SYNTAX      EnableVar
+     MAX-ACCESS  read-create
+     STATUS      current
+     DESCRIPTION
+       "enable statistics or not."
+    ::= { rcRateLimitVlanEntry 7 }
+
+rcRateLimitVlanStatHwStatus   OBJECT-TYPE
+     SYNTAX      EnableVar
+     MAX-ACCESS  read-create
+     STATUS      current
+     DESCRIPTION
+       "in hardware or not."
+     ::= { rcRateLimitVlanEntry 8 }
+    
+
+rcRateLimitVlanStatisticsTable OBJECT-TYPE
+     SYNTAX    SEQUENCE OF RcRateLimitVlanStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "A table of vlan rate limit  statistics."
+     ::= { rcRateLimit 4}
+
+rcRateLimitVlanStatisticsEntry OBJECT-TYPE
+     SYNTAX      RcRateLimitVlanStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "Table entry for vlan rate limit statistics ."
+     AUGMENTS { rcRateLimitVlanEntry }
+     ::= { rcRateLimitVlanStatisticsTable 1 }
+
+RcRateLimitVlanStatisticsEntry ::= SEQUENCE 
+{
+     rcRateLimitVlanCounterReset             EnableVar,
+     rcRateLimitVlanCounterInprofilePkt64    Counter64,
+     rcRateLimitVlanCounterInprofileByte64   Counter64,
+     rcRateLimitVlanCounterOutprofilePkt64   Counter64,
+     rcRateLimitVlanCounterOutprofileByte64  Counter64,
+     rcRateLimitVlanCounterStatisticUnit     INTEGER
+}
+    
+rcRateLimitVlanCounterReset OBJECT-TYPE 
+     SYNTAX     EnableVar 
+     ACCESS     read-write
+     STATUS     current
+     DESCRIPTION
+       "clear the statistics."
+     ::= { rcRateLimitVlanStatisticsEntry 1 }
+    
+rcRateLimitVlanCounterInprofilePkt64  OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The pkt64 of the inprofile statistics."
+    ::= { rcRateLimitVlanStatisticsEntry 2 }
+    
+rcRateLimitVlanCounterInprofileByte64 OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The Byte64 of the inprofile statistics."
+     ::= { rcRateLimitVlanStatisticsEntry 3 }
+
+rcRateLimitVlanCounterOutprofilePkt64 OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The pkt64 of the outprofile statistics."
+     ::= { rcRateLimitVlanStatisticsEntry 4 }
+    
+rcRateLimitVlanCounterOutprofileByte64  OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The Byte64 of the outprofile statistics."
+    ::= { rcRateLimitVlanStatisticsEntry 5 }
+rcRateLimitVlanCounterStatisticUnit  OBJECT-TYPE
+     SYNTAX  INTEGER
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "Vlan rate-limit statistics unit."
+    ::= { rcRateLimitVlanStatisticsEntry 6 }
+
+---------------------------------rate-limit for port+vlan-------------  
+rcRateLimitVlanPortTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF RcRateLimitVlanPortEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+      "A table of rate-limit based on vlan-port."
+    ::= { rcRateLimit 5}
+
+rcRateLimitVlanPortEntry OBJECT-TYPE
+    SYNTAX      RcRateLimitVlanPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "Table entry of rate-limit based on vlan-port."
+    INDEX { ifIndex,
+    		rcRateLimitVlanPortDirection,
+    		rcRateLimitVlanPortVlanID
+    	  }
+    ::= { rcRateLimitVlanPortTable 1 }
+
+RcRateLimitVlanPortEntry ::= SEQUENCE 
+{
+    rcRateLimitVlanPortDirection       INTEGER,
+    rcRateLimitVlanPortVlanID          INTEGER,
+    rcRateLimitVlanPortCir             INTEGER,
+    rcRateLimitVlanPortCbs             INTEGER,
+    rcRateLimitVlanPortEir             INTEGER,
+    rcRateLimitVlanPortEbs             INTEGER,   
+    rcRateLimitVlanPortStatsEnable     EnableVar,
+    rcRateLimitVlanPortRowStatus       RowStatus
+}
+             
+rcRateLimitVlanPortDirection   OBJECT-TYPE
+    SYNTAX INTEGER  
+    {  ingress(1),
+       egress(2)       
+    }
+    ACCESS      read-create
+    STATUS      current
+    DESCRIPTION
+      "This object specifies the type of port direction."    
+    ::= { rcRateLimitVlanPortEntry 1 }    
+    
+rcRateLimitVlanPortVlanID   OBJECT-TYPE
+    SYNTAX    INTEGER(1..4094)  
+    ACCESS     read-create
+    STATUS     current
+    DESCRIPTION
+       "This object specifies the vlan ID which identifies the outer vlan."  
+
+    ::= { rcRateLimitVlanPortEntry 2 }    
+    
+rcRateLimitVlanPortCir   OBJECT-TYPE
+    SYNTAX    INTEGER
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input rate(kbps) of the vlan on each port."    
+    ::= { rcRateLimitVlanPortEntry 3 }    
+    
+rcRateLimitVlanPortCbs   OBJECT-TYPE
+    SYNTAX    INTEGER   
+    UNITS     "kB"            
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input burst(kB) of the vlan on each port."    
+    ::= { rcRateLimitVlanPortEntry 4 } 
+        
+rcRateLimitVlanPortEir   OBJECT-TYPE
+    SYNTAX    INTEGER   
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+       "The value is the input rate(kbps) of the vlan on each port."    
+    ::= { rcRateLimitVlanPortEntry 5 }    
+    
+rcRateLimitVlanPortEbs   OBJECT-TYPE
+    SYNTAX    INTEGER
+    UNITS     "kB"                
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input burst(kB) of the vlan on each port."    
+    ::= { rcRateLimitVlanPortEntry 6 }
+ 
+rcRateLimitVlanPortStatsEnable   OBJECT-TYPE
+    SYNTAX    EnableVar   
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+       "Enable statistics or not."    
+    ::= { rcRateLimitVlanPortEntry 7 }    
+    
+rcRateLimitVlanPortRowStatus   OBJECT-TYPE
+    SYNTAX    RowStatus             
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The status of this entry."    
+    ::= { rcRateLimitVlanPortEntry 8 }     
+
+-----------------------rate-limit for port+vlan Statistics--------- 
+rcRateLimitVlanPortStatisticsTable OBJECT-TYPE
+     SYNTAX  SEQUENCE OF RcRateLimitVlanPortStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "The statistic table of rate-limit based on vlan-port."
+     ::= { rcRateLimit 6}
+
+rcRateLimitVlanPortStatisticsEntry OBJECT-TYPE
+     SYNTAX      RcRateLimitVlanPortStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "The statistic table entry of rate-limit based on vlan-port."
+  	 AUGMENTS { rcRateLimitVlanPortEntry }
+     ::= { rcRateLimitVlanPortStatisticsTable 1 }
+
+RcRateLimitVlanPortStatisticsEntry ::= SEQUENCE 
+{
+     rcRateLimitVlanPortCounterReset             ClearVar,
+     rcRateLimitVlanPortCounterInprofilePkt64    Counter64,
+     rcRateLimitVlanPortCounterInprofileByte64   Counter64,
+     rcRateLimitVlanPortCounterOutprofilePkt64   Counter64,
+     rcRateLimitVlanPortCounterOutprofileByte64  Counter64
+}
+    
+rcRateLimitVlanPortCounterReset OBJECT-TYPE 
+     SYNTAX     ClearVar 
+     ACCESS     read-write
+     STATUS     current
+     DESCRIPTION
+       "Clear the statistics."
+     ::= { rcRateLimitVlanPortStatisticsEntry 1 }
+    
+rcRateLimitVlanPortCounterInprofilePkt64  OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The pkt64 of the inprofile statistics."
+    ::= { rcRateLimitVlanPortStatisticsEntry 2 }
+    
+rcRateLimitVlanPortCounterInprofileByte64 OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The Byte64 of the inprofile statistics."
+     ::= { rcRateLimitVlanPortStatisticsEntry 3 }
+
+rcRateLimitVlanPortCounterOutprofilePkt64 OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The pkt64 of the outprofile statistics."
+     ::= { rcRateLimitVlanPortStatisticsEntry 4 }
+    
+rcRateLimitVlanPortCounterOutprofileByte64  OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The Byte64 of the outprofile statistics."
+    ::= { rcRateLimitVlanPortStatisticsEntry 5 }  
+    
+    -- The History Vlan Port Control Group
+
+          rcRateLimitVlanPortHistoryControlTable OBJECT-TYPE
+          SYNTAX    SEQUENCE OF RcRateLimitVlanPortHistoryControlEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+          "A table of vlan Port History Control."
+          ::= { rcRateLimit 7}
+
+          rcRateLimitVlanPortHistoryControlEntry OBJECT-TYPE
+          SYNTAX      RcRateLimitVlanPortHistoryControlEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+          "Table entry for vlan Port History Control."
+          INDEX { rcRateLimitVlanPortHistoryControlVlanIndex,  rcRateLimitVlanPortHistoryControlPortIndex}
+          ::= { rcRateLimitVlanPortHistoryControlTable 1 }
+          
+          RcRateLimitVlanPortHistoryControlEntry ::= SEQUENCE 
+          {
+              rcRateLimitVlanPortHistoryControlVlanIndex     Counter,
+              rcRateLimitVlanPortHistoryControlPortIndex     Counter,
+              rcRateLimitVlanPortHistoryControlSVlan     INTEGER (0..4094),
+              rcRateLimitVlanPortHistoryControlCVlan     INTEGER (0..4094),
+              rcRateLimitVlanPortHistoryControlSCoS      INTEGER (0..8),
+              rcRateLimitVlanPortHistoryControlCCoS      INTEGER (0..8),
+              rcRateLimitVlanPortHistoryControlPort      INTEGER,
+              rcRateLimitVlanPortHistoryControlStatus    EntryStatus
+          }
+          
+              rcRateLimitVlanPortHistoryControlVlanIndex OBJECT-TYPE
+              SYNTAX Counter
+              ACCESS read-create
+              STATUS current
+              DESCRIPTION
+                  "An index that uniquely identifies an entry in the
+                  historyControl table.  Each such entry defines a
+                  set of samples at a particular interval for an
+                  interface on the device."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 1 }
+              
+              rcRateLimitVlanPortHistoryControlPortIndex OBJECT-TYPE
+              SYNTAX Counter
+              ACCESS read-create
+              STATUS current
+              DESCRIPTION
+                  "An index that uniquely identifies an entry in the
+                  historyControl table.  Each such entry defines a
+                  set of samples at a particular interval for an
+                  interface on the device."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 2 }
+              
+              rcRateLimitVlanPortHistoryControlSVlan OBJECT-TYPE
+              SYNTAX INTEGER (0..4094)
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "SVlan ID."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 3 }
+              
+              rcRateLimitVlanPortHistoryControlCVlan OBJECT-TYPE
+              SYNTAX INTEGER (0..4094)
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "CVlan ID."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 4 }
+              
+              rcRateLimitVlanPortHistoryControlSCoS OBJECT-TYPE
+              SYNTAX INTEGER (0..8)
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "SCoS value."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 5 }
+              
+              rcRateLimitVlanPortHistoryControlCCoS OBJECT-TYPE
+              SYNTAX INTEGER (0..8)
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "CCoS value."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 6 }
+              
+              rcRateLimitVlanPortHistoryControlPort OBJECT-TYPE
+              SYNTAX INTEGER
+              ACCESS read-write
+              STATUS current
+              DESCRIPTION
+                  "This object identifies the source of the data for
+                  which historical data was collected and
+                  placed in a media-specific table on behalf of this
+                  historyControlEntry.  This source can be any
+                  interface on this device.  In order to identify
+                  a particular interface, this object shall identify
+                  the instance of the ifIndex object, defined
+                  in  RFC 1213 and RFC 1573 [4,6], for the desired
+                  interface.  For example, if an entry were to receive
+                  data from interface #1, this object would be set
+                  to ifIndex.1.
+
+                  The statistics in this group reflect all packets
+                  on the local network segment attached to the
+                  identified interface.
+
+                  An agent may or may not be able to tell if fundamental
+                  changes to the media of the interface have occurred
+                  and necessitate an invalidation of this entry.  For
+                  example, a hot-pluggable ethernet card could be
+                  pulled out and replaced by a token-ring card.  In
+                  such a case, if the agent has such knowledge of the
+                  change, it is recommended that it invalidate this
+                  entry.
+
+                  This object may not be modified if the associated
+                  historyControlStatus object is equal to valid(1)."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 7 }  
+              
+              rcRateLimitVlanPortHistoryControlStatus OBJECT-TYPE
+              SYNTAX EntryStatus
+              ACCESS read-write
+              STATUS current
+              DESCRIPTION
+                  "The status of this historyControl entry.
+
+                  Each instance of the media-specific table associated
+                  with this historyControlEntry will be deleted by the
+                  agent if this historyControlEntry is not equal to
+                  valid(1)."
+              ::= { rcRateLimitVlanPortHistoryControlEntry 8 }
+
+
+          -- The History Vlan Port History statics Group
+
+          rcRateLimitVlanPortHistoryTable OBJECT-TYPE
+          SYNTAX    SEQUENCE OF RcRateLimitVlanPortHistoryEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+          "A table of vlan Port History statics."
+          ::= { rcRateLimit 8}
+
+          rcRateLimitVlanPortHistoryEntry OBJECT-TYPE
+          SYNTAX      RcRateLimitVlanPortHistoryEntry
+          MAX-ACCESS  not-accessible
+          STATUS      current
+          DESCRIPTION
+          "Table entry for vlan Port History Control."
+          INDEX { rcRateLimitVlanPortHistoryVlanIndex,  rcRateLimitVlanPortHistoryPortIndex, rcRateLimitVlanPortHistorySampleIndex}
+          ::= { rcRateLimitVlanPortHistoryTable 1 }
+          
+          RcRateLimitVlanPortHistoryEntry ::= SEQUENCE 
+          {
+              rcRateLimitVlanPortHistoryVlanIndex     Counter,
+              rcRateLimitVlanPortHistoryPortIndex     Counter,
+              rcRateLimitVlanPortHistorySampleIndex              INTEGER (1..4294967295),
+              rcRateLimitVlanPortHistoryHistoryIntervalStart     TimeTicks,
+              rcRateLimitVlanPortHistoryIngressInPkt	           Counter64,             
+              rcRateLimitVlanPortHistoryIngressOutPkt            Counter64,
+              rcRateLimitVlanPortHistoryIngressInByte	           Counter64,              
+              rcRateLimitVlanPortHistoryIngressOutBytes          Counter64,
+              rcRateLimitVlanPortHistoryEgressInPkt	             Counter64,             
+              rcRateLimitVlanPortHistoryEgressOutPkt             Counter64,
+              rcRateLimitVlanPortHistoryEgressInByte	           Counter64,               
+              rcRateLimitVlanPortHistoryEgressOutBytes           Counter64
+          }
+          
+          
+              rcRateLimitVlanPortHistoryVlanIndex OBJECT-TYPE
+              SYNTAX Counter
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "An index that uniquely identifies an entry in the
+                  historyControl table.  Each such entry defines a
+                  set of samples at a particular interval for an
+                  interface on the device."
+              ::= { rcRateLimitVlanPortHistoryEntry 1 }
+              
+              rcRateLimitVlanPortHistoryPortIndex OBJECT-TYPE
+              SYNTAX Counter
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "An index that uniquely identifies an entry in the
+                  historyControl table.  Each such entry defines a
+                  set of samples at a particular interval for an
+                  interface on the device."
+              ::= { rcRateLimitVlanPortHistoryEntry 2 }
+          
+          rcRateLimitVlanPortHistorySampleIndex OBJECT-TYPE
+              SYNTAX INTEGER (1..2147483647)
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "An index that uniquely identifies the particular
+                  sample this entry represents among all samples
+                  associated with the same historyControlEntry.
+                  This index starts at 1 and increases by one
+                  as each new sample is taken."
+              ::= { rcRateLimitVlanPortHistoryEntry 3 }
+          
+          rcRateLimitVlanPortHistoryHistoryIntervalStart OBJECT-TYPE
+              SYNTAX TimeTicks
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The value of sysUpTime at the start of the interval
+                  over which this sample was measured.  If the probe
+                  keeps track of the time of day, it should start
+                  the first sample of the history at a time such that
+                  when the next hour of the day begins, a sample is
+                  started at that instant.  Note that following this
+                  rule may require the probe to delay collecting the
+                  first sample of the history, as each sample must be
+                  of the same interval.  Also note that the sample which
+                  is currently being collected is not accessible in this
+                  table until the end of its interval."
+              ::= { rcRateLimitVlanPortHistoryEntry 4 }
+              
+              rcRateLimitVlanPortHistoryIngressInPkt OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of IngressInPkt."
+              ::= { rcRateLimitVlanPortHistoryEntry 5 }
+              
+              rcRateLimitVlanPortHistoryIngressOutPkt OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of IngressOutPkt."
+              ::= { rcRateLimitVlanPortHistoryEntry 6 }
+              
+              rcRateLimitVlanPortHistoryIngressInByte OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of IngressInByte."
+              ::= { rcRateLimitVlanPortHistoryEntry 7 }
+              
+              rcRateLimitVlanPortHistoryIngressOutBytes OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of IngressOutBytes."
+              ::= { rcRateLimitVlanPortHistoryEntry 8 }
+              
+              rcRateLimitVlanPortHistoryEgressInPkt OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of EgressInPkt."
+              ::= { rcRateLimitVlanPortHistoryEntry 9 }
+              
+              rcRateLimitVlanPortHistoryEgressOutPkt OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of EgressOutPkt."
+              ::= { rcRateLimitVlanPortHistoryEntry 10 }
+              
+              rcRateLimitVlanPortHistoryEgressInByte OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of EgressInByte."
+              ::= { rcRateLimitVlanPortHistoryEntry 11 }
+              
+              rcRateLimitVlanPortHistoryEgressOutBytes OBJECT-TYPE
+              SYNTAX Counter64
+              ACCESS read-only
+              STATUS current
+              DESCRIPTION
+                  "The total number of EgressOutBytes."
+              ::= { rcRateLimitVlanPortHistoryEntry 12 }
+
+---------------------------------rate-limit for port+vlan+cos-------------  
+rcRateLimitCosVlanPortTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF rcRateLimitCosVlanPortEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+      "A table of rate-limit based on vlan-port-cos."
+    ::= { rcRateLimit 9}
+
+rcRateLimitCosVlanPortEntry OBJECT-TYPE
+    SYNTAX      rcRateLimitCosVlanPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "Table entry of rate-limit based on vlan-port-cos."
+    INDEX { ifIndex,
+    		rcRateLimitCosVlanPortDirection,
+    		rcRateLimitCosVlanPortVlanID,
+    		rcRateLimitCosVlanPortCos
+    	  }
+    ::= { rcRateLimitCosVlanPortTable 1 }
+
+rcRateLimitCosVlanPortEntry ::= SEQUENCE 
+{
+    rcRateLimitCosVlanPortDirection       INTEGER,
+    rcRateLimitCosVlanPortVlanID          INTEGER,
+    rcRateLimitCosVlanPortCos             INTEGER,
+    rcRateLimitCosVlanPortCir             INTEGER,
+    rcRateLimitCosVlanPortCbs             INTEGER,
+    rcRateLimitCosVlanPortEir             INTEGER,   
+    rcRateLimitCosVlanPortEbs             INTEGER,
+    rcRateLimitCosVlanPortStatsEnable     EnableVar,  
+    rcRateLimitCosVlanPortRowStatus       RowStatus
+}
+             
+rcRateLimitCosVlanPortDirection   OBJECT-TYPE
+    SYNTAX INTEGER  
+    {  ingress(1),
+       egress(2)       
+    }
+    ACCESS      read-create
+    STATUS      current
+    DESCRIPTION
+      "This object specifies the type of port direction."    
+    ::= { rcRateLimitCosVlanPortEntry 1 }    
+    
+rcRateLimitCosVlanPortVlanID   OBJECT-TYPE
+    SYNTAX    INTEGER(1..4094)  
+    ACCESS     read-create
+    STATUS     current
+    DESCRIPTION
+       "This object specifies the vlan ID which identifies the outer vlan."  
+    ::= { rcRateLimitCosVlanPortEntry 2 }    
+    
+rcRateLimitCosVlanPortCos   OBJECT-TYPE
+    SYNTAX    INTEGER(0..7)
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The port's priority."    
+    ::= { rcRateLimitCosVlanPortEntry 3 }                   
+          
+rcRateLimitCosVlanPortCir   OBJECT-TYPE
+    SYNTAX    INTEGER
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input rate(kbps) of the vlan on each port."    
+    ::= { rcRateLimitCosVlanPortEntry 4 }    
+    
+rcRateLimitCosVlanPortCbs   OBJECT-TYPE
+    SYNTAX    INTEGER   
+    UNITS     "kB"            
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input burst(kB) of the vlan on each port."    
+    ::= { rcRateLimitCosVlanPortEntry 5 } 
+        
+rcRateLimitCosVlanPortEir   OBJECT-TYPE
+    SYNTAX    INTEGER   
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+       "The value is the input rate(kbps) of the vlan on each port."    
+    ::= { rcRateLimitCosVlanPortEntry 6 }    
+    
+rcRateLimitCosVlanPortEbs   OBJECT-TYPE
+    SYNTAX    INTEGER
+    UNITS     "kB"                
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input burst(kB) of the vlan on each port."    
+    ::= { rcRateLimitCosVlanPortEntry 7 }
+ 
+rcRateLimitCosVlanPortStatsEnable   OBJECT-TYPE
+    SYNTAX    EnableVar   
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+       "Enable statistics or not."    
+    ::= { rcRateLimitCosVlanPortEntry 8 }    
+    
+rcRateLimitCosVlanPortRowStatus   OBJECT-TYPE
+    SYNTAX    RowStatus             
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The status of this entry."    
+    ::= { rcRateLimitCosVlanPortEntry 9 }  
+    
+-----------------------rate-limit for port+vlan+cos Statistics---------        
+
+rcRateLimitCosVlanPortStatisticsTable OBJECT-TYPE
+     SYNTAX  SEQUENCE OF rcRateLimitCosVlanPortStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "The statistic table of rate-limit based on vlan-port-cos."
+     ::= { rcRateLimit 10}
+
+rcRateLimitCosVlanPortStatisticsEntry OBJECT-TYPE
+     SYNTAX      rcRateLimitCosVlanPortStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "The statistic table entry of rate-limit based on vlan-port-cos."
+  	 AUGMENTS { rcRateLimitCosVlanPortEntry }
+     ::= { rcRateLimitCosVlanPortStatisticsTable 1 }      
+     
+rcRateLimitCosVlanPortStatisticsEntry ::= SEQUENCE 
+{
+     rcRateLimitCosVlanPortCounterReset              ClearVar,
+     rcRateLimitCosVlanPortCounterInprofilePkt64     Counter64,
+     rcRateLimitCosVlanPortCounterInprofileByte64    Counter64,
+     rcRateLimitCosVlanPortCounterOutprofilePkt64    Counter64,
+     rcRateLimitCosVlanPortCounterOutprofileByte64   Counter64
+}      
+
+rcRateLimitCosVlanPortCounterReset OBJECT-TYPE 
+     SYNTAX     ClearVar 
+     ACCESS     read-write
+     STATUS     current
+     DESCRIPTION
+       "Clear the statistics."
+     ::= { rcRateLimitCosVlanPortStatisticsEntry 1 }
+    
+rcRateLimitCosVlanPortCounterInprofilePkt64  OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The pkt64 of the inprofile statistics."
+    ::= { rcRateLimitCosVlanPortStatisticsEntry 2 }
+    
+rcRateLimitCosVlanPortCounterInprofileByte64 OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The Byte64 of the inprofile statistics."
+     ::= { rcRateLimitCosVlanPortStatisticsEntry 3 }
+
+rcRateLimitCosVlanPortCounterOutprofilePkt64 OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The pkt64 of the outprofile statistics."
+     ::= { rcRateLimitCosVlanPortStatisticsEntry 4 }
+    
+rcRateLimitCosVlanPortCounterOutprofileByte64  OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The Byte64 of the outprofile statistics."
+    ::= { rcRateLimitCosVlanPortStatisticsEntry 5 }     
+    
+---------------------------------rate-limit for port+vlan+dscp-------------  
+rcRateLimitDscpVlanPortTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF rcRateLimitDscpVlanPortEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+      "A table of rate-limit based on port+vlan+dscp."
+    ::= { rcRateLimit 11}
+
+rcRateLimitDscpVlanPortEntry OBJECT-TYPE
+    SYNTAX      rcRateLimitDscpVlanPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+      "Table entry of rate-limit based on port+vlan+dscp."
+    INDEX { ifIndex,
+    		rcRateLimitDscpVlanPortDirection,
+    		rcRateLimitDscpVlanPortVlanID,
+    		rcRateLimitDscpVlanPortDscp
+    	  }
+    ::= { rcRateLimitDscpVlanPortTable 1 }
+
+rcRateLimitDscpVlanPortEntry ::= SEQUENCE 
+{
+    rcRateLimitDscpVlanPortDirection       INTEGER,
+    rcRateLimitDscpVlanPortVlanID          INTEGER,
+    rcRateLimitDscpVlanPortDscp             INTEGER,
+    rcRateLimitDscpVlanPortCir             INTEGER,
+    rcRateLimitDscpVlanPortCbs             INTEGER,
+    rcRateLimitDscpVlanPortEir             INTEGER,   
+    rcRateLimitDscpVlanPortEbs             INTEGER,
+    rcRateLimitDscpVlanPortStatsEnable     EnableVar,  
+    rcRateLimitDscpVlanPortRowStatus       RowStatus
+}
+             
+rcRateLimitDscpVlanPortDirection   OBJECT-TYPE
+    SYNTAX INTEGER  
+    {  ingress(1),
+       egress(2)       
+    }
+    ACCESS      read-create
+    STATUS      current
+    DESCRIPTION
+      "This object specifies the type of port direction."    
+    ::= { rcRateLimitDscpVlanPortEntry 1 }    
+    
+rcRateLimitDscpVlanPortVlanID   OBJECT-TYPE
+    SYNTAX    INTEGER(1..4094)  
+    ACCESS     read-create
+    STATUS     current
+    DESCRIPTION
+       "This object specifies the vlan ID which identifies the outer vlan."  
+    ::= { rcRateLimitDscpVlanPortEntry 2 }    
+    
+rcRateLimitDscpVlanPortDscp   OBJECT-TYPE
+    SYNTAX    INTEGER(0..63)
+    ACCESS    read-create
+    STATUS    current
+    DESCRIPTION
+      "The port's dscp value."    
+    ::= { rcRateLimitDscpVlanPortEntry 3 }                   
+          
+rcRateLimitDscpVlanPortCir   OBJECT-TYPE
+    SYNTAX    INTEGER
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input rate(kbps) of the vlan on each port."    
+    ::= { rcRateLimitDscpVlanPortEntry 4 }    
+    
+rcRateLimitDscpVlanPortCbs   OBJECT-TYPE
+    SYNTAX    INTEGER   
+    UNITS     "kB"            
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input burst(kB) of the vlan on each port."    
+    ::= { rcRateLimitDscpVlanPortEntry 5 } 
+        
+rcRateLimitDscpVlanPortEir   OBJECT-TYPE
+    SYNTAX    INTEGER   
+    UNITS     "kbps"
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+       "The value is the input rate(kbps) of the vlan on each port."    
+    ::= { rcRateLimitDscpVlanPortEntry 6 }    
+    
+rcRateLimitDscpVlanPortEbs   OBJECT-TYPE
+    SYNTAX    INTEGER
+    UNITS     "kB"                
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The value is the input burst(kB) of the vlan on each port."    
+    ::= { rcRateLimitDscpVlanPortEntry 7 }
+ 
+rcRateLimitDscpVlanPortStatsEnable   OBJECT-TYPE
+    SYNTAX    EnableVar   
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+       "Enable statistics or not."    
+    ::= { rcRateLimitDscpVlanPortEntry 8 }    
+    
+rcRateLimitDscpVlanPortRowStatus   OBJECT-TYPE
+    SYNTAX    RowStatus             
+    ACCESS    read-write
+    STATUS    current
+    DESCRIPTION
+      "The status of this entry."    
+    ::= { rcRateLimitDscpVlanPortEntry 9 }  
+    
+-----------------------rate-limit for port+vlan+dscp Statistics---------        
+
+rcRateLimitDscpVlanPortStatisticsTable OBJECT-TYPE
+     SYNTAX  SEQUENCE OF rcRateLimitDscpVlanPortStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "The statistic table of rate-limit based on port+vlan+dscp."
+     ::= { rcRateLimit 12}
+
+rcRateLimitDscpVlanPortStatisticsEntry OBJECT-TYPE
+     SYNTAX      rcRateLimitDscpVlanPortStatisticsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+       "The statistic table entry of rate-limit based on port+vlan+dscp."
+  	 AUGMENTS { rcRateLimitDscpVlanPortEntry }
+     ::= { rcRateLimitDscpVlanPortStatisticsTable 1 }      
+     
+rcRateLimitDscpVlanPortStatisticsEntry ::= SEQUENCE 
+{
+     rcRateLimitDscpVlanPortCounterReset              ClearVar,
+     rcRateLimitDscpVlanPortCounterInprofilePkt64     Counter64,
+     rcRateLimitDscpVlanPortCounterInprofileByte64    Counter64,
+     rcRateLimitDscpVlanPortCounterOutprofilePkt64    Counter64,
+     rcRateLimitDscpVlanPortCounterOutprofileByte64   Counter64
+}      
+
+rcRateLimitDscpVlanPortCounterReset OBJECT-TYPE 
+     SYNTAX     ClearVar 
+     ACCESS     read-write
+     STATUS     current
+     DESCRIPTION
+       "Clear the statistics."
+     ::= { rcRateLimitDscpVlanPortStatisticsEntry 1 }
+    
+rcRateLimitDscpVlanPortCounterInprofilePkt64  OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The pkt64 of the inprofile statistics."
+    ::= { rcRateLimitDscpVlanPortStatisticsEntry 2 }
+    
+rcRateLimitDscpVlanPortCounterInprofileByte64 OBJECT-TYPE
+     SYNTAX     Counter64
+     ACCESS     read-only
+     STATUS     current
+     DESCRIPTION
+       "The Byte64 of the inprofile statistics."
+     ::= { rcRateLimitDscpVlanPortStatisticsEntry 3 }
+
+rcRateLimitDscpVlanPortCounterOutprofilePkt64 OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The pkt64 of the outprofile statistics."
+     ::= { rcRateLimitDscpVlanPortStatisticsEntry 4 }
+    
+rcRateLimitDscpVlanPortCounterOutprofileByte64  OBJECT-TYPE
+     SYNTAX  Counter64
+     ACCESS  read-only
+     STATUS  current
+     DESCRIPTION
+       "The Byte64 of the outprofile statistics."
+    ::= { rcRateLimitDscpVlanPortStatisticsEntry 5 }                
+   
+-----------------------------The Ratelimit Mode------------------    
+ rcRatelimitMode OBJECT-TYPE 
+    SYNTAX INTEGER  
+    {  l1(1),
+       l2(2)       
+    }
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+      "The rate-limit mode, l1(1),l2(2)."
+    ::= { rcRateLimit 13}
+ 
+-----------------------The History Vlan Port Dscp Control Group-----------
+
+  rcRateLimitDscpVlanPortHistoryControlTable OBJECT-TYPE
+      SYNTAX    SEQUENCE OF RcRateLimitDscpVlanPortHistoryControlEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+      "A table of vlan Port Dscp History Control."
+      ::= { rcRateLimit 14}
+
+  rcRateLimitDscpVlanPortHistoryControlEntry OBJECT-TYPE
+      SYNTAX      RcRateLimitDscpVlanPortHistoryControlEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+      "Table entry for vlan Port Dscp History Control."
+      INDEX { rcRateLimitDscpVlanPortHistoryControlVlanIndex,  rcRateLimitDscpVlanPortHistoryControlPortIndex}
+      ::= { rcRateLimitDscpVlanPortHistoryControlTable 1 }
+  
+  RcRateLimitDscpVlanPortHistoryControlEntry ::= SEQUENCE 
+  {
+      rcRateLimitDscpVlanPortHistoryControlVlanIndex     Counter,
+      rcRateLimitDscpVlanPortHistoryControlPortIndex     Counter,
+      rcRateLimitDscpVlanPortHistoryControlSVlan     INTEGER (0..4094),
+      rcRateLimitDscpVlanPortHistoryControlDscp     INTEGER (0..63),
+      rcRateLimitDscpVlanPortHistoryControlPort      INTEGER,
+      rcRateLimitDscpVlanPortHistoryControlStatus    EntryStatus
+  }
+  
+rcRateLimitDscpVlanPortHistoryControlVlanIndex OBJECT-TYPE
+    SYNTAX Counter
+    ACCESS read-create
+    STATUS current
+    DESCRIPTION
+      "An index that uniquely identifies an entry in the
+      historyControl table.  Each such entry defines a
+      set of samples at a particular interval for an
+      interface on the device."
+    ::= { rcRateLimitDscpVlanPortHistoryControlEntry 1 }
+
+rcRateLimitDscpVlanPortHistoryControlPortIndex OBJECT-TYPE
+    SYNTAX Counter
+    ACCESS read-create
+    STATUS current
+    DESCRIPTION
+      "An index that uniquely identifies an entry in the
+      historyControl table.  Each such entry defines a
+      set of samples at a particular interval for an
+      interface on the device."
+    ::= { rcRateLimitDscpVlanPortHistoryControlEntry 2 }
+
+rcRateLimitDscpVlanPortHistoryControlSVlan OBJECT-TYPE
+    SYNTAX INTEGER (0..4094)
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "SVlan ID."
+    ::= { rcRateLimitDscpVlanPortHistoryControlEntry 3 }
+
+rcRateLimitDscpVlanPortHistoryControlDscp OBJECT-TYPE
+    SYNTAX INTEGER (0..63)
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "Dscp ID."
+    ::= { rcRateLimitDscpVlanPortHistoryControlEntry 4 }
+
+rcRateLimitDscpVlanPortHistoryControlPort OBJECT-TYPE
+    SYNTAX INTEGER
+    ACCESS read-write
+    STATUS current
+    DESCRIPTION
+      "This object identifies the source of the data for
+      which historical data was collected and
+      placed in a media-specific table on behalf of this
+      historyControlEntry.  This source can be any
+      interface on this device.  In order to identify
+      a particular interface, this object shall identify
+      the instance of the ifIndex object, defined
+      in  RFC 1213 and RFC 1573 [4,6], for the desired
+      interface.  For example, if an entry were to receive
+      data from interface #1, this object would be set
+      to ifIndex.1.
+    
+      The statistics in this group reflect all packets
+      on the local network segment attached to the
+      identified interface.
+    
+      An agent may or may not be able to tell if fundamental
+      changes to the media of the interface have occurred
+      and necessitate an invalidation of this entry.  For
+      example, a hot-pluggable ethernet card could be
+      pulled out and replaced by a token-ring card.  In
+      such a case, if the agent has such knowledge of the
+      change, it is recommended that it invalidate this
+      entry.
+    
+      This object may not be modified if the associated
+      historyControlStatus object is equal to valid(1)."
+    ::= { rcRateLimitDscpVlanPortHistoryControlEntry 5 }  
+
+rcRateLimitDscpVlanPortHistoryControlStatus OBJECT-TYPE
+    SYNTAX EntryStatus
+    ACCESS read-write
+    STATUS current
+    DESCRIPTION
+      "The status of this historyControl entry.
+    
+      Each instance of the media-specific table associated
+      with this historyControlEntry will be deleted by the
+      agent if this historyControlEntry is not equal to
+      valid(1)."
+    ::= { rcRateLimitDscpVlanPortHistoryControlEntry 6 }
+
+----------------------- The History Vlan Port History statics Group------------
+
+  rcRateLimitDscpVlanPortHistoryTable OBJECT-TYPE
+      SYNTAX    SEQUENCE OF RcRateLimitDscpVlanPortHistoryEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+      "A table of vlan Port Dscp History statics."
+      ::= { rcRateLimit 15}
+
+  rcRateLimitDscpVlanPortHistoryEntry OBJECT-TYPE
+      SYNTAX      RcRateLimitDscpVlanPortHistoryEntry
+      MAX-ACCESS  not-accessible
+      STATUS      current
+      DESCRIPTION
+      "Table entry for vlan Port Dscp History Control."
+      INDEX { rcRateLimitDscpVlanPortHistoryVlanIndex,  
+                   rcRateLimitDscpVlanPortHistoryPortIndex, 
+                   rcRateLimitDscpVlanPortHistorySampleIndex}
+      ::= { rcRateLimitDscpVlanPortHistoryTable 1 }
+  
+RcRateLimitDscpVlanPortHistoryEntry ::= SEQUENCE 
+{
+    rcRateLimitDscpVlanPortHistoryVlanIndex     Counter,
+    rcRateLimitDscpVlanPortHistoryPortIndex     Counter,
+    rcRateLimitDscpVlanPortHistorySampleIndex              INTEGER (1..4294967295),
+    rcRateLimitDscpVlanPortHistoryHistoryIntervalStat     TimeTicks,
+    rcRateLimitDscpVlanPortHistoryIngressInPkt	           Counter64,             
+    rcRateLimitDscpVlanPortHistoryIngressOutPkt            Counter64,
+    rcRateLimitDscpVlanPortHistoryIngressInByte	           Counter64,              
+    rcRateLimitDscpVlanPortHistoryIngressOutByte          Counter64,
+    rcRateLimitDscpVlanPortHistoryEgressInPkt	             Counter64,             
+    rcRateLimitDscpVlanPortHistoryEgressOutPkt             Counter64,
+    rcRateLimitDscpVlanPortHistoryEgressInByte	           Counter64,               
+    rcRateLimitDscpVlanPortHistoryEgressOutByte           Counter64
+}
+
+  
+rcRateLimitDscpVlanPortHistoryVlanIndex OBJECT-TYPE
+    SYNTAX Counter
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "An index that uniquely identifies an entry in the
+      historyControl table.  Each such entry defines a
+      set of samples at a particular interval for an
+      interface on the device."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 1 }
+
+rcRateLimitDscpVlanPortHistoryPortIndex OBJECT-TYPE
+    SYNTAX Counter
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "An index that uniquely identifies an entry in the
+      historyControl table.  Each such entry defines a
+      set of samples at a particular interval for an
+      interface on the device."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 2 }
+
+rcRateLimitDscpVlanPortHistorySampleIndex OBJECT-TYPE
+    SYNTAX INTEGER (1..2147483647)
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "An index that uniquely identifies the particular
+      sample this entry represents among all samples
+      associated with the same historyControlEntry.
+      This index starts at 1 and increases by one
+      as each new sample is taken."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 3 }
+
+rcRateLimitDscpVlanPortHistoryHistoryIntervalStat OBJECT-TYPE
+    SYNTAX TimeTicks
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The value of sysUpTime at the start of the interval
+      over which this sample was measured.  If the probe
+      keeps track of the time of day, it should start
+      the first sample of the history at a time such that
+      when the next hour of the day begins, a sample is
+      started at that instant.  Note that following this
+      rule may require the probe to delay collecting the
+      first sample of the history, as each sample must be
+      of the same interval.  Also note that the sample which
+      is currently being collected is not accessible in this
+      table until the end of its interval."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 4 }
+
+rcRateLimitDscpVlanPortHistoryIngressInPkt OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of IngressInPkt."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 5 }
+
+rcRateLimitDscpVlanPortHistoryIngressOutPkt OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of IngressOutPkt."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 6 }
+
+rcRateLimitDscpVlanPortHistoryIngressInByte OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of IngressInByte."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 7 }
+
+rcRateLimitDscpVlanPortHistoryIngressOutByte OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of IngressOutBytes."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 8 }
+
+rcRateLimitDscpVlanPortHistoryEgressInPkt OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of EgressInPkt."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 9 }
+
+rcRateLimitDscpVlanPortHistoryEgressOutPkt OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of EgressOutPkt."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 10 }
+
+rcRateLimitDscpVlanPortHistoryEgressInByte OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of EgressInByte."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 11 }
+
+rcRateLimitDscpVlanPortHistoryEgressOutByte OBJECT-TYPE
+    SYNTAX Counter64
+    ACCESS read-only
+    STATUS current
+    DESCRIPTION
+      "The total number of EgressOutBytes."
+    ::= { rcRateLimitDscpVlanPortHistoryEntry 12 }
+ END   

@@ -1,0 +1,1230 @@
+SNI-TRAP-MIB DEFINITIONS ::= BEGIN
+
+-- This MIB summarizes all traps used by the FSC Server Management
+
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1995
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001
+-- All rights reserved
+--
+--
+ 
+IMPORTS
+	OBJECT-TYPE								FROM RFC-1212
+	mib-2, DisplayString					FROM RFC1213-MIB
+	TimeTicks, Counter, Gauge, enterprises	FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+--
+
+-- Trap IDs for all ServerView MIBs:
+-- Trap enterprise is "sniServerMgmt".
+
+-- SNI Trap MIB:			000..199, 300..399  (this MIB, enterprise "sni"!!!!!!)
+-- SNI Mylex MIB:			200..299
+-- SNI ServerControl MIB:	600..699
+-- SNI ServerView MIB:		700..749
+-- SNI Harddisk MIB:        750..800
+
+-- SNI Server Management MIB nodes
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+
+-- Trap-MIB groups
+
+	sniTrapParams		OBJECT IDENTIFIER       ::= { sniExtensions    6 }
+
+
+-- The MIB objects
+ 
+ sniTrapTable OBJECT-TYPE
+	 SYNTAX          SEQUENCE OF SniTrapTableEntry
+	 ACCESS          not-accessible
+	 STATUS          mandatory
+	 DESCRIPTION
+		 "Table of all traps that can be enabled"
+     ::= { sniTrapMib 1 }
+ 
+ sniTrapTableEntry       OBJECT-TYPE
+	 SYNTAX          SniTrapTableEntry
+	 ACCESS          not-accessible
+	 STATUS          mandatory
+	 DESCRIPTION
+		  ""
+	 INDEX           { sniTrapNumber }
+     ::= { sniTrapTable 1 }
+ 
+ SniTrapTableEntry ::= SEQUENCE {
+     sniTrapNumber
+         INTEGER,
+     sniTrapActive
+         INTEGER
+ }
+ 
+ sniTrapNumber   OBJECT-TYPE
+     SYNTAX          INTEGER
+     ACCESS          read-only
+     STATUS          mandatory
+     DESCRIPTION
+         "SNI specific trap number"
+     ::= { sniTrapTableEntry 1 }
+ 
+ sniTrapActive   OBJECT-TYPE
+     SYNTAX          INTEGER {
+         true(1),
+         false(2)
+     }
+     ACCESS          read-write
+     STATUS          mandatory
+     DESCRIPTION
+         "True, if and only if that particular trap is active"
+     ::= { sniTrapTableEntry 2 }
+ 
+-- 
+-- GROUP: sniTrapParams
+-- Implementation of this group is mandatory
+--
+-- trap parameter variables
+--
+
+ sniServerName   OBJECT-TYPE
+     SYNTAX          DisplayString
+     ACCESS          not-accessible
+     STATUS          mandatory
+     DESCRIPTION
+         ""
+     ::= { sniTrapParams 1 }
+ 
+ sniTrapTime   OBJECT-TYPE
+     SYNTAX          INTEGER
+     ACCESS          not-accessible
+     STATUS          mandatory
+     DESCRIPTION
+         ""
+     ::= { sniTrapParams 2 }
+ 
+ sniVolumeName   OBJECT-TYPE
+     SYNTAX          DisplayString
+     ACCESS          not-accessible
+     STATUS          mandatory
+     DESCRIPTION
+         ""
+     ::= { sniTrapParams 3 }
+ 
+ sniModuleName   OBJECT-TYPE
+     SYNTAX          DisplayString
+     ACCESS          not-accessible
+     STATUS          mandatory
+     DESCRIPTION
+         ""
+     ::= { sniTrapParams 4 }
+ 
+ sniControlString   OBJECT-TYPE
+     SYNTAX          DisplayString
+     ACCESS          not-accessible
+     STATUS          mandatory
+     DESCRIPTION
+         ""
+     ::= { sniTrapParams 5 }
+ 
+ sniVarName   OBJECT-TYPE
+     SYNTAX          OBJECT IDENTIFIER
+     ACCESS          not-accessible
+     STATUS          mandatory
+     DESCRIPTION
+         ""
+     ::= { sniTrapParams 6 }
+ 
+ sniPagerNumber   OBJECT-TYPE
+     SYNTAX          INTEGER
+     ACCESS          not-accessible
+     STATUS          mandatory
+     DESCRIPTION
+         ""
+     ::= { sniTrapParams 7 }
+ 
+
+--
+-- The trap definitions themself
+--
+
+ sniNWVolSysMounted TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent if volume sys is mounted"
+     --#TYPE      "Volume SYS is mounted"
+     --#SUMMARY   "Volume SYS is mounted"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#HELP      "Note: Volume SYS contains important system directories as e.g. SYSTEM, PUBLIC, LOGIN, MAIL and DELETE.SAV."
+     --#HELPTAG   0
+	 --#STATE     OPERATIONAL
+     ::= 0
+ 
+ sniNWSysVolumeDismounted        TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent if the volume system is dismounted. After this
+          trap no further interaction with the agent will usually
+          be possible"
+     --#TYPE      "Volume SYS is dismounted"
+     --#SUMMARY   "Volume SYS is dismounted"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  CRITICAL
+     --#TIMEINDEX 1
+     --#HELP      "Action: If this trap is caused by a hard-disk failure, it is recommended to replace the hard-disk. Note: Because this volume contains important system directories, operation of the server is seriously reduced. After this trap usually no further interaction with the agent will be possible."
+     --#HELPTAG   0
+	 --#STATE     NONOPERATIONAL
+     ::= 1
+ 
+ sniNWVolumeMounted      TRAP-TYPE
+     ENTERPRISE      sni
+ --  VARIABLES       { sniServerName, sniTrapTime }
+     VARIABLES       { sniServerName, sniTrapTime, sniVolumeName }
+     DESCRIPTION
+         "Sent if a volume is mounted."
+     --#TYPE      "Volume is mounted"
+     --#SUMMARY   "Volume %s is mounted"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 2, 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 2
+ 
+ sniNWVolumeDismounted   TRAP-TYPE
+     ENTERPRISE      sni
+ --  VARIABLES       { sniServerName, sniTrapTime }
+     VARIABLES       { sniServerName, sniTrapTime, sniVolumeName }
+     DESCRIPTION
+         "Sent if a volume is dismounted."
+     --#TYPE      "Volume is dismounted"
+     --#SUMMARY   "Volume %s is dismounted"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 2 , 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#HELP      "Note: If this trap is caused by a hard-disk failure it is recommended to replace the hard-disk as soon as possible." 
+     --#HELPTAG   0
+	 --#STATE     OPERATIONAL
+     ::= 3
+ 
+ sniNWDownServer TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if the server is going down. After this trap no
+          interaction with the server will be possible"
+     --#TYPE      "Server is going down (NetWare)"
+     --#SUMMARY   "Server is going down: %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  CRITICAL
+     --#TIMEINDEX 1
+     --#HELP      "Action: Check if shutdown was intended. In case of error	check log for additional error messages. Attention: After this trap no interaction with the server will be possible."
+     --#HELPTAG   0
+	 --#STATE     NONOPERATIONAL
+     ::= 4
+ 
+ sniNWExitToDos  TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if the server is exiting to dos. Will never be sent"
+     --#TYPE      "Server exits to DOS"
+     --#SUMMARY   "Server exits to DOS : %s "
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  CRITICAL
+     --#TIMEINDEX 1
+     --#STATE     NONOPERATIONAL
+     ::= 7
+ 
+ 
+ sniNWModuleUnloaded     TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime, sniModuleName }
+     DESCRIPTION
+         "Sent, if a module (i.e. a NLM) is unloaded"
+     --#TYPE      "Module is unloaded"
+     --#SUMMARY   "Module %s is unloaded "
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 2 , 0  }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 8
+ 
+ sniNWClearConnection    TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+ --      VARIABLES       { sniServerName, sniTrapTime, sniConnection }
+     DESCRIPTION
+         "Sent, if a connection is cleared"
+     --#TYPE      "Connection is cleared"
+     --#SUMMARY   "A connection is cleared"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 9
+ 
+ sniNWLoginUser  TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a user logged into server"
+     --#TYPE      "User logged into server"
+     --#SUMMARY   "A user logged into"
+     --#SUMMARY   "server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 10
+ 
+ sniNWCreateBinderyObj   TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a bindery object is created"
+     --#TYPE      "Bindery object created"
+     --#SUMMARY   "A bindery object is created"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 11
+ 
+ sniNWDeleteBinderyObj   TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a bindery object is deleted"
+     --#TYPE      "Bindery object deleted"
+     --#SUMMARY   "A bindery object is deleted"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 12
+ 
+ sniNWChangeSecurity     TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a security changed has occurred"
+     --#TYPE      "Security changed (NetWare)"
+     --#SUMMARY   "Security change has occurred"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 13
+ 
+ sniNWActivateScreen      TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a screen is activated"
+     --#TYPE      "Screen activated"
+     --#SUMMARY   "A screen is activated"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 14
+ 
+ sniNWUpdateScreen        TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a screen is updated"
+     --#TYPE      "Screen updated"
+     --#SUMMARY   "A screen is updated"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 15
+ 
+ sniNWUpdateCursor       TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if the cursor position is updated"
+     --#TYPE      "Cursor position updated"
+     --#SUMMARY   "The cursor position is updated"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 16
+ 
+ sniNWKeyWasPressed      TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a key is pressed"
+     --#TYPE      "Key pressed"
+     --#SUMMARY   "A key is pressed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 17
+ 
+ sniNWDeactivateScreen   TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, a screen is deactivated"
+     --#TYPE      "Screen deactivated"
+     --#SUMMARY   "A screen is deactivated"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 18
+ 
+ sniNWTrusteeChange      TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, a trustee is changed"
+     --#TYPE      "Trustee changed (NetWare)"
+     --#SUMMARY   "Trustee is changed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 19
+ 
+ sniNWOpenScreen         TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, a screen is opened"
+     --#TYPE      "Screen opened"
+     --#SUMMARY   "A Screen is opened"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 20
+ 
+ sniNWCloseScreen                TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, a screen is closed"
+     --#TYPE      "Screen closed"
+     --#SUMMARY   "A Screen is closed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 21
+ 
+ sniNWModifyDirEntry     TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, a directory entry is changed"
+     --#TYPE      "Directory entry changed"
+     --#SUMMARY   "Directory entry is changed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 22
+ 
+ sniNWNoRelinquishControl TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime, sniModuleName }
+     DESCRIPTION
+         "Sent, if a NLM has not relinquished control"
+     --#TYPE      "NLM has not relinquished control"
+     --#SUMMARY   "The NLM %s has not relinquished control"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 2 ,0 }
+     --#SEVERITY  CRITICAL
+     --#TIMEINDEX 1
+     --#HELP      "Action: It is recommended to replace this NLM by an updated version. Attention: Modules which exceed the time reduce the performance of the system."
+     --#HELPTAG   0
+	 --#STATE     OPERATIONAL
+     ::= 23
+ 
+ sniNWThreadSwitch TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a thread switch has occurred"
+     --#TYPE      "Thread switch has occurred"
+     --#SUMMARY   "A thread switch has occurred"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 25
+ 
+ sniNWModuleLoaded       TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime ,sniModuleName }
+     DESCRIPTION
+         "Sent, if a module (i.e. a NLM) is loaded"
+     --#TYPE      "Module loaded"
+     --#SUMMARY   "Module %s is loaded"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 2 , 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 27
+ 
+ sniNWCreateProcess      TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+ --      VARIABLES       { sniCreateProcess }
+     DESCRIPTION
+         "Sent, if a process is created."
+     --#TYPE      "Process created"
+     --#SUMMARY   "A Process is created"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 28
+ 
+ sniNWDestroyProcess      TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+ --      VARIABLES       { sniDestroyProcess }
+     DESCRIPTION
+         "Sent, if a process is destroyed."
+     --#TYPE      "Process destroyed"
+     --#SUMMARY   "A Process is destroyed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 29
+ 
+ 
+ 
+ sniNWNewPublic TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a new pulic symbol is registered"
+     --#TYPE      "New public symbol"
+     --#SUMMARY   "A new public symbol is registered"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 32
+ 
+ sniNWProtocolBind       TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a protocol is bound to a MLID"
+     --#TYPE      "Protocol bound"
+     --#SUMMARY   "A protocol is bound to a MLID"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 33
+ 
+ sniNWProtocolUnbind     TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a protocol is unbound from a MLID"
+     --#TYPE      "Protocol unbound"
+     --#SUMMARY   "A protocol is unbound from a MLID"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  MAJOR
+     --#TIMEINDEX 1
+     --#HELP      "Action: Verify if unbind was initiated by user or caused by error. In case of error check network configuration."
+     --#HELPTAG   0
+	 --#STATE     DEGRADED
+     ::= 34
+ 
+ sniNWAllocateConnection TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, a connection is allocated"
+     --#TYPE      "Connection allocated"
+     --#SUMMARY   "A connection is allocated"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 37
+ 
+ sniNWLogoutConnection TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, a user has logged out"
+     --#TYPE      "User logged out"
+     --#SUMMARY   "A user has logged out"
+     --#SUMMARY   "of server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 38
+ 
+ 
+ 
+ sniNWMLIDRegister       TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a MLID is registered"
+     --#TYPE      "MLID registered"
+     --#SUMMARY   "A MLID is registered"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 39
+ 
+ sniNWMLIDDeRegister     TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+ --      VARIABLES       { sniAdapterName }
+     DESCRIPTION
+         "Sent, if a MLID is de-registered"
+     --#TYPE      "MLID deregistered"
+     --#SUMMARY   "A MLID is deregistered"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     NONOPERATIONAL
+     ::= 40
+ 
+ sniNWDataMigration TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent if when a files data has been migrated"
+     --#TYPE      "File data migrated"
+     --#SUMMARY   "A files data has been migrated"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 41
+ 
+ sniNWDataDeMigration TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent if when a files data has been demigrated"
+     --#TYPE      "File data demigrated"
+     --#SUMMARY   "A files data has been demigrated"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 42
+ 
+ sniNWQueueAction TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "A queue is activated, deactivated, created or deleted"
+     --#TYPE      "Queue status changed"
+     --#SUMMARY   "A queue is activated, deactivated, created or deleted"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 43
+ 
+ 
+ sniNWAlert      TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime, sniModuleName, sniControlString}
+     DESCRIPTION
+         "Sent, if a Netware Alert message is written to the
+          console"
+     --#TYPE      "Alert written"
+     --#SUMMARY   "A Netware Alert message is written to the console on server %s."
+     --#SUMMARY   "Module %s: %s "
+     --#ARGUMENTS { 0, 2, 3}
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 44
+ 
+ 
+ sniNWCreateObject TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a Directory Service object is created"
+     --#TYPE      "DS object created"
+     --#SUMMARY   "A Directory Service object is created"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 46
+ 
+ sniNWDeleteObject TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a Directory Service object is deleted"
+     --#TYPE      "DS object deleted"
+     --#SUMMARY   "A Directory Service object is deleted"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::=  47
+ 
+ sniNWRenameObject TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a DS object is renamed"
+     --#TYPE      "DS object renamed"
+     --#SUMMARY   "A Directory Service object is renamed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 48
+ 
+ sniNWValueChanged TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a DS object's value changed"
+     --#TYPE      "DS object value changed"
+     --#SUMMARY   "A Directory Service object's value changed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 49
+ 
+ sniNWCloseFile TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a file is closed"
+     --#TYPE      "File closed"
+     --#SUMMARY   "A file is closed"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 50
+ 
+ sniNWChangeTime TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime }
+     DESCRIPTION
+         "Sent, if a a nonuniform time adjustment has occurred"
+     --#TYPE      "Time changed (NetWare)"
+     --#SUMMARY   "Time has changed or a nonuniform time adjustment has occurred"
+     --#SUMMARY   "on server %s"
+     --#ARGUMENTS { 0 }
+     --#SEVERITY  INFORMATIONAL
+     --#TIMEINDEX 1
+     --#STATE     OPERATIONAL
+     ::= 51
+ 
+ 
+ -- EISA Traps
+ 
+ 
+ 
+ sniInvPollTrapExceeded  TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime, sniControlString, sniVarName}
+     DESCRIPTION
+         "This trap indicates, that one of the polled variables
+          has left the intervall specified by the user. The variable
+          will be given in the sniInvPollAlarm field"
+ 
+ --#TYPE         "Threshold exceeded"
+ --#SUMMARY      "Threshold exceeded : %s, on Server %s"
+ --#ARGUMENTS     { 2, 0 }
+ --#SEVERITY     INFORMATIONAL
+ --#TIMEINDEX    1
+ --#STATE        OPERATIONAL
+     ::= 128
+ 
+ sniInvPollTrapUnderflow     TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime, sniControlString, sniVarName}
+     DESCRIPTION
+         "This trap indicates, that one of the polled variables
+          has left the intervall specified by the user. The variable
+          will be given in the sniInvPollAlarm field"
+ --#TYPE         "Threshold underflow"
+ --#SUMMARY      "Threshold underflow : %s, on Server %s"
+ --#ARGUMENTS     { 2, 0 }
+ --#SEVERITY     INFORMATIONAL
+ --#TIMEINDEX    1
+ --#STATE        OPERATIONAL
+     ::= 129
+ 
+ 
+ sniInvPollDeltaExceeded  TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime, sniControlString, sniVarName}
+     DESCRIPTION
+         "This trap indicates, that one of the polled variables
+          has left the intervall specified by the user. The variable
+          will be given in the sniInvPollAlarm field"
+ --#TYPE         "DELTA-Threshold exceeded"
+ --#SUMMARY      "DELTA-Threshold exceeded : %s, on Server %s"
+ --#ARGUMENTS     { 2, 0 }
+ --#SEVERITY     INFORMATIONAL
+ --#TIMEINDEX    1
+ --#STATE        OPERATIONAL
+     ::= 130
+ 
+ sniInvDeltaTrapUnderflow     TRAP-TYPE
+     ENTERPRISE      sni
+     VARIABLES       { sniServerName, sniTrapTime, sniControlString, sniVarName}
+     DESCRIPTION
+         "This trap indicates, that one of the polled variables
+          has left the intervall specified by the user. The variable
+          will be given in the sniInvPollAlarm field"
+ --#TYPE         "DELTA-Threshold underflow"
+ --#SUMMARY      "DELTA-Threshold underflow : %s, on Server %s"
+ --#ARGUMENTS     { 2, 0 }
+ --#SEVERITY     INFORMATIONAL
+ --#TIMEINDEX    1
+ --#STATE        OPERATIONAL
+     ::= 131
+ 
+ sniInvTrapInvalid     TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime, sniControlString, sniVarName}
+	DESCRIPTION
+        "This trap indicates, that the threshold has become invalid"
+ --#TYPE         "Threshold invalid"
+ --#SUMMARY      "Threshold Invalid: %s, on Server %s"
+ --#ARGUMENTS     { 2, 0 }
+ --#SEVERITY     INFORMATIONAL
+ --#TIMEINDEX    1
+ --#STATE        OPERATIONAL
+	::= 132
+
+sniInvTrapValid     TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime, sniControlString, sniVarName}
+	DESCRIPTION
+		"This trap indicates, that the threshold has become valid"
+ --#TYPE         "Threshold valid"
+ --#SUMMARY      "Threshold Valid: %s, on Server %s"
+ --#ARGUMENTS     { 2, 0 }
+ --#SEVERITY     INFORMATIONAL
+ --#TIMEINDEX    1
+ --#STATE        OPERATIONAL
+	::= 133
+
+
+ 
+--        *********************  OBSOLETE  ****************************
+--		  This trap was moved to the SNI ServerView-MIB because of 
+--		  a trap ID conflict with SNI Mylex-MIB."
+-- 
+-- sniPagerOff        TRAP-TYPE
+--     ENTERPRISE      sni
+--     VARIABLES       { sniServerName, sniTrapTime ,sniPagerNumber}
+--     STATUS          obsolete
+--     DESCRIPTION
+--     #TYPE      "Pager turn off"
+--     #SUMMARY   "The pager with number %d is turned off. Trap sent from server %s."
+--     #ARGUMENTS { 2, 0 }
+--     #SEVERITY  INFORMATIONAL
+--     #TIMEINDEX 1
+--     #STATE     OPERATIONAL
+--     ::= 255
+
+
+
+-- NT Traps 
+
+sniNTDownServer TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if the server is going down. After this trap no
+		 interaction with the server will be possible"
+    --#TYPE      "Server is going down (NT)"
+    --#SUMMARY   "Server is going down : %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     NONOPERATIONAL
+	::= 300
+
+ sniNTLoginUser  TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+--      VARIABLES       { sniServerName, sniTrapTime, sniUser }
+	DESCRIPTION
+		"Sent, if a user logged into server"
+    --#TYPE      "User logged in"
+    --#SUMMARY   "A user logged into"
+    --#SUMMARY   "server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 301
+
+ sniNTChangeSecurity     TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a security change has occurred"
+    --#TYPE      "Security changed (NT)"
+    --#SUMMARY   "Security change has occurred"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 302
+
+sniNTTrusteeChange      TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a trustee is changed"
+    --#TYPE      "Trustee changed (NT)"
+    --#SUMMARY   "A trustee is changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 303
+
+sniNTAlert      TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime, sniControlString}
+	DESCRIPTION
+		"Sent, if a NT Alert message is written to the
+		 eventlog"
+    --#TYPE      "NT Alert written"
+    --#SUMMARY   "An NT Alert message is written to the eventlog"
+    --#SUMMARY   "(Control String: %s) on server %s. "
+    --#ARGUMENTS { 2, 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 304
+
+sniNTChangeTime TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a nonuniform time adjustment has occurred"
+    --#TYPE      "Time changed (NT)"
+    --#SUMMARY   "Time has changed or a nonuniform time adjustment has occurred"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 305
+
+sniNTRegChangeName	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a  keyname in registry has been changed"
+    --#TYPE      "Keyname changed"
+    --#SUMMARY   "Keyname in registry has been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 310
+
+sniNTRegChangeAttr	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if attributes for a key or its subtree in registry has been changed"
+    --#TYPE      "Registry key attributes changed"
+    --#SUMMARY   "Attributes for a key or its subtree in registry has been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 311
+
+sniNTRegChangeLastWrite	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if last write time for a key or its subtree in registry has been changed"
+    --#TYPE      "Registry last write time changed"
+    --#SUMMARY   "Last write time for a key or its subtree in registry has been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 312
+
+sniNTRegChangeSecurity	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if security for a key or its subtree in registry has been changed"
+    --#TYPE      "Registry key security changed"
+    --#SUMMARY   "Security for a key or its subtree in registry has been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 313
+
+sniNTFileChangeName	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a file name has been changed, created or deleted"
+    --#TYPE      "File name modified"
+    --#SUMMARY   "A file name has been changed, created or deleted"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 320
+
+sniNTFileChangeDirName	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a directory name has been changed, created or deleted"
+    --#TYPE      "Directory name modified"
+    --#SUMMARY   "A directory name has been changed, created or deleted"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 321
+
+
+sniNTFileChangeAttr	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if file or directory attributes have been changed"
+    --#TYPE      "File attributes changed"
+    --#SUMMARY   "File or directory attributes have been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 322
+
+
+sniNTFileChangeSize	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if file size has been changed"
+    --#TYPE      "File size changed"
+    --#SUMMARY   "File size has been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 323
+
+
+sniNTFileChangeLastWrite	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if last write time on a file has been changed"
+    --#TYPE      "File last write time changed"
+    --#SUMMARY   "Last write time on a file has been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 324
+
+ sniNTFileChangeSecurity	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if security on a file has been changed"
+    --#TYPE      "File security changed"
+    --#SUMMARY   "Security on a file has been changed"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 325
+
+sniNTEventLogError	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if an error entry was written to the eventlog"
+    --#TYPE      "Eventlog entry: error"
+    --#SUMMARY   "Error entry written to eventlog"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 330
+
+sniNTEventLogWarning	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if an warning entry was written to the eventlog"
+    --#TYPE      "Eventlog entry: warning"
+    --#SUMMARY   "Warning entry written to eventlog"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 331
+
+sniNTEventLogInformation	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if an informational entry was written to the eventlog"
+    --#TYPE      "Eventlog entry: information"
+    --#SUMMARY   "Informational entry written to eventlog"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 332
+
+sniNTEventLogSuccess	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a success audit entry was written to the eventlog"
+    --#TYPE      "Eventlog entry: success audit"
+    --#SUMMARY   "Audit success entry written to eventlog"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 333
+
+sniNTEventLogFailure	TRAP-TYPE
+	ENTERPRISE      sni
+	VARIABLES       { sniServerName, sniTrapTime }
+	DESCRIPTION
+		"Sent, if a failure audit entry was written to the eventlog"
+    --#TYPE      "Eventlog entry: failure audit"
+    --#SUMMARY   "Failure audit entry written to eventlog"
+    --#SUMMARY   "on server %s"
+    --#ARGUMENTS { 0 }
+    --#SEVERITY  INFORMATIONAL
+    --#TIMEINDEX 1
+    --#STATE     OPERATIONAL
+	::= 334 
+
+
+ END

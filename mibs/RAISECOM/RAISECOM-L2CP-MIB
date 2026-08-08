@@ -1,0 +1,412 @@
+--MibName=raisecomQosMIB
+-- *****************************************************************
+-- RAISECOM-L2CP-MIB.MIB:  Raisecom L2CP MIB file
+--
+-- Nov. 2013, yuhaiqun
+--
+-- Copyright (c) 1994-2009 by Raisecom, Inc.
+-- All rights reserved.            
+-- *****************************************************************
+RAISECOM-L2CP-MIB  DEFINITIONS ::= BEGIN
+
+IMPORTS                      
+        MODULE-IDENTITY,
+        OBJECT-TYPE,
+        Unsigned32,
+        Counter32
+                    FROM SNMPv2-SMI
+        
+        RowStatus,MacAddress,TruthValue
+        					FROM SNMPv2-TC
+        ObjName        				
+                        	FROM SWITCH-TC    
+        rcPortIndex
+                            FROM SWITCH-SYSTEM-MIB           
+
+        MODULE-COMPLIANCE, OBJECT-GROUP         FROM SNMPv2-CONF
+        
+        iscomSwitch
+                FROM RAISECOM-BASE-MIB;  
+    
+	rcL2cp MODULE-IDENTITY
+        LAST-UPDATED    "201311210000Z"
+        ORGANIZATION    "Raisecom, Inc."
+        CONTACT-INFO
+                "       Raise Systems
+                        
+                Postal: Beijing,
+                        China
+
+                   Tel: 86-010-82884499
+
+                E-mail: yuhaiqun@raisecom.com"
+        DESCRIPTION
+                "Description of L2CP object."
+             REVISION   "201311210000Z"
+             DESCRIPTION
+             "The initial revision of this MIB."
+             ::={ iscomSwitch 65 }     
+     
+------------------------------------------------------------------------------
+--  define groups in rcL2cp
+------------------------------------------------------------------------------                   
+    rcL2cpConfigScalarGroup     OBJECT IDENTIFIER ::={ rcL2cp 1 }       
+    rcL2cpConfigTableGroup   	OBJECT IDENTIFIER ::={ rcL2cp 2 }  
+   
+   ------------------------------------------------------------------------------
+----rcL2cpConfigScalarGroup group------------
+------------------------------------
+rcL2cpDestinationMacAddress OBJECT-TYPE
+    SYNTAX          MacAddress
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "Specifies the destination MAC address of the tunneled PDUs 
+            and applies to all ingress tunneling interfaces." 
+    ::= { rcL2cpConfigScalarGroup 1 }
+         
+
+----------------------------------------------
+----rcL2cpConfigTableGroup group rcL2cpProfileBaseTable----
+----------------------------------------------
+rcL2cpProfileBaseTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF RcL2cpProfileBaseEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+            "This table contains information about the Profile Base
+            information and tunnel config. "
+    ::= { rcL2cpConfigTableGroup 1 }                          
+
+
+rcL2cpProfileBaseEntry OBJECT-TYPE
+        SYNTAX RcL2cpProfileBaseEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Table entry for switch l2cp Profile based config and tunnel config."
+        INDEX { rcL2cpProfileBaseIndex }
+        ::= { rcL2cpProfileBaseTable 1 }     
+
+RcL2cpProfileBaseEntry ::= SEQUENCE {
+        rcL2cpProfileBaseIndex     		     Unsigned32,
+        rcL2cpProfileBaseName	     	     ObjName, 
+        rcL2cpProfileBaseTunnelVlan          Unsigned32,
+        rcL2cpProfileBaseTunnelEgressPort    Unsigned32,       
+        rcL2cpProfileBaseTunnelType          INTEGER,  
+        rcL2cpProfileBaseTunnelMplsVlan      Unsigned32,
+        rcL2cpProfileBaseStatus              RowStatus          
+}
+
+rcL2cpProfileBaseIndex OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "It's the index of Profile table."
+        ::= { rcL2cpProfileBaseEntry 1}
+
+rcL2cpProfileBaseName OBJECT-TYPE
+        SYNTAX      ObjName
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Profile Name."
+        ::= { rcL2cpProfileBaseEntry 2}   
+            
+rcL2cpProfileBaseTunnelVlan OBJECT-TYPE
+        SYNTAX     Unsigned32(0..4094)
+        MAX-ACCESS read-create
+        STATUS     current
+        DESCRIPTION
+            "Specifies vlan ID of tunneled protocol PDUs of the interface;
+            0 is ALL VALM"
+        ::= { rcL2cpProfileBaseEntry 3 }    
+    
+rcL2cpProfileBaseTunnelEgressPort OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+            "Specifies egress port of tunneled protocol PDUs of the interface."
+        ::= { rcL2cpProfileBaseEntry 4 }
+        
+rcL2cpProfileBaseTunnelType OBJECT-TYPE
+        SYNTAX INTEGER {none(0),mac(1),mpls(2)}
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+            "The tunnel type used by L2CP.none is hardware tunnel" 
+        DEFVAL          { 0 }
+        ::= { rcL2cpProfileBaseEntry 5 }     
+       
+rcL2cpProfileBaseTunnelMplsVlan OBJECT-TYPE
+        SYNTAX      Unsigned32(1..4095)
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+			"Specifies MPLS vlan ID of tunneled protocol PDUs of the interface;
+			4095 is MPLS Default VLAN"   
+		DEFVAL          { 4095 }
+        ::= { rcL2cpProfileBaseEntry 6 }  
+        
+rcL2cpProfileBaseStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+			"Operation status of this table entry."
+        ::= { rcL2cpProfileBaseEntry 7 }
+
+
+-------------------------------------------------------------
+----rcL2cpConfigTableGroup group rcL2cpProfileProtocolTable----
+-------------------------------------------------------------
+rcL2cpProfileProtocolTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcL2cpProfileProtocolEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Config Protocol action for the Profile."
+        ::= { rcL2cpConfigTableGroup 2 }
+
+        
+rcL2cpProfileProtocolEntry OBJECT-TYPE
+        SYNTAX RcL2cpProfileProtocolEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Table entry for Protocol Action"
+        INDEX { rcL2cpProfileBaseIndex,rcL2cpProfileProtocolType}
+        ::= { rcL2cpProfileProtocolTable 1 }  
+        
+RcL2cpProfileProtocolEntry ::= SEQUENCE {
+        rcL2cpProfileProtocolType            INTEGER,
+        rcL2cpProfileProtocolAction          INTEGER   
+}   
+        
+rcL2cpProfileProtocolType OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        stp(1),
+                        dot1x(2),
+                        lacp(3),
+                        oam(4),      
+                        cdp(5),
+                        vtp(6),
+                        pvst(7),
+                        lldp(8)    
+                    }
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+            "Indicates protocol of the interface." 
+    ::= { rcL2cpProfileProtocolEntry 1 }  
+
+rcL2cpProfileProtocolAction OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        tunnel(1),
+                        peer(2),
+                        drop(3)    
+                    }
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "Action of Protocol." 
+    ::= { rcL2cpProfileProtocolEntry 2 }  
+ 
+-------------------------------------------------------------
+----rcL2cpConfigTableGroup group rcL2cpProfileMacTable----
+-------------------------------------------------------------
+rcL2cpProfileMacTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcL2cpProfileMacEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Config Specify MacAddress action for the Profile."
+        ::= { rcL2cpConfigTableGroup 3 }
+
+rcL2cpProfileMacEntry OBJECT-TYPE
+        SYNTAX RcL2cpProfileMacEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Table entry for Specify MacAddress Action"
+        INDEX { rcL2cpProfileBaseIndex,rcL2cpProfileMacNumIndex }
+        ::= { rcL2cpProfileMacTable 1 }  
+        
+RcL2cpProfileMacEntry ::= SEQUENCE {
+        rcL2cpProfileMacNumIndex            Unsigned32,
+        rcL2cpProfileMacAddress             MacAddress,
+        rcL2cpProfileMacProtocolType        Unsigned32,    
+        rcL2cpProfileMacAction              INTEGER,
+        rcL2cpProfileMacStatus              RowStatus
+} 
+        
+rcL2cpProfileMacNumIndex OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "It's the index of MAC Number."
+        ::= { rcL2cpProfileMacEntry 1 }
+ 
+rcL2cpProfileMacAddress OBJECT-TYPE
+        SYNTAX  MacAddress
+        MAX-ACCESS read-create
+        STATUS     current
+        DESCRIPTION
+            "Specify MacAddress."
+        ::= { rcL2cpProfileMacEntry 2 }  
+               
+rcL2cpProfileMacProtocolType OBJECT-TYPE
+        SYNTAX  Unsigned32
+        MAX-ACCESS read-create
+        STATUS     current
+        DESCRIPTION
+            "The ProtocolType of Specify MacAddress."
+        ::= { rcL2cpProfileMacEntry 3 } 
+         
+rcL2cpProfileMacAction OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        tunnel(1),
+                        peer(2),
+                        drop(3)    
+                    }
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "Action of Specify MacAddress." 
+    ::= { rcL2cpProfileMacEntry 4 }  
+    
+rcL2cpProfileMacStatus OBJECT-TYPE
+        SYNTAX      RowStatus
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION
+			"Operation status of this table entry."
+        ::= { rcL2cpProfileMacEntry 5 } 
+        
+-------------------------------------------------------------
+----rcL2cpConfigTableGroup group rcL2cpPortTable----
+-------------------------------------------------------------
+rcL2cpPortTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcL2cpPortEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Apply Profile on the port."
+        ::= { rcL2cpConfigTableGroup 4 } 
+        
+rcL2cpPortEntry OBJECT-TYPE
+        SYNTAX RcL2cpPortEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Table entry for Apply Profile on the port"
+        INDEX { rcPortIndex }
+        ::= { rcL2cpPortTable 1 }  
+        
+RcL2cpPortEntry ::= SEQUENCE {
+        rcL2cpPortProfileIndex             Unsigned32, 
+        rcL2cpPortclearstats               TruthValue 
+}  
+
+rcL2cpPortProfileIndex OBJECT-TYPE
+    SYNTAX          Unsigned32 
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "Apply Profile ID.0 is cancel" 
+    ::= { rcL2cpPortEntry 1 } 
+    
+ rcL2cpPortclearstats OBJECT-TYPE
+    SYNTAX          TruthValue 
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "Clear port statistics" 
+    ::= { rcL2cpPortEntry 2 } 
+-------------------------------------------------------------
+----rcL2cpConfigTableGroup group rcL2cpStatTable----
+-------------------------------------------------------------
+rcL2cpStatTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF RcL2cpStatEntry 
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "This table contains protocol tunneling statistics on the
+            interface."
+        ::= { rcL2cpConfigTableGroup 5 } 
+       
+rcL2cpStatEntry OBJECT-TYPE
+        SYNTAX RcL2cpStatEntry
+        MAX-ACCESS not-accessible
+        STATUS     current
+        DESCRIPTION
+            "Protocol tunneling statistics on the interface"
+        INDEX { rcPortIndex,rcL2cpStatsProtocolIndex }
+        ::= { rcL2cpStatTable 1 }  
+
+RcL2cpStatEntry ::= SEQUENCE {
+        rcL2cpStatsProtocolIndex       INTEGER, 
+        rcL2cpStatsEncap               Counter32,
+        rcL2cpStatsDeEncap             Counter32,
+        rcL2cpStatsDrop                Counter32   
+}  
+
+rcL2cpStatsProtocolIndex OBJECT-TYPE
+    SYNTAX          INTEGER  {
+                        stp(1),
+                        dot1x(2),
+                        lacp(3),
+                        oam(4),      
+                        cdp(5),
+                        vtp(6),
+                        pvst(7),
+                        lldp(8),
+                        SpecifyMac1(9),
+                        SpecifyMac2(10),
+                        SpecifyMac3(11),
+                        SpecifyMac4(12),
+                        SpecifyMac5(13), 
+                        SpecifyMac6(14)
+                    }
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION     "A tunneled protocol of an interface." 
+    ::= { rcL2cpStatEntry 1 }
+
+rcL2cpStatsEncap OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "encapsulated PDUs"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The tunneled PDU encapsulation statistics of an interface.
+            These statistics cover the number of tunneled ingress
+            PDUs." 
+    ::= { rcL2cpStatEntry 2 }
+
+rcL2cpStatsDeEncap OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "de-encapsulated PDUs"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The tunneled PDU de-encapsulation statistics of an interface.
+            These statistics cover the number of tunneled egress PDUs." 
+    ::= { rcL2cpStatEntry 3 }
+
+rcL2cpStatsDrop OBJECT-TYPE
+    SYNTAX          Counter32
+    UNITS           "PDUs"
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The number of PDUs dropped on an interface for a given
+            protocol. The PDUs will be dropped when the
+            rcRelayDropThreshold is reached." 
+    ::= { rcL2cpStatEntry 4 }
+                                  
+END
+   

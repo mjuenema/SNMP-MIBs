@@ -1,0 +1,2058 @@
+ADTRAN-ADUNIT-MIB   DEFINITIONS ::= BEGIN
+
+-- TITLE:       ADTRAN ADUNIT.MIB
+-- FILENAME:    ADUNIT.MIB
+-- AUTHOR:      Steve Shown
+-- DATE:        12/30/02
+-- MODIFICATIONS:
+--  sls 020125
+--  made all enums non-zero based
+--  default for adUnitMaxTelnetAccess
+--  Comments on adUnitCurrentCpuUtil
+--  corrected OID for adUpdtConfigXfrModule
+--  increased adUpdtFwTFTPSrvFileName & adUnitConfigTFTPSrvFileName max length
+--  included ServiceState
+--  removed # of physical ports
+--  removed Port DataRate
+--  increased max for adUnitSNMPCommunitiesIndex
+--  floated Trap Recipient Table size
+--  made consistent hostnames&filenames @ 64
+--  Removed adUnitPortDataRate
+
+
+IMPORTS
+    IpAddress, Integer32, OBJECT-TYPE,
+    MODULE-IDENTITY,
+    Gauge32, Counter32
+           FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION, DisplayString,
+           RowStatus, DateAndTime, PhysAddress
+           FROM SNMPv2-TC
+    MODULE-COMPLIANCE, OBJECT-GROUP
+           FROM SNMPv2-CONF
+    ifIndex
+           FROM IF-MIB
+    AdPresence, AdProductIdentifier
+           FROM ADTRAN-TC
+    adShared
+           FROM ADTRAN-MIB;
+
+adtranUnitMib MODULE-IDENTITY
+        LAST-UPDATED "0201250000Z"
+--        LAST-UPDATED "200201250000Z"
+        ORGANIZATION "ADTRAN, Inc."
+        CONTACT-INFO
+               "        Technical Support Dept.
+                Postal: ADTRAN, Inc.
+                        901 Explorer Blvd.
+                        Huntsville, AL 35806
+
+                   Tel: +1 800 726-8663
+                   Fax: +1 256 963 6217
+                E-mail: support@adtran.com"
+        DESCRIPTION
+            "The MIB module for general unit configuration."
+       ::= { adShared 30 }
+
+--  TIMING SOURCE
+
+AdTftpConfigXferStatus ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "The status of a TFTP transfer"
+    SYNTAX      INTEGER {
+                    idle(1),
+                    tftpFilenotFound(2),
+                    tftpServerTimeout(3),
+                    errorNotEnoughMmemory(4),
+                    tftpDownloadInProgress(5),
+                    tftpUploadInProgress(6),
+                    tftpDownloadFailed(7),
+                    tftpUploadFailed(8),
+                    tftpDownloadComplete(9),
+                    tftpUploadComplete(10),
+                    tftpBadConfigFile(11),
+                    tftpBadFilesize(12),
+                    tftpNVRAMcfgCopyFailed(13),
+                    downloadCopyingInternalConfig(14),
+                    tftpFiletypeNotBinary(15),
+                    tftpFileRevisionTooOld(16),
+                    tftpRemoteDiskFull(17),
+                    tftpFileAlreadyExists(18),
+                    tftpFileAccessViolation(19),
+                    tftpBadFileChecksum(20),
+                    tftpReadNVRAMparseFailed(21),
+                    downoadWaitingOnNVRAMsave(22),
+                    uploadWritingInternalConfig(23)
+                }
+
+AdDualLEDstatus ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "The status of an individual LED which has more than one
+         color."
+    SYNTAX      INTEGER {
+                    off(1),
+                    green(2),
+                    red(3),
+                    yellow(4),
+                    blinkGreen(5),       -- blink (slow if multi-rate)
+                    blinkRed(6),         -- blink (slow if multi-rate)
+                    blinkYellow(7),      -- blink (slow if multi-rate)
+                    fastBlinkGreen(8),   -- only used if multi-rate
+                    fastBlinkRed(9),     -- only used if multi-rate
+                    fastBlinkYellow(10), -- only used if multi-rate
+                    altGreenRed(11),     -- alternate green & red
+                    altGreenYellow(12),  -- alternate green & yellow
+                    altRedYellow(13)     -- alternate red & yellow
+                }
+
+-- OBJECT IDENTIFIERS
+
+    adUnitInfo        OBJECT IDENTIFIER ::= { adtranUnitMib  1 }
+    adUnitConfig      OBJECT IDENTIFIER ::= { adtranUnitMib  2 }
+    adUnitUtil        OBJECT IDENTIFIER ::= { adtranUnitMib  3 }
+    adUnitStatus      OBJECT IDENTIFIER ::= { adtranUnitMib  4 }
+    adUnitSlots       OBJECT IDENTIFIER ::= { adtranUnitMib  5 }
+    adUnitPort        OBJECT IDENTIFIER ::= { adtranUnitMib  6 }
+    adUnitConformance OBJECT IDENTIFIER ::= { adtranUnitMib  7 }
+
+    adUnitGenCfg      OBJECT IDENTIFIER ::= { adUnitConfig  1 }
+    adUserCfg         OBJECT IDENTIFIER ::= { adUnitConfig  2 }
+    adSnmpCfg         OBJECT IDENTIFIER ::= { adUnitConfig  3 }
+    adConsoleCfg      OBJECT IDENTIFIER ::= { adUnitConfig  4 }
+    adUnitSyslogCfg   OBJECT IDENTIFIER ::= { adUnitConfig  5 }
+
+    adUnitGenUtil     OBJECT IDENTIFIER ::= { adUnitUtil  1 }
+    adUpdtFirmware    OBJECT IDENTIFIER ::= { adUnitUtil  2 }
+    adXferConfig      OBJECT IDENTIFIER ::= { adUnitUtil  3 }
+    adUnitCpuUtil     OBJECT IDENTIFIER ::= { adUnitUtil  4 }
+    adUnitPing        OBJECT IDENTIFIER ::= { adUnitUtil  5 }
+    adUnitTraceRt     OBJECT IDENTIFIER ::= { adUnitUtil  6 }
+
+    adUnitCompliances OBJECT IDENTIFIER ::= { adUnitConformance  1 }
+    adUnitMIBGroups   OBJECT IDENTIFIER ::= { adUnitConformance  2 }
+
+--
+-- Unit Information Menu
+--
+
+adUnitBootRevision  OBJECT-TYPE
+   SYNTAX      DisplayString (SIZE(3..8))
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "Unit boot PROM revision."
+   ::= { adUnitInfo  1 }
+
+--
+-- Unit General Information
+--
+
+adUnitDateTime  OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The current unit date and time."
+    ::= { adUnitGenCfg  1 }
+
+adUnitMaxTelnetAccess  OBJECT-TYPE
+    SYNTAX      Integer32 (0..16)                    -- MAX???
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The maximum number of active telnet sessions."
+    DEFVAL      { 4 }
+    ::= { adUnitGenCfg  2 }
+
+adUnitEncryptPasswords   OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    enabled(1),
+                    disabled(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Determines whether or not the locally stored user passwords
+        are encrypted."
+    DEFVAL      { enabled }
+    ::= { adUnitGenCfg  3 }
+
+-- 550 has Level enablement on a function-by-function basis?;
+
+adUnitEventLogging   OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    enabled(1),
+                    disabled(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enable/Disable event logging on the unit."
+    DEFVAL      { enabled }
+    ::= { adUnitGenCfg  4 }
+
+adUnitClearEventLog   OBJECT-TYPE
+    SYNTAX      Integer32 (1)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set to 1 to clear all entries from unit's local event log."
+    ::= { adUnitGenCfg  5 }
+
+--
+-- Unit Utility Group
+--
+
+adUnitRebootSystem  OBJECT-TYPE
+    SYNTAX      Integer32 (1)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set to 1 to initiate system reboot."
+    DEFVAL      { 1 }
+    ::= { adUnitGenUtil  1 }
+
+adUnitFactoryDefaultSystem  OBJECT-TYPE
+    SYNTAX      Integer32 (1)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set to 1 to set factory defaults configuration values for
+        the entire unit."
+    DEFVAL      { 1 }
+    ::= { adUnitGenUtil  2 }
+
+adUnitSchedResetTime   OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Date and Time of scheduled system reset."
+    ::= { adUnitGenUtil  3 }
+
+--
+-- Unit User Configuration Group
+--
+
+adUnitUserTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdUnitUserEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of users who are allowed access to the unit."
+    ::= { adUserCfg  1 }
+
+adUnitUserEntry  OBJECT-TYPE
+    SYNTAX      AdUnitUserEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry in the list defines the user/pass, authen method,
+         access level, and timeout."
+    INDEX{ adUnitUserIndex }
+    ::= { adUnitUserTable  1 }
+
+-- !?!?!?
+-- Security issues with viewing/setting PWs via SNMP.  As currently
+-- defined if PW Encryption is set display will be encrypted; would
+-- need to decrypt for viewing (& encrypt for subsequent set
+-- Do we want to try to implement some encrypted "SNMP password"
+-- such that it must be set properly before subsequent write of
+-- User table.  Actually problem with defining a new user!!
+
+AdUnitUserEntry  ::= SEQUENCE {
+    adUnitUserIndex             Integer32,
+    adUnitUserName              DisplayString,
+    adUnitUserAuthenMethod      INTEGER,
+    adUnitUserPasswd            DisplayString,
+    adUnitUserIdleTime          Integer32,
+    adUnitUserLevel             Integer32,
+    adUnitUserIpAddr            DisplayString,
+    adUnitUserState             INTEGER,
+    adUnitUserStatus            RowStatus
+    }
+
+
+-- Net Mask needed ?? (IAD has netmask with telnet IP addres)
+--      on IAD, netmask is used for multiple specification
+
+
+adUnitUserIndex  OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Sequential index of the list of defined users."
+    ::= { adUnitUserEntry  1 }
+
+adUnitUserName  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(1..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The user name for access."
+    ::= { adUnitUserEntry  2 }
+
+adUnitUserAuthenMethod  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    password(1),
+                    radius(2)
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The type of authentication to perform for this user."
+    DEFVAL      { password }
+    ::= { adUnitUserEntry  3 }
+
+adUnitUserPasswd  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The user password"
+    ::= { adUnitUserEntry  4 }
+
+adUnitUserIdleTime  OBJECT-TYPE
+    SYNTAX      Integer32 (0..120)
+    UNITS       "minutes"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The idle timeout value in minutes for a connection. If no
+        operator activity is detected for this interval the connection
+        is terminated.  If the value is set to 0, the session will not
+        be disconnected due to inactivity."
+    DEFVAL      { 10 }
+    ::= { adUnitUserEntry  5 }
+
+adUnitUserLevel  OBJECT-TYPE
+    SYNTAX      Integer32 (0..8)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This is the level of access this user has."
+    DEFVAL { 1 }
+    ::= { adUnitUserEntry  6 }
+
+adUnitUserIpAddr  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "If not null, the only IP address (or hostname) from which
+        the specified user may initiate a telnet access."
+    ::= { adUnitUserEntry  7 }
+
+adUnitUserState  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    active(1),
+                    inactive(2)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Indication of whether or not the user has an active session."
+    ::= { adUnitUserEntry  8 }
+
+adUnitUserStatus  OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status of this conceptual row.
+
+        Until instances of all corresponding columns are appropriately
+        configured, the value of the corresponding instance of the
+        adUnitUserStatus column is 'notReady'."
+    ::= { adUnitUserEntry  9 }
+
+--
+-- Unit SNMP Configuration Group
+--
+
+--  May replace with support provided through SNMP-Community MIB
+
+adUnitSNMPCommunitiesTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdUnitSNMPCommunitiesEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Contains a list of users who have SNMP access to this unit."
+    ::= { adSnmpCfg  1 }
+
+adUnitSNMPCommunitiesEntry  OBJECT-TYPE
+    SYNTAX      AdUnitSNMPCommunitiesEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry in the list defines the community string, access
+        privilege, and Manager IP address."
+    INDEX{ adUnitSNMPCommunitiesIndex }
+    ::= { adUnitSNMPCommunitiesTable  1 }
+
+AdUnitSNMPCommunitiesEntry ::= SEQUENCE {
+    adUnitSNMPCommunitiesIndex       Integer32,
+    adUnitSNMPCommunitiesString      DisplayString,
+    adUnitSNMPCommunitiesPrivilege   INTEGER,
+    adUnitSNMPCommunitiesMngmtIP     IpAddress,
+    adUnitSNMPCommunitiesStatus      RowStatus
+    }
+
+adUnitSNMPCommunitiesIndex  OBJECT-TYPE
+    SYNTAX      Integer32 (0..32)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Index of the table."
+    ::= { adUnitSNMPCommunitiesEntry  1 }
+
+adUnitSNMPCommunitiesString  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(1..16))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The community string which has the specified SNMP access."
+    ::= { adUnitSNMPCommunitiesEntry  2 }
+
+adUnitSNMPCommunitiesPrivilege  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    get(1),
+                    set(2)         -- implies get/set
+                }
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Set the SNMP privileges of this user."
+    DEFVAL { get }
+    ::= { adUnitSNMPCommunitiesEntry  3 }
+
+adUnitSNMPCommunitiesMngmtIP  OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The IP address of the manager station.  Set to '0.0.0.0' to
+        enable the string for all addresses."
+    ::= { adUnitSNMPCommunitiesEntry  4 }
+
+adUnitSNMPCommunitiesStatus  OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status of this conceptual row.
+
+        Until instances of all corresponding columns are appropriately
+        configured, the value of the corresponding instance of the
+        adUnitSNMPCommunitiesStatus column is 'notReady'."
+    ::= { adUnitSNMPCommunitiesEntry  5 }
+
+--
+-- SNMP Trap Hosts
+--
+
+adUnitSNMPTrapsTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdUnitSNMPTrapsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Contains a list of users that will receive SNMP traps from
+        this unit."
+    ::= { adSnmpCfg  2 }
+
+adUnitSNMPTrapsEntry  OBJECT-TYPE
+    SYNTAX      AdUnitSNMPTrapsEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry in the list defines the name, privilege, and
+        Manager IP address."
+    INDEX{ adUnitSNMPTrapsIndex }
+    ::= { adUnitSNMPTrapsTable  1 }
+
+AdUnitSNMPTrapsEntry  ::= SEQUENCE {
+    adUnitSNMPTrapsIndex         Integer32,
+    adUnitSNMPTrapsString        DisplayString,
+    adUnitSNMPTrapsMngmtAddr     DisplayString,
+    adUnitSNMPTrapsStatus        RowStatus
+    }
+
+adUnitSNMPTrapsIndex  OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Index of the table. "
+    ::= { adUnitSNMPTrapsEntry  1 }
+
+adUnitSNMPTrapsString  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(1..32))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The community string included in the SNMP traps."
+    ::= { adUnitSNMPTrapsEntry  2 }
+
+adUnitSNMPTrapsMngmtAddr  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The hostname (or IP address) that will receive SNMP traps."
+    ::= { adUnitSNMPTrapsEntry  3 }
+
+adUnitSNMPTrapsStatus  OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The status of this conceptual row.
+
+        Until instances of all corresponding columns are appropriately
+        configured, the value of the corresponding instance of the
+        adUnitSNMPTrapsStatus column is 'notReady'."
+    ::= { adUnitSNMPTrapsEntry  4 }
+
+adUnitSNMPEnableTraps  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    enabled(1),
+                    disabled(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enables or disables the transmission of all Traps."
+    DEFVAL      { enabled }
+    ::= { adSnmpCfg  3 }
+
+adUnitSNMPAuthenticationTraps  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    enabled(1),
+                    disabled(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enables or disables the transmission of Authentication Traps."
+    DEFVAL      { enabled }
+    ::= { adSnmpCfg  4 }
+
+--
+-- Unit Console Group
+--
+
+adConsoleAccessMode OBJECT-TYPE
+    SYNTAX      INTEGER{
+                    noAuth(1),
+                    passwordOnly(2),
+                    usernamePassword(3)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Specify operational mode of console.
+        0: No Authentication; no login required, CLI active
+           automatically
+        1: Password Only
+        2: Username and password required"
+     DEFVAL { noAuth }
+    ::= { adConsoleCfg  1 }
+
+adConsolePasswd OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(1..32))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The password for the console."
+    ::= { adConsoleCfg  2 }
+
+adConsoleLoginTimeout OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    UNITS "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Specifies the amount of time the system will wait for user
+        input for a username &/or password before timing out and
+        resetting back to intial prompt state.  The time is specified
+        in seconds.  If the value is set to 0, the session will not
+        be disconnected due to inactivity.
+
+        Some units may implement a maximum allowable which is less than
+        that specified."
+     DEFVAL { 60 }
+    ::= { adConsoleCfg  3 }
+
+adConsoleBaudRate OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    baud300(1),
+                    baud1200(2),
+                    baud2400(3),
+                    baud4800(4),
+                    baud9600(5),
+                    baud19200(6),
+                    baud38400(7),
+                    baud57600(8),
+                    baud115200(9)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The baud rate for the console port."
+    ::= { adConsoleCfg  4 }
+
+adConsoleDataBits OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    seven(7),
+                    eight(8)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The data bits for the console port."
+    ::= { adConsoleCfg  5 }
+
+adConsoleParity OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    none(1),
+                    odd(2),
+                    even(3)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The parity scheme for the console port."
+    ::= { adConsoleCfg  6 }
+
+
+adConsoleStopBits OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    one(1),
+                    onehalf(2), -- One & one half
+                    two(3)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The number of stop bits for the console port."
+    ::= { adConsoleCfg  7 }
+
+adConsoleFlowControl OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    none(1),
+                    hardware(2),    -- rts/cts
+                    xOnxOff(3)      -- ctrlSctrlQ
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The flow control mechanism for the console port.
+        hardware control is via RTS/CTS and xOn/xOff is via
+        transmission of the characters Control-S and
+        Control-Q.  Units may not support both control methods &
+        hence may reject attempts to Set to ones not supported ."
+    ::= { adConsoleCfg  8 }
+
+adConsoleModemInitString OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..32))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Initialization string to send to connected modem."
+    ::= { adConsoleCfg  9 }
+
+adConsoleInitModem OBJECT-TYPE
+    SYNTAX      Integer32 (1)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set value to 1 to force unit to attempt to initialize
+        a connected modem on the console port by sending the
+        contents of adConsoleModemInitString."
+    ::= { adConsoleCfg  10 }
+
+--
+-- SNMP Syslog Client Configuration
+--
+
+adUnitSyslogTransmission  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    enabled(1),
+                    disabled(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Enables or disables the transmission of log events to the
+        external Syslog server."
+    DEFVAL      { enabled }
+    ::= { adUnitSyslogCfg 1 }
+
+adUnitSyslogSrvrName OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The Host IP Address specifies the hostname or IP address of
+        the external server that is running the Syslog host
+        daemon."
+    ::= { adUnitSyslogCfg 2 }
+
+adUnitSyslogHostFacility  OBJECT-TYPE
+    SYNTAX  INTEGER {
+                local0(1),
+                local1(2),
+                local2(3),
+                local3(4),
+                local4(5),
+                local5(6),
+                local6(7),
+                local7(8)
+            }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "The Host Facility specifies the facility destination of log
+        events.  Facilities are located on the host and are managed
+        by the Syslog host daemon running on either a UNIX machine or
+        a PC."
+    DEFVAL { local0 }
+    ::= { adUnitSyslogCfg 3 }
+
+adUnitSyslogMinSeverity  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    emergency(1),
+                    alert(2),
+                    critical(3),
+                    error(4),
+                    warning(5),
+                    notice(6),
+                    info(7),
+                    debug(8)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "MinSeverity Level specifies the minimum level of severity
+        that will cause messages to be logged to the Syslog server.
+        The levels are listed in order of decreasing severity and
+        any message at or above the selected severity level will be
+        logged if transmission is enabled.
+            1.  Emergency: system is unusable
+            2.  Alert: action must be taken immediately
+            3.  Critical: critical conditions
+            4.  Error: error conditions
+            5.  Warning: warning conditions
+            6.  Notice: normal, but significant, conditions
+            7.  Info: informational message
+            8.  Debug: debug-level message"
+    DEFVAL      { critical }
+    ::= { adUnitSyslogCfg 4 }
+
+--
+-- Unit Update Firmware Group
+--
+
+adUpdtFwXfrMethod  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    tftp(1),
+                    xmodem(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Method of downloading firmware to the unit."
+    ::= { adUpdtFirmware  1 }
+
+adUpdtFwTFTPSrvAddr  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The hostname or IP address of the TFTP server."
+    ::= { adUpdtFirmware  2 }
+
+adUpdtFwTFTPSrvFileName  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..128))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The TFTP Server filename."
+    ::= { adUpdtFirmware  3 }
+
+adUpdtFwXfrStatus  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Status of the current transfer."
+    ::= { adUpdtFirmware  4 }
+
+adUpdtFwXfrModule  OBJECT-TYPE
+    SYNTAX      Integer32 (0..35)                -- MAX #
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The module (slot) to update with the Firmware transfer."
+    ::= { adUpdtFirmware  5 }
+
+adUpdtFwXfrControl  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    start(1),
+                    stop(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Start the current firmware transfer by setting value to 1
+        and stop a transfer in progress by setting value to 0."
+    ::= { adUpdtFirmware  6 }
+
+--
+--  Unit Configuration Transfer Group
+--
+
+adUnitXferConfigMethod  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    xmodem(1),
+                    tftp(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Method to download/upload the unit's configuration."
+    ::= { adXferConfig  1 }
+
+adUnitXferConfigType  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    binary(1)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Format of the configuration file."
+    ::= { adXferConfig  2 }
+
+adUnitConfigTFTPSrvAddr  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Hostname or IP address of the TFTP server."
+    ::= { adXferConfig  3 }
+
+adUnitConfigTFTPSrvFileName  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..128))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The filename to download/upload from the TFTP server."
+    ::= { adXferConfig  4 }
+
+adUnitConfigCurrXfrStatus  OBJECT-TYPE
+    SYNTAX      AdTftpConfigXferStatus
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The status of the current configuration file transfer."
+    ::= { adXferConfig  5 }
+
+adUnitConfigPrevXfrStatus  OBJECT-TYPE
+    SYNTAX      AdTftpConfigXferStatus
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The status of the previous the configuration file transfer."
+    ::= { adXferConfig  6 }
+
+adUpdtConfigXfrModule  OBJECT-TYPE
+    SYNTAX      Integer32 (-1..35)                 -- MAX??
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "If 0 through 35 is selected, the source or destination
+        module (slot) for the configuration transfer. If -1 is
+        selected the entire configuration is transfered."
+    ::= { adXferConfig  7 }
+
+adUnitXferConfig  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    loadAndUseCfg(1),
+                    saveCfg(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set value to 1 to transfer the configuration file from the
+        tftp server and switch to the configuration.  Set value to 2
+        to transfer the configuration file to the tftp server."
+    ::= { adXferConfig  8 }
+
+--
+--  Unit CPU Utilization Statistics Group
+--
+
+adUnitCurrentCpuUtil OBJECT-TYPE
+    SYNTAX      Gauge32(0..100)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Average CPU utilization over the last second."
+    ::= { adUnitCpuUtil  1 }
+
+adUnitTotalCpuUtil OBJECT-TYPE
+    SYNTAX      Gauge32(0..100)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Average CPU utilization since last system reboot or
+         statistics reset."
+    ::= { adUnitCpuUtil  2 }
+
+adUnitClearUtilizationStats OBJECT-TYPE
+    SYNTAX      Integer32 (1)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set value to 1 to clear CPU utilization statistics."
+    ::= { adUnitCpuUtil  3 }
+
+--
+--  Unit Ping Utility Group
+--
+
+adUnitPingStatus  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    active(1),
+                    inActive(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set value to 1 to Stop ping sequence and 2 to start ping
+        sequence."
+    ::= { adUnitPing  1 }
+
+adUnitPingMode  OBJECT-TYPE
+    SYNTAX      BITS {
+                sweep(0),
+                verbose(1)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set the 'sweep' BIT to cause the ping process to send
+        consecutively increasing buffer sizes starting at
+        adUnitPingPktMinSize and continueing to adUnitPingPktMaxSize.
+        If 'sweep' is not set, a single packet size of
+        adUnitPingPktMinSize is used.  The default is for sweep to
+        not be set.
+
+        Set the 'verbose' bit for responses to be reported via
+        entries in the adUnitPingRespTbl. If 'verbose' is not set,
+        results are reported via adUnitPingResult.  The default is
+        for verbose to not be set."
+    ::= { adUnitPing  2 }
+
+adUnitPingTarget  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Host name or IP Address of the unit to ping."
+    ::= { adUnitPing  3 }
+
+adUnitPingPktMinSize  OBJECT-TYPE
+    SYNTAX      Integer32 (0..65500)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "If in normal mode specifies the size of the ping request
+        buffer.  In Sweep mode the mininum initial size."
+    DEFVAL      { 32 }
+    ::= { adUnitPing  4 }
+
+adUnitPingPktMaxSize  OBJECT-TYPE
+    SYNTAX      Integer32 (0..65500)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Not used in normal mode.  In Sweep mode, the maximum buffer
+        size used for the sweep.  If the value is not greater than
+        adUnitPingPktMinSize the sweep will terminate after the first
+        buffer size completes."
+    DEFVAL      { 32 }
+    ::= { adUnitPing  5 }
+
+adUnitPingFillBuffer  OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(0..16))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Specify the characters to replicate within the outgoing
+        request buffer."
+    DEFVAL      { 'abcd'h }
+    ::= { adUnitPing  6 }
+
+adUnitPingSource  OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The IP Address to be inserted into source field of
+        transmitted message.  If set to the default of 0.0.0.0, the
+        address of the source network interface ( determined from
+        the route table) is used."
+    DEFVAL { '00000000'h }
+    ::= { adUnitPing  7 }
+
+adUnitPingTimeout  OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    UNITS       "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Specify the Timeout for each ping request, specified in
+        seconds."
+    DEFVAL      { 2 }
+    ::= { adUnitPing  8 }
+
+adUnitPingRepeatCnt  OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Specify the number of times to repeat the ping request.
+        For verbose mode maximum allowed is 50, for normal mode,
+        the maximum is 255."
+    DEFVAL      { 8 }
+    ::= { adUnitPing  9 }
+
+adUnitPingXmtNum  OBJECT-TYPE
+    SYNTAX      Integer32 (0..255)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The actual number of ping requests transmitted."
+    ::= { adUnitPing  10 }
+
+adUnitPingRcvNum  OBJECT-TYPE
+    SYNTAX      Integer32 (0..255)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of respsones received"
+    ::= { adUnitPing  11 }
+
+adUnitPingResult  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..255))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Output string to show results of ping when in normal mode.
+        If more than 255 transmissions are generated during the ping
+        execution only the results of the first 255 are reported.
+        The following characters indicate the specified results:
+            !  OK
+            .  Timeout, no response
+            U  Destination Unreachable
+            Q  Source Quench (destination too busy)
+            M  Could not fragment
+            ?  Unknown Packet type
+            &  Packet lifetime exceeded"
+    ::= { adUnitPing  12 }
+
+adUnitPingMinRndTrp OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    UNITS       "ms"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The minimum round-trip time in milliseconds."
+    ::= { adUnitPing  13 }
+
+adUnitPingMaxRndTrp OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    UNITS       "ms"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The maximum round-trip time in milliseconds."
+    ::= { adUnitPing  14 }
+
+adUnitPingAvgRndTrp OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    UNITS       "ms"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The average round-trip time in milliseconds."
+    ::= { adUnitPing  15 }
+
+adUnitPingVerboseTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdUnitPingVerboseEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table reporting the verbose output of the last
+        ping test initiated via SNMP."
+    ::= { adUnitPing 16 }
+
+adUnitPingVerboseEntry OBJECT-TYPE
+    SYNTAX      AdUnitPingVerboseEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry in the list is the result of a single ping
+        request.  Each request is identified by its sequence number,
+        adPingRespIndex."
+    INDEX   { adPingRespIndex }
+    ::= { adUnitPingVerboseTable 1 }
+
+AdUnitPingVerboseEntry ::=
+    SEQUENCE {
+        adPingRespIndex       Integer32,
+        adPingRespStatus      INTEGER,
+        adPingRespAddr        IpAddress,
+        adPingRespSize        Integer32,
+        adPingRespTime        Integer32,
+        adPingRespTTL         Integer32
+    }
+
+adPingRespIndex  OBJECT-TYPE
+    SYNTAX      Integer32 (1..50)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The ping response sequence number."
+    ::= { adUnitPingVerboseEntry  1 }
+
+adPingRespStatus  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    ok(1),
+                    unkownTarge1(2),
+                    invalidSource(3),
+                    timeOut(4),
+                    unreachable(5),
+                    ttlExpired(6)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The compeletion status of the ping response:
+        1 - OK
+        2 - Target address is unknown
+        3 - Invalid Source address
+        4 - No response received before timeout expired
+        5 - Unreachable destination (adPingRespAddr contains
+                                     reporting address)
+        6 - TTL expired in transit (adPingRespAddr contains
+                                     reporting address)"
+    ::= { adUnitPingVerboseEntry  2 }
+
+adPingRespAddr  OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The reply from address."
+    ::= { adUnitPingVerboseEntry  3 }
+
+adPingRespSize  OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Buffer Size of the response."
+    ::= { adUnitPingVerboseEntry  4 }
+
+adPingRespTime  OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "milliseconds"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Time in milliseconds to receive response."
+    ::= { adUnitPingVerboseEntry  5 }
+
+adPingRespTTL  OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "TTL value of the response. For TTL to be reported, the
+        buffer size of the request (adUnitPingPktSize) must be at
+        least 4 bytes."
+    ::= { adUnitPingVerboseEntry  6 }
+
+--
+--  Unit TraceRt Utility Group
+--
+
+adUnitTraceRtStatus  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    active(1),
+                    inActive(2)
+                }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set value to 0 to interrupt and stop a TraceRoute sequence
+        and 1 to start a TraceRoute sequence.  When TraceRoute
+        completes value with change from 'active' to 'inActive'."
+    ::= { adUnitTraceRt  1 }
+
+adUnitTraceRtTarget  OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..64))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Host name or IP Address of the unit to probe."
+    ::= { adUnitTraceRt  2 }
+
+adUnitTraceRtSource  OBJECT-TYPE
+    SYNTAX      IpAddress
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The IP Address to be inserted into source field of
+        transmitted message.  If set to the default of 0.0.0.0,
+        the unit address is used."
+    DEFVAL { '00000000'h }
+    ::= { adUnitTraceRt  3 }
+
+adUnitTraceRtTimeout  OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    UNITS       "seconds"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The response timeout for all traceroute probes."
+    DEFVAL      { 3 }
+    ::= { adUnitTraceRt  4 }
+
+adUnitTraceRtProbeCnt  OBJECT-TYPE
+    SYNTAX      Integer32 (1..15)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The number of probes to initiate for each TTL."
+    DEFVAL      { 3 }
+    ::= { adUnitTraceRt  5 }
+
+adUnitTraceRtMinTTL  OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    UNITS       "hops"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The Minimum Time To Live value (hops) of the traceroute
+        probes."
+    DEFVAL      { 1 }
+    ::= { adUnitTraceRt  6 }
+
+adUnitTraceRtMaxTTL  OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    UNITS       "hops"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Specify the Maximum Time To Live value (hops) of the
+        traceroute probes."
+    DEFVAL      { 30 }
+    ::= { adUnitTraceRt  7 }
+
+adUnitTraceRtPortNum  OBJECT-TYPE
+    SYNTAX      Integer32 (1..65535)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Set the base UDP port number used in probes.  Traceroute
+         operation is based on the fact that nothing is listening
+         on UDP ports base to base + nhops - 1 at the destination
+         host (so an ICMP PORT_UNREACHABLE message will be returned
+         to terminate the route tracing).  If something is listening
+         on a port in the default range, this option can be used
+         to pick an unused port range."
+    DEFVAL      { 33434 }
+    ::= { adUnitTraceRt  8 }
+
+adUnitTraceRtRespTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdUnitTraceRtRespEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table reporting the output of each traceroute probe
+        initiated via SNMP.  Upon initiation of a traceroute any
+        existing entries in the table are automatically deleted by
+        the agent & new records are inserted to reflect the results
+        of the most recent traceroute test."
+    ::= { adUnitTraceRt 9 }
+
+adUnitTraceRtRespEntry OBJECT-TYPE
+    SYNTAX      AdUnitTraceRtRespEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry in the list is the result of a single probe
+        request intiated by traceroute.  Each request is identified
+        by its TTL number, adTraceRtRespIndex.
+
+        When a trace route is started all entries are deleted from
+        the table and then inserted as the result of each attempt
+        is determined"
+    INDEX   { adTraceRtRespIndex }
+    ::= { adUnitTraceRtRespTable 1 }
+
+AdUnitTraceRtRespEntry ::=
+    SEQUENCE {
+        adTraceRtRespIndex       Integer32,
+        adTraceRtRespString      DisplayString
+    }
+
+adTraceRtRespIndex  OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The traceroute response sequence number (TTL)."
+    ::= { adUnitTraceRtRespEntry  1 }
+
+adTraceRtRespString  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The response output from the traceroute process for each
+         probe."
+    ::= { adUnitTraceRtRespEntry  2 }
+
+--
+-- Unit Status Information
+--
+
+adUnitFaceplate  OBJECT-TYPE
+    SYNTAX       OCTET STRING
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "A bit encoded string representing the status of all faceplate
+        indicators, LEDs, & switches for GUI visualization of the unit.
+        Each product defines this as a bitmap of booleans, or a byte
+        for each indicator if not binary. The strings from all the slots
+        are concatenated into this one object, after prefixing each card
+        indicator string with two bytes. The first byte contains the
+        slot number as an integer, and the second byte contains the
+        remaining string length for that slot.  The Textual Convention
+        AdDualLEDstatus should be used for non-binary states."
+    ::= { adUnitStatus 1 }
+
+adUnitAlarmStatus OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A bit encoded string representing a summary of the
+        alarm state of the chassis.  Refer to individual unit
+        documentation for the specification of the bimask"
+    ::= { adUnitStatus 2 }
+--
+-- Generic Slot Information
+--
+
+adUnitSlotInfoTable OBJECT-TYPE
+    SYNTAX  SEQUENCE OF AdUnitSlotInfoEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "Table of slots available for boards."
+    ::= { adUnitSlots 1 }
+
+adUnitSlotInfoEntry OBJECT-TYPE
+    SYNTAX  AdUnitSlotInfoEntry
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "General information descibing the contents of each card slot."
+    INDEX   { adUnitSlotInfoIndex }
+    ::= { adUnitSlotInfoTable 1 }
+
+AdUnitSlotInfoEntry ::=
+    SEQUENCE {
+        adUnitSlotInfoIndex            Integer32,
+        adUnitSlotProdName             DisplayString,
+        adUnitSlotProdPartNumber       DisplayString,
+        adUnitSlotProdCLEIcode         DisplayString,
+        adUnitSlotProdSerialNumber     DisplayString,
+        adUnitSlotProdRevision         DisplayString,
+        adUnitSlotProdSwVersion        DisplayString,
+        adUnitSlotProdPhysAddress      PhysAddress,
+        adUnitSlotInfoState            AdPresence,
+        adUnitSlotProduct              AdProductIdentifier,
+        adUnitSlotTrapEnable           INTEGER,
+        adUnitSlotAlarmStatus          OCTET STRING,
+        adUnitSlotFaceplate            OCTET STRING,
+        adUnitSlotServiceState         INTEGER
+    }
+
+adUnitSlotInfoIndex OBJECT-TYPE  --  Zero slot for controller; check for other refs!!
+    SYNTAX  Integer32 (1..32)
+    MAX-ACCESS  not-accessible
+    STATUS  current
+    DESCRIPTION
+        "A unique value for each slot.  Its value may exceed the value
+        of adUnitSlotNumber if pseudo slot numbers are used for some
+        bank commons or multiplexers."
+    ::= { adUnitSlotInfoEntry 1 }
+
+adUnitSlotProdName  OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(1..32))
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Adtran Product Name."
+    ::= { adUnitSlotInfoEntry 2 }
+
+adUnitSlotProdPartNumber  OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(9..12))
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Adtran Product Part Number."
+    ::= { adUnitSlotInfoEntry 3 }
+
+adUnitSlotProdCLEIcode  OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(0..11))
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Adtran Product CLEI Code."
+    ::= { adUnitSlotInfoEntry 4 }
+
+adUnitSlotProdSerialNumber  OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(12))
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Adtran Product Serial Number."
+    ::= { adUnitSlotInfoEntry 5 }
+
+adUnitSlotProdRevision  OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(8))
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Adtran Product Revision Number."
+    ::= { adUnitSlotInfoEntry 6 }
+
+adUnitSlotProdSwVersion  OBJECT-TYPE
+    SYNTAX       DisplayString (SIZE(8))
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The Adtran Product Software Version Number."
+    ::= { adUnitSlotInfoEntry 7 }
+
+adUnitSlotProdPhysAddress   OBJECT-TYPE
+    SYNTAX       PhysAddress
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "This octet string variable contains the Adtran Physical
+        Address assigned to this product.  For example the octet
+        sequence, 16 02 03 01, specifies channel bank number 16,
+        digroup number 2, DS0 channel slot number 3, position 1.
+        This object value is commonly reported in SNMP Traps to
+        identify the product's location."
+
+    --    NEED TO REVISE TO INCLUDE 'PLAINER' END UNITS
+
+    ::= { adUnitSlotInfoEntry 8 }
+
+
+adUnitSlotInfoState OBJECT-TYPE
+    SYNTAX      AdPresence
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The state of the card slot. Initially it is empty.  When
+        a card is inserted, it becomes occupied, and the Slot Type
+        is determined by the card Product Code.  When a card is
+        removed, it changes to virtual, and retains the SlotType
+        characteristics until a different kind of card is inserted,
+        or a different preconfiguration is established."
+    ::= { adUnitSlotInfoEntry 9 }
+
+adUnitSlotProduct OBJECT-TYPE
+    SYNTAX      AdProductIdentifier
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The ADTRAN Product code, 0 if empty. Agent will report real
+        product code when installed or pre-provisioned."
+    ::= { adUnitSlotInfoEntry 10 }
+
+adUnitSlotTrapEnable OBJECT-TYPE
+     SYNTAX      INTEGER {
+                    enabled(1),
+                    disabled(2)
+                 }
+     MAX-ACCESS  read-write
+  	 STATUS    	 current
+     DESCRIPTION
+         "Enables/Disables traps initiated from this slot."
+     ::= { adUnitSlotInfoEntry 11 }
+
+adUnitSlotAlarmStatus OBJECT-TYPE
+     SYNTAX      OCTET STRING
+     MAX-ACCESS  read-only
+     STATUS      current
+     DESCRIPTION
+         "A bit encoded string representing the alarm state of the
+         slot. The LSB should be 1 for No Alarm, else 0 and the
+         higher order bits will indicate which alarms are present.
+         The specific alarm conditions may be found in more specific
+         generic MIBs or in the device MIB."
+     ::= { adUnitSlotInfoEntry 12 }
+
+adUnitSlotFaceplate OBJECT-TYPE
+    SYNTAX       OCTET STRING
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "A bit encoded string representing the status of faceplate
+        indicators, LEDs, & switches for GUI visualization associated
+        with the card in the respective slot.  Each product defines
+        this as a bitmap of booleans, or a byte for each indicator if
+        not binary. The Textual Convention AdDualLEDstatus should be
+        used for non-binary states."
+    ::= { adUnitSlotInfoEntry 13 }
+
+adUnitSlotServiceState OBJECT-TYPE
+    SYNTAX  INTEGER {
+                is(1),         -- In Service
+                oosUas(2),     -- Out of Service, Unassigned
+                oosMA(3),      -- Out of Service, Maintenance mode
+                fault(5),      -- autonomous fault
+                isStbyHot(8),  -- In Service, standby hot (prot only)
+                isActLock(9),  -- In Service, active locked (prot only)
+                isStbyLock(10) -- In Service, standby locked (prot only)
+            }
+    MAX-ACCESS  read-write
+    STATUS  current
+    DESCRIPTION
+        "Module service state.
+        The full enumeration is supported by CND products.  END products
+        may support only the following subset with the END equivalent state
+        following '/':
+        is     -- InService                   / Online
+        oosUas -- Out of Service, Unasssigned / Unavailable
+        oosMA  -- Out of Sevice, Maint.       / Offline"
+    ::= { adUnitSlotInfoEntry 14 }
+
+--
+-- Unit Port Information
+--
+
+adUnitPortInfoTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdUnitPortInfoEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of hardware oriented port information on each card.
+        This only includes actual card ports, and not layered
+        logical interfaces."
+    ::= { adUnitPort 3 }
+
+adUnitPortInfoEntry OBJECT-TYPE
+    SYNTAX      AdUnitPortInfoEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A row table entry exists for each card/port pair."
+    INDEX   { adUnitSlotInfoIndex, adUnitPortInfoIndex }
+    ::= { adUnitPortInfoTable 1 }
+
+AdUnitPortInfoEntry ::=
+    SEQUENCE {
+        adUnitPortInfoIndex             Integer32,
+        adUnitPortInfoState             AdPresence,
+        adUnitPortIfIndex               Integer32,
+        adUnitPortAlarmStatus           OCTET STRING,
+        adUnitPortDescription           DisplayString
+    }
+
+ adUnitPortInfoIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..256)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A unique value for each physical port on a card."
+    ::= { adUnitPortInfoEntry 1 }
+
+ adUnitPortInfoState OBJECT-TYPE
+    SYNTAX      AdPresence
+      MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The state of the card port. Initially it is empty."
+   ::= { adUnitPortInfoEntry 2 }
+
+adUnitPortIfIndex OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The interface number identified as ifIndex from the MIB-II
+        interfaces table as defined by the slot and port numbers in
+        this device."
+    ::= { adUnitPortInfoEntry 3  }
+
+adUnitPortAlarmStatus OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "A bit encoded string representing the alarm state of the
+        port."
+    ::= { adUnitPortInfoEntry 4 }
+
+adUnitPortDescription OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..20))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "A character string to identify the name of a port.  Used
+        for trap varbind in last trap sent.  Should default to port
+        number string.  Can be overridden by customer as desired."
+    ::= { adUnitPortInfoEntry 5 }
+
+-- Slot/Port/Type interface map group
+
+-- This table maps the slot, port, & type number from their
+--   interface number. This optimizes slot, port & type
+--   translation from the ifIndex of the  MIB-2 interfaces
+--   table.
+
+adUnitPortSlotMapTable OBJECT-TYPE
+   SYNTAX      SEQUENCE OF AdUnitPortSlotMapEntry
+   MAX-ACCESS  not-accessible
+   STATUS      current
+   DESCRIPTION
+       "Table to map ifIndex to slot, port & type."
+   ::= { adUnitPort 4 }
+
+adUnitPortSlotMapEntry OBJECT-TYPE
+   SYNTAX  AdUnitPortSlotMapEntry
+   MAX-ACCESS  not-accessible
+   STATUS  current
+   DESCRIPTION
+       "An entry exists for each interface which is mapped to a
+       physical slot/port pair."
+   INDEX   { ifIndex }
+   ::= { adUnitPortSlotMapTable 1 }
+
+AdUnitPortSlotMapEntry ::=
+   SEQUENCE {
+       adUnitSlotAddress       Integer32,
+       adUnitPortAddress       Integer32
+   }
+
+adUnitSlotAddress OBJECT-TYPE
+   SYNTAX      Integer32 (0..32)
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The slot in which this port is contained. Slot 0 is reported
+       for the unit controller and all logical interfaces."
+  ::= { adUnitPortSlotMapEntry 1 }
+
+adUnitPortAddress OBJECT-TYPE
+   SYNTAX      Integer32 (1..256)
+   MAX-ACCESS  read-only
+   STATUS      current
+   DESCRIPTION
+       "The port number within the slot. Logical interfaces should
+       indicate port 0."
+   ::= { adUnitPortSlotMapEntry 2 }
+
+--
+-- Compliance Statements
+--
+
+adUnitCompliance MODULE-COMPLIANCE
+    STATUS  current
+    DESCRIPTION
+        "The compliance statement for SNMPv2 entities which implement
+        the adUnit MIB."
+
+    MODULE
+    MANDATORY-GROUPS {
+        adUnitBaseGroup,
+        adUnitUserGroup,
+        adUnitSNMPConfigGroup,
+        adUnitMaintConsoleGroup,
+        adUnitCpuUtilGroup,
+        adUnitSlotGroup,
+        adUnitPortGroup
+    }
+
+    GROUP    adUnitsCndGroup
+    DESCRIPTION
+        "This group is mandatory for products which have been
+        assigned CLEI codes and are also managed by management
+        products of the Carrier Network Division of ADTRAN"
+
+    GROUP    adUnitSyslogGroup
+    DESCRIPTION
+        "This group is mandatory for products which support syslog
+        reporting of events."
+
+    GROUP    adUnitTFTPGroup
+    DESCRIPTION
+         "This group is mandatory for products which support TFTP
+        transfer for Firmware Update or Configuration file saves and
+        applications."
+
+    GROUP    adUnitPingGroup
+    DESCRIPTION
+        "This group is mandatory for products which provide the ping
+        utility for network testing."
+
+
+    OBJECT   adUnitEncryptPasswords
+    MIN-ACCESS   read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+         password encryption."
+
+    OBJECT adUnitEventLogging
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+         global enablement of event logging."
+
+
+    OBJECT adUnitPingMode
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        verbose and/or sweep modes.  The single operational mode will
+        be reported by those units."
+
+
+    OBJECT adUnitUserIdleTime
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        time out specification on a user by user basis.  These units
+        should report the timeout value established as the timeout
+        value for all telnet sessions"
+
+    OBJECT adConsoleAccessMode
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        multiple methods for console logins.  These units should
+        return the single method that is utilized."
+
+    OBJECT adConsoleDataBits
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        alteration of the default console serial configuration
+        parameters."
+
+    OBJECT adConsoleParity
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        alteration of the default console serial configuration
+        parameters."
+
+    OBJECT adConsoleStopBits
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        alteration of the default console serial configuration
+        parameters."
+
+    OBJECT adConsoleFlowControl
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        altering the default flow control mechanism."
+
+
+    OBJECT adUnitSlotTrapEnable
+    MIN-ACCESS  read-only
+    DESCRIPTION
+        "Write access is not required on units which do not support
+        trap enablement/disablement on a slot by slot basis."
+
+
+    ::= { adUnitCompliances 1 }
+
+-- units of conformance
+
+adUnitBaseGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitBootRevision,
+        adUnitDateTime,
+        adUnitMaxTelnetAccess,
+        adUnitEncryptPasswords,
+        adUnitRebootSystem,
+        adUnitFactoryDefaultSystem,
+        adUnitEventLogging,
+        adUnitClearEventLog,
+        adUnitFaceplate,
+        adUnitAlarmStatus
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Base Group."
+    ::= { adUnitMIBGroups 1 }
+
+adUnitUserGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitUserName,
+        adUnitUserAuthenMethod,
+        adUnitUserPasswd,
+        adUnitUserIdleTime,
+        adUnitUserLevel,
+        adUnitUserIpAddr,
+        adUnitUserState,
+        adUnitUserStatus
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Telnet Group."
+    ::= { adUnitMIBGroups 2 }
+
+adUnitSNMPConfigGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitSNMPCommunitiesString,
+        adUnitSNMPCommunitiesPrivilege,
+        adUnitSNMPCommunitiesMngmtIP,
+        adUnitSNMPCommunitiesStatus,
+        adUnitSNMPEnableTraps,
+        adUnitSNMPTrapsString,
+        adUnitSNMPTrapsMngmtAddr,
+        adUnitSNMPTrapsStatus
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit SNMP Config Group."
+    ::= { adUnitMIBGroups 3 }
+
+adUnitMaintConsoleGroup OBJECT-GROUP
+    OBJECTS {
+        adConsoleAccessMode,
+        adConsolePasswd,
+        adConsoleLoginTimeout,
+        adConsoleBaudRate,
+        adConsoleDataBits,
+        adConsoleParity,
+        adConsoleStopBits,
+        adConsoleFlowControl
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Maintenance Console Group."
+    ::= { adUnitMIBGroups 4 }
+
+adUnitSyslogGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitSyslogTransmission,
+        adUnitSyslogSrvrName,
+        adUnitSyslogHostFacility
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Syslog Client Group."
+    ::= { adUnitMIBGroups 5 }
+
+adUnitTFTPGroup OBJECT-GROUP
+    OBJECTS {
+        adUpdtFwXfrMethod,
+        adUpdtFwTFTPSrvAddr,
+        adUpdtFwTFTPSrvFileName,
+        adUpdtFwXfrStatus,
+        adUpdtFwXfrModule,
+        adUpdtFwXfrControl,
+        adUnitXferConfigMethod,
+        adUnitXferConfigType,
+        adUnitConfigTFTPSrvAddr,
+        adUnitConfigTFTPSrvFileName,
+        adUnitConfigCurrXfrStatus,
+        adUnitConfigPrevXfrStatus,
+        adUpdtConfigXfrModule,
+        adUnitXferConfig
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit TFTP Group."
+    ::= { adUnitMIBGroups 6 }
+
+adUnitCpuUtilGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitCurrentCpuUtil,
+        adUnitTotalCpuUtil,
+        adUnitClearUtilizationStats
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit CPU Utilization Group."
+    ::= { adUnitMIBGroups 7 }
+
+adUnitPingGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitPingStatus,
+        adUnitPingMode,
+        adUnitPingTarget,
+        adUnitPingPktMinSize,
+        adUnitPingPktMaxSize,
+        adUnitPingFillBuffer,
+        adUnitPingSource,
+        adUnitPingTimeout,
+        adUnitPingRepeatCnt,
+        adUnitPingXmtNum,
+        adUnitPingRcvNum,
+        adUnitPingResult,
+        adUnitPingMinRndTrp,
+        adUnitPingMaxRndTrp,
+        adUnitPingAvgRndTrp
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Ping Group."
+    ::= { adUnitMIBGroups 8 }
+
+adUnitTraceRtGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitTraceRtStatus,
+        adUnitTraceRtTarget,
+        adUnitTraceRtSource,
+        adUnitTraceRtTimeout,
+        adUnitTraceRtProbeCnt,
+        adUnitTraceRtMinTTL,
+        adUnitTraceRtMaxTTL,
+        adUnitTraceRtPortNum,
+        adTraceRtRespString
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Traceroute Group."
+    ::= { adUnitMIBGroups 9 }
+
+adUnitSlotGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitSlotInfoState,
+        adUnitSlotProduct,
+        adUnitSlotAlarmStatus,
+        adUnitSlotTrapEnable,
+        adUnitSlotFaceplate,
+        adUnitSlotProdName,
+        adUnitSlotProdPartNumber,
+        adUnitSlotProdSerialNumber,
+        adUnitSlotProdRevision,
+        adUnitSlotProdSwVersion,
+        adUnitSlotProdPhysAddress
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Slot Group."
+    ::= { adUnitMIBGroups 10 }
+
+adUnitPortGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitPortInfoState,
+        adUnitPortIfIndex,
+        adUnitPortAlarmStatus,
+        adUnitPortDescription,
+        adUnitSlotAddress,
+        adUnitPortAddress
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Slot Group."
+    ::= { adUnitMIBGroups 11 }
+
+adUnitsCndGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitSlotProdCLEIcode,
+        adUnitSlotServiceState
+    }
+    STATUS  current
+    DESCRIPTION
+        "The CND Management Group. Support for this group is only
+        required when the unit is to be managed in a CND environment.
+        For instance, IADs which are remotely provisioned by a service
+        provider via Total Access EMS."
+    ::= { adUnitMIBGroups 12 }
+
+adUnitsExtendedBaseGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitSchedResetTime
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Extended Base Group containing functions not supported
+        by all units."
+    ::= { adUnitMIBGroups 13 }
+
+adUnitsExtendedSNMPGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitSNMPAuthenticationTraps
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Extended SNMP Group containing functions not supported
+        by all units."
+    ::= { adUnitMIBGroups 14 }
+
+adConsoleModemGroup OBJECT-GROUP
+    OBJECTS {
+        adConsoleModemInitString,
+        adConsoleInitModem
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Console Modem Group containing functions not supported
+        by all units."
+    ::= { adUnitMIBGroups 15 }
+
+adUnitsExtendedSyslogGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitSyslogMinSeverity
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Extended Syslog Group containing functions not supported
+        by all units."
+    ::= { adUnitMIBGroups 16 }
+
+adUnitExtendedPingGroup OBJECT-GROUP
+    OBJECTS {
+        adUnitPingPktMaxSize,
+        adUnitPingFillBuffer,
+        adUnitPingSource,
+        adPingRespStatus,
+        adPingRespAddr,
+        adPingRespSize,
+        adPingRespTime,
+        adPingRespTTL
+    }
+    STATUS  current
+    DESCRIPTION
+        "The Unit Ping Group supporting extended Ping operations (for
+        instance, sweep & verbose modes)."
+    ::= { adUnitMIBGroups 17 }
+
+
+
+
+END

@@ -1,0 +1,276 @@
+SNI-UNIX-MIB DEFINITIONS ::= BEGIN
+
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1996,1997
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001
+-- All rights reserved
+--
+--
+
+IMPORTS
+	OBJECT-TYPE								FROM RFC1212
+	mib-2, DisplayString					FROM RFC1213-MIB
+	TimeTicks, Counter, Gauge, enterprises	FROM RFC1155-SMI;
+
+--
+-- The Windows NT MIB compiler doesn't do IMPORTS.
+-- So, include these definitions here. NT defines "DisplayString" as
+-- OCTET STRING (SIZE(0..255)), in RFC1213 it has no explicit size.
+--
+-- DisplayString ::= OCTET  STRING
+-- enterprises     OBJECT IDENTIFIER ::= { iso org(3) dod(6) internet(1) private(4) 1 }
+
+
+-- SNI Server Management MIB nodes
+
+	sni					OBJECT IDENTIFIER       ::= { enterprises    231 }
+
+	sniProductMibs		OBJECT IDENTIFIER       ::= { sni              2 }
+	sniExtensions		OBJECT IDENTIFIER       ::= { sniProductMibs  10 }
+	sniServerMgmt		OBJECT IDENTIFIER		::= { sniExtensions    2 }
+	sniInventory		OBJECT IDENTIFIER       ::= { sniServerMgmt    1 }
+	sniCommon			OBJECT IDENTIFIER		::= { sniServerMgmt    2 }
+	  sniBios			OBJECT IDENTIFIER		::= { sniCommon        1 }
+	  sniEisa			OBJECT IDENTIFIER		::= { sniCommon        2 }
+	  sniHd				OBJECT IDENTIFIER		::= { sniCommon        3 }
+	  sniBus			OBJECT IDENTIFIER		::= { sniCommon        4 }
+	  sniServerControl	OBJECT IDENTIFIER		::= { sniCommon        5 }
+	sniPcSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    3 }
+	sniScb				OBJECT IDENTIFIER		::= { sniServerMgmt    4 }
+	sniOsSpecific		OBJECT IDENTIFIER		::= { sniServerMgmt    5 }
+	  sniNetware		OBJECT IDENTIFIER		::= { sniOsSpecific    1 }
+	  sniWinNt			OBJECT IDENTIFIER		::= { sniOsSpecific    2 }
+	  sniOs2			OBJECT IDENTIFIER		::= { sniOsSpecific    3 }
+	  sniUnix			OBJECT IDENTIFIER		::= { sniOsSpecific    4 }
+	sniOemComponents	OBJECT IDENTIFIER		::= { sniServerMgmt    6 }
+	  sniOemDpt			OBJECT IDENTIFIER		::= { sniOemComponents 1 }
+	  sniOemMylex		OBJECT IDENTIFIER		::= { sniOemComponents 2 }
+	    sniMlxDiskArray	OBJECT IDENTIFIER		::= { sniOemMylex      1 }
+	sniSecurity			OBJECT IDENTIFIER		::= { sniServerMgmt    7 }
+	  sniSmSecurity		OBJECT IDENTIFIER		::= { sniSecurity      1 }
+	sniServerView		OBJECT IDENTIFIER       ::= { sniServerMgmt    8 }
+	sniTrapMib			OBJECT IDENTIFIER       ::= { sniExtensions    5 }
+
+
+
+-- The MIB objects
+ 
+sniUXMaxUsers OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Maximum number of users allowed by operating system. -1 means unlimited."
+        ::= { sniUnix 1 }
+
+sniUXMaxProcessors OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Maximum number of processors allowed by operating system. -1 means unlimited."
+        ::= { sniUnix 2 }
+
+sniUXCurrentLogins OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The number of current logins to the server."
+        ::= { sniUnix 3 }
+
+sniUXSerialNumber OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Serial number of the server OS. Since this might be a rather large number,
+ we treat it as display string."
+        ::= { sniUnix 4 }
+
+sniUXSystemAverageUtilisation OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The average system utilisation in % (over all processors) since startup"
+        ::= { sniUnix 5 }
+
+sniUXServerMemory OBJECT-TYPE
+	SYNTAX	INTEGER
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Physical server memory in MB."
+        ::= { sniUnix 6 }
+
+sniUXTimeZone OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"Time zone e.g. GMT or Westeuropean Timezone."
+        ::= { sniUnix 8 }
+
+sniUXRunLevel OBJECT-TYPE
+	SYNTAX	DisplayString
+	ACCESS	read-only
+	STATUS	mandatory
+	DESCRIPTION
+"The current runlevel of the system."
+        ::= { sniUnix 9 }
+
+sniUXProcessTable OBJECT-TYPE
+SYNTAX  SEQUENCE OF SniUXProcessEntry
+ACCESS  not-accessible
+STATUS  mandatory
+DESCRIPTION
+	"Table of all processes in the system. This is similar to the
+	 process table within the inventory MIB, but reflects the contents
+	 of the psinfo structure."
+	::= { sniUnix 10 }
+ 
+sniUXProcessEntry OBJECT-TYPE
+	 SYNTAX       SniUXProcessEntry
+	 ACCESS  not-accessible
+	 STATUS       mandatory
+	 DESCRIPTION "One entry of sniUXProcessTable"
+	 INDEX       { sniUXProcessIndex }
+	::= { sniUXProcessTable 1 } 
+
+SniUXProcessEntry ::= SEQUENCE {
+	 sniUXProcessIndex
+	INTEGER,
+	 sniUXProcessName
+	DisplayString,
+	 sniUXProcessArguments
+	DisplayString,
+	 sniUXProcessOwner
+	DisplayString,
+	 sniUXProcessPID
+	INTEGER,
+	 sniUXProcessPPID
+	INTEGER,
+	 sniUXProcessPriority
+	INTEGER,
+	 sniUXProcessStart
+	INTEGER,
+	 sniUXProcessCPUTime
+	INTEGER,
+	 sniUXProcessClass
+	DisplayString,
+	 sniUXProcessState
+	DisplayString,
+	 sniUXProcessor
+	INTEGER
+}
+
+sniUXProcessIndex  OBJECT-TYPE
+	 SYNTAX        INTEGER
+	 ACCESS          read-only
+	 STATUS          mandatory
+	 DESCRIPTION
+	"Index into the process table. Should correspond to sniProcessIndex."
+	 ::= { sniUXProcessEntry 1 }
+
+sniUXProcessName OBJECT-TYPE
+	 SYNTAX        DisplayString
+	 ACCESS          read-only
+	 STATUS          mandatory
+	 DESCRIPTION
+	"Name of the process without path and argument information"
+	 ::= { sniUXProcessEntry 2 }
+
+sniUXProcessArguments OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Initial characters of arg list"
+	::= { sniUXProcessEntry 3 }
+
+sniUXProcessOwner OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Name of the process owner"
+	::= { sniUXProcessEntry 4 }
+
+sniUXProcessPID OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Unique process ID"
+	::= { sniUXProcessEntry 5 }
+
+sniUXProcessPPID OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Process ID of the parent process"
+	::= { sniUXProcessEntry 6 }
+
+sniUXProcessPriority OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Priority of the process (high value == high priority) resp. the
+	 'representative' LWP"
+	::= { sniUXProcessEntry 7 }
+
+sniUXProcessStart OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Process time in seconds since epoch"
+	 ::= { sniUXProcessEntry 8 }
+
+sniUXProcessCPUTime OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"usr+sys cpu time of the process in seconds"
+	 ::= { sniUXProcessEntry 9 }
+
+sniUXProcessClass OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Scheduling class name of the process (resp. the 'representative' LWP)"
+	::= { sniUXProcessEntry 10 }
+
+sniUXProcessState OBJECT-TYPE
+	SYNTAX		DisplayString 
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Single character denoting the scheduling state of the process 
+	 (resp. the 'representative' LWP). Useful values are:
+		O     Process is running on a processor.
+		S     Sleeping: process is waiting for an event to complete.
+		R     Runnable: process is on run queue.
+		I     Idle: process is being created.
+		Z     Zombie state: process terminated and parent not waiting.
+		T     Traced: process stopped by a signal because parent is 
+		      tracing it.
+		X     SXBRK state: process is waiting for more primary memory."
+	::= { sniUXProcessEntry 11 }
+
+sniUXProcessor OBJECT-TYPE
+	SYNTAX		INTEGER
+	ACCESS          read-only
+	STATUS          mandatory
+	DESCRIPTION
+	"Processor on which the process (resp. the 'representative' LWP)
+	 is running, starting with 0"
+	::= { sniUXProcessEntry 12 }
+
+END

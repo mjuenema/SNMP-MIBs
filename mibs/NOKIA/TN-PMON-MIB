@@ -1,0 +1,2099 @@
+TN-PMON-MIB DEFINITIONS ::= BEGIN
+
+-- (c) Copyright 2016 Nokia.  All rights reserved.
+-- This software is the confidential and proprietary property of
+-- Nokia and may only be used in accordance with the
+-- terms of the license agreement provided with this software.
+
+IMPORTS
+        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+        Integer32, Counter64
+            FROM SNMPv2-SMI
+
+        MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+            FROM SNMPv2-CONF
+
+        TEXTUAL-CONVENTION, RowStatus,
+        DateAndTime
+            FROM SNMPv2-TC
+
+
+        SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+        TItemDescription, TmnxPortID, TmnxEncapVal, TQueueId
+            FROM TN-TC-MIB
+
+        tnSRMIBModules, tnSRObjs
+            FROM TROPIC-GLOBAL-REG
+
+        TSapIngQueueId
+            FROM TN-SERV-MIB
+
+        tnSysSwitchId
+            FROM TROPIC-SYSTEM-MIB
+            
+        ;
+
+tnPmonMIBModule MODULE-IDENTITY
+        LAST-UPDATED "201502170000Z"
+        ORGANIZATION "Nokia"
+        CONTACT-INFO
+            "Nokia Support
+             Web: http://support.nokia.com"
+        DESCRIPTION
+        "This document is the SNMP MIB module to manage and provision the
+         Nokia SROS Logging utility.
+
+        Copyright 2003-2012 Nokia.  All rights reserved.
+        Reproduction of this document is authorized on the condition that
+        the foregoing copyright notice is included.
+
+        This SNMP MIB module (Specification) embodies Nokia's
+        proprietary intellectual property.  Nokia retains
+        all title and ownership in the Specification, including any
+        revisions.
+
+        Nokia grants all interested parties a non-exclusive
+        license to use and distribute an unmodified copy of this
+        Specification in connection with management of Nokia 
+        products, and without fee, provided this copyright notice and
+        license appear on all copies.
+
+        This Specification is supplied 'as is', and Nokia 
+        makes no warranty, either express or implied, as to the use,
+        operation, condition, or performance of the Specification."
+--
+--  Revision History
+--
+        REVISION        "201502170000Z"
+        DESCRIPTION     "Rev 0.5                17 Feb 2015 00:00
+                         -Added the following to tnPmonPolicyTable
+                          tnPmonPolicyNumOfBinsContinuous
+                          tnPmonPolicyAvailFlrThreshold
+                          tnPmonPolicyAvailFlrNumOfIntervals."
+
+        REVISION        "201307290000Z"
+        DESCRIPTION     "Rev 0.4                29 July 2013 00:00
+                         - Added the following to AluWdmStatsIntervalType
+                           to specify the interval for SLM continuous bin
+                           and updated the data range in SYNTAX:
+                           2 - continuous;
+                         - Added to DESCRIPTION of tnEthCfmTWSlmStatsBinStatus
+                           to clarify that it is not applicable to SLM
+                           continuous bin."                   
+
+        REVISION        "201305200000Z"
+        DESCRIPTION     "Rev 0.3                18 May 2013 00:00
+                         - Added the following to tnPmonPolicyTable:
+                           tnPmonPolicyFlrAvailabilityInterval15Min
+                           tnPmonPolicyFlrAvailabilityInterval1Day."
+
+        REVISION        "201303260000Z"
+        DESCRIPTION     "Rev 0.2                26 Mar 2013 00:00
+                         - Added the following to AluWdmPmonPolicyType:
+                           eth-cfm-two-way-lm(5).
+                         - Added the following to TnEthCfmTWSlmStatsTable:
+                           tnEthCfmTWSlmStatsNearEndHighLoss
+                           tnEthCfmTWSlmStatsFarEndHighLoss
+                           tnEthCfmTWSlmStatsNearEndUnavailable
+                           tnEthCfmTWSlmStatsFarEndUnavailable.
+                         - Added the following to TnEthCfmTWDmStatsTable:
+                           tnEthCfmTWDmStatsNearEndFrameDelayMin
+                           tnEthCfmTWDmStatsNearEndFrameDelayAverage
+                           tnEthCfmTWDmStatsNearEndFrameDelayMax
+                           tnEthCfmTWDmStatsFarEndFrameDelayMin
+                           tnEthCfmTWDmStatsFarEndFrameDelayAverage
+                           tnEthCfmTWDmStatsFarEndFrameDelayMax.
+                         - Added tnEthCfmTWLmStatsTable."
+
+        REVISION        "201211130000Z"
+        DESCRIPTION     "Rev 0.1                13 Nov 2012 00:00
+                         Initial version of the TN-PMON-MIB."
+
+        ::= { tnSRMIBModules 99 }
+
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+--
+--
+
+tnPmonObjs                 OBJECT IDENTIFIER ::= { tnSRObjs 99 }
+-- tnPmonConformance          OBJECT IDENTIFIER ::= { tnSRConfs 99 }
+
+--
+-- Textual Conventions
+--
+
+    AluWdmPmonPolicyType ::= TEXTUAL-CONVENTION
+        STATUS      current
+        DESCRIPTION "PMON policy type."
+        SYNTAX      INTEGER {
+                      port(1),
+                      sap(2),
+                      eth-cfm-two-way-slm(3),
+                      eth-cfm-two-way-dm(4),
+                      eth-cfm-two-way-lm(5)
+                    }
+
+    AluWdmStatsIntervalType ::= TEXTUAL-CONVENTION
+        STATUS      current
+        DESCRIPTION "Performance monitoring period:
+                     0 - 15-minute interval;
+                     1 - 1-day interval;
+                     2 - continuous;"
+        SYNTAX      INTEGER (-1..2)
+
+    AluWdmStatsBinNumber ::= TEXTUAL-CONVENTION
+        STATUS      current
+        DESCRIPTION "Current range: 0 to 32."
+        SYNTAX      INTEGER (-1..32)
+
+    AluWdmStatsBinStatus ::= TEXTUAL-CONVENTION
+        STATUS      current
+        DESCRIPTION "The bin status."
+        SYNTAX      INTEGER {
+                      valid(1),
+                      rxValid(2),
+                      txValid(3),
+                      invalid(4),
+                      dataNotAvailable(5),
+                      partial(6),
+                      adjusted(7),
+                      dataLong(8),
+                      dataComplete(9)
+                    }
+
+    AluWdmPmonStatsClearType ::= TEXTUAL-CONVENTION
+        STATUS      current
+        DESCRIPTION "PMON statistics clear type."
+        SYNTAX      INTEGER {
+                      port(1),
+                      sap(2),
+                      eth-cfm-oam-test(3)
+                    }
+
+--
+-- Nokia PMON Policy Table Scalar
+--
+  tnPmonPolicyAttributeTotal OBJECT-TYPE
+    SYNTAX         Integer32
+    MAX-ACCESS     read-only
+    STATUS         current
+    DESCRIPTION    ""
+    ::= { tnPmonObjs 1 }
+
+--
+-- Nokia PMON Policy Table
+--
+  tnPmonPolicyTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TnPmonPolicyEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Nokia pmon policy table contains an entry that
+         specifies the characteristics of the profile associated with
+         a pmon policy."
+    ::= { tnPmonObjs 2 }
+
+  tnPmonPolicyEntry OBJECT-TYPE
+    SYNTAX      TnPmonPolicyEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Defines an entry in the tnPmonPolicyTable. Entries in the
+         tnPmonPolicyTable are automatically created by the system.
+         For each policy type, 8 entries are created."
+    INDEX { tnSysSwitchId, tnPmonPolicyType, tnPmonPolicyId }
+    ::= { tnPmonPolicyTable 1 }
+
+  TnPmonPolicyEntry ::=
+    SEQUENCE {
+        tnPmonPolicyType                   AluWdmPmonPolicyType,
+        tnPmonPolicyId                     Integer32,
+        tnPmonPolicyRowStatus              RowStatus,
+        tnPmonPolicyDescription            TItemDescription,
+        tnPmonPolicyNumOfBins15Min         Integer32,
+        tnPmonPolicyNumOfBins1Day          Integer32,
+        tnPmonPolicyFlrInterval15Min       Integer32,
+        tnPmonPolicyFlrInterval1Day        Integer32,
+	tnPmonPolicyFlrAvailabilityInterval15Min	Integer32,
+	tnPmonPolicyFlrAvailabilityInterval1Day		Integer32,
+        tnPmonPolicyNumOfBinsContinuous    Integer32,
+        tnPmonPolicyAvailFlrThreshold      Integer32,
+        tnPmonPolicyAvailFlrNumOfIntervals Integer32
+        
+     }
+
+  tnPmonPolicyType    OBJECT-TYPE
+    SYNTAX      AluWdmPmonPolicyType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyType identifies the predefined type
+         pmon policy."
+    ::= { tnPmonPolicyEntry  1 }
+
+  tnPmonPolicyId  OBJECT-TYPE
+    SYNTAX      Integer32 (1..8)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyPolicyId uniquely identifies a pmon
+         policy of a predefined type.
+         Policy 1 is a default policy automatically created by the NE.
+         It cannot not be modified or deleted."
+    ::= { tnPmonPolicyEntry 2 }
+
+  tnPmonPolicyRowStatus  OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyRowStatus defines the status of the row."
+    ::= { tnPmonPolicyEntry 3 }
+
+  tnPmonPolicyDescription   OBJECT-TYPE
+    SYNTAX      TItemDescription
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyDescription is a user provided description
+         string for this pmon policy.  It can consist of any printable,
+         seven-bit ASCII characters up to 80 characters in length."
+    DEFVAL { ''H }
+    ::= { tnPmonPolicyEntry 4 }
+
+  tnPmonPolicyNumOfBins15Min      OBJECT-TYPE
+    SYNTAX      Integer32 (1..33)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyNumOfBins15Min defines how many
+         bins are used for 15-minute binning."
+    DEFVAL { 33 }
+    ::= { tnPmonPolicyEntry 5 }
+
+  tnPmonPolicyNumOfBins1Day      OBJECT-TYPE
+    SYNTAX      Integer32 (1..8)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyNumOfBins1Day defines how many
+         bins are used for 1-day binning."
+    DEFVAL { 8 }
+    ::= { tnPmonPolicyEntry 6 }
+
+  tnPmonPolicyFlrInterval15Min      OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyFlrInterval15Min defines the interval
+         (in minutes) for calculating 15-min frame loss ratio. It is 
+         applicable to eth-cfm-two-way-slm policy only."
+    DEFVAL { 1 }
+   ::= { tnPmonPolicyEntry 7 }
+
+  tnPmonPolicyFlrInterval1Day      OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyFlrInterval1Day defines the interval
+         (in minutes) for calculating 1-day frame loss ratio. It is 
+         applicable to eth-cfm-two-way-slm policy only."
+    DEFVAL { 60 }
+    ::= { tnPmonPolicyEntry 8 }
+
+  tnPmonPolicyFlrAvailabilityInterval15Min      OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object specifies an configurable availability interval in unit 
+         of seconds to be used in evaluating the availability/unavailability 
+         status for 15-min Loss Measurement PM monitoring. This object is 
+         equivalent to the Availability parameter of 'delta_t' as specified 
+         by MEF 10.2.1. 
+
+	 For SLM tool, the number of SLM PDU sent during this interval must be 
+	 in the range of 10 through 100. 
+
+	 For LM tool, the number of LMM PDU sent during this interval must be 
+	 in the range of 1 through 10 must be supported.
+	 
+	 The range of this object is product-specific."
+    DEFVAL { 10 }
+    ::= { tnPmonPolicyEntry 9 }
+    
+   tnPmonPolicyFlrAvailabilityInterval1Day      OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "This object specifies an configurable availability interval in unit 
+         of seconds to be used in evaluating the availability/unavailability 
+         status for 1-day Loss Measurement PM monitoring. This object is 
+         equivalent to the Availability parameter of 'delta_t' as specified 
+         by MEF 10.2.1. 
+
+	 For SLM tool, the number of SLM PDU sent during this interval must be
+	 in the range of 10 through 100. 
+
+	 For LM tool, the number of LMM PDU sent during this interval must be 
+	 in the range of 1 through 10 must be supported.
+	 
+	 The range of this object is product-specific."
+    DEFVAL { 10 }
+    ::= { tnPmonPolicyEntry 10 }
+    
+   tnPmonPolicyNumOfBinsContinuous      OBJECT-TYPE
+    SYNTAX      Integer32 (0..1)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyNumOfBinsContinuous defines whether
+         or not a continuous bin is used for binning."
+    DEFVAL { 0 }
+    ::= { tnPmonPolicyEntry 11 }
+
+  tnPmonPolicyAvailFlrThreshold      OBJECT-TYPE
+    SYNTAX      Integer32 (0..100)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyAvailFlrThreshold defines the threshold
+         (in percentage) which if exceeded marks an availability FLR delta-t
+         as bad. It is applicable to eth-cfm-two-way-slm policy only."
+    DEFVAL { 50 }
+    ::= { tnPmonPolicyEntry 12 }
+
+  tnPmonPolicyAvailFlrNumOfIntervals      OBJECT-TYPE
+    SYNTAX      Integer32 (1..10)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonPolicyAvailFlrNumOfIntervals defines the
+         number of consectutive small time intervals over which to assess
+         availability. It is applicable to eth-cfm-two-way-slm policy only."
+    DEFVAL { 10 }
+    ::= { tnPmonPolicyEntry 13 }
+    
+
+--
+-- Nokia PMON Clear Table Scalar
+--
+tnPmonClearAttributeTotal OBJECT-TYPE
+    SYNTAX         Integer32
+    MAX-ACCESS     read-only
+    STATUS         current
+    DESCRIPTION    ""
+    ::= { tnPmonObjs 3 }
+
+--
+-- Nokia PMON Clear Table
+--
+  tnPmonClearTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TnPmonClearEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Nokia pmon clear table contains an one-shot command
+         that clears the bins of a specified entity associated with the 
+         pmon policy."
+    ::= { tnPmonObjs 4 }
+
+  tnPmonClearEntry OBJECT-TYPE
+    SYNTAX      TnPmonClearEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Defines an entry in the tnPmonClearTable."
+    INDEX { tnSysSwitchId, tnPmonClearType }
+    ::= { tnPmonClearTable 1 }
+
+  TnPmonClearEntry ::=
+    SEQUENCE {
+        tnPmonClearType              AluWdmPmonStatsClearType,
+        tnPmonClearPortId            TmnxPortID,
+        tnPmonClearEncapValue        TmnxEncapVal,
+        tnPmonClearTestName          SnmpAdminString,
+        tnPmonClearInterval          AluWdmStatsIntervalType,
+        tnPmonClearBin               AluWdmStatsBinNumber
+     }
+
+  tnPmonClearType    OBJECT-TYPE
+    SYNTAX      AluWdmPmonStatsClearType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonClearType specifies the type of the entity
+         whose pmon statistics counter to be cleared."
+    ::= { tnPmonClearEntry 1 }
+
+  tnPmonClearPortId    OBJECT-TYPE
+    SYNTAX      TmnxPortID
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonClearPortId specifies the port of which
+         the bin(s) to be cleared. It is applicable to port or SAP
+         pmon policy."
+    ::= { tnPmonClearEntry 2 }
+
+  tnPmonClearEncapValue    OBJECT-TYPE
+    SYNTAX      TmnxEncapVal
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonClearEncapValue specifies the encap value
+         of the SAP of which the bin(s) to be cleared. It is applicable
+         to SAP pmon policy."
+    ::= { tnPmonClearEntry 3 }
+
+  tnPmonClearTestName    OBJECT-TYPE
+    SYNTAX      SnmpAdminString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonClearTestName specifies the name
+         of the test of which the bin(s) to be cleared. It is
+         applicable to Eth-Cfm-Two-Way-Slm and Eth-Cfm-Two-Way-Dm pmon policy."
+    ::= { tnPmonClearEntry 4 }
+
+  tnPmonClearInterval  OBJECT-TYPE
+    SYNTAX      AluWdmStatsIntervalType
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonClearInterval specifies the interval
+         of which the bin(s) to be cleared. The default value (-1)
+         indicates all bins in all intervals will be cleared."
+    DEFVAL { -1 }
+    ::= { tnPmonClearEntry 5 }
+
+  tnPmonClearBin  OBJECT-TYPE
+    SYNTAX      AluWdmStatsBinNumber
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonClearBin specifies the bin number to be cleared.
+         The default value (-1) indicates all bins in the interval will
+         be cleared."
+    DEFVAL { -1 }
+    ::= { tnPmonClearEntry 6 }
+
+--
+-- Nokia PMON TCA Table Scalar
+--
+tnPmonTcaAttributeTotal OBJECT-TYPE
+    SYNTAX         Integer32
+    MAX-ACCESS     read-only
+    STATUS         current
+    DESCRIPTION    ""
+    ::= { tnPmonObjs 5 }
+
+--
+-- Nokia PMON TCA Table
+--
+  tnPmonTcaTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TnPmonTcaEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The TCA table contains entries for each TCA that belongs to
+         a specific type of pmon policy."
+    ::= { tnPmonObjs 6 }
+
+  tnPmonTcaEntry OBJECT-TYPE
+    SYNTAX      TnPmonTcaEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Defines an entry in the tnPmonTcaTable. The entries are
+         automatically created when a pmon policy is created."
+    INDEX { tnSysSwitchId, tnPmonPolicyType, tnPmonPolicyId, tnPmonTcaInterval, tnPmonTcaSubgroup, tnPmonTcaId }
+    ::= { tnPmonTcaTable 1 }
+
+  TnPmonTcaEntry ::=
+    SEQUENCE {
+        tnPmonTcaInterval          AluWdmStatsIntervalType,
+        tnPmonTcaSubgroup          Integer32,
+        tnPmonTcaId                Integer32,
+        tnPmonTcaVariable          OBJECT IDENTIFIER,
+        tnPmonTcaValue             SnmpAdminString
+     }
+
+  tnPmonTcaInterval  OBJECT-TYPE
+    SYNTAX      AluWdmStatsIntervalType
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonInterval identifies which PMON interval the TCAs
+         apply."
+    ::= { tnPmonTcaEntry 1 }
+
+  tnPmonTcaSubgroup  OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonTcasubgroup identifies a TCA subgroup
+         within a specific pmon policy.
+           Port PMON policy:
+             subgroup = 1 for port TCAs;
+             subgroup = 2..9 for port egress queue1-8 TCAs.
+           SAP PMON policy:
+             subgroup = 1 for SAP TCAs;
+             subgroup = 2..33 for meter TCAs;
+           SLM/DM PMON policy:
+             subgroup = 1."
+    ::= { tnPmonTcaEntry 2 }
+
+  tnPmonTcaId  OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonTcaId uniquely identifies a TCA
+         within a specific pmon policy. It has a corresponding
+         member in the binned statistics table."
+    ::= { tnPmonTcaEntry 3 }
+
+  tnPmonTcaVariable   OBJECT-TYPE
+    SYNTAX      OBJECT IDENTIFIER
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonTcaVariable is the object identifier of
+         the corresponding member of the binned statistics table."
+    ::= { tnPmonTcaEntry 4 }
+
+  tnPmonTcaValue   OBJECT-TYPE
+    SYNTAX      SnmpAdminString (SIZE(1..20))
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The value of tnPmonTcaValue specifies the threshold crossing value.
+         A value of '0' indicates that TCA is disabled."
+    DEFVAL { '0'H }
+    ::= { tnPmonTcaEntry 5 }
+
+--
+-- Nokia PMON Ethernet Port Statistics Table Scalar
+--
+tnEthPortStatsAttributeTotal OBJECT-TYPE
+    SYNTAX         Integer32
+    MAX-ACCESS     read-only
+    STATUS         current
+    DESCRIPTION    ""
+    ::= { tnPmonObjs 7 }
+
+--
+-- Nokia PMON Ethernet Port Statistics Table
+--
+
+  tnEthPortStatsTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF TnEthPortStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "The tnEthPortStatsTable stores information of a port bin."
+     ::= { tnPmonObjs 8 }
+
+  tnEthPortStatsEntry OBJECT-TYPE
+     SYNTAX      TnEthPortStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION ""
+     INDEX   { tnEthPortStatsPortId,
+               tnEthPortStatsInterval,
+               tnEthPortStatsBin }
+     ::= { tnEthPortStatsTable 1 }
+
+  TnEthPortStatsEntry ::=
+     SEQUENCE {
+         tnEthPortStatsPortId                                TmnxPortID,
+         tnEthPortStatsInterval                              AluWdmStatsIntervalType,
+         tnEthPortStatsBin                                   AluWdmStatsBinNumber,
+         tnEthPortStatsBinStatus                             AluWdmStatsBinStatus,
+         tnEthPortStatsStartTime                             DateAndTime,
+         tnEthPortStatsTotalMembers                          Integer32,
+         tnEthPortStatsIfInOctets                            Counter64,
+         tnEthPortStatsIfInUcastPkts                         Counter64,
+         tnEthPortStatsIfInDiscards                          Counter64,
+         tnEthPortStatsIfInErrors                            Counter64,
+         tnEthPortStatsIfInUnknownProtos                     Counter64,
+         tnEthPortStatsIfInMulticastPkts                     Counter64,
+         tnEthPortStatsIfInBroadcastPkts                     Counter64,
+         tnEthPortStatsIfOutOctets                           Counter64,
+         tnEthPortStatsIfOutUcastPkts                        Counter64,
+         tnEthPortStatsIfOutDiscards                         Counter64,
+         tnEthPortStatsIfOutErrors                           Counter64,
+         tnEthPortStatsIfOutMulticastPkts                    Counter64,
+         tnEthPortStatsIfOutBroadcastPkts                    Counter64,
+         tnEthPortStatsIfInPkts                              Counter64,
+         tnEthPortStatsIfOutPkts                             Counter64,
+         tnEthPortEtherStatsDropEvents                       Counter64,
+         tnEthPortEtherStatsBroadcastPkts                    Counter64,
+         tnEthPortEtherStatsMulticastPkts                    Counter64,
+         tnEthPortEtherStatsCRCAlignErrors                   Counter64,
+         tnEthPortEtherStatsUndersizePkts                    Counter64,
+         tnEthPortEtherStatsOversizePkts                     Counter64,
+         tnEthPortEtherStatsFragments                        Counter64,
+         tnEthPortEtherStatsJabbers                          Counter64,
+         tnEthPortEtherStatsCollisions                       Counter64,
+         tnEthPortEtherStatsHighCapacityPkts                 Counter64,
+         tnEthPortEtherStatsHighCapacityOctets               Counter64,
+         tnEthPortEtherStatsHighCapacityPkts64Octets         Counter64,
+         tnEthPortEtherStatsHighCapacityPkts65to127Octets    Counter64,
+         tnEthPortEtherStatsHighCapacityPkts128to255Octets   Counter64,
+         tnEthPortEtherStatsHighCapacityPkts256to511Octets   Counter64,
+         tnEthPortEtherStatsHighCapacityPkts512to1023Octets  Counter64,
+         tnEthPortEtherStatsHighCapacityPkts1024to1518Octets Counter64,
+         tnEthPortEtherStatsHighCapacityPkts1519toMaxOctets  Counter64,
+         tnEthPortDot3StatsAlignmentErrors                   Counter64,
+         tnEthPortDot3StatsFCSErrors                         Counter64,
+         tnEthPortDot3StatsSingleCollisionFrames             Counter64,
+         tnEthPortDot3StatsMultipleCollisionFrames           Counter64,
+         tnEthPortDot3StatsSQETestErrors                     Counter64,
+         tnEthPortDot3StatsDeferredTransmissions             Counter64,
+         tnEthPortDot3StatsLateCollisions                    Counter64,
+         tnEthPortDot3StatsExcessiveCollisions               Counter64,
+         tnEthPortDot3StatsInternalMacTransmitErrors         Counter64,
+         tnEthPortDot3StatsCarrierSenseErrors                Counter64,
+         tnEthPortDot3StatsFrameTooLongs                     Counter64,
+         tnEthPortDot3StatsInternalMacReceiveErrors          Counter64,
+         tnEthPortDot3StatsSymbolErrors                      Counter64
+     }
+
+  tnEthPortStatsPortId   OBJECT-TYPE
+        SYNTAX      TmnxPortID
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The port ID."
+        ::= { tnEthPortStatsEntry 1 }
+
+  tnEthPortStatsInterval OBJECT-TYPE
+        SYNTAX      AluWdmStatsIntervalType
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The collection interval."
+        ::= { tnEthPortStatsEntry 2 }
+
+  tnEthPortStatsBin OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinNumber
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The bin number, starting with bin 0."
+        ::= { tnEthPortStatsEntry 3 }
+
+  tnEthPortStatsBinStatus OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinStatus
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute indicates the validity of the bin."
+        ::= { tnEthPortStatsEntry 4 }
+
+  tnEthPortStatsStartTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the bin collection start date and time."
+        ::= { tnEthPortStatsEntry 5 }
+
+  tnEthPortStatsTotalMembers OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the total number of members in the bin."
+        ::= { tnEthPortStatsEntry 6 }
+
+  tnEthPortStatsIfInOctets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 7 }
+
+  tnEthPortStatsIfInUcastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 8 }
+
+  tnEthPortStatsIfInDiscards OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 9 }
+
+  tnEthPortStatsIfInErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 10 }
+
+  tnEthPortStatsIfInUnknownProtos OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 11 }
+
+  tnEthPortStatsIfInMulticastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 12 }
+
+  tnEthPortStatsIfInBroadcastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 13 }
+
+  tnEthPortStatsIfOutOctets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 14 }
+
+  tnEthPortStatsIfOutUcastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 15 }
+
+  tnEthPortStatsIfOutDiscards OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 16 }
+
+  tnEthPortStatsIfOutErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 17 }
+
+  tnEthPortStatsIfOutMulticastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 18 }
+
+  tnEthPortStatsIfOutBroadcastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 19 }
+ 
+  tnEthPortStatsIfInPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 20 }
+ 
+  tnEthPortStatsIfOutPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 21 }
+ 
+  tnEthPortEtherStatsDropEvents OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 22 }
+
+  tnEthPortEtherStatsBroadcastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 23 }
+
+  tnEthPortEtherStatsMulticastPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 24 }
+
+  tnEthPortEtherStatsCRCAlignErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 25 }
+
+  tnEthPortEtherStatsUndersizePkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 26 }
+
+  tnEthPortEtherStatsOversizePkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 27 }
+
+  tnEthPortEtherStatsFragments OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 28 }
+
+  tnEthPortEtherStatsJabbers OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 29 }
+
+  tnEthPortEtherStatsCollisions OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 30 }
+
+  tnEthPortEtherStatsHighCapacityPkts OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 31 }
+
+  tnEthPortEtherStatsHighCapacityOctets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 32 }
+
+  tnEthPortEtherStatsHighCapacityPkts64Octets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 33 }
+
+  tnEthPortEtherStatsHighCapacityPkts65to127Octets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 34 }
+
+  tnEthPortEtherStatsHighCapacityPkts128to255Octets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 35 }
+
+  tnEthPortEtherStatsHighCapacityPkts256to511Octets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 36 }
+
+  tnEthPortEtherStatsHighCapacityPkts512to1023Octets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 37 }
+
+  tnEthPortEtherStatsHighCapacityPkts1024to1518Octets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 38 }
+
+  tnEthPortEtherStatsHighCapacityPkts1519toMaxOctets OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 39 }
+
+  tnEthPortDot3StatsAlignmentErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 40 }
+
+  tnEthPortDot3StatsFCSErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 41 }
+
+  tnEthPortDot3StatsSingleCollisionFrames OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 42 }
+
+  tnEthPortDot3StatsMultipleCollisionFrames OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 43 }
+
+  tnEthPortDot3StatsSQETestErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 44 }
+
+  tnEthPortDot3StatsDeferredTransmissions OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 45 }
+
+  tnEthPortDot3StatsLateCollisions OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 46 }
+
+  tnEthPortDot3StatsExcessiveCollisions OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 47 }
+
+  tnEthPortDot3StatsInternalMacTransmitErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 48 }
+
+  tnEthPortDot3StatsCarrierSenseErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 49 }
+
+  tnEthPortDot3StatsFrameTooLongs OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 50 }
+
+  tnEthPortDot3StatsInternalMacReceiveErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 51 }
+
+  tnEthPortDot3StatsSymbolErrors OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortStatsEntry 52 }
+
+--
+-- Nokia PMON Ethernet Port Egress Queue Statistics Table Scalar
+--
+  tnEthPortEgrQueueStatsAttributeTotal OBJECT-TYPE
+     SYNTAX         Integer32
+     MAX-ACCESS     read-only
+     STATUS         current
+     DESCRIPTION    ""
+     ::= { tnPmonObjs 9 }
+
+--
+-- Nokia PMON Ethernet Port Egress Queue Statistics Table
+--
+  tnEthPortEgrQueueStatsTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF TnEthPortEgrQueueStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This table extends tnEthPortStatsTable to provide egress queue statistics
+        counters of a port."
+     ::= { tnPmonObjs 10 }
+
+  tnEthPortEgrQueueStatsEntry OBJECT-TYPE
+     SYNTAX      TnEthPortEgrQueueStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION ""
+     INDEX   { tnEthPortStatsPortId,
+               tnEthPortStatsInterval,
+               tnEthPortStatsBin,
+               tnEthPortStatsQueueId}
+     ::= { tnEthPortEgrQueueStatsTable 1 }
+
+  TnEthPortEgrQueueStatsEntry ::=
+     SEQUENCE {
+         tnEthPortStatsQueueId                               TQueueId,
+         tnEthPortEgrQueueStatsInProfilePktsForwarded        Counter64,
+         tnEthPortEgrQueueStatsOutOfProfilePktsForwarded     Counter64,
+         tnEthPortEgrQueueStatsInProfileOctetsForwarded      Counter64,
+         tnEthPortEgrQueueStatsOutOfProfileOctetsForwarded   Counter64,
+         tnEthPortEgrQueueStatsInProfilePktsDropped          Counter64,
+         tnEthPortEgrQueueStatsOutOfProfilePktsDropped       Counter64,
+         tnEthPortEgrQueueStatsInProfileOctetsDropped        Counter64,
+         tnEthPortEgrQueueStatsOutOfProfileOctetsDropped     Counter64
+     }
+
+  tnEthPortStatsQueueId   OBJECT-TYPE
+        SYNTAX      TQueueId (1..8)
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The queue ID."
+        ::= { tnEthPortEgrQueueStatsEntry 1 }
+
+  tnEthPortEgrQueueStatsInProfilePktsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 2 }
+
+  tnEthPortEgrQueueStatsOutOfProfilePktsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 3 }
+
+  tnEthPortEgrQueueStatsInProfileOctetsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 4 }
+
+  tnEthPortEgrQueueStatsOutOfProfileOctetsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 5 }
+
+  tnEthPortEgrQueueStatsInProfilePktsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 6 }
+
+  tnEthPortEgrQueueStatsOutOfProfilePktsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 7 }
+
+  tnEthPortEgrQueueStatsInProfileOctetsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 8 }
+
+  tnEthPortEgrQueueStatsOutOfProfileOctetsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthPortEgrQueueStatsEntry 9 }
+
+--
+-- Nokia PMON SAP Statistics Table Scalar
+--
+  tnSapStatsAttributeTotal OBJECT-TYPE
+     SYNTAX         Integer32
+     MAX-ACCESS     read-only
+     STATUS         current
+     DESCRIPTION    ""
+     ::= { tnPmonObjs 11 }
+
+--
+-- Nokia PMON SAP Statistics Table
+--
+  tnSapStatsTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF TnSapStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "The tnSapStatsTable stores information of a SAP bin."
+     ::= { tnPmonObjs 12 }
+
+  tnSapStatsEntry OBJECT-TYPE
+     SYNTAX      TnSapStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION ""
+     INDEX   { tnSapStatsPortId,
+               tnSapStatsEncapVal,
+               tnSapStatsInterval,
+               tnSapStatsBin }
+     ::= { tnSapStatsTable 1 }
+
+  TnSapStatsEntry ::=
+     SEQUENCE {
+         tnSapStatsPortId                        TmnxPortID,
+         tnSapStatsEncapVal                      TmnxEncapVal,
+         tnSapStatsInterval                      AluWdmStatsIntervalType,
+         tnSapStatsBin                           AluWdmStatsBinNumber,
+         tnSapStatsBinStatus                     AluWdmStatsBinStatus,
+         tnSapStatsStartTime                     DateAndTime,
+         tnSapStatsTotalMembers                  Integer32,
+         tnSapStatsIngressPktsForwarded          Counter64,
+         tnSapStatsIngressOctetsForwarded        Counter64,
+         tnSapStatsEgressPktsForwarded           Counter64,
+         tnSapStatsEgressOctetsForwarded         Counter64,
+         tnSapStatsIngressPktsDropped            Counter64,
+         tnSapStatsIngressOctetsDropped          Counter64,
+         tnSapStatsIngressExtraTagPktsDropped    Counter64,
+         tnSapStatsIngressExtraTagOctetsDropped  Counter64
+     }
+
+  tnSapStatsPortId   OBJECT-TYPE
+        SYNTAX      TmnxPortID
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The port ID."
+        ::= { tnSapStatsEntry 1 }
+
+  tnSapStatsEncapVal   OBJECT-TYPE
+        SYNTAX      TmnxEncapVal
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The encapsulation value."
+        ::= { tnSapStatsEntry 2 }
+
+  tnSapStatsInterval OBJECT-TYPE
+        SYNTAX      AluWdmStatsIntervalType
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The collection interval."
+        ::= { tnSapStatsEntry 3 }
+
+  tnSapStatsBin OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinNumber
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The bin number, starting with bin 0."
+        ::= { tnSapStatsEntry 4 }
+
+  tnSapStatsBinStatus OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinStatus
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute indicates the validity of the bin."
+        ::= { tnSapStatsEntry 5 }
+
+  tnSapStatsStartTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the bin collection start date and time."
+        ::= { tnSapStatsEntry 6 }
+
+  tnSapStatsTotalMembers OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the total number of members in the bin."
+        ::= { tnSapStatsEntry 7 }
+
+  tnSapStatsIngressPktsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 8 }
+
+  tnSapStatsIngressOctetsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 9 }
+
+  tnSapStatsEgressPktsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 10 }
+
+  tnSapStatsEgressOctetsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 11 }
+
+  tnSapStatsIngressPktsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 12 }
+
+  tnSapStatsIngressOctetsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 13 }
+
+  tnSapStatsIngressExtraTagPktsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 14 }
+
+  tnSapStatsIngressExtraTagOctetsDropped OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapStatsEntry 15 }
+
+--
+-- Nokia PMON SAP Meter Statistics Table Scalar
+--
+  tnSapMeterStatsAttributeTotal OBJECT-TYPE
+     SYNTAX         Integer32
+     MAX-ACCESS     read-only
+     STATUS         current
+     DESCRIPTION    ""
+     ::= { tnPmonObjs 13 }
+
+--
+-- Nokia PMON SAP Meter Statistics Table
+--
+  tnSapMeterStatsTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF TnSapMeterStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "This table extends tnSapStatsTable to provide meter statistics
+        counters of a SAP."
+     ::= { tnPmonObjs 14 }
+
+  tnSapMeterStatsEntry OBJECT-TYPE
+     SYNTAX      TnSapMeterStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION ""
+     INDEX   { tnSapStatsPortId,
+               tnSapStatsEncapVal,
+               tnSapStatsInterval,
+               tnSapStatsBin,
+               tnSapStatsMeterId}
+     ::= { tnSapMeterStatsTable 1 }
+
+  TnSapMeterStatsEntry ::=
+     SEQUENCE {
+         tnSapStatsMeterId                             TSapIngQueueId,
+         tnSapMeterStatsInProfilePktsForwarded         Counter64,
+         tnSapMeterStatsOutOfProfilePktsForwarded      Counter64,
+         tnSapMeterStatsInProfileOctetsForwarded       Counter64,
+         tnSapMeterStatsOutOfProfileOctetsForwarded    Counter64
+     }
+
+  tnSapStatsMeterId   OBJECT-TYPE
+        SYNTAX      TSapIngQueueId
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The meter ID."
+        ::= { tnSapMeterStatsEntry 1 }
+
+  tnSapMeterStatsInProfilePktsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapMeterStatsEntry 2 }
+
+  tnSapMeterStatsOutOfProfilePktsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapMeterStatsEntry 3 }
+
+  tnSapMeterStatsInProfileOctetsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapMeterStatsEntry 4 }
+
+  tnSapMeterStatsOutOfProfileOctetsForwarded OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnSapMeterStatsEntry 5 }
+
+--
+-- Nokia PMON ETH CFM Two-Way SLM Statistics Table Scalar
+--
+  tnEthCfmTWSlmStatsAttributeTotal OBJECT-TYPE
+     SYNTAX         Integer32
+     MAX-ACCESS     read-only
+     STATUS         current
+     DESCRIPTION    ""
+     ::= { tnPmonObjs 15 }
+
+--
+-- Nokia PMON ETH CFM Two-Way SLM Statistics Table
+--
+  tnEthCfmTWSlmStatsTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF TnEthCfmTWSlmStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "The tnEthCfmTWSlmStatsTable stores information of a Eth-Cfm-Two-Way-Slm bin."
+     ::= { tnPmonObjs 16 }
+
+  tnEthCfmTWSlmStatsEntry OBJECT-TYPE
+     SYNTAX      TnEthCfmTWSlmStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION ""
+     INDEX   { tnSysSwitchId,
+               tnEthCfmTWSlmStatsTestName,
+               tnEthCfmTWSlmStatsInterval,
+               tnEthCfmTWSlmStatsBin }
+     ::= { tnEthCfmTWSlmStatsTable 1 }
+
+  TnEthCfmTWSlmStatsEntry ::=
+     SEQUENCE {
+         tnEthCfmTWSlmStatsTestName                       SnmpAdminString,
+         tnEthCfmTWSlmStatsInterval                       AluWdmStatsIntervalType,
+         tnEthCfmTWSlmStatsBin                            AluWdmStatsBinNumber,
+         tnEthCfmTWSlmStatsBinStatus                      AluWdmStatsBinStatus,
+         tnEthCfmTWSlmStatsStartTime                      DateAndTime,
+         tnEthCfmTWSlmStatsTotalMembers                   Integer32,
+         tnEthCfmTWSlmStatsNearEndFrameLossRatioMin       Integer32,
+         tnEthCfmTWSlmStatsNearEndFrameLossRatioAverage   Integer32,
+         tnEthCfmTWSlmStatsNearEndFrameLossRatioMax       Integer32,
+         tnEthCfmTWSlmStatsFarEndFrameLossRatioMin        Integer32,
+         tnEthCfmTWSlmStatsFarEndFrameLossRatioAverage    Integer32,
+         tnEthCfmTWSlmStatsFarEndFrameLossRatioMax        Integer32,
+         tnEthCfmTWSlmStatsNearEndHighLoss        	  Integer32,
+         tnEthCfmTWSlmStatsFarEndHighLoss        	  Integer32,
+         tnEthCfmTWSlmStatsNearEndUnavailable        	  Integer32,
+         tnEthCfmTWSlmStatsFarEndUnavailable        	  Integer32
+     }
+
+  tnEthCfmTWSlmStatsTestName   OBJECT-TYPE
+        SYNTAX      SnmpAdminString
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The test name."
+        ::= { tnEthCfmTWSlmStatsEntry 1 }
+
+  tnEthCfmTWSlmStatsInterval OBJECT-TYPE
+        SYNTAX      AluWdmStatsIntervalType
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The collection interval."
+        ::= { tnEthCfmTWSlmStatsEntry 2 }
+
+  tnEthCfmTWSlmStatsBin OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinNumber
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The bin number, starting with bin 0."
+        ::= { tnEthCfmTWSlmStatsEntry 3 }
+
+  tnEthCfmTWSlmStatsBinStatus OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinStatus
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute indicates the validity of the bin.
+                      This attribute does not apply to Continuous Bin."
+        ::= { tnEthCfmTWSlmStatsEntry 4 }
+
+  tnEthCfmTWSlmStatsStartTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the bin collection start date and time."
+        ::= { tnEthCfmTWSlmStatsEntry 5 }
+
+  tnEthCfmTWSlmStatsTotalMembers OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the total number of members in the bin."
+        ::= { tnEthCfmTWSlmStatsEntry 6 }
+
+  tnEthCfmTWSlmStatsNearEndFrameLossRatioMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWSlmStatsEntry 7 }
+
+  tnEthCfmTWSlmStatsNearEndFrameLossRatioAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWSlmStatsEntry 8 }
+
+  tnEthCfmTWSlmStatsNearEndFrameLossRatioMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWSlmStatsEntry 9 }
+
+  tnEthCfmTWSlmStatsFarEndFrameLossRatioMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWSlmStatsEntry 10 }
+
+  tnEthCfmTWSlmStatsFarEndFrameLossRatioAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWSlmStatsEntry 11 }
+
+  tnEthCfmTWSlmStatsFarEndFrameLossRatioMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWSlmStatsEntry 12 }
+
+  tnEthCfmTWSlmStatsNearEndHighLoss OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object is the number of high loss intervals (HLI) over time 
+           in the near-end direction. High loss interval (HLI) is the availability 
+           interval during which the flr is larger than 0.5. 
+ 
+	   The value starts at 0 and increments for every HLI that occurs."
+        ::= { tnEthCfmTWSlmStatsEntry 13 }
+        
+  tnEthCfmTWSlmStatsFarEndHighLoss OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object is the number of high loss intervals (HLI) over time 
+           in the far-end direction. High loss interval (HLI) is the availability 
+           interval during which the flr is larger than 0.5. 
+ 
+	   The value starts at 0 and increments for every HLI that occurs."
+        ::= { tnEthCfmTWSlmStatsEntry 14 }
+
+  tnEthCfmTWSlmStatsNearEndUnavailable OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object contains the number of availability intervals evaluated 
+           as unavailable in the near-end direction by this MEP during this 
+           collection Interval."
+        ::= { tnEthCfmTWSlmStatsEntry 15 }
+        
+  tnEthCfmTWSlmStatsFarEndUnavailable OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object contains the number of availability intervals evaluated 
+           as unavailable in the far-end direction by this MEP during this 
+           collection Interval."
+        ::= { tnEthCfmTWSlmStatsEntry 16 }
+
+--
+-- Nokia PMON ETH CFM Two-Way DM Statistics Table Scalar
+--
+  tnEthCfmTWDmStatsAttributeTotal OBJECT-TYPE
+     SYNTAX         Integer32
+     MAX-ACCESS     read-only
+     STATUS         current
+     DESCRIPTION    ""
+     ::= { tnPmonObjs 17 }
+
+--
+-- Nokia PMON ETH CFM Two-Way DM Statistics Table
+--
+  tnEthCfmTWDmStatsTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF TnEthCfmTWDmStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "The tnEthCfmTWDmStatsTable stores information of a Eth-Cfm-Two-Way-Dm bin."
+     ::= { tnPmonObjs 18 }
+
+  tnEthCfmTWDmStatsEntry OBJECT-TYPE
+     SYNTAX      TnEthCfmTWDmStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION ""
+     INDEX   { tnSysSwitchId,
+               tnEthCfmTWDmStatsTestName,
+               tnEthCfmTWDmStatsInterval,
+               tnEthCfmTWDmStatsBin }
+     ::= { tnEthCfmTWDmStatsTable 1 }
+
+  TnEthCfmTWDmStatsEntry ::=
+     SEQUENCE {
+         tnEthCfmTWDmStatsTestName                           SnmpAdminString,
+         tnEthCfmTWDmStatsInterval                           AluWdmStatsIntervalType,
+         tnEthCfmTWDmStatsBin                                AluWdmStatsBinNumber,
+         tnEthCfmTWDmStatsBinStatus                          AluWdmStatsBinStatus,
+         tnEthCfmTWDmStatsStartTime                          DateAndTime,
+         tnEthCfmTWDmStatsTotalMembers                       Integer32,
+         tnEthCfmTWDmStatsRoundTripFrameDelayMin             Integer32,
+         tnEthCfmTWDmStatsRoundTripFrameDelayAverage         Integer32,
+         tnEthCfmTWDmStatsRoundTripFrameDelayMax             Integer32,
+         tnEthCfmTWDmStatsNearEndFrameDelayVariationMin      Integer32,
+         tnEthCfmTWDmStatsNearEndFrameDelayVariationAverage  Integer32,
+         tnEthCfmTWDmStatsNearEndFrameDelayVariationMax      Integer32,
+         tnEthCfmTWDmStatsFarEndFrameDelayVariationMin       Integer32,
+         tnEthCfmTWDmStatsFarEndFrameDelayVariationAverage   Integer32,
+         tnEthCfmTWDmStatsFarEndFrameDelayVariationMax       Integer32,
+         tnEthCfmTWDmStatsNearEndFrameDelayMin               Integer32,
+         tnEthCfmTWDmStatsNearEndFrameDelayAverage           Integer32,
+         tnEthCfmTWDmStatsNearEndFrameDelayMax               Integer32,
+         tnEthCfmTWDmStatsFarEndFrameDelayMin                Integer32,
+         tnEthCfmTWDmStatsFarEndFrameDelayAverage            Integer32,
+         tnEthCfmTWDmStatsFarEndFrameDelayMax                Integer32
+     }
+
+  tnEthCfmTWDmStatsTestName   OBJECT-TYPE
+        SYNTAX      SnmpAdminString
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The test name."
+        ::= { tnEthCfmTWDmStatsEntry 1 }
+
+  tnEthCfmTWDmStatsInterval OBJECT-TYPE
+        SYNTAX      AluWdmStatsIntervalType
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The collection interval."
+        ::= { tnEthCfmTWDmStatsEntry 2 }
+
+  tnEthCfmTWDmStatsBin OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinNumber
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The bin number, starting with bin 0."
+        ::= { tnEthCfmTWDmStatsEntry 3 }
+
+  tnEthCfmTWDmStatsBinStatus OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinStatus
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute indicates the validity of the bin."
+        ::= { tnEthCfmTWDmStatsEntry 4 }
+
+  tnEthCfmTWDmStatsStartTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the bin collection start date and time."
+        ::= { tnEthCfmTWDmStatsEntry 5 }
+
+  tnEthCfmTWDmStatsTotalMembers OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the total number of members in the bin."
+        ::= { tnEthCfmTWDmStatsEntry 6 }
+
+  tnEthCfmTWDmStatsRoundTripFrameDelayMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 7 }
+
+  tnEthCfmTWDmStatsRoundTripFrameDelayAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 8 }
+
+  tnEthCfmTWDmStatsRoundTripFrameDelayMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 9 }
+
+  tnEthCfmTWDmStatsNearEndFrameDelayVariationMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 10 }
+
+  tnEthCfmTWDmStatsNearEndFrameDelayVariationAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 11 }
+
+  tnEthCfmTWDmStatsNearEndFrameDelayVariationMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 12 }
+
+  tnEthCfmTWDmStatsFarEndFrameDelayVariationMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 13 }
+
+  tnEthCfmTWDmStatsFarEndFrameDelayVariationAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 14 }
+
+  tnEthCfmTWDmStatsFarEndFrameDelayVariationMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 15 }
+
+ tnEthCfmTWDmStatsNearEndFrameDelayMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 16 }
+
+  tnEthCfmTWDmStatsNearEndFrameDelayAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 17 }
+
+  tnEthCfmTWDmStatsNearEndFrameDelayMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 18 }
+        
+ tnEthCfmTWDmStatsFarEndFrameDelayMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 19 }
+
+  tnEthCfmTWDmStatsFarEndFrameDelayAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 20 }
+
+  tnEthCfmTWDmStatsFarEndFrameDelayMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWDmStatsEntry 21 }
+
+--
+-- Nokia PMON ETH CFM Two-Way LM Statistics Table Scalar
+--
+  tnEthCfmTWLmStatsAttributeTotal OBJECT-TYPE
+     SYNTAX         Integer32
+     MAX-ACCESS     read-only
+     STATUS         current
+     DESCRIPTION    ""
+     ::= { tnPmonObjs 19}
+
+--
+-- Nokia PMON ETH CFM Two-Way LM Statistics Table
+--
+  tnEthCfmTWLmStatsTable OBJECT-TYPE
+     SYNTAX      SEQUENCE OF TnEthCfmTWLmStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION
+        "The tnEthCfmTWLmStatsTable stores information of a Eth-Cfm-Two-Way-Lm bin."
+     ::= { tnPmonObjs 20 }
+
+  tnEthCfmTWLmStatsEntry OBJECT-TYPE
+     SYNTAX      TnEthCfmTWLmStatsEntry
+     MAX-ACCESS  not-accessible
+     STATUS      current
+     DESCRIPTION ""
+     INDEX   { tnSysSwitchId,
+               tnEthCfmTWLmStatsTestName,
+               tnEthCfmTWLmStatsInterval,
+               tnEthCfmTWLmStatsBin }
+     ::= { tnEthCfmTWLmStatsTable 1 }
+
+  TnEthCfmTWLmStatsEntry ::=
+     SEQUENCE {
+         tnEthCfmTWLmStatsTestName                       SnmpAdminString,
+         tnEthCfmTWLmStatsInterval                       AluWdmStatsIntervalType,
+         tnEthCfmTWLmStatsBin                            AluWdmStatsBinNumber,
+         tnEthCfmTWLmStatsBinStatus                      AluWdmStatsBinStatus,
+         tnEthCfmTWLmStatsStartTime                      DateAndTime,
+         tnEthCfmTWLmStatsTotalMembers                   Integer32,
+         tnEthCfmTWLmStatsNearEndFrameLossRatioMin       Integer32,
+         tnEthCfmTWLmStatsNearEndFrameLossRatioAverage   Integer32,
+         tnEthCfmTWLmStatsNearEndFrameLossRatioMax       Integer32,
+         tnEthCfmTWLmStatsFarEndFrameLossRatioMin        Integer32,
+         tnEthCfmTWLmStatsFarEndFrameLossRatioAverage    Integer32,
+         tnEthCfmTWLmStatsFarEndFrameLossRatioMax        Integer32,
+         tnEthCfmTWLmStatsNearEndHighLoss        	 Integer32,
+         tnEthCfmTWLmStatsFarEndHighLoss        	 Integer32,
+         tnEthCfmTWLmStatsNearEndUnavailable        	 Integer32,
+         tnEthCfmTWLmStatsFarEndUnavailable        	 Integer32
+     }
+
+  tnEthCfmTWLmStatsTestName   OBJECT-TYPE
+        SYNTAX      SnmpAdminString
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The test name."
+        ::= { tnEthCfmTWLmStatsEntry 1 }
+
+  tnEthCfmTWLmStatsInterval OBJECT-TYPE
+        SYNTAX      AluWdmStatsIntervalType
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The collection interval."
+        ::= { tnEthCfmTWLmStatsEntry 2 }
+
+  tnEthCfmTWLmStatsBin OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinNumber
+        MAX-ACCESS  not-accessible
+        STATUS      current
+        DESCRIPTION "The bin number, starting with bin 0."
+        ::= { tnEthCfmTWLmStatsEntry 3 }
+
+  tnEthCfmTWLmStatsBinStatus OBJECT-TYPE
+        SYNTAX      AluWdmStatsBinStatus
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute indicates the validity of the bin."
+        ::= { tnEthCfmTWLmStatsEntry 4 }
+
+  tnEthCfmTWLmStatsStartTime OBJECT-TYPE
+        SYNTAX      DateAndTime
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the bin collection start date and time."
+        ::= { tnEthCfmTWLmStatsEntry 5 }
+
+  tnEthCfmTWLmStatsTotalMembers OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "This attribute is the total number of members in the bin."
+        ::= { tnEthCfmTWLmStatsEntry 6 }
+
+  tnEthCfmTWLmStatsNearEndFrameLossRatioMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWLmStatsEntry 7 }
+
+  tnEthCfmTWLmStatsNearEndFrameLossRatioAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWLmStatsEntry 8 }
+
+  tnEthCfmTWLmStatsNearEndFrameLossRatioMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWLmStatsEntry 9 }
+
+  tnEthCfmTWLmStatsFarEndFrameLossRatioMin OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWLmStatsEntry 10 }
+
+  tnEthCfmTWLmStatsFarEndFrameLossRatioAverage OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWLmStatsEntry 11 }
+
+  tnEthCfmTWLmStatsFarEndFrameLossRatioMax OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION ""
+        ::= { tnEthCfmTWLmStatsEntry 12 }
+        
+  tnEthCfmTWLmStatsNearEndHighLoss OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object is the number of high loss intervals (HLI) over time 
+           in the near-end direction. High loss interval (HLI) is the availability 
+           interval during which the flr is larger than 0.5. 
+ 
+	   The value starts at 0 and increments for every HLI that occurs."
+        ::= { tnEthCfmTWLmStatsEntry 13 }
+        
+  tnEthCfmTWLmStatsFarEndHighLoss OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object is the number of high loss intervals (HLI) over time 
+           in the far-end direction. High loss interval (HLI) is the availability 
+           interval during which the flr is larger than 0.5. 
+ 
+	   The value starts at 0 and increments for every HLI that occurs."
+        ::= { tnEthCfmTWLmStatsEntry 14 }
+
+  tnEthCfmTWLmStatsNearEndUnavailable OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object contains the number of availability intervals evaluated 
+           as unavailable in the near-end direction by this MEP during this 
+           collection Interval."
+        ::= { tnEthCfmTWLmStatsEntry 15 }
+        
+  tnEthCfmTWLmStatsFarEndUnavailable OBJECT-TYPE
+        SYNTAX      Integer32
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION 
+           "This object contains the number of availability intervals evaluated 
+           as unavailable in the far-end direction by this MEP during this 
+           collection Interval."
+        ::= { tnEthCfmTWLmStatsEntry 16 }
+
+
+
+--
+-- Conformance Information
+--
+-- tnPmonCompliances OBJECT IDENTIFIER ::= { tnPmonConformance 1 }
+-- tnPmonGroups      OBJECT IDENTIFIER ::= { tnPmonConformance 2 }
+
+-- compliance statements
+-- tnPmonCompliance  MODULE-COMPLIANCE
+--     STATUS  current
+--     DESCRIPTION
+--             "The compliance statement for management of object performance
+--              monitoring operations on Nokia 1830 series systems."
+--     MODULE  this module
+--         MANDATORY-GROUPS { 
+--             tnPmonGroup
+--         }
+--     ::= { tnPmonCompliances 1 }
+
+-- units of conformance
+
+-- tnPmonGroup   OBJECT-GROUP
+--     OBJECTS {
+--               tnPmonPolicyRowStatus,
+--               tnPmonPolicyDescription,
+--               tnPmonPolicyNumOfBins15Min,
+--               tnPmonPolicyNumOfBins1Day,
+--               tnPmonPolicyFlrInterval15Min,
+--               tnPmonPolicyFlrInterval1Day,
+--               tnPmonClearPortId,
+--               tnPmonClearEncapValue,
+--               tnPmonClearTestName,
+--               tnPmonClearInterval,
+--               tnPmonClearBin,
+--               tnPmonTcaVariable,
+--               tnPmonTcaValue,
+--               tnEthPortStatsBinStatus,
+--               tnEthPortStatsStartTime,
+--               tnEthPortStatsTotalMembers,
+--               tnEthPortStatsIfInOctets,
+--               tnEthPortStatsIfInUcastPkts,
+--               tnEthPortStatsIfInDiscards,
+--               tnEthPortStatsIfInErrors,
+--               tnEthPortStatsIfInUnknownProtos,
+--               tnEthPortStatsIfInMulticastPkts,
+--               tnEthPortStatsIfInBroadcastPkts,
+--               tnEthPortStatsIfOutOctets,
+--               tnEthPortStatsIfOutUcastPkts,
+--               tnEthPortStatsIfOutDiscards,
+--               tnEthPortStatsIfOutErrors,
+--               tnEthPortStatsIfOutMulticastPkts,
+--               tnEthPortStatsIfOutBroadcastPkts,
+--               tnEthPortEtherStatsDropEvents,
+--               tnEthPortEtherStatsBroadcastPkts,
+--               tnEthPortEtherStatsMulticastPkts,
+--               tnEthPortEtherStatsCRCAlignErrors,
+--               tnEthPortEtherStatsUndersizePkts,
+--               tnEthPortEtherStatsOversizePkts,
+--               tnEthPortEtherStatsFragments,
+--               tnEthPortEtherStatsJabbers,
+--               tnEthPortEtherStatsCollisions,
+--               tnEthPortEtherStatsHighCapacityPkts,
+--               tnEthPortEtherStatsHighCapacityOctets,
+--               tnEthPortEtherStatsHighCapacityPkts64Octets,
+--               tnEthPortEtherStatsHighCapacityPkts65to127Octets,
+--               tnEthPortEtherStatsHighCapacityPkts128to255Octets,
+--               tnEthPortEtherStatsHighCapacityPkts256to511Octets,
+--               tnEthPortEtherStatsHighCapacityPkts512to1023Octets,
+--               tnEthPortEtherStatsHighCapacityPkts1024to1518Octets,
+--               tnEthPortEtherStatsHighCapacityPkts1519toMaxOctets,
+--               tnEthPortDot3StatsAlignmentErrors,
+--               tnEthPortDot3StatsFCSErrors,
+--               tnEthPortDot3StatsSingleCollisionFrames,
+--               tnEthPortDot3StatsMultipleCollisionFrames,
+--               tnEthPortDot3StatsSQETestErrors,
+--               tnEthPortDot3StatsDeferredTransmissions,
+--               tnEthPortDot3StatsLateCollisions,
+--               tnEthPortDot3StatsExcessiveCollisions,
+--               tnEthPortDot3StatsInternalMacTransmitErrors,
+--               tnEthPortDot3StatsCarrierSenseErrors,
+--               tnEthPortDot3StatsFrameTooLongs,
+--               tnEthPortDot3StatsInternalMacReceiveErrors,
+--               tnEthPortDot3StatsSymbolErrors,
+--               tnEthPortEgrQueueStatsInProfilePktsForwarded,
+--               tnEthPortEgrQueueStatsOutOfProfilePktsForwarded,
+--               tnEthPortEgrQueueStatsInProfileOctetsForwarded,
+--               tnEthPortEgrQueueStatsOutOfProfileOctetsForwarded,
+--               tnEthPortEgrQueueStatsInProfilePktsDropped,
+--               tnEthPortEgrQueueStatsOutOfProfilePktsDropped,
+--               tnEthPortEgrQueueStatsInProfileOctetsDropped,
+--               tnEthPortEgrQueueStatsOutOfProfileOctetsDropped,
+--               tnSapStatsBinStatus,
+--               tnSapStatsStartTime,
+--               tnSapStatsIngressPktsForwarded,
+--               tnSapStatsIngressOctetsForwarded,
+--               tnSapStatsEgressPktsForwarded,
+--               tnSapStatsEgressOctetsForwarded,
+--               tnSapStatsIngressPktsDropped,
+--               tnSapStatsIngressOctetsDropped,
+--               tnSapStatsIngressExtraTagPktsDropped,
+--               tnSapStatsIngressExtraTagOctetsDropped,
+--               tnSapMeterStatsInProfilePktsForwarded,
+--               tnSapMeterStatsOutOfProfilePktsForwarded,
+--               tnSapMeterStatsInProfileOctetsForwarded,
+--               tnSapMeterStatsOutOfProfileOctetsForwarded,
+--               tnEthCfmTWSlmStatsBinStatus,
+--               tnEthCfmTWSlmStatsStartTime,
+--               tnEthCfmTWSlmStatsTotalMembers,
+--               tnEthCfmTWSlmStatsNearEndFrameLossRatioMin,
+--               tnEthCfmTWSlmStatsNearEndFrameLossRatioAverage,
+--               tnEthCfmTWSlmStatsNearEndFrameLossRatioMax,
+--               tnEthCfmTWSlmStatsFarEndFrameLossRatioMin,
+--               tnEthCfmTWSlmStatsFarEndFrameLossRatioAverage,
+--               tnEthCfmTWSlmStatsFarEndFrameLossRatioMax,
+-- 		 tnEthCfmTWSlmStatsNearEndHighLoss,
+--		 tnEthCfmTWSlmStatsFarEndHighLoss,
+--		 tnEthCfmTWSlmStatsNearEndUnavailable, 
+--		 tnEthCfmTWSlmStatsFarEndUnavailable,                               
+--               tnEthCfmTWDmStatsBinStatus,
+--               tnEthCfmTWDmStatsStartTime,
+--               tnEthCfmTWDmStatsTotalMembers,
+--               tnEthCfmTWDmStatsRoundTripFrameDelayMin,
+--               tnEthCfmTWDmStatsRoundTripFrameDelayAverage,
+--               tnEthCfmTWDmStatsRoundTripFrameDelayMax,
+--               tnEthCfmTWDmStatsNearEndFrameDelayVariationMin,
+--               tnEthCfmTWDmStatsNearEndFrameDelayVariationAverage,
+--               tnEthCfmTWDmStatsNearEndFrameDelayVariationMax,
+--               tnEthCfmTWDmStatsFarEndFrameDelayVariationMin,
+--               tnEthCfmTWDmStatsFarEndFrameDelayVariationAverage,
+--               tnEthCfmTWDmStatsFarEndFrameDelayVariationMax,
+--		 tnEthCfmTWDmStatsNearEndFrameDelayMin,               
+--		 tnEthCfmTWDmStatsNearEndFrameDelayAverage,
+--		 tnEthCfmTWDmStatsNearEndFrameDelayMax,
+-- 		 tnEthCfmTWDmStatsFarEndFrameDelayMin,
+--		 tnEthCfmTWDmStatsFarEndFrameDelayAverage,
+--		 tnEthCfmTWDmStatsFarEndFrameDelayMax,
+--               tnEthCfmTWLmStatsBinStatus,
+--               tnEthCfmTWLmStatsStartTime,
+--               tnEthCfmTWLmStatsTotalMembers,
+--               tnEthCfmTWLmStatsNearEndFrameLossRatioMin,
+--               tnEthCfmTWLmStatsNearEndFrameLossRatioAverage,
+--               tnEthCfmTWLmStatsNearEndFrameLossRatioMax,
+--               tnEthCfmTWLmStatsFarEndFrameLossRatioMin,
+--               tnEthCfmTWLmStatsFarEndFrameLossRatioAverage,
+--               tnEthCfmTWLmStatsFarEndFrameLossRatioMax,
+-- 		 tnEthCfmTWLmStatsNearEndHighLoss,
+--		 tnEthCfmTWLmStatsFarEndHighLoss,
+--		 tnEthCfmTWLmStatsNearEndUnavailable, 
+--		 tnEthCfmTWLmStatsFarEndUnavailable                                                                                            
+--             }
+--     STATUS        current
+--     DESCRIPTION
+--             "The group of objects supporting management of object performance
+--              monitoring operations on Nokia 1830 series systems."
+--     ::= { tnPmonGroups 1 }
+
+END

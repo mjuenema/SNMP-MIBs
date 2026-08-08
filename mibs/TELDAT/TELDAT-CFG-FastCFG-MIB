@@ -1,0 +1,1107 @@
+    -- Teldat, S.A.
+
+    -- Parque Tecnolgico de Madrid
+
+    -- 28760, Tres Cantos (Madrid)
+
+    -- Tlf: +34-918076565
+
+    -- Fax: +34-918076521
+
+    -- e-mail: id@teldat.com
+
+
+    -- MIB privada de Teldat
+
+    -- MIB para TELDAT_C3
+
+
+    -- Historial:
+    -- 02-01-13  F. Hernandez   Compilation error
+    -- 01-10-08  I. Mu±oz       Se corrigen errores en indices de las tablas
+    -- 03-04-06  C. Garcça      Se elimina la parte de configuracin del menî
+    --           M.A. Pastor    rﬂpido.
+    --                          Se aprovecha para eliminar warnings
+    -- 10-11-04  Benjamçn G.    Se a±ade opcin RESPONSE TIME en term. UDAFO.
+    -- 22-06-04  J. Molina      Se cambça el nombre del fichero de Udf_fnew.mib
+    --                          a TELDAT-CFG-FastCFG-MIB.mib
+    -- 01-10-02  Benjamçn G.    Se a±ade opcin de prot. X28P, para SIBS(Portugal).
+    -- 27-06-02  M.A. Pastor    No se permiten comentarios anidados (provocaban
+    --                          errores de compilacin en HP OpenView)
+    -- 24-06-02  Benjamçn G.    Se a±ade variable de bloqueo del servicio de
+    --                          DATAFONO.
+    -- 16-02-02  Benjamçn G.    Se a±ade opcin AUTO en modo de transporte.
+    -- 28-01-02  Benjamçn G.    Se a±aden campos de conf. de Ctrl de DTR,
+    --                          prot. 7COMm y envio de ACK en TCP.
+    -- 28-01-02  Benjamçn G.    Se revisan los valores por defecto de todos los
+    --                          parﬂmetros.
+    -- 04-07-02  J. Videgain    Se a±ade el campo udafoIfcUnderlying para poder
+    --                          incluir UDAFO sobre WAN
+    -- 14-06-01  Gerardo M      Se a±aden los comandos de borrar fuera de la
+    --                          tabla.
+    -- 01-06-01  Gerardo M      Se a±ade los protocolos VISANET y transparente.
+    -- 20-06-00  J. Alvarez     Implementacion inicial
+
+TELDAT-CFG-FastCFG-MIB DEFINITIONS ::= BEGIN
+
+       IMPORTS
+           IpAddress
+                FROM RFC1155-SMI
+           DisplayString
+                FROM RFC1213-MIB
+           OBJECT-TYPE
+                FROM RFC-1212
+           telproducts
+                FROM TELDAT-MIB;
+
+    -- Grupos en la MIB de TELDAT
+
+    -- teladmin         OBJECT IDENTIFIER ::= { teldat 1 }
+    -- telxface         OBJECT IDENTIFIER ::= { teldat 2 }
+    -- telproto         OBJECT IDENTIFIER ::= { teldat 3 }
+    -- telProducts      OBJECT IDENTIFIER ::= { teldat 4 }
+    -- telDot3ChipSets  OBJECT IDENTIFIER ::= { teldat 5 }
+
+    -- Grupo telproducts
+
+    teldatC3FastCfg     OBJECT IDENTIFIER ::= { telproducts 54 }
+
+    -- Grupo que configura TeldatC3
+
+    udafocfg            OBJECT IDENTIFIER ::= { teldatC3FastCfg 1 }
+
+    -- Grupo de perfiles para encapsulamiento por TCP
+
+    udafoTcpTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF UdafoTcpEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+        "Profiles table for TCP connections."
+        ::={ udafocfg 1 }
+
+    udafoTcpEntry OBJECT-TYPE
+        SYNTAX  UdafoTcpEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+        "Each register is a profile with its parameters."
+        INDEX { udafoTcpIndex }
+        ::={ udafoTcpTable 1 }
+
+    UdafoTcpEntry ::=
+        SEQUENCE {
+            udafoTcpIndex           INTEGER,
+            udafoTcpCommand         INTEGER,
+            udafoTcpName            DisplayString,
+            udafoTcpNri             DisplayString,
+            udafoTcpMainRemAdd      DisplayString,
+            udafoTcpMainRemPort     INTEGER,
+            udafoTcpMainRemTmout    INTEGER,
+            udafoTcpSecRemAdd       DisplayString,
+            udafoTcpSecRemPort      INTEGER,
+            udafoTcpSecRemTmout     INTEGER,
+            udafoTcpThirdRemAdd     DisplayString,
+            udafoTcpThirdRemPort    INTEGER,
+            udafoTcpThirdRemTmout   INTEGER,
+            udafoTcpSendAck         INTEGER
+            }
+
+    udafoTcpIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  obsolete
+        DESCRIPTION
+        "Table index and number of TCP profile."
+        ::={ udafoTcpEntry 1 }
+
+    udafoTcpCommand OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    ok(1),
+                    add(2),
+                    delete(3),
+                    error(4)
+                }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Command field to add or delete TCP profiles.
+        (1) ok,     if last operation was correct. (just in get process.)
+        (2) add,    (just in set process.)
+        (3) delete, (just in set process)
+        (4) error,  if last operation was incorrect. (just in get process.)"
+         ::={ udafoTcpEntry 2 }
+
+    udafoTcpName OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(15))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "TCP profile name.(Up to 15 characters.)
+        Default value: NULL"
+         ::={ udafoTcpEntry 3 }
+
+    udafoTcpNri OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(15))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Called Net Address. (Up to 15 digits. X character is also valid.)
+        Default value: XXXXXXXXXXXXXXX"
+         ::={ udafoTcpEntry 4 }
+
+    udafoTcpMainRemAdd OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(25))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ip address of the first remote host. (Up to 25 characters.)
+        Default value: 0.0.0.0"
+         ::={ udafoTcpEntry 5 }
+
+    udafoTcpMainRemPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Port of the first remote host.
+        Range:(0..65535).
+        Default value: 20002"
+         ::={ udafoTcpEntry 6 }
+
+    udafoTcpMainRemTmout OBJECT-TYPE
+        SYNTAX  INTEGER(0..100)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Time out reply of the first remote host.
+        Units: seconds.
+        Range: (0..100).
+        Default value: 5"
+         ::={ udafoTcpEntry 7 }
+
+    udafoTcpSecRemAdd OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(25))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ip address of the second remote host.(Up to 25 characters.)
+        Default value: 0.0.0.0"
+         ::={ udafoTcpEntry 8 }
+
+    udafoTcpSecRemPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Port of the second remote host.
+        Range: (0..65535).
+        Default value: 20002"
+         ::={ udafoTcpEntry 9 }
+
+    udafoTcpSecRemTmout OBJECT-TYPE
+        SYNTAX  INTEGER(0..100)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Time out reply of the second remote host.
+        Units: seconds.
+        Range: (0..100).
+        Default value: 5"
+         ::={ udafoTcpEntry 10 }
+
+    udafoTcpThirdRemAdd OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(25))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ip address of the third remote host.(Up to 25 characters.)
+        Default value: 0.0.0.0"
+         ::={ udafoTcpEntry 11 }
+
+    udafoTcpThirdRemPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Port of the third remote host.
+        Range: (0..65535).
+        Default value: 20002"
+         ::={ udafoTcpEntry 12 }
+
+    udafoTcpThirdRemTmout OBJECT-TYPE
+        SYNTAX  INTEGER(0..100)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Time out reply of the third remote host.
+        Units: seconds.
+        Range: (0..100).
+        Default value: 5"
+         ::={ udafoTcpEntry 13 }
+
+    udafoTcpSendAck OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    no(1),
+                    yes(2)
+                }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Enable Send ACK to HOST.
+        Default value: 1 (NO)"
+        DEFVAL { 1 }
+         ::={ udafoTcpEntry 14 }
+
+    -- Grupo de perfiles para encapsulamiento por TRMTP
+
+    udafoTrmtpTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF UdafoTrmtpEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+        "Profiles table for TRMTP connections."
+         ::={ udafocfg 2 }
+
+    udafoTrmtpEntry OBJECT-TYPE
+        SYNTAX  UdafoTrmtpEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+        "Each register is a profile with its parameters."
+        INDEX { udafoTrmtpIndex }
+         ::={ udafoTrmtpTable 1 }
+
+    UdafoTrmtpEntry ::=
+        SEQUENCE {
+            udafoTrmtpIndex         INTEGER,
+            udafoTrmtpCommmand      INTEGER,
+            udafoTrmtpName          DisplayString,
+            udafoTrmtpNri           DisplayString,
+            udafoTrmtpPrincIpAddr   DisplayString,
+            udafoTrmtpPrincRemPort  INTEGER,
+            udafoTrmtpPrincN2       INTEGER,
+            udafoTrmtpPrincT1       INTEGER,
+            udafoTrmtpPrincT2       INTEGER,
+            udafoTrmtpPrincT3       INTEGER,
+            udafoTrmtpPrincT4       INTEGER,
+            udafoTrmtpSecIpAddr     DisplayString,
+            udafoTrmtpSecRemPort    INTEGER,
+            udafoTrmtpSecN2         INTEGER,
+            udafoTrmtpSecT1         INTEGER,
+            udafoTrmtpSecT2         INTEGER,
+            udafoTrmtpSecT3         INTEGER,
+            udafoTrmtpSecT4         INTEGER,
+            udafoTrmtpThirdIpAddr   DisplayString,
+            udafoTrmtpThirdRemPort  INTEGER,
+            udafoTrmtpThirdN2       INTEGER,
+            udafoTrmtpThirdT1       INTEGER,
+            udafoTrmtpThirdT2       INTEGER,
+            udafoTrmtpThirdT3       INTEGER,
+            udafoTrmtpThirdT4       INTEGER
+            }
+
+    udafoTrmtpIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  obsolete
+        DESCRIPTION
+        "Table index and number of TRMTP profile."
+         ::={ udafoTrmtpEntry 1 }
+
+    udafoTrmtpCommmand OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    ok(1),
+                    crear(2),
+                    borrar(3),
+                    error(4)
+                }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Command field to add or delete TCP profiles.
+        (1) ok,     if last operation was correct. (just in get process.)
+        (2) add,    (just in set process.)
+        (3) delete, (just in set process)
+        (4) error,  if last operation was incorrect. (just in get process.)"
+         ::={ udafoTrmtpEntry 2 }
+
+    udafoTrmtpName OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(15))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "TRMTP profile name. (Up to 15 characters.)
+        Default value: NULL"
+         ::={ udafoTrmtpEntry 3 }
+
+    udafoTrmtpNri OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(15))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Called Net Address. (Up to 15 digits. X character is also valid.)
+        Default value: XXXXXXXXXXXXXXX"
+         ::={ udafoTrmtpEntry 4 }
+
+    udafoTrmtpPrincIpAddr OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(25))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ip address of the first remote host.(Up to 25 characters.)
+        Default value: 0.0.0.0"
+        ::={ udafoTrmtpEntry 5 }
+
+    udafoTrmtpPrincRemPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Port of the first remote host.
+        Range: (0..65535)
+        Default value: 20001"
+        DEFVAL { 20001 }
+         ::={ udafoTrmtpEntry 6 }
+
+    udafoTrmtpPrincN2 OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Maximum number of retransmisions for the first remote host.
+        Range: (0..65535)
+        Default value: 3"
+        DEFVAL { 3 }
+         ::={ udafoTrmtpEntry 7 }
+
+    udafoTrmtpPrincT1 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Acknowledge waiting time before retransmition for the first remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 5"
+        DEFVAL { 5 }
+         ::={ udafoTrmtpEntry 8 }
+
+    udafoTrmtpPrincT2 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Waiting time before getting out of an error state in the
+        transmiter for the first remote host.
+        Units: seconds
+        Range (1..65535)
+        Default value: 50"
+        DEFVAL { 50 }
+         ::={ udafoTrmtpEntry 9 }
+
+    udafoTrmtpPrincT3 OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Inactivity time before getting out of the DATA state in the
+        transmiter for the first remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 45"
+        DEFVAL { 45 }
+         ::={ udafoTrmtpEntry 10 }
+
+    udafoTrmtpPrincT4 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Inactivity time (in seconds) before returning to OFF state in the
+        receiver for the first remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 100"
+        DEFVAL { 100 }
+         ::={ udafoTrmtpEntry 11 }
+
+    udafoTrmtpSecIpAddr OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(25))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ip address of the second remote host.
+        Default value: 0.0.0.0"
+         ::={ udafoTrmtpEntry 12 }
+
+    udafoTrmtpSecRemPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Port of the second remote host.
+        Range: (0..65535)
+        Default value: 20001"
+        DEFVAL { 20001 }
+         ::={ udafoTrmtpEntry 13 }
+
+    udafoTrmtpSecN2 OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Maximum number of retransmisions for the second remote host.
+        Range: (0..65535)
+        Default value: 3"
+        DEFVAL { 3 }
+         ::={ udafoTrmtpEntry 14 }
+
+    udafoTrmtpSecT1 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Acknowledge waiting time before retransmition for the second remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 5"
+        DEFVAL { 5 }
+         ::={ udafoTrmtpEntry 15 }
+
+    udafoTrmtpSecT2 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Waiting time before getting out of an error state in the transmiter for
+         the second remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 50"
+        DEFVAL { 50 }
+         ::={ udafoTrmtpEntry 16 }
+
+    udafoTrmtpSecT3 OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Inactivity time before getting out of the DATA state in the transmiter
+        for the second remote host.
+        Units: seconds
+        Range: (0..65535)
+        Default value: 45"
+        DEFVAL { 45 }
+         ::={ udafoTrmtpEntry 17 }
+
+    udafoTrmtpSecT4 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Inactivity time before returning to OFF state in the receiver
+        for the second remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 100"
+        DEFVAL { 100 }
+         ::={ udafoTrmtpEntry 18 }
+
+    udafoTrmtpThirdIpAddr OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(25))
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ip address of the third remote host.
+        Default value: 0.0.0.0"
+         ::={ udafoTrmtpEntry 19 }
+
+    udafoTrmtpThirdRemPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Port of the third remote host.
+        Range: (0..65535)
+        Default value: 20001"
+        DEFVAL { 20001 }
+         ::={ udafoTrmtpEntry 20 }
+
+    udafoTrmtpThirdN2 OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Maximum number of retransmisions for the third remote host.
+        Range: (0..65535)
+        Default value: 3"
+        DEFVAL { 3 }
+         ::={ udafoTrmtpEntry 21 }
+
+    udafoTrmtpThirdT1 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ackknowledge waiting time before retransmition for the third remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 5"
+        DEFVAL { 5 }
+         ::={ udafoTrmtpEntry 22 }
+
+    udafoTrmtpThirdT2 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Waiting time before getting out of an error state in the transmiter for
+         the third remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 50"
+        DEFVAL { 50 }
+         ::={ udafoTrmtpEntry 23 }
+
+    udafoTrmtpThirdT3 OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Inactivity time before getting out of the DATA state in the transmiter
+        for the third remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 45"
+        DEFVAL { 45 }
+         ::={ udafoTrmtpEntry 24 }
+
+    udafoTrmtpThirdT4 OBJECT-TYPE
+        SYNTAX  INTEGER(1..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Inactivity time before returning to OFF state in the receiver
+        for the third remote host.
+        Units: seconds
+        Range: (1..65535)
+        Default value: 100"
+        DEFVAL { 100 }
+         ::={ udafoTrmtpEntry 25 }
+
+    -- Tabla de terminales
+
+    udafoIfcTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF UdafoIfcEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+        "Table of parameters for udafo interfaces."
+         ::={ udafocfg 3 }
+
+    udafoIfcEntry OBJECT-TYPE
+        SYNTAX  UdafoIfcEntry
+        ACCESS  not-accessible
+        STATUS  obsolete
+        DESCRIPTION
+        "Each register contains the general parameters for each udafo interface.
+        Maximum 4 interfaces."
+        INDEX { udafoIfcIndex }
+         ::={ udafoIfcTable 1 }
+
+    UdafoIfcEntry ::=
+        SEQUENCE {
+            udafoIfcIndex       INTEGER,
+            udafoIfcSpeed       INTEGER,
+            udafoIfcProtocol    INTEGER,
+            udafoIfcTraMode     INTEGER,
+            udafoIfcLocIpAddr   IpAddress,
+            udafoIfcLocUdpPort  INTEGER,
+            udafoIfcUnderlying  INTEGER,
+            udafoIfcIdentifier  INTEGER,
+            udafoIfcSigIfcCtrl  INTEGER,
+            udafoIfcResponTime  INTEGER
+
+            }
+
+    udafoIfcIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  obsolete
+        DESCRIPTION
+        "Table index and number of udafo interface."
+         ::={ udafoIfcEntry 1 }
+
+    udafoIfcSpeed OBJECT-TYPE
+        SYNTAX  INTEGER(300..64000)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Transmision speed.
+        Units: bits per second.
+        Range: (300..64000)
+        Default value: 2400"
+        DEFVAL { 2400 }
+         ::={ udafoIfcEntry 2 }
+
+    udafoIfcProtocol OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    dov(1),
+                    dat(2),
+                    visanet(3),
+                    transp(4),
+                    p7comm(5),
+                    x28p(6)
+                }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Protocol for transmision.
+        DOV(1),
+        DAT(2),
+        VISANET(3),
+        TRANSPARENT(4),
+        7COMM(5),
+        X28P(6)."
+        DEFVAL { 1 }
+         ::={ udafoIfcEntry 3 }
+
+    udafoIfcTraMode OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    tcp(1),
+                    trmtp(2),
+                    auto(3)
+                }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Transmision mode:
+        TCP(1),
+        TRMTP(2),
+        AUTO(3)"
+        DEFVAL { 2 }
+         ::={ udafoIfcEntry 4 }
+
+    udafoIfcLocIpAddr OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Ip address of first remote host.
+        Note: If trmtp mode is selected in this interface, ip address has no
+              meaning,showing default value. In this situation the set command
+              is disabled.
+        Default value: 0.0.0.0"
+        ::={ udafoIfcEntry 5 }
+
+    udafoIfcLocUdpPort OBJECT-TYPE
+        SYNTAX  INTEGER(0..65535)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Local Udp port.
+        Note: If tcp mode is selected in this interface, Upd port has
+              no meaning, showing default value.
+              In this situation the set command is disabled.
+              This parameter must be diferent for each interface.
+        Range: (0..65535)
+        Default value: 20001-20004 (2000X, where 'X' is interface number) "
+         ::={ udafoIfcEntry 6 }
+
+    udafoIfcUnderlying OBJECT-TYPE
+        SYNTAX  INTEGER
+                    {
+                        uart(1),
+                        wan(2)
+                    }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "The underlying of UDAFO can be WAN or UART
+
+        Default value: UART"
+        DEFVAL { 1 }
+         ::={ udafoIfcEntry 7 }
+
+    udafoIfcIdentifier OBJECT-TYPE
+        SYNTAX  INTEGER(1..4)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "The Terminal number.
+        Default value: 1"
+        DEFVAL { 1 }
+         ::={ udafoIfcEntry 8 }
+
+    udafoIfcSigIfcCtrl OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    no(1),
+                    yes(2)
+                }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Enable serial line signal control (DTR).
+        Default value: 1 (NO) "
+        DEFVAL { 1 }
+         ::={ udafoIfcEntry 9 }
+
+    udafoIfcResponTime OBJECT-TYPE
+        SYNTAX  INTEGER(2..600)
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Response Time. When send a message, wait time for response from HOST
+         or POS. (Some protocols used only)
+        Range: (2..600)
+        Default value: 20"
+        DEFVAL { 20 }
+         ::={ udafoIfcEntry 10 }
+
+    -- Grupo de parﬂmetros de configuracin miscelaneos.
+
+
+    udafoCnfgMisc    OBJECT IDENTIFIER ::= { udafocfg 4 }
+
+    udafoMiscDisServ OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    no(1),
+                    yes(2)
+                }
+        ACCESS  read-write
+        STATUS  obsolete
+        DESCRIPTION
+        "Disable UDAFO service.
+        Default value: 1 (NO DISABLED)"
+        DEFVAL { 1 }
+         ::={ udafoCnfgMisc 1 }
+
+    -- Grupo de monitorizacin rﬂpida de TeldatC3
+
+    udafomon    OBJECT IDENTIFIER ::= { teldatC3FastCfg 2 }
+
+    -- Tabla de transacciones correctas
+
+    udafoTransaOkTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF UdafoTransaOkEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+        "Table of the last successful transactions done with the datafono
+        interface."
+        ::={ udafomon 1 }
+
+    udafoTransaOkEntry OBJECT-TYPE
+        SYNTAX  UdafoTransaOkEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+        "Each register represents a transaction, giving its type, Ip address,
+        Nri, net, date and time."
+				INDEX
+        {udafoTransaOkIndex}
+         ::={ udafoTransaOkTable 1 }
+
+    UdafoTransaOkEntry ::=
+        SEQUENCE {
+            udafoTransaOkIndex      INTEGER,
+            udafoTransaOkType       DisplayString,
+            udafoTransaOkIpAddr     IpAddress,
+            udafoTransaOkNri        DisplayString,
+            udafoTransaOkStartTime  DisplayString,
+            udafoTransaOkEndTime    DisplayString,
+            udafoTransaOkDate       DisplayString,
+            udafoTransaOkNet        INTEGER
+            }
+
+    udafoTransaOkIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Table index and number of transaction."
+         ::={ udafoTransaOkEntry 1 }
+
+    udafoTransaOkType OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(1))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Type of transaction.
+        authorization or purchase       (0)
+        repayment                       (1)
+        repetition                      (2)
+        enquiry                         (3)
+        close                           (4)
+        account_entity selection        (5)
+        operation details               (6)
+        account enquiry                 (8)
+        movement enquiry                (9)
+        memory inicialization/setup     (M)
+        Unknown                         (U)"
+         ::={ udafoTransaOkEntry 2 }
+
+    udafoTransaOkIpAddr OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Host Ip address."
+        ::={ udafoTransaOkEntry 3 }
+
+    udafoTransaOkNri OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(15))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Called Net Address."
+         ::={ udafoTransaOkEntry 4 }
+
+    udafoTransaOkStartTime OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(8))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Start time of the operation."
+         ::={ udafoTransaOkEntry 5 }
+
+    udafoTransaOkEndTime OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(8))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "End time of the operation."
+         ::={ udafoTransaOkEntry 6 }
+
+    udafoTransaOkDate OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(8))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Date of the transaction."
+         ::={ udafoTransaOkEntry 7 }
+
+    udafoTransaOkNet OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Number of net responsible for the transaction."
+         ::={ udafoTransaOkEntry 8 }
+
+    -- Tabla de transacciones errneas
+
+    udafoTransaWrongTable OBJECT-TYPE
+        SYNTAX  SEQUENCE OF UdafoTransaWrongEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+        "Table of the last wrong transactions done with the datafono interface."
+         ::={ udafomon 2 }
+
+    udafoTransaWrongEntry OBJECT-TYPE
+        SYNTAX  UdafoTransaWrongEntry
+        ACCESS  not-accessible
+        STATUS  mandatory
+        DESCRIPTION
+        "Each register represents a transaction, giving its type, Ip address,
+        cause of failure, Nri, net, date and time."
+        INDEX
+        {udafoTransaWroIndex}
+         ::={ udafoTransaWrongTable 1 }
+
+    UdafoTransaWrongEntry ::=
+        SEQUENCE {
+            udafoTransaWroIndex     INTEGER,
+            udafoTransaWroType      DisplayString,
+            udafoTransaWroIpAddr    IpAddress,
+            udafoTransaWroNri       DisplayString,
+            udafoTransaWroCause     INTEGER,
+            udafoTransaWroStartTime DisplayString,
+            udafoTransaWroEndTime   DisplayString,
+            udafoTransaWroDate      DisplayString,
+            udafoTransaWroNet       INTEGER
+            }
+
+    udafoTransaWroIndex OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Table index and number of transaction."
+         ::={ udafoTransaWrongEntry 1 }
+
+    udafoTransaWroType OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(1))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Type of transaction.
+        authorization or purchase       (0)
+        repayment                       (1)
+        repetition                      (2)
+        enquiry                         (3)
+        close                           (4)
+        account_entity selection        (5)
+        operation details               (6)
+        account enquiry                 (8)
+        movement enquiry                (9)
+        memory inicialization/setup     (M)
+        Unknown                         (U)"
+        ::={ udafoTransaWrongEntry 2 }
+
+    udafoTransaWroIpAddr OBJECT-TYPE
+        SYNTAX  IpAddress
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Host Ip address."
+         ::={ udafoTransaWrongEntry 3 }
+
+    udafoTransaWroNri OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(15))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Called Net Address."
+         ::={ udafoTransaWrongEntry 4 }
+
+    udafoTransaWroCause OBJECT-TYPE
+        SYNTAX  INTEGER(1..6)
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Cause of failure in connection:
+        1.- The NRI send by datafono doesn≥t match with any configured profile.
+        2.- Disconnection received from DEP
+        3.- EOT received from TPV: invalid operation for the datafono.
+        4.- Unable to establish IP connection with host.
+        5.- End of TRMP connection.
+        6.- End of TCP connection by HOST."
+        ::={ udafoTransaWrongEntry 5 }
+
+    udafoTransaWroStartTime OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(8))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Start time of operation."
+         ::={ udafoTransaWrongEntry 6 }
+
+    udafoTransaWroEndTime OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(8))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "End time of operation."
+         ::={ udafoTransaWrongEntry 7 }
+
+    udafoTransaWroDate OBJECT-TYPE
+        SYNTAX  DisplayString(SIZE(8))
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Date of the transaction."
+         ::={ udafoTransaWrongEntry 8 }
+
+    udafoTransaWroNet OBJECT-TYPE
+        SYNTAX  INTEGER
+        ACCESS  read-only
+        STATUS  mandatory
+        DESCRIPTION
+        "Number of net responsible for the transaction."
+         ::={ udafoTransaWrongEntry 9 }
+
+    -- Tabla para obtencin de estadçsticos de transacciones por bloques.
+
+    udafoblockTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF UdafoblockEntry
+        ACCESS      not-accessible
+        STATUS      mandatory
+        DESCRIPTION
+        "This table is a sequence of data blocks that contain the fornightly
+        statistics."
+        ::={ udafomon 3 }
+
+    udafoblockEntry OBJECT-TYPE
+        SYNTAX      UdafoblockEntry
+        ACCESS      not-accessible
+        STATUS      mandatory
+        DESCRIPTION
+        "Each entry is a data block. The size of each block is 1025 bytes,
+        except for the last, that would be less."
+        INDEX { udafoblkIndex }
+        ::={ udafoblockTable 1 }
+
+    UdafoblockEntry ::=
+        SEQUENCE {
+            udafoblkIndex   INTEGER,
+            udafoblkData    OCTET STRING
+            }
+
+    udafoblkIndex OBJECT-TYPE
+        SYNTAX      INTEGER
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION
+        "This is the index of the table."
+        ::={ udafoblockEntry 1 }
+
+    udafoblkData OBJECT-TYPE
+        SYNTAX      OCTET STRING(SIZE(1..1024))
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION
+        "Block data. For the last block, the size of the data block would be
+        less than 1024."
+        ::={ udafoblockEntry 2 }
+
+    -- Comando para borrar estadisticos de transacciones OK
+
+    udafoTransaOkDelete OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    clear(1),
+                    ok(2),
+                    error(3),
+                    undefined(4)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+        "Command field to clear ALL statistics of this table.
+        clear(1),       (just in set process)
+        ok(2),          if last operation was correct (just in get process)
+        error(3),       if last operation was incorrect (just in get process)
+        undefined(4),   if no previous operation took place (just in get process)"
+         ::={ udafomon 4 }
+
+    -- Comando para borrar estadisticos de transacciones WRONG
+
+    udafoTransaWrongDelete OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                    clear(1),
+                    ok(2),
+                    error(3),
+                    undefined(4)
+                }
+        ACCESS  read-write
+        STATUS  mandatory
+        DESCRIPTION
+        "Command field to clear ALL statistics of this table.
+        clear(1),       (just in set process)
+        ok(2),          if last operation was correct (just in get process)
+        error(3),       if last operation was incorrect (just in get process)
+        undefined(4),   if no previous operation took place (just in get process)"
+         ::={ udafomon 5 }
+
+    END

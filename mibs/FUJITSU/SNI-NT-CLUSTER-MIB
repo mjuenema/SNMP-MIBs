@@ -1,0 +1,2319 @@
+--------------------------------------------------------------------------
+--                   SNI-NT-CLUSTER-MIB definition                      --
+--                                                                      --
+-- This MIB is intended to provide an image of Microsoft's Wolfpack     --
+-- cluster API, restricted to data acquisition, i.e. no value change is --
+-- possible (cluster administration via SNMP is impossible).            --
+--                                                                      --
+-- Note about table indexes: cluster objects are identified by names,   --
+-- i.e. characters strings, obvious candidates for table indexes.       --
+-- However, these lead to variable-length OIDs, more difficult to       --
+-- implement than fixed-length ones. So, integer indexes are added to   --
+-- tables, but these in turn are difficult to maintain, so their value  --
+-- is only guaranteed between traps. They may change when the agent is  --
+-- loaded and when traps occur.                                         --
+--                                                                      --
+-- Revision history :                                                   --
+--  v0   Preliminary draft. ................................ 1997/06/18 --
+--  v1.0 Removed tables of active groups and resources                  --
+--       per node. ......................................... 1997/06/24 --
+--  v2.0, v2.1 Discarded.                                               --
+--  v3.0 Restart from v1.0 (discard v2.0 changes: keep tables).         --
+--       Add resource dependencies.                                     --
+--       Add numeric table indexes, (temporary id.).                    --
+--       Add the agent information group.                               --
+--       Minor changes: names, descriptions, etc.                       --
+--       Add trap definitions. ............................. 1997/07/18 --
+--  v3.1 Add more enumerated values to group and resource states.       --
+--       Change trap type names to avoid name duplication.              --
+--       Update and fix object descriptions and comments.               --
+--       Move the MIB root to resolve object ID conflict.    1997/09/02 --
+--  v3.2 Fix SYNTAX of sniWpPreferredNodeIndex and                      --
+--       sniWpResourceDependencyResourceIndex.                          --
+--       Add variable sniServerName to trap types. ......... 1997/09/12 --
+--  v3.3 Repeat group numbers as an index into resource and             --
+--       resource dependency tables, same for resource numbers          --
+--       into the resource dependency table. ............... 1997/09/16 --
+--  v3.4 Same for group numbers in the preferred node table. 1997/09/17 --
+--  v3.5 Add status variable sniWpAgentClusterServiceStatus,            --
+--       add traps indicating changes in the cluster status,            --
+--       fix summary argument numbers in trap types,                    --
+--       add tables of networks and network interfaces,                 --
+--       add network-related trap types. ................... 1997/11/18 --
+--  v3.6 Add sniWpClusterIPAddress in group sniWpCluster. .. 1998/10/14 --
+--  v4.0 Add new data items to groups: sniWpNodes,                      --
+--       sniWpResourceTypes, sniWpGroups, sniWpResources,               --
+--       sniWpNetworks, and sniWpNetInterfaces, according to            --
+--       the availability of cluster object properties. .... 1999/01/28 --
+--  v4.1 Redefinition of cluster traps                                  --
+--                                                                      --
+--------------------------------------------------------------------------
+
+SNI-NT-CLUSTER-MIB DEFINITIONS ::= BEGIN
+
+--
+-- $Copyright$
+-- Copyright (C) Siemens Nixdorf Informationssysteme AG 1997
+-- Copyright (C) Fujitsu Siemens Computers GmbH 2001
+-- All rights reserved
+--
+
+   IMPORTS
+      OBJECT-TYPE                       FROM RFC-1212
+      mib-2 , DisplayString             FROM RFC1213-MIB
+      enterprises , IpAddress 		    FROM RFC1155-SMI
+      sniServerName , sniTrapTime       FROM SNI-TRAP-MIB ;
+
+
+--------------------------------------------------------------------------
+-- The path to sniNtCluster : root of this MIB.                         --
+--------------------------------------------------------------------------
+
+sni            OBJECT IDENTIFIER ::= { enterprises    231 }
+sniProductMibs OBJECT IDENTIFIER ::= { sni              2 }
+sniExtensions  OBJECT IDENTIFIER ::= { sniProductMibs  10 }
+sniServerMgmt  OBJECT IDENTIFIER ::= { sniExtensions    2 }
+sniCluster     OBJECT IDENTIFIER ::= { sniServerMgmt    9 }
+sniNtCluster   OBJECT IDENTIFIER ::= { sniCluster       1 }
+
+
+--------------------------------------------------------------------------
+-- The data groups.                                                     --
+-- All object names underneath sniNtCluster are prefixed with sniWp.    --
+--------------------------------------------------------------------------
+
+sniWpAgent                 OBJECT IDENTIFIER ::= { sniNtCluster  1 }
+sniWpCluster               OBJECT IDENTIFIER ::= { sniNtCluster  2 }
+sniWpNodes                 OBJECT IDENTIFIER ::= { sniNtCluster  3 }
+sniWpResourceTypes         OBJECT IDENTIFIER ::= { sniNtCluster  4 }
+sniWpGroups                OBJECT IDENTIFIER ::= { sniNtCluster  5 }
+sniWpResources             OBJECT IDENTIFIER ::= { sniNtCluster  6 }
+sniWpPreferredNodes        OBJECT IDENTIFIER ::= { sniNtCluster  7 }
+sniWpResourceDependencies  OBJECT IDENTIFIER ::= { sniNtCluster  8 }
+-- reserved: sniWpRegistry OBJECT IDENTIFIER ::= { sniNtCluster  9 }
+sniWpNotifications         OBJECT IDENTIFIER ::= { sniNtCluster 10 }
+sniWpNetworks              OBJECT IDENTIFIER ::= { sniNtCluster 11 }
+sniWpNetInterfaces         OBJECT IDENTIFIER ::= { sniNtCluster 12 }
+
+
+--------------------------------------------------------------------------
+--                           GROUP sniWpAgent                           --
+-- Agent specific version information.                                  --
+--------------------------------------------------------------------------
+
+sniWpAgentVersionMajor OBJECT-TYPE
+   SYNTAX       INTEGER(0..9)
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Major version number of the MIB"
+   ::= { sniWpAgent 1 }
+
+sniWpAgentVersionMinor OBJECT-TYPE
+   SYNTAX       INTEGER(0..99)
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Minor version number of the MIB"
+   ::= { sniWpAgent 2 }
+
+sniWpAgentVersionString OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "MIB's version string <Major>.<Minor> (e.g. 1.23)"
+   ::= { sniWpAgent 3 }
+
+sniWpAgentClusterServiceState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown (1)
+                , normal(2)
+                , unreliable(3)
+                }
+   ACCESS  read-only
+   STATUS  mandatory
+   DESCRIPTION  "Status of the communication with the cluster service:
+                 1 - unknown,
+                 2 - normal operation,
+                 3 - not fully operational, data in the other groups
+                     of this MIB are unsignificant."
+   ::= { sniWpAgent 4 }
+
+
+--------------------------------------------------------------------------
+--                          GROUP sniWpCluster                          --
+-- Miscellaneous non-table (unique to the whole cluster) data.          --
+--------------------------------------------------------------------------
+
+sniWpClusterName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster name."
+   ::= { sniWpCluster 1 }
+
+sniWpClusterVersionMajor OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster service version (major)."
+   ::= { sniWpCluster 2 }
+
+sniWpClusterVersionMinor OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster service version (minor)."
+   ::= { sniWpCluster 3 }
+
+sniWpClusterBuildNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster service build number."
+   ::= { sniWpCluster 4 }
+
+sniWpClusterVendorId OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster vendor name."
+   ::= { sniWpCluster 5 }
+
+sniWpClusterCSDVersion OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster service pack."
+   ::= { sniWpCluster 6 }
+
+sniWpClusterQuorumResourceName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster quorum resource name."
+   ::= { sniWpCluster 7 }
+
+sniWpClusterQuorumResourceDevice OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster quorum resource device."
+   ::= { sniWpCluster 8 }
+
+sniWpClusterQuorumResourceMaxLog OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster quorum resource maximum log size."
+   ::= { sniWpCluster 9 }
+
+sniWpClusterIPAddress OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Cluster IP address."
+   ::= { sniWpCluster 10 }
+
+
+--------------------------------------------------------------------------
+--                           GROUP sniWpNodes                           --
+-- Lists all nodes in the cluster.                                      --
+-- Numbered temporarily from 1 to sniWpNodeNumber.                      --
+--------------------------------------------------------------------------
+
+sniWpNodeNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Number of nodes in the cluster,
+                 and of sniWpNodeTable entries."
+   ::= { sniWpNodes 1 }
+
+sniWpNodeTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpNode
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "Table of cluster nodes."
+   ::= { sniWpNodes 2 }
+
+sniWpNodeEntry OBJECT-TYPE
+   SYNTAX       SniWpNode
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  ""
+   INDEX        { sniWpNodeIndex }
+   ::= { sniWpNodeTable 1 }
+
+SniWpNode ::= SEQUENCE
+   { sniWpNodeIndex         INTEGER
+   , sniWpNodeName          DisplayString
+   , sniWpNodeState         INTEGER
+   , sniWpNodeDescription   DisplayString
+   , sniWpNodeIpAddress     IpAddress
+   , sniWpNodeIpAddress2    IpAddress
+   , sniWpNodeIpAddress3    IpAddress
+   , sniWpNodeIpAddress4    IpAddress
+   }
+
+sniWpNodeIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the node
+                 (1-based sequence)."
+   ::= { sniWpNodeEntry 1 }
+
+sniWpNodeName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Name which identifies the node."
+   ::= { sniWpNodeEntry 2 }
+
+sniWpNodeState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown (1)
+                , up(2)
+                , down(3)
+                , paused(4)
+                , joining(5)
+                , unavailable(6)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "State of the node:
+                 1 - the state of the node cannot be determined,
+                     or is none of the following:
+                 2 - node is up and running,
+                 3 - node is down,
+                 4 - node has suspended cluster activity,
+                 5 - node is resuming cluster activity,
+                     but is not yet ready."
+   ::= { sniWpNodeEntry 3 }
+
+sniWpNodeDescription OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Remarks or comments about the node."
+   ::= { sniWpNodeEntry 4 }
+
+sniWpNodeIpAddress OBJECT-TYPE
+   SYNTAX       IpAddress
+   ACCESS       read-only
+   STATUS       optional
+   DESCRIPTION  "IP address of cluster node."
+   ::= { sniWpNodeEntry 5 }
+
+sniWpNodeIpAddress2 OBJECT-TYPE
+   SYNTAX       IpAddress
+   ACCESS       read-only
+   STATUS       optional
+   DESCRIPTION  "Optional second IP address of the cluster node."
+   ::= { sniWpNodeEntry 6 }
+   
+sniWpNodeIpAddress3 OBJECT-TYPE
+   SYNTAX       IpAddress
+   ACCESS       read-only
+   STATUS       optional
+   DESCRIPTION  "Optional third IP address of the cluster node."
+   ::= { sniWpNodeEntry 7}
+
+sniWpNodeIpAddress4 OBJECT-TYPE
+   SYNTAX       IpAddress
+   ACCESS       read-only
+   STATUS       optional
+   DESCRIPTION  "Optional fourth IP address of the cluster node."
+   ::= { sniWpNodeEntry 8}
+   
+--------------------------------------------------------------------------
+--                       GROUP sniWpResourceTypes                       --
+-- lists all types of resources.                                        --
+-- Numbered temporarily from 1 to sniWpResourceTypeNumber.              --
+--------------------------------------------------------------------------
+
+sniWpResourceTypeNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Number of resource types."
+   ::= { sniWpResourceTypes 1 }
+
+sniWpResourceTypeTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpResourceType
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "Table of resource types."
+   ::= { sniWpResourceTypes 2 }
+
+sniWpResourceTypeEntry OBJECT-TYPE
+   SYNTAX       SniWpResourceType
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  ""
+   INDEX        { sniWpResourceTypeIndex }
+   ::= { sniWpResourceTypeTable 1 }
+
+SniWpResourceType ::= SEQUENCE
+   { sniWpResourceTypeIndex                   INTEGER
+   , sniWpResourceTypeName                    DisplayString
+   , sniWpResourceTypeAdminExtensions         DisplayString
+   , sniWpResourceTypeDebugControlFunctions   INTEGER
+   , sniWpResourceTypeDebugPrefix             DisplayString
+   , sniWpResourceTypeDescription             DisplayString
+   , sniWpResourceTypeDllName                 DisplayString
+   , sniWpResourceTypeIsAlivePollInterval     INTEGER
+   , sniWpResourceTypeLooksAlivePollInterval  INTEGER
+   }
+
+sniWpResourceTypeIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the resource type
+                 (1-based sequence)."
+   ::= { sniWpResourceTypeEntry 1 }
+
+sniWpResourceTypeName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Unique name of the type of resources"
+   ::= { sniWpResourceTypeEntry 2 }
+
+sniWpResourceTypeAdminExtensions OBJECT-TYPE
+   SYNTAX       DisplayString -- May contain several null-separated strings.
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "CLSIDs of the Cluster Administrator extension DLLs
+                 for this resource type."
+   ::= { sniWpResourceTypeEntry 3 }
+
+sniWpResourceTypeDebugControlFunctions OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown (1)
+                , yes(2)
+                , no(3)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Indicates whether or not the Cluster Service
+                 should create a separate Resource Monitor
+                 to use for debugging the control functions
+                 of the resource type:
+                 1 - don't know
+                 2 - yes
+                 3 - no."
+   ::= { sniWpResourceTypeEntry 4 }
+
+sniWpResourceTypeDebugPrefix OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Path to a debugger that will be used to debug
+                 all resources of the type that are running in
+                 the Resource Monitor for the resource type."
+   ::= { sniWpResourceTypeEntry 5 }
+
+sniWpResourceTypeDescription OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Remarks or comments about the resource type."
+   ::= { sniWpResourceTypeEntry 6 }
+
+sniWpResourceTypeDllName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Name of the DLL that implements the resource type."
+   ::= { sniWpResourceTypeEntry 7 }
+
+sniWpResourceTypeIsAlivePollInterval OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Recommended interval in milliseconds that the
+                 Cluster Service should poll resources of this
+                 type to determine if they are operational."
+   ::= { sniWpResourceTypeEntry 8 }
+
+sniWpResourceTypeLooksAlivePollInterval OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Recommended interval in milliseconds that the
+                 Cluster Service should poll resources of this
+                 type to determine if they appear operational."
+   ::= { sniWpResourceTypeEntry 9 }
+
+
+--------------------------------------------------------------------------
+--                           GROUP sniWpGroups                          --
+-- lists groups of resources                                            --
+--------------------------------------------------------------------------
+
+sniWpGroupNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Number of resource groups."
+   ::= { sniWpGroups 1 }
+
+sniWpGroupTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpGroup
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "Table of resource groups."
+   ::= { sniWpGroups 2 }
+
+sniWpGroupEntry OBJECT-TYPE
+   SYNTAX       SniWpGroup
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  ""
+   INDEX        { sniWpGroupIndex }
+   ::= { sniWpGroupTable 1 }
+
+SniWpGroup ::= SEQUENCE
+   { sniWpGroupIndex                INTEGER
+   , sniWpGroupName                 DisplayString
+   , sniWpGroupState                INTEGER
+   , sniWpGroupNodeIndex            INTEGER
+   , sniWpGroupAutoFailbackType     INTEGER
+   , sniWpGroupDescription          DisplayString
+   , sniWpGroupFailbackWindowStart  INTEGER
+   , sniWpGroupFailbackWindowEnd    INTEGER
+   , sniWpGroupFailoverThreshold    INTEGER
+   , sniWpGroupFailoverPeriod       INTEGER
+   , sniWpGroupPersistentState      INTEGER
+   }
+
+sniWpGroupIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the group of resources
+                 (1-based sequence)."
+   ::= { sniWpGroupEntry 1 }
+
+sniWpGroupName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Name which identifies the group of resources."
+   ::= { sniWpGroupEntry 2}
+
+sniWpGroupState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , online(2)
+                , offline(3)
+                , partialonline(4)
+		, failed(5)
+		, unavailable(6)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "State of the group of resources:
+                 1 - the state of the group cannot be determined,
+                     or is none of the following:
+                 2 - the group is on-line,
+                 3 - the group is off-line,
+                 4 - the group is partially on-line,
+                 5 - the group has failed,
+                 6 - the group is unavailable."
+   ::= { sniWpGroupEntry 3 }
+
+sniWpGroupNodeIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Node which currently runs the group of resources
+                 (sniWpNodeIndex value)."
+   ::= { sniWpGroupEntry 4 }
+
+sniWpGroupAutoFailbackType OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , allowFailback(2)
+                , preventFailback(3)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Specifies whether or not the group should automatically
+                 be moved to the node identified as its preferred owner
+                 when that node comes back online following a failover.
+                 1 - Don't know,
+                 2 - yes,
+                 3 - no."
+   ::= { sniWpGroupEntry 5 }
+
+sniWpGroupDescription OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Remarks or comments about the group of resources."
+   ::= { sniWpGroupEntry 6 }
+
+sniWpGroupFailbackWindowStart OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The earliest time that the group can be moved back
+                 to the node identified as its preferred node.
+                 -1 : no window
+                 0 to 23 : the hour since midnight."
+   ::= { sniWpGroupEntry 7 }
+
+sniWpGroupFailbackWindowEnd OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The latest time that the group can be moved back
+                 to the node identified as its preferred node.
+                 -1 : no window
+                 0 to 23 : the hour since midnight."
+   ::= { sniWpGroupEntry 8 }
+
+sniWpGroupFailoverThreshold OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The number of attempts at failover that are made
+                 before the Cluster Service concludes that the group
+                 cannot be brought online anywhere in the cluster."
+   ::= { sniWpGroupEntry 9 }
+
+sniWpGroupFailoverPeriod OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Number of hours during which the Cluster Service can
+                 attempt to failover the group of resources."
+   ::= { sniWpGroupEntry 10 }
+
+sniWpGroupPersistentState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , true(2)
+                , false(3)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Persistent state of the group of resources: what should
+                 be done the next time the Cluster Service is started.
+                 1 - don't know,
+                 2 - the group should be brought online,
+                 3 - the group should be left offline."
+   ::= { sniWpGroupEntry 11 }
+
+
+--------------------------------------------------------------------------
+--                         GROUP sniWpResources                         --
+-- Lists all resources,                                                 --
+-- its first index is the index of sniWpGroupTable.                     --
+--------------------------------------------------------------------------
+
+sniWpResourceNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Total number of resources."
+   ::= { sniWpResources 1 }
+
+sniWpResourceTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpResource
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "Table of cluster resources."
+   ::= { sniWpResources 2 }
+
+sniWpResourceEntry OBJECT-TYPE
+   SYNTAX       SniWpResource
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  ""
+   INDEX        { sniWpResourceGroupIndex
+                , sniWpResourceIndex
+                }
+   ::= { sniWpResourceTable 1 }
+
+SniWpResource ::= SEQUENCE
+   { sniWpResourceGroupIndex                              INTEGER
+   , sniWpResourceIndex                                   INTEGER
+   , sniWpResourceName                                    DisplayString
+   , sniWpResourceState                                   INTEGER
+   , sniWpResourceNetworkName                             DisplayString
+   , sniWpResourceResourceTypeIndex                       INTEGER
+   , sniWpResourceDebugPrefix                             DisplayString
+   , sniWpResourceDescription                             DisplayString
+   , sniWpResourceIsAlivePollInterval                     INTEGER
+   , sniWpResourceLooksAlivePollInterval                  INTEGER
+   , sniWpResourcePendingTimeout                          INTEGER
+   , sniWpResourcePersistentState                         INTEGER
+   , sniWpResourceRestartAction                           INTEGER
+   , sniWpResourceRestartPeriod                           INTEGER
+   , sniWpResourceRestartThreshold                        INTEGER
+   , sniWpResourceSeparateMonitor                         INTEGER
+   , sniWpFileShareResourceMaxUsers                       INTEGER
+   , sniWpFileShareResourcePath                           DisplayString
+   , sniWpFileShareResourceRemark                         DisplayString
+   , sniWpFileShareResourceShareName                      DisplayString
+   , sniWpGenericApplicationResourceCommandLine           DisplayString
+   , sniWpGenericApplicationResourceCurrentDirectory      DisplayString
+   , sniWpGenericApplicationResourceInteractWithDesktop   INTEGER
+   , sniWpGenericApplicationResourceUseNetworkName        INTEGER
+   , sniWpGenericServiceResourceStartupParameters         DisplayString
+   , sniWpGenericServiceResourceServiceName               DisplayString
+   , sniWpIISVirtualRootResourceAccessMaskExecute         INTEGER
+   , sniWpIISVirtualRootResourceAccessMaskRead            INTEGER
+   , sniWpIISVirtualRootResourceAccessMaskWrite           INTEGER
+   , sniWpIISVirtualRootResourceAlias                     DisplayString
+   , sniWpIISVirtualRootResourceDirectory                 DisplayString
+   , sniWpIISVirtualRootResourceServiceType               INTEGER
+   , sniWpIPAddressResourceAddress                        DisplayString
+   , sniWpIPAddressResourceNetworkIndex                   INTEGER
+   , sniWpIPAddressResourceSubnetMask                     DisplayString
+   , sniWpNetworkNameResourceName                         DisplayString
+   , sniWpPhysicalDiskResourceDrive                       DisplayString
+   , sniWpPhysicalDiskResourceSignature                   INTEGER
+   , sniWpPrintSpoolerResourceDefaultSpoolDirectory       DisplayString
+   , sniWpPrintSpoolerResourceJobCompletionTimeout        INTEGER
+   }
+
+sniWpResourceGroupIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the group of the resource
+                 (same set of values as that of sniWpGroupIndex)."
+   ::= { sniWpResourceEntry 1 }
+
+sniWpResourceIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the resource
+                 (1-based sequence, not reset at group boundaries)."
+   ::= { sniWpResourceEntry 2 }
+
+sniWpResourceName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Name which identifies the resource."
+   ::= { sniWpResourceEntry 3 }
+
+sniWpResourceState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , online(2)
+                , offline(3)
+                , failed(4)
+                , online-pending(5)
+                , offline-pending(6)
+		, pending(7)
+		, unavailable(8)
+		, inherited(9)
+		, initializing(10)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The state of the resource:
+                  1 - the state of the resource cannot be determined,
+                      or is none of the following:
+                  2 - the resource is on-line,
+                  3 - the resource is off-line,
+                  4 - the resource has failed,
+                  5 - the resource is coming up,
+                  6 - the resource is going down,
+                  7 - the resource is pending,
+                  8 - the resource is not available,
+		  9 - the resource is inherited,
+                 10 - the resource is initialising."
+   ::= { sniWpResourceEntry 4 }
+
+sniWpResourceNetworkName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Network name of the resource."
+   ::= { sniWpResourceEntry 5 }
+
+sniWpResourceResourceTypeIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the type of the resource
+                 (same set of values as that of sniWpResourceTypeIndex)."
+   ::= { sniWpResourceEntry 6 }
+
+sniWpResourceDebugPrefix OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Path to the debugger to be attached to the Resource
+                 Monitor for the resource."
+   ::= { sniWpResourceEntry 7 }
+
+sniWpResourceDescription OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Remarks or comments about the resource."
+   ::= { sniWpResourceEntry 8 }
+
+sniWpResourceIsAlivePollInterval OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Recommended interval in milliseconds that
+                 the Cluster Service should poll the resource
+                 to determine if it is operational.
+                 -1 : take the value from its resource type,
+                 must otherwise be > 0."
+   ::= { sniWpResourceEntry 9 }
+
+sniWpResourceLooksAlivePollInterval OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Recommended interval in milliseconds that
+                 the Cluster Service should poll the resource
+                 to determine if it appears operational, or
+                 -1 : take the value from its resource type, or
+                  0 : the LooksAlive() function is not used."
+   ::= { sniWpResourceEntry 10 }
+
+sniWpResourcePendingTimeout OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Number of milliseconds that the Resource Monitor
+                 waits after the resource returns a status of
+                 ERROR_IO_PENDING from its Online or Offline
+                 entry point functions."
+   ::= { sniWpResourceEntry 11 }
+
+sniWpResourcePersistentState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , true(2)
+                , false(3)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Describes what should happen to the resource
+                 the next time the Cluster Service is started:
+                 1 - don't know,
+                 2 - the resource should be brought online,
+                 3 - the resource should be left offline."
+   ::= { sniWpResourceEntry 12 }
+
+sniWpResourceRestartAction OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , dontRestart(2)
+                , restartNoNotify(3)
+                , restartNotify(4)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Action to perform if the resource fails:
+                 1 - don't know
+                 2 - Do not restart the resource after a failure,
+                 3 - If the resource exceeds its restart threshold
+                     within its restart period, do not attempt to fail
+                     the group over to another node in the cluster,
+                 4 - If the resource exceeds its restart threshold
+                     within its restart period, attempt to fail
+                     the group over to another node in the cluster."
+   ::= { sniWpResourceEntry 13 }
+
+sniWpResourceRestartPeriod OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Window of time in milliseconds during which
+                 a specified number of restart attempts of the resource
+                 can occur. This number is defined by
+                 sniWpResourceRestartThreshold."
+   ::= { sniWpResourceEntry 14 }
+
+sniWpResourceRestartThreshold OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Limit of local retries for the resource within
+                 a window defined by sniWpResourceRestartPeriod
+                 before the Cluster Service initiates the action
+                 specified by sniWpResourceRestartAction."
+   ::= { sniWpResourceEntry 15 }
+
+sniWpResourceSeparateMonitor OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , yes(2)
+                , no(3)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Indicates whether or not the resource requires
+                 its own Resource Monitor:
+                 1 - don't know,
+                 2 - yes,
+                 3 - no."
+   ::= { sniWpResourceEntry 16 }
+
+sniWpFileShareResourceMaxUsers OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       optional -- file share resources
+   DESCRIPTION  "Number of simultaneous users that can access the file share."
+   ::= { sniWpResourceEntry 17 }
+
+sniWpFileShareResourcePath OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- file share resources
+   DESCRIPTION  "Path to the directory being shared."
+   ::= { sniWpResourceEntry 18 }
+
+sniWpFileShareResourceRemark OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- file share resources
+   DESCRIPTION  "Comment attached to the File Share."
+   ::= { sniWpResourceEntry 19 }
+
+sniWpFileShareResourceShareName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- file share resources
+   DESCRIPTION  "Name of the file share present on the network."
+   ::= { sniWpResourceEntry 21 }
+
+sniWpGenericApplicationResourceCommandLine OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- generic application resources
+   DESCRIPTION  "Command-line used to start the application."
+   ::= { sniWpResourceEntry 22 }
+
+sniWpGenericApplicationResourceCurrentDirectory OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- generic application resources
+   DESCRIPTION  "Directory in which the application should be run."
+   ::= { sniWpResourceEntry 23 }
+
+sniWpGenericApplicationResourceInteractWithDesktop OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , yes(2)
+                , no(3)
+                }
+   ACCESS       read-only
+   STATUS       optional -- generic application resources
+   DESCRIPTION  "Specifies whether the application can provide a user
+                 interface on the desktop that can be used by any
+                 person logged in on the node on which the resource
+                 is online:
+                 1 - don't know,
+                 2 - it can,
+                 3 - it cannot."
+   ::= { sniWpResourceEntry 24 }
+
+sniWpGenericApplicationResourceUseNetworkName OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , yes(2)
+                , no(3)
+                }
+   ACCESS       read-only
+   STATUS       optional -- generic application or service resources
+   DESCRIPTION  "Specifies the outcome of a call to the Win32 function
+                 GetComputerName():
+                 1 - don't know,
+                 2 - network name of the Network Name resource on which
+                     the application or service is dependent,
+                 3 - name of the node that is currently online and running
+                     the application or service."
+   ::= { sniWpResourceEntry 25 }
+
+sniWpGenericServiceResourceStartupParameters OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- generic service resources
+   DESCRIPTION  "Command-line to pass to the service when it is started."
+   ::= { sniWpResourceEntry 26 }
+
+sniWpGenericServiceResourceServiceName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- generic service resources
+   DESCRIPTION  "Short name of the service to run."
+   ::= { sniWpResourceEntry 27 }
+
+sniWpIISVirtualRootResourceAccessMaskExecute OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , yes(2)
+                , no(3)
+                }
+   ACCESS       read-only
+   STATUS       optional -- IIS virtual root resources
+   DESCRIPTION  "Specifies whether execute protection is required for the
+                 IIS Virtual Root:
+                 1 - don't know,
+                 2 - yes,
+                 3 - no."
+   ::= { sniWpResourceEntry 28 }
+
+sniWpIISVirtualRootResourceAccessMaskRead OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , yes(2)
+                , no(3)
+                }
+   ACCESS       read-only
+   STATUS       optional -- IIS virtual root resources
+   DESCRIPTION  "Specifies whether read protection is required for the
+                 IIS Virtual Root:
+                 1 - don't know,
+                 2 - yes,
+                 3 - no."
+   ::= { sniWpResourceEntry 29 }
+
+sniWpIISVirtualRootResourceAccessMaskWrite OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , yes(2)
+                , no(3)
+                }
+   ACCESS       read-only
+   STATUS       optional -- IIS virtual root resources
+   DESCRIPTION  "Specifies whether write protection is required for the
+                 IIS Virtual Root:
+                 1 - don't know,
+                 2 - yes,
+                 3 - no."
+   ::= { sniWpResourceEntry 30 }
+
+sniWpIISVirtualRootResourceAlias OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- IIS virtual root resources
+   DESCRIPTION  "Subdirectory name that clients use to access the
+                 IIS Virtual Root."
+   ::= { sniWpResourceEntry 31 }
+
+sniWpIISVirtualRootResourceDirectory OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- IIS virtual root resources
+   DESCRIPTION  "Physical location of the IIS Virtual Root."
+   ::= { sniWpResourceEntry 32 }
+
+sniWpIISVirtualRootResourceServiceType OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , w3svc(2)
+                , msftpsvc(3)
+                , gophersvc(4)
+                }
+   ACCESS       read-only
+   STATUS       optional -- IIS virtual root resources
+   DESCRIPTION  "Type of Web service with which the IIS Virtual Root will be used:
+                 1 - don't know,
+                 2 - www,
+                 3 - ftp,
+                 4 - gopher."
+   ::= { sniWpResourceEntry 33 }
+
+sniWpIPAddressResourceAddress OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- IP address resources
+   DESCRIPTION  "The IP Address."
+   ::= { sniWpResourceEntry 34 }
+
+sniWpIPAddressResourceNetworkIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       optional -- IP address resources
+   DESCRIPTION  "Temporary index of the network for which the IP address
+                 is to be created
+                 (same set of values as that of sniWpNetworkIndex)."
+   ::= { sniWpResourceEntry 35 }
+
+sniWpIPAddressResourceSubnetMask OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- IP address resources
+   DESCRIPTION  "Subnet mask to be applied for routing for the IP address."
+   ::= { sniWpResourceEntry 36 }
+
+sniWpNetworkNameResourceName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- network name resources
+   DESCRIPTION  "Network name resource."
+   ::= { sniWpResourceEntry 37 }
+
+sniWpPhysicalDiskResourceDrive OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- physical disk resources
+   DESCRIPTION  "Drive letter for the Physical Disk resource."
+   ::= { sniWpResourceEntry 38 }
+
+sniWpPhysicalDiskResourceSignature OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       optional -- physical disk resources
+   DESCRIPTION  "Signature for the Physical Disk resource."
+   ::= { sniWpResourceEntry 39 }
+
+sniWpPrintSpoolerResourceDefaultSpoolDirectory OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       optional -- print spooler resources
+   DESCRIPTION  "Name of the spooler folder for the Print Spooler resource."
+   ::= { sniWpResourceEntry 40 }
+
+sniWpPrintSpoolerResourceJobCompletionTimeout OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       optional -- print spooler resources
+   DESCRIPTION  "Number of milliseconds before a pending job is deleted
+                 from the Print Spooler resource's queue."
+   ::= { sniWpResourceEntry 41 }
+
+
+--------------------------------------------------------------------------
+--                      GROUP sniWpPreferredNodes                       --
+-- Lists the nodes which can provide the resources of each group,       --
+-- in order of decreasing preference.                                   --
+-- its first index is the index of sniWpGroupTable.                     --
+--------------------------------------------------------------------------
+
+sniWpPreferredNodeNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Total number of preferred node entries."
+   ::= { sniWpPreferredNodes 1 }
+
+sniWpPreferredNodeTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpPreferredNode
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "Table of preferred nodes per group of resources."
+   ::= { sniWpPreferredNodes 2 }
+
+sniWpPreferredNodeEntry OBJECT-TYPE
+   SYNTAX       SniWpPreferredNode
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  ""
+   INDEX        { sniWpPreferredNodeGroupIndex
+                , sniWpPreferredNodeRank
+                }
+   ::= { sniWpPreferredNodeTable 1 }
+
+SniWpPreferredNode ::= SEQUENCE
+   { sniWpPreferredNodeGroupIndex INTEGER
+   , sniWpPreferredNodeRank		  INTEGER
+   , sniWpPreferredNodeIndex	  INTEGER
+   }
+
+sniWpPreferredNodeGroupIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the group of the resource
+                 (same set of values as that of sniWpGroupIndex)."
+   ::= { sniWpPreferredNodeEntry 1 }
+
+sniWpPreferredNodeRank OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Preferred node has rank 1,
+                 higher rank means lesser preference."
+   ::= { sniWpPreferredNodeEntry 2 }
+
+sniWpPreferredNodeIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Preferred node index
+                 (sniWpNodeIndex value)."
+   ::= { sniWpPreferredNodeEntry 3 }
+
+
+--------------------------------------------------------------------------
+--                    GROUP sniWpResourceDependencies                   --
+-- lists all resource provider-dependent pairs.                         --
+--------------------------------------------------------------------------
+
+sniWpResourceDependencyNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Total number of resource dependencies."
+   ::= { sniWpResourceDependencies 1 }
+
+sniWpResourceDependencyTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpResourceDependency
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "List of resource provider-dependent pairs."
+   ::= { sniWpResourceDependencies 2 }
+
+sniWpResourceDependencyEntry OBJECT-TYPE
+   SYNTAX       SniWpResourceDependency
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "One particular dependent resources pair."
+   INDEX        { sniWpDependencyConditionGroupIndex
+                , sniWpDependencyConditionResourceIndex
+                , sniWpDependencyDependentGroupIndex
+                , sniWpDependencyDependentResourceIndex
+                }
+        ::= { sniWpResourceDependencyTable 1 }
+
+SniWpResourceDependency ::= SEQUENCE
+   { sniWpDependencyConditionGroupIndex    INTEGER
+   , sniWpDependencyConditionResourceIndex INTEGER
+   , sniWpDependencyDependentGroupIndex    INTEGER
+   , sniWpDependencyDependentResourceIndex INTEGER
+   }
+
+sniWpDependencyConditionGroupIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "dependent resource group index
+                 (same set of values as that of sniWpGroupIndex )."
+   ::= { sniWpResourceDependencyEntry 1 }
+
+sniWpDependencyConditionResourceIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "dependent resource index
+                 (same set of values as that of sniWpResourceIndex)."
+   ::= { sniWpResourceDependencyEntry 2 }
+
+sniWpDependencyDependentGroupIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "dependent resource group index
+                 (some value from the set of sniWpGroupIndex values)."
+   ::= { sniWpResourceDependencyEntry 3 }
+
+sniWpDependencyDependentResourceIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "dependent resource index
+                 (some value from the set of sniWpResourceIndex values)."
+   ::= { sniWpResourceDependencyEntry 4 }
+
+
+--------------------------------------------------------------------------
+--                          GROUP sniWpNetworks                         --
+-- Lists all Networks in the cluster.                                   --
+-- Numbered temporarily from 1 to sniWpNetworkNumber.                   --
+--------------------------------------------------------------------------
+
+sniWpNetworkNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Number of Network in the cluster,
+                 and of sniWpNetworkTable entries."
+   ::= { sniWpNetworks 1 }
+
+sniWpNetworkTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpNetwork
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "Table of cluster Networks."
+   ::= { sniWpNetworks 2 }
+
+sniWpNetworkEntry OBJECT-TYPE
+   SYNTAX       SniWpNetwork
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  ""
+   INDEX        { sniWpNetworkIndex }
+   ::= { sniWpNetworkTable 1 }
+
+SniWpNetwork ::= SEQUENCE
+   { sniWpNetworkIndex        INTEGER
+   , sniWpNetworkName         DisplayString
+   , sniWpNetworkState        INTEGER
+   , sniWpNetworkAddress      DisplayString
+   , sniWpNetworkAddressMask  DisplayString
+   , sniWpNetworkDescription  DisplayString
+   , sniWpNetworkRole         INTEGER
+   }
+
+sniWpNetworkIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the Network
+                 (1-based sequence)."
+   ::= { sniWpNetworkEntry 1 }
+
+sniWpNetworkName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Name which identifies the Network."
+   ::= { sniWpNetworkEntry 2 }
+
+sniWpNetworkState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown (1)
+                , up(2)
+                , down(3)
+                , partitioned(4)
+                , unavailable(5)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "State of the Network:
+                 1 - the state of the Network cannot be determined,
+                     or is none of the following:
+                 2 - Network is up and fully operational,
+                 3 - Network is down,
+                 4 - Network is partitioned,
+                 5 - Network is unavailable."
+   ::= { sniWpNetworkEntry 3 }
+
+sniWpNetworkAddress OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The address of the network or subnet as a whole."
+   ::= { sniWpNetworkEntry 4 }
+
+sniWpNetworkAddressMask OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The mask which distinguishes the network and host
+                 portions of an address."
+   ::= { sniWpNetworkEntry 5 }
+
+sniWpNetworkDescription OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Remarks or comments about the network."
+   ::= { sniWpNetworkEntry 6 }
+
+sniWpNetworkRole OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown (1)
+                , none(2)
+                , clientAccess(3)
+                , internalUse(4)
+                , internalAndClient(5)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The role of the network in the cluster:
+                 1 - don't know,
+                 2 - the network is not used by the cluster,
+                 3 - the network is used to connect client systems
+                     to the cluster,
+                 4 - the network is used to carry internal cluster
+                     communication,
+                 5 - the network is used to connect client systems
+                     and to carry internal cluster communication."
+   ::= { sniWpNetworkEntry 7 }
+
+
+--------------------------------------------------------------------------
+--                       GROUP sniWpNetInterfaces                       --
+-- Lists all network interfaces,                                        --
+-- its first index is the index of sniWpNodeTable.                      --
+--------------------------------------------------------------------------
+
+sniWpNetInterfaceNumber OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Total number of NetworkInterfaces."
+   ::= { sniWpNetInterfaces 1 }
+
+sniWpNetInterfaceTable OBJECT-TYPE
+   SYNTAX       SEQUENCE OF SniWpNetInterface
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  "Table of cluster NetworkInterfaces."
+   ::= { sniWpNetInterfaces 2 }
+
+sniWpNetInterfaceEntry OBJECT-TYPE
+   SYNTAX       SniWpNetInterface
+   ACCESS       not-accessible
+   STATUS       mandatory
+   DESCRIPTION  ""
+   INDEX        { sniWpNetInterfaceNodeIndex
+                , sniWpNetInterfaceNetworkIndex
+                }
+   ::= { sniWpNetInterfaceTable 1 }
+
+SniWpNetInterface ::= SEQUENCE
+   { sniWpNetInterfaceNodeIndex       INTEGER
+   , sniWpNetInterfaceNetworkIndex    INTEGER
+   , sniWpNetInterfaceName            DisplayString
+   , sniWpNetInterfaceState           INTEGER
+   , sniWpNetInterfaceAdapter         DisplayString
+   , sniWpNetInterfaceAddress         DisplayString
+   , sniWpNetInterfaceDescription     DisplayString
+   , sniWpNetInterfaceAdapterId       DisplayString
+   }
+
+sniWpNetInterfaceNodeIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the node of the network interface
+                 (same set of values as that of sniWpNodeIndex)."
+   ::= { sniWpNetInterfaceEntry 1 }
+
+sniWpNetInterfaceNetworkIndex OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Temporary index of the network of the interface
+                 (subset of the set of values of sniWpNetworkIndex)."
+   ::= { sniWpNetInterfaceEntry 2 }
+
+sniWpNetInterfaceName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Name which identifies the network interface."
+   ::= { sniWpNetInterfaceEntry 3 }
+
+sniWpNetInterfaceState OBJECT-TYPE
+   SYNTAX       INTEGER
+                { unknown(1)
+                , up(2)
+                , failed(3)
+		, unreachable(4)
+		, unavailable(5)
+                }
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "The state of the network interface:
+                  1 - the state of the network interface cannot be determined,
+                      or is none of the following:
+                  2 - the network interface is operational,
+                  3 - the network interface is not operational,
+                  4 - the network interface is not accessible from any node,
+                  5 - the network interface is not available."
+   ::= { sniWpNetInterfaceEntry 4 }
+
+sniWpNetInterfaceAdapter OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Name that is used to uniquely identify the
+                 network interface."
+   ::= { sniWpNetInterfaceEntry 5 }
+
+sniWpNetInterfaceAddress OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Primary network address that the node uses for the
+                 network interface."
+   ::= { sniWpNetInterfaceEntry 6 }
+
+sniWpNetInterfaceDescription OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Remarks or comments about the network interface."
+   ::= { sniWpNetInterfaceEntry 7 }
+
+sniWpNetInterfaceAdapterId OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       read-only
+   STATUS       mandatory
+   DESCRIPTION  "Identification of the network interface adapter."
+   ::= { sniWpNetInterfaceEntry 8 }
+
+
+
+
+
+
+
+--------------------------------------------------------------------------
+--                       GROUP sniWpNotifications                       --
+--                         and Trap definitions                         --
+--                                                                      --
+-- sni traps distribution:                                              --
+--     1..800   see TRAP.MIB                                            --
+--   801..999   Windows NT cluster (this MIB)                           --
+--              801             unknown cluster change.                 --
+--              802..809        reserved.                               --
+--              810..819        agent status changes.                   --
+--              820..829        reserved for global cluster changes.    --
+--              830..839        node changes.                           --
+--              840..849        resource type changes.                  --
+--              850..859        group changes.                          --
+--              860..869        resource changes.                       --
+--              870..879        reserved for preferred nodes changes.   --
+--              880..889        reserved for dependencies changes.      --
+--              890..899        cluster registry changes.               --
+--              900..909        reserved.                               --
+--              910..919        network status changes.                 --
+--              920..929        network interface status changes.       --
+--              930..999        reserved for future developments.       --
+--                                                                      --
+--------------------------------------------------------------------------
+
+sniWpNotificationType OBJECT-TYPE
+   SYNTAX       INTEGER
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Event type of the notification
+                 which caused the current trap."
+   ::= { sniWpNotifications 1 }
+
+-- reserved sniWpClusterName ::= { sniWpNotifications 2 }
+
+sniWpNotificationNodeName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Name of the node which caused the current trap."
+   ::= { sniWpNotifications 3 }
+
+sniWpNotificationResourceTypeName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Name of the resource type which caused the current trap."
+   ::= { sniWpNotifications 4 }
+
+sniWpNotificationGroupName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Name of the group which caused the current trap."
+   ::= { sniWpNotifications 5 }
+
+sniWpNotificationResourceName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Name of the resource which caused the current trap."
+   ::= { sniWpNotifications 6 }
+
+-- reserved sniWpNotificationPreferredNodes ::= { sniWpNotifications 7 }
+-- reserved sniWpNotificationDependencies ::= { sniWpNotifications 8 }
+
+sniWpNotificationClusterKeyName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Relative name of the cluster registry key which caused
+                 the current trap."
+   ::= { sniWpNotifications 9 }
+
+-- reserved sniWpNotificationXxxName ::= { sniWpNotifications 10 }
+
+sniWpNotificationNetworkName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Name of the network which caused the current trap."
+   ::= { sniWpNotifications 11 }
+
+sniWpNotificationNetInterfaceName OBJECT-TYPE
+   SYNTAX       DisplayString
+   ACCESS       not-accessible -- for a trap PDU only
+   STATUS       mandatory
+   DESCRIPTION  "Name of the network interface which caused
+                 the current trap."
+   ::= { sniWpNotifications 12 }
+
+
+
+--------------------------------------------------------------------------
+--              801             unknown change.                         --
+--------------------------------------------------------------------------
+
+sniWpChangeUnknown TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationType
+                }
+   DESCRIPTION  "The cluster API has returned a notification type
+                 for which no other trap is currently defined."
+   --#TYPE      "unknown notification type"
+   --#SUMMARY   "The cluster has sent the unknown notification 0x%X."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 801
+
+
+--------------------------------------------------------------------------
+--              810..819        agent status changes                    --
+--------------------------------------------------------------------------
+
+sniWpChangeClusterNotFoundActive TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                }
+   DESCRIPTION  "The SNMP agent started but could not communicate
+                 with the cluster service."
+   --#TYPE      "abnormal cluster status"
+   --#SUMMARY   "SNMP cannot access cluster software."
+   --#SUMMARY   "Trap sent from server %s."
+   --#ARGUMENTS { 0 }
+   --#SEVERITY  CRITICAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 810
+
+sniWpChangeClusterActiveAgain TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                }
+   DESCRIPTION  "The SNMP agent has established communication
+                 with the cluster service."
+   --#TYPE      "normal cluster status"
+   --#SUMMARY   "SNMP gained access to the cluster software."
+   --#SUMMARY   "Trap sent from server %s."
+   --#ARGUMENTS { 0 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 811
+
+sniWpChangeClusterNoLongerActive TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                }
+   DESCRIPTION  "The SNMP agent has lost communication
+                 with the cluster service."
+   --#TYPE      "abnormal cluster status"
+   --#SUMMARY   "SNMP lost access to the cluster software."
+   --#SUMMARY   "Trap sent from server %s."
+   --#ARGUMENTS { 0 }
+   --#SEVERITY  CRITICAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 812
+
+
+--------------------------------------------------------------------------
+--              830..839        node changes                            --
+--------------------------------------------------------------------------
+
+sniWpChangeNodeDeleted TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNodeName
+                }
+   DESCRIPTION  "A node has permanently been removed from the cluster."
+   --#TYPE      "node deleted"
+   --#SUMMARY   "The node %s has been deleted."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 830
+
+sniWpChangeNodeAdded TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNodeName
+                }
+   DESCRIPTION  "A new node has been added to the cluster."
+   --#TYPE      "node added"
+   --#SUMMARY   "The node %s has been added."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 831
+
+sniWpChangeNodeState TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNodeName
+                }
+   DESCRIPTION  "A cluster node has changed its state."
+   --#TYPE      "node state change"
+   --#SUMMARY   "The node %s has changed its state."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 832
+
+
+
+--------------------------------------------------------------------------
+--              840..849        resource type changes                   --
+--------------------------------------------------------------------------
+
+sniWpChangeResourceTypeDeleted TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceTypeName
+                }
+   DESCRIPTION  "A resource type has been deleted."
+   --#TYPE      "resource type deleted"
+   --#SUMMARY   "Resource type %s has been deleted."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 840
+
+sniWpChangeResourceTypeAdded TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceTypeName
+                }
+   DESCRIPTION  "A new resource type has been created."
+   --#TYPE      "resource type created"
+   --#SUMMARY   "Resource type %s has been created."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 841
+
+
+--------------------------------------------------------------------------
+--              850..859        group changes                           --
+--------------------------------------------------------------------------
+
+sniWpChangeGroupDeleted TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A resource group has been deleted."
+   --#TYPE      "group deleted"
+   --#SUMMARY   "Group %s has been deleted."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 850
+
+sniWpChangeGroupAdded TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A new resource group has been created."
+   --#TYPE      "group created"
+   --#SUMMARY   "Group %s has been created."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 851
+
+sniWpChangeGroupState TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A resource group has changed its state."
+   --#TYPE      "group state change"
+   --#SUMMARY   "Group %s has changed its state."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 852
+
+sniWpChangeGroupProperty TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "The properties of a resource group have changed."
+   --#TYPE      "group properties change"
+   --#SUMMARY   "The properties of group %s have changed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 853
+
+
+--------------------------------------------------------------------------
+--              860..869        resource changes                        --
+--------------------------------------------------------------------------
+
+sniWpChangeResourceDeleted TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceName
+                }
+   DESCRIPTION  "A cluster resource has been deleted."
+   --#TYPE      "resource deleted"
+   --#SUMMARY   "Resource %s has been deleted."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 860
+
+sniWpChangeResourceAdded TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceName
+                }
+   DESCRIPTION  "A new resource has been created in the cluster."
+   --#TYPE      "resource added"
+   --#SUMMARY   "Resource %s has been added."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 861
+
+sniWpChangeResourceState TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceName
+                }
+   DESCRIPTION  "A cluster resource has changed its state."
+   --#TYPE      "resource state change"
+   --#SUMMARY   "Resource %s has changed its state."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 862
+
+sniWpChangeResourceProperty TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceName
+                }
+   DESCRIPTION  "The properties of a cluster resource have changed."
+   --#TYPE      "resource properties change"
+   --#SUMMARY   "The properties of resource %s have changed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 863
+
+
+--------------------------------------------------------------------------
+--              890..899        cluster registry changes                --
+--------------------------------------------------------------------------
+
+sniWpChangeRegistryAttributes TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationClusterKeyName
+                }
+   DESCRIPTION  "The cluster registry key's attributes have been changed."
+   --#TYPE      "cluster attributes change"
+   --#SUMMARY   "The attributes of registry key %s have been changed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 895
+
+sniWpChangeRegistryKey TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationClusterKeyName
+                }
+   DESCRIPTION  "A cluster registry key has been created or deleted."
+   --#TYPE      "registry namespace change"
+   --#SUMMARY   "Registry key %s has been created or deleted."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 896
+
+sniWpChangeRegistryValue TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationClusterKeyName
+                }
+   DESCRIPTION  "A cluster registry value has been changed or deleted."
+   --#TYPE      "registry value change"
+   --#SUMMARY   "A value of registry key %s has been changed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 897
+
+
+--------------------------------------------------------------------------
+--              910..919        network status changes.                 --
+--------------------------------------------------------------------------
+
+sniWpChangeNetworkDeleted TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetworkName
+                }
+   DESCRIPTION  "A network has been removed from the cluster."
+   --#TYPE      "network deleted"
+   --#SUMMARY   "Network %s has been deleted."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 910
+
+sniWpChangeNetworkAdded TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetworkName
+                }
+   DESCRIPTION  "A network has been added to the cluster."
+   --#TYPE      "network created"
+   --#SUMMARY   "Network %s has been created."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 911
+
+sniWpChangeNetworkState TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetworkName
+                }
+   DESCRIPTION  "A Network has changed its state."
+   --#TYPE      "network state change"
+   --#SUMMARY   "Network %s has changed its state."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 912
+
+sniWpChangeNetworkProperty TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetworkName
+                }
+   DESCRIPTION  "The properties of a network have changed."
+   --#TYPE      "network properties change"
+   --#SUMMARY   "The properties of Network %s have changed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 913
+
+
+--------------------------------------------------------------------------
+--              920..929        network interface status changes.       --
+--------------------------------------------------------------------------
+
+sniWpChangeNetInterfaceDeleted TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "A network interface has been deleted."
+   --#TYPE      "network interface deleted"
+   --#SUMMARY   "Network interface %s has been deleted."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     NONOPERATIONAL
+   ::= 920
+
+sniWpChangeNetInterfaceAdded TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "A new network interface has been created."
+   --#TYPE      "network interface created"
+   --#SUMMARY   "Network interface %s has been created."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 921
+
+sniWpChangeNetInterfaceState TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "A network interface has changed its state."
+   --#TYPE      "network interface state change"
+   --#SUMMARY   "Network interface %s has changed its state."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 922
+
+sniWpChangeNetInterfaceProperty TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "The properties of a network interface have changed."
+   --#TYPE      "network interface properties change"
+   --#SUMMARY   "The properties of network interface %s have changed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     UNKNOWN
+   ::= 923
+
+
+
+sniWpNodeUp TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNodeName
+                }
+   DESCRIPTION  "A cluster node is online."
+   --#TYPE      "Cluster node online"
+   --#SUMMARY   "Cluster node %s is online."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 924
+
+sniWpNodeDown TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNodeName
+                }
+   DESCRIPTION  "A cluster node is offline."
+   --#TYPE      "Cluster node offline"
+   --#SUMMARY   "Cluster node %s is offline."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 925
+
+sniWpNodePaused TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNodeName
+                }
+   DESCRIPTION  "A cluster node has been paused."
+   --#TYPE      "Cluster node paused"
+   --#SUMMARY   "Cluster node %s has been paused."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 926
+
+sniWpNodeJoining TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNodeName
+                }
+   DESCRIPTION  "A cluster node is joining."
+   --#TYPE      "Cluster node joining"
+   --#SUMMARY   "Cluster node %s is joining."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 927
+
+
+sniWpGroupOnline TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A resource group has changed its state to online."
+   --#TYPE      "Cluster group online"
+   --#SUMMARY   "Cluster group %s is online."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 928
+
+sniWpGroupPartialOnline TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A cluster resource group has changed its state to partially online."
+   --#TYPE      "Cluster group partially online"
+   --#SUMMARY   "Cluster group %s is partially online."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 929
+
+sniWpGroupPending TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A cluster resource group has changed its state to pending."
+   --#TYPE      "Cluster group pending"
+   --#SUMMARY   "Cluster group %s is pending."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 930
+
+sniWpGroupOffline TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A cluster resource group has changed its state to offline."
+   --#TYPE      "Cluster group offline"
+   --#SUMMARY   "Cluster group %s is offline."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 931
+
+sniWpGroupFailed TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationGroupName
+                }
+   DESCRIPTION  "A cluster resource group has failed."
+   --#TYPE      "Cluster group failed"
+   --#SUMMARY   "Cluster group %s has failed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 932
+
+
+sniWpResourceOnline TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceName
+                }
+   DESCRIPTION  "A cluster resource has changed its state to online."
+   --#TYPE      "Cluster resource online"
+   --#SUMMARY   "Cluster resource %s is online."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 933
+
+
+sniWpResourceOffline TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceName
+                }
+   DESCRIPTION  "A cluster resource has changed its state to offline."
+   --#TYPE      "Cluster resource offline"
+   --#SUMMARY   "Cluster resource %s is offline."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 934
+
+sniWpResourceFailed TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationResourceName
+                }
+   DESCRIPTION  "A cluster resource has failed."
+   --#TYPE      "Cluster resource failed"
+   --#SUMMARY   "Cluster resource %s has failed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 935
+
+
+sniWpNetworkUp TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetworkName
+                }
+   DESCRIPTION  "A cluster network was reactivated."
+   --#TYPE      "Network reactivated"
+   --#SUMMARY   "Cluster network %s reactivated."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 936
+
+sniWpNetworkDown TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetworkName
+                }
+   DESCRIPTION  "A cluster network was going down."
+   --#TYPE      "Cluster network down"
+   --#SUMMARY   "Cluster network %s down."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 937
+
+sniWpNetworkUnavailable TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetworkName
+                }
+   DESCRIPTION  "A cluster network is unavailable."
+   --#TYPE      "Cluster network unavailable"
+   --#SUMMARY   "Cluster network %s unavailable."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 938
+
+
+sniWpNetInterfaceUp TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "A cluster network interface was reactivated."
+   --#TYPE      "Cluster network interface reactivated"
+   --#SUMMARY   "Cluster network interface %s reactivated."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  INFORMATIONAL
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 939
+
+sniWpNetInterfaceFailed TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "A cluster network interface has failed."
+   --#TYPE      "Cluster network interface failed"
+   --#SUMMARY   "Cluster network interface %s has failed."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 940
+
+sniWpNetInterfaceUnreachable TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "A cluster network interface is unreachable."
+   --#TYPE      "Cluster network interface unreachable"
+   --#SUMMARY   "Cluster network interface %s unreachable."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 941
+
+
+sniWpNetInterfaceUnavailable TRAP-TYPE
+   ENTERPRISE   sni
+   VARIABLES    { sniServerName
+                , sniTrapTime
+                , sniWpNotificationNetInterfaceName
+                }
+   DESCRIPTION  "A cluster network interface is unavailable."
+   --#TYPE      "Cluster network interface unavailable"
+   --#SUMMARY   "Cluster network interface %s unavailable."
+   --#ARGUMENTS { 2 }
+   --#SEVERITY  MAJOR
+   --#TIMEINDEX 1
+   --#STATE     OPERATIONAL
+   ::= 942
+
+--------------------------------------------------------------------------
+END
