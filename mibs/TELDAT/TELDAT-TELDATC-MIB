@@ -1,0 +1,5498 @@
+--******************************************************************************
+--
+--  TELDAT, SA.
+--
+--  Parque Tecnolgico de Madrid
+--  28760, Tres Cantos (MADRID)
+--  Tlf: +34-918076565
+--  Fax: +34-918076521
+--  E-mail: id@teldat.com
+--
+--******************************************************************************
+--
+--  MIB privada del router Teldat C
+--
+--******************************************************************************
+--
+--  HISTORIAL
+--
+--  Ver     Fecha       Autor           Comentario
+-- 5.1  11-01-13    E. Amorena      XH 2610. MIBs compilation.
+-- 5.0      08/07/09    I. Mu±oz        Revisin de todas las MIB para evitar
+--                      M.A. Pastor     warnings y errores de compilacin
+-- 4.9      02/12/08    P. Nogueira     Variables obsoletas
+-- 4.8      21/11/08    P. Nogueira     Se arregla indice
+-- 4.7      21/02/08    J. Herrero      Corregida para compilacin con
+--                      M.A. Pastor     MG-Soft MIB Compiler
+-- 4.6      03-04-06    C. Garcça       Se elimina la parte de configuracin
+--                      M.A. Pastor     del menî rﬂpido.
+--                                      Se aprovecha para eliminar warnings
+-- 4.5      24/06/04    J. Molina       Se cambia el nombre del fichero, de
+--                                      teldatC.mib a TELDAT-teldatC-MIB.mib
+-- 4.4      14/06/04    M.A. Pastor     La variable utilizada para establecer la
+--                                      configuracin por defecto toma el valor
+--                                      5 (in-process) hasta que finaliza la
+--                                      operacin
+-- 4.3      20/01/03    Benjamçn G.     Config. de Direc. remota de PPP.
+-- 4.2      10/12/02    M.A. Pastor     Configuracin de la direccin de gestin
+--                                      (management address).
+-- 4.1      04/09/02    D. Rodriguez    Flags de envço/recepcin de RIP.
+--                                      Flag de firewalling en NAPT.
+-- 4.0      22/07/02    M.A. Pastor     Nuevo parﬂmetro en los templates IPSec
+--                                      para escoger si se aplicarﬂ o no
+--                                      encapsulado UDP a los paquetes ESP
+-- 3.9      06/06/02    D. Rodriguez    TIDP (Teldat IP Discovery Protocol)
+-- 3.8      30/05/02    M.A. Pastor     Nuevas variables en la tabla de
+--                                      definicin de tîneles IPSec
+-- 3.7      13/04/02    P. Nogueira     Posibilidad de varios ADSL
+-- 3.6      06/05/02    S. Font         ANSI T1.413 ADSL open mode
+-- 3.5      08/04/02    P. Nogueira     Monitorizacin OAM
+-- 3.4      20/02/02    P. Marzo        Se permite resetear contadores napt
+-- 3.3      04/03/02    D. Rodriguez    Tiempo minimo de activacion/desactivacion
+--                                      en Multilink PPP pasa a ser 4 segundos
+-- 3.2      27/02/02    S. Font         Host name
+-- 3.1      27/02/02    P. Nogueira     Configuracion del XOT si la WAN esta en
+--                                      modo X25 y la configuracion del tipo de
+--                                      eco que se desea antes de enviar las
+--                                      traps SNMP (ninguno, UDP, ICMP).
+-- 3.0      13/02/02    P. Nogueira     Modificaciones en la tabla
+--                                      wanParameterTable para incluir el nuevo
+--                                      tipo x25.
+-- 2.9      06/02/02    J. L. Fuentes   Se a±ade un nuevo indice a la tabla
+--                                      pstnParameterTable.
+-- 2.8      04/02/02    J. L. Fuentes   Se a±ade grupo ipsecParameter para la
+--                                      configuracion de IPSec.
+-- 2.7      01/02/02    S. Font         Se a±ade pstnConnectionType
+-- 2.6      31/01/02    J. L. Fuentes   Las variables glbAdslTxLineRate y
+--                                      glbAdslRxLineRate deben ser de solo
+--                                      lectura.
+--                                      Las variables que hacen referencia al
+--                                      tipo de conexion solo pueden tomar el
+--                                      valor ip(1).
+-- 2.5      24/01/01    J.Videgain      Se a±ade una tabla para la configuracin
+--                                      de las UART, y un nuevo tipo en la
+--                                      variable wanMode (async).
+-- 2.4      10/12/01    S. Font         Nueva variable Napt Peer Address.
+-- 2.3      07/12/01    M.A. Pastor     Se introduce una variable para configurar
+--                                      el usuario al que se permite el acceso
+--                                      desde consola, TELNET y FTP.
+--                                      Algunas variables pasan a ser de slo
+--                                      lectura y se elimina la tabla de
+--                                      direcciones IP de la LAN.
+-- 2.2      05/12/01    M.A. Pastor     Se introduce una limitacin en la
+--                                      velocidad de la WAN y se cambian los
+--                                      valores del control de flujo.
+-- 2.1      26/09/01    M.A. Pastor     Nuevo parﬂmetro SNMP para deshabilitar
+--                                      el envço del ECHO UDP y la comprobacin
+--                                      de que el destino es alcanzable antes de
+--                                      enviarle TRAPs
+-- 2.0      27/07/01    M.A. Pastor     Unificacin de los menîs rﬂpidos de
+--                                      Infovça y Megavça: se agregan aquç las
+--                                      variables de monitorizacin necesarias
+--                                      de las antes incluidas en la CBRA-MIB
+-- 1.9                  J.Videgain      Unificacin de los menîs rﬂpidos de
+--                                      Infovça y Megavça: se agregan aquç las
+--                                      variables de configuracin necesarias de
+--                                      las antes incluidas en la CBRA-MIB
+-- 1.8      19/02/00    M.A. Pastor     Revisin de nombres de nodos y variables
+--                                      para TMS y unificacin de equipos:
+--                                      El nodo del equipo se llama ahora
+--                                          telProductsTeldatC
+-- 1.7      04/12/00    V.Ruiz          Nuevo OID de direccin IP interna.
+--                                      A±ado tabla de cfg de RIP
+--                                      A±ado tabla de n direcciones IP en
+--                                       interfaz LAN.
+--                                      Se a±aden nuevos OIDS en tabla de nat
+--                                       estﬂtico y tabla de rutas
+--                                       como consecuencia de n direcciones
+--                                       ip en lan
+--                                      Se a±ade tabla de cfg de Time Controls
+--  1.6     01/12/00    M.A. Pastor     Modificaciones para que pueda ser
+--                                      compilada utilizando compiladores
+--                                      distintos del de Teldat
+--  1.5     29/06/00    F.J.de Pedro    Nuevo parﬂmetros para configuracin de
+--                                      la lçnea ADSL y nuevo valor en el campo
+--                                      atmCategory
+--  1.4     26/06/00    F.J.de Pedro    Configuracin del protocolo DHCP
+--  1.3     13/06/00    F.J.de Pedro    Nuevo cambio del nodo del equipo. Pasa
+--                                          a llamarse telProductsC2.
+--                                      Nueva variable en parﬂmetros globales
+--                                          de configuracin: mﬂscara de la
+--                                          subred para la comunidad SNMP
+--  1.2     16/05/00    M.A. Pastor     El nîmero de identificacin del equipo
+--                                          pasa a ser el 17 (antes el 11).
+--  1.1     26/04/00    F.J.de Pedro    El equipo es ahora teldat-C2. Se ha
+--                                          cambiado el nombre del nodo
+--                                          {telproducts 11}
+--                                      Conexiones AAL: nueva variable para
+--                                          configurar el mâtodo de
+--                                          multiplexacin, que serﬂ LLC o VC
+--                                      Conexiones IP: la variable tipo de
+--                                          encapsulado slo podrﬂ ser IP o PPP.
+--                                          Nueva variable para tipo de enlace,
+--                                          que serﬂ punto-a-punto o multipunto.
+--  1.0     07/04/00    F.J.de Pedro    Codificacin inicial
+--
+--******************************************************************************
+
+--
+--******************************************************************************
+--
+--  CREACI‘N DE NODOS
+--
+--      * Nodo equipo Teldat-C
+--      * Nodo de configuracin
+--      * Nodo de monitorizacin
+--
+--******************************************************************************
+
+TELDAT-teldatC-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    IpAddress, Counter              FROM RFC1155-SMI
+    OBJECT-TYPE                     FROM RFC-1212
+    DisplayString                   FROM RFC1213-MIB
+    telproducts                     FROM TELDAT-MIB;
+
+telProductsTeldatC OBJECT IDENTIFIER ::= { telproducts 17 } --$M1.1 $M1.2 $M1.3 $M1.8
+configuration OBJECT IDENTIFIER ::= { telProductsTeldatC 1 } --$M1.1 $M1.3 $M1.8
+monitoring OBJECT IDENTIFIER ::= { telProductsTeldatC 2 } --$M1.1 $M1.3 $M1.8
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LOS PAR¬METROS GLOBALES
+--
+--      * Parﬂmetros de la interfaz LAN
+--          - direccin IP
+--          - mﬂscara de subred
+--      * Usuario de acceso al equipo ($M2.3)
+--      * Clave de acceso al equipo
+--      * Parﬂmetros SNMP
+--          - comunidad
+--          - direccin IP destino de las traps
+--          - nivel de traps
+--          - mﬂscara de subred de la comunidad ($M1.3)
+--          - habilitar/deshabilitar el envço del ECHO UDP o ICMP previo a
+--          las TRAPs SNMP ($M2.1)($M3.1)
+--      * Informacin sobre fecha y hora del equipo:
+--          - hecha
+--          - dça de la semana
+--          - hora
+--      * Parﬂmetros de la lçnea ADSL
+--          - velocidad de transmisin
+--          - velocidad de recepcin
+--          - relacin entre la velocidad mﬂxima y mçnima de la lçnea
+--          ADSL ($M1.5)
+--          - ADSL Open Mode ($M1.9)
+--      * Comandos
+--          - borrar
+--          - salvar
+--          - activar (actualmente generar y salvar)
+--      * Direccin IP interna ($M1.7)
+--      * Hostname ($M3.2)
+--
+--******************************************************************************
+
+globalParameters OBJECT IDENTIFIER ::= { configuration 1 }
+
+glbLanIpAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP address of the LAN interface."
+    ::={ globalParameters 1 }
+
+glbLanSubnetMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Network mask of the LAN interface."
+    ::={ globalParameters 2 }
+
+glbPassword OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Device password. It must be entered when accessing the device
+                through terminal, FTP connection or TELNET connection. If the
+                password is empty, password will not be required to access the
+                device."
+    DEFVAL      {""}
+    ::={ globalParameters 3 }
+
+glbSnmpCommunity OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "SNMP read-write community. If empty, a default community will
+                be used. Two SNMP community will be created. A public community
+                for reading MIB-2 values and the specified community for
+                reading and writting MIB-2 values and Teldat C MIB values."
+    DEFVAL      {""}        -- $M1.8
+    ::={ globalParameters 4 }
+
+glbSnmpTrapsDestination OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination IP address of the SNMP traps generated. If the
+                specified address is 0.0.0.0, traps will not be sent."
+    ::={ globalParameters 5 }
+
+glbSnmpTrapLevel OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        none(1),
+                        basic(2),
+                        medium(3),
+                        high(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Traps sending level. More high level, more traps will be sent.
+                If the level is none (1), no traps will be sent."
+    DEFVAL      {none}
+    ::={ globalParameters 6 }
+
+glbDate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Device date. It is a 3 bytes field in BCD format to specify
+                day, month and year (in this order)."
+    ::={ globalParameters 7 }
+
+glbDayOfWeek OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        monday(1),
+                        tuesday(2),
+                        wednesday(3),
+                        thursday(4),
+                        friday(5),
+                        saturday(6),
+                        sunday(7)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Device day of the week."
+    ::={ globalParameters 8 }
+
+glbTime OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Device time. It is a 3 bytes field in BCD format to specify
+                hour, minutes and seconds (in this order)."
+    ::={ globalParameters 9 }
+
+glbAdslTxLineRate OBJECT-TYPE
+    SYNTAX      INTEGER(0..8192)
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "ADSL1 transmission line rate in kbps. A value of 0 indicates
+                that the device will detect the transmission line rate
+                automatically."
+    DEFVAL      {300}
+    ::= { globalParameters 10 }
+
+glbAdslRxLineRate OBJECT-TYPE
+    SYNTAX      INTEGER(0..8192)
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "ADSL1 reception line rate in kbps. A value of 0 indicates that
+                the device will detect the reception line rate automatically."
+    DEFVAL      {2000}
+    ::= { globalParameters 11 }
+
+glbDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4),
+                        in-process(5)   --$M4.4
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the configuration will
+                be erased and a default configuration created but not saved
+                to non-volatil memory. Reading this value, it is possible to
+                know the last operation result: in-process (5) if the operation
+                is still running, ok (2) if configuration was erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ globalParameters 12 }
+
+glbSave OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        save(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (save), the configuration will be
+                saved to non-volatil memory. Reading this value, it is possible
+                to know the last operation result: ok (2) if configuration was
+                saved successfully, error (3) otherwise. The undefined (4)
+                value indicates that save operations have not been made yet."
+    ::={ globalParameters 13 }
+
+glbActivate OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        activate(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (activate), the global device
+                configuration will be created with the value of this MIB and
+                saved to non-volatil memory. It is necessary to execute the
+                load command for activating the created configuration. Reading
+                this value it is possible to know the last operation result:
+                ok (2) if configuration was created and saved successfully,
+                error (3) otherwise. The undefined (4) value indicates that
+                activate operations have not been made yet."
+    ::={ globalParameters 14 }
+
+--$M1.3 Mﬂscara de la subred de la comunidad
+glbSnmpCommunityMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This mask and the SNMP traps destination address define
+                the subnetwork that is allowed to access the device using
+                SNMP. The default value is 0.0.0.0 (all stations allowed)."
+    ::={ globalParameters 15 }
+
+--$M1.5 Relacin entre velocidad mﬂxima y mçnima de la lçnea ADSL
+glbAdslRatio OBJECT-TYPE
+    SYNTAX      INTEGER(1..200)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ADSL1 maximum/minimum line rate ratio. The ratio between
+                the maximum rate and minimum rate of the ATM connections
+                defined over this line must be less or equal to this value."
+    DEFVAL      { 25 }
+    ::= { globalParameters 16 }
+
+--$M1.7 Direccin IP interna
+glbInternalIpAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Internal IP address.
+                If the internal IP address is not configured, 0.0.0.0
+                address will be returned."
+    ::={ globalParameters 17 }
+
+--$M1.9
+glbAdslOpenMode OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        multimode(1),
+                        gLite(2),
+                        ansi_t1_413(3)  --$M3.6
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ADSL Open Mode."
+    DEFVAL      {1}
+    ::= { globalParameters 18 }
+
+
+-- $M2.1 $M3.1 Parﬂmetro para habilitar/deshabilitar el envço del ECHO UDP
+-- o ICMP previo a las TRAPs SNMP para comprobar que el destino es alcanzable
+glbSnmpCheckDestReachable OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        no(1),
+                        yes-udp(2),
+                        yes-icmp(3)     --$M3.1
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This variable is used to enable/disable the transmission of
+                ECHO packets to check if manager station is reachable before
+                sending TRAPs. The ECHO packets can be UDP packets or ICMP
+                packets."
+    ::={ globalParameters 19 }
+
+--$M2.3
+glbUser OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Allowed user. It must be entered when accessing the device
+                through terminal, FTP connection or TELNET connection. If it is
+                not configured, no user will be required to access the device."
+    DEFVAL      {""}
+    ::={ globalParameters 20 }
+
+glbHostname OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..15))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Host name."
+    DEFVAL      {""}
+    ::={ globalParameters 21 }
+
+--$M4.2 Direccin de gestin (management address)
+glbMngIpAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Management IP address.
+                If the management IP address is not configured, 0.0.0.0
+                address will be returned."
+    ::={ globalParameters 22 }
+
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LAS SUBINTERFACES ATM (CONEXIONES ATM)
+--
+--      * Õndice
+--      * Identificador de subinterfaz
+--      * Interfaz sobre el que se monta ATM
+--      * Configuracin de la conexin ATM
+--          - VPI (virtual path identifier)
+--          - VCI (virtual circuit identifier)
+--          - Categorça
+--          - PCR (peak cell rate)
+--          - MBS (maximum burst size)
+--          - SCR (sustained cell rate)
+--      * Comando borrar
+--      * Mâtodo de multiplexacin ($M1.1)
+--
+--******************************************************************************
+
+atmSubChannelTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AtmSubChannelEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "ATM subinterfaces table (ATM connections)."
+    ::={ configuration 2 }
+
+atmSubChannelEntry OBJECT-TYPE
+    SYNTAX      AtmSubChannelEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is an ATM connection."
+    INDEX       { atmIndex }
+    ::= { atmSubChannelTable 1 }
+
+AtmSubChannelEntry ::=  SEQUENCE
+    {
+        atmIndex        INTEGER,
+        atmIdentifier   INTEGER,
+        atmChannel      INTEGER,
+        atmVPI          INTEGER,
+        atmVCI          INTEGER,
+        atmCategory     INTEGER,
+        atmPCR          INTEGER,
+        atmMBS          INTEGER,
+        atmSCR          INTEGER,
+        atmDelete       INTEGER,
+        atmMxMethod     INTEGER             --$M1.1
+    }
+
+atmIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "ATM connection order inside the table."
+    ::={ atmSubChannelEntry 1 }
+
+atmIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM connection identifier."
+    ::={ atmSubChannelEntry 2 }
+
+atmChannel OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        adsl1(1),
+                        adsl2(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM channel used by the ATM connection."
+    ::={ atmSubChannelEntry 3 }
+
+atmVPI OBJECT-TYPE
+    SYNTAX      INTEGER(0..255)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM Virtual Path Identifier."
+    ::={ atmSubChannelEntry 4 }
+
+atmVCI OBJECT-TYPE
+    SYNTAX      INTEGER(32..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM Virtual Circuit Identifier."
+    ::={ atmSubChannelEntry 5 }
+
+atmCategory OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        cbr(2),
+                        vbr_rt(3),      --$M1.5
+                        vbr_nrt(4),     --$M1.5
+                        ubr(6)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM Category."
+    ::={ atmSubChannelEntry 6 }
+
+atmPCR OBJECT-TYPE
+    SYNTAX      INTEGER(1..8192)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM Peak Cell Rate."
+    ::={ atmSubChannelEntry 7 }
+
+atmMBS OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM Maximum Burst Size (only valid for VBR connections)."
+    ::={ atmSubChannelEntry 8 }
+
+atmSCR OBJECT-TYPE
+    SYNTAX      INTEGER(1..8192)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ATM Sustained Cell Rate (only valid for VBR connections)."
+    ::={ atmSubChannelEntry 9 }
+
+atmDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the connection will be
+                erased. All IP connections associated with this ATM connections
+                and its routes will be erased too. Reading this value, it is
+                possible to know the last operation result: ok (2) if
+                configuration was erased successfully, error (3) otherwise.
+                The undefined (4) value indicates that delete operations have
+                not been made yet."
+    ::= {atmSubChannelEntry 10 }
+
+--$M1.1 Mâtodo de multiplexacin
+atmMxMethod OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        vc-based(1),
+                        llc(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Multiplexation method used for the ATM connection. A connection
+                with VC-based (1) multiplexation only supports one type of
+                traffic (IP, PPP, etc), but a connection with LLC (2)
+                multiplexation supports mixed traffic."
+    DEFVAL      {vc-based}
+    ::={ atmSubChannelEntry 11 }
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LAS CONEXIONES IP
+--
+--      * Õndice
+--      * Identificador de la conexin IP
+--      * Identificador del subinterfaz ATM a utilizar por la conexin IP
+--      * Direccionamiento de la conexin punto a punto:
+--          - direccin IP local
+--          - direccin IP remota
+--          - mﬂscara de subred
+--      * Configuracin del NAPT
+--          - habilitar/inhabilitar
+--          - timeout de las reglas de traduccin
+--      * Tipo de encapsulacin
+--      * Autenticacin para encapsulacin PPP
+--          - usuario
+--          - clave
+--      * Descripcin de la conexin
+--      * Comando borrar
+--      * Tipo de enlace ($M1.1)
+--
+--******************************************************************************
+
+ipConnectionTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IpConnectionEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "IP connections table."
+    ::={ configuration 3 }
+
+ipConnectionEntry OBJECT-TYPE
+    SYNTAX      IpConnectionEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is an IP connection over an ATM connection."
+    INDEX       { ipIndex }
+    ::={ ipConnectionTable 1 }
+
+IpConnectionEntry ::= SEQUENCE
+    {
+        ipIndex             INTEGER,
+        ipIdentifier        INTEGER,
+        ipSubinterface      INTEGER,
+        ipLocalAddress      IpAddress,
+        ipRemoteAddress     IpAddress,
+        ipSubnetMask        IpAddress,
+        ipNaptStatus        INTEGER,
+        ipNaptTimeout       INTEGER,
+        ipEncapsulation     INTEGER,
+        ipUser              DisplayString,
+        ipPassword          DisplayString,
+        ipDescription       DisplayString,
+        ipDelete            INTEGER,
+        ipLinkType          INTEGER,            --$M1.1
+        ipConnection        INTEGER,
+        ipCallNumber        DisplayString,
+        ipRemoteAuth        INTEGER,
+        ipUserRemote        DisplayString,
+        ipUserPassword      DisplayString,
+        ipReleaseTime       INTEGER,
+        ipServRadius        IpAddress,
+        ipPortRadius        INTEGER,
+        ipNaptPeerAddress   IpAddress,          --$M2.4
+        ipNaptFirewalling   INTEGER,            --$M4.1
+        ipPppRemoteAddress  IpAddress
+    }
+
+ipIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "IP connection order inside the table."
+    ::={ ipConnectionEntry 1 }
+
+ipIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP connection identifier."
+    ::={ ipConnectionEntry 2 }
+
+ipSubinterface OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "For those interfaces with subinterfaces (ATM and ISDN)
+                 determines the subinterface to be used"
+    ::={ ipConnectionEntry 3 }
+
+ipLocalAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Local IP address of the connection."
+    ::={ ipConnectionEntry 4 }
+
+ipRemoteAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Remote IP address of the connection. This address must belong
+                to the subnetwork defined by the local address and the
+                subnetwork mask."
+    ::={ ipConnectionEntry 5 }
+
+ipSubnetMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Subnetwork mask of the connection."
+    ::={ ipConnectionEntry 6 }
+
+ipNaptStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "NAPT status. If enabled (1), NAPT translation will be applied
+                to the packets sent and received for this connection. If
+                disabled (2), NAPT translation will not be applied. By default
+                it is enabled."
+    DEFVAL      {enabled}
+    ::={ ipConnectionEntry 7 }
+
+ipNaptTimeout OBJECT-TYPE
+    SYNTAX      INTEGER(1..240)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "NAPT entries life. It specifies how many minutes a NAPT entry
+                will be valid without traffic associated to it. The default
+                value is 5 minutes and the maximum value 240 minutes (4 hours)."
+    DEFVAL      {5}
+    ::={ ipConnectionEntry 8 }
+
+--$M1.1 Tipo de encapsulacin
+ipEncapsulation OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        ip(1),
+                        ppp(2),
+                        pppoe(3)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Encapsulation used over this connection: IP (1) or PPP (2)."
+    DEFVAL      {ip}
+    ::={ ipConnectionEntry 9 }
+
+ipUser OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "User login for PPP encapsulation."
+    DEFVAL      {""}
+    ::={ ipConnectionEntry 10 }
+
+ipPassword OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Password for PPP encapsulation."
+    DEFVAL      {""}
+    ::={ ipConnectionEntry 11 }
+
+ipDescription OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..79))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP connection description."
+    DEFVAL      {""}
+    ::={ ipConnectionEntry 12 }
+
+ipDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the IP connection will be
+                erased. All routes associated to this IP connection will be
+                erased too. Reading this value, it is possible to know the
+                last operation result: ok (2) if configuration was erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ ipConnectionEntry 13 }
+
+--$M1.1 Tipo de enlace
+ipLinkType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        point-to-point(1),
+                        point-to-multipoint(2)
+                    }
+    ACCESS      read-only   --$M2.3
+    STATUS      obsolete
+    DESCRIPTION "IP connection type. This connection can be a point-to-point
+                link or can belong to a point-to-multipoint connection."
+    DEFVAL      {point-to-point}
+    ::={ ipConnectionEntry 14 }
+
+ipConnection OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        adsl1(1),
+                        adsl2(2),
+                        adsl3(3),
+                        adsl4(4),
+                        isdn1(5),
+                        isdn2(6),
+                        wan1(7),
+                        wan2(8),
+                        lan1(9),
+                        lan2(10),
+                        lan3(11),
+                        lan4(12),
+                        uart1(13),
+                        uart2(14),
+                        uart3(15),
+                        uart4(16)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP connection type. This connection can be a ADSL, ISDN, WAN or LAN connection."
+    DEFVAL      {lan1}
+    ::={ ipConnectionEntry 15 }
+
+ipCallNumber OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..19))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Call number"
+    DEFVAL      {""}
+    ::={ ipConnectionEntry 16 }
+
+ipRemoteAuth OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        none(1),
+                        pap(2),
+                        chap(3)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Remote authentication. 1 None, 2 PAP, 3 CHAP"
+    DEFVAL      {none}
+    ::={ ipConnectionEntry 17 }
+
+ipUserRemote OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "User Remote"
+    DEFVAL      {""}
+    ::={ ipConnectionEntry 18 }
+
+ipUserPassword OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Password Remote"
+    DEFVAL      {""}
+    ::={ ipConnectionEntry 19 }
+
+ipReleaseTime OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Release Time for PPP"
+    DEFVAL      {0}
+    ::={ ipConnectionEntry 20 }
+
+ipServRadius OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP address of Server Radius."
+    ::={ ipConnectionEntry 21 }
+
+ipPortRadius OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "The port UDP for Radius protocol"
+    DEFVAL      {1645}
+    ::={ ipConnectionEntry 22 }
+
+-- $2.4 Napt Peer Address
+ipNaptPeerAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Napt Peer Address."
+    ::={ ipConnectionEntry 23 }
+
+-- $4.1 Napt Firewalling flag
+ipNaptFirewalling OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "NAPT firewalling status."
+    DEFVAL      { disabled }
+    ::={ ipConnectionEntry 24 }
+
+ipPppRemoteAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "PPP remote IP Address."
+    ::={ ipConnectionEntry 25 }
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LAS RUTAS IP
+--
+--      * Õndice
+--      * Subred destino
+--          - direccin IP
+--          - mﬂscara
+--      * Identificador de la conexin IP de salida
+--      * Direccin IP del siguiente salto (slo para rutas LAN)
+--      * Coste
+--      * Comando borrar
+--      * Tipo de conexin (LAN o IP)   ($M1.7)
+--
+--******************************************************************************
+
+routeTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RouteEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "IP routes table."
+    ::={ configuration 4 }
+
+routeEntry OBJECT-TYPE
+    SYNTAX      RouteEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is an IP route."
+    INDEX   { rtIndex }
+    ::={ routeTable 1 }
+
+RouteEntry ::= SEQUENCE
+    {
+        rtIndex             INTEGER,
+        rtSubnetAddress     IpAddress,
+        rtSubnetMask        IpAddress,
+        rtOutConnection     INTEGER,
+        rtNextHop           IpAddress,
+        rtCost              INTEGER,
+        rtDelete            INTEGER,
+        rtOutConnectionType INTEGER         --$M1.7
+    }
+
+rtIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "IP route order inside the table."
+    ::={ routeEntry 1 }
+
+rtSubnetAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination subnetwork IP address."
+    DEFVAL      {"0.0.0.0"}
+    ::={ routeEntry 2 }
+
+rtSubnetMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination subnetwork mask."
+    DEFVAL      {"0.0.0.0"}
+    ::={ routeEntry 3 }
+
+rtOutConnection OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)  --$M1.7
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Connection to use for sending packets to the defined
+                subnetwork. Value of this variable must be a defined
+                connection."    --$M1.7
+    DEFVAL      {1}             --$M1.7
+    ::={ routeEntry 4 }
+
+rtNextHop OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Next hop address. Only used if the outgoing connection is
+                a LAN connection." --$M1.7
+    ::={ routeEntry 5 }
+
+rtCost OBJECT-TYPE
+    SYNTAX      INTEGER(1..16)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Route cost."
+    DEFVAL      {1}
+    ::={ routeEntry 6 }
+
+rtDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the route will be erased.
+                Reading this value, it is possible to know the last operation
+                result: ok (2) if configuration was erased successfully, error
+                (3) otherwise. The undefined (4) value indicates that delete
+                operations have not been made yet."
+    ::={ routeEntry 7 }
+
+-- $M1.7 Tipo de conexin: lan o ip
+-- $M2.6 Tipo de conexin: solo ip
+rtOutConnectionType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        ip(1)
+                    }
+    ACCESS      read-only   --$M2.3
+    STATUS      obsolete
+    DESCRIPTION "Connection type."
+    DEFVAL      {1}
+    ::={ routeEntry 8 }
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LAS SUBREDES VISIBLES
+--
+--      * Õndice
+--      * Conexin IP de salida
+--      * Subred visible
+--          - direccin IP
+--          - mﬂscara
+--      * Direccin IP virtual en LAN
+--      * Comando borrar
+--
+--******************************************************************************
+
+visibleSubnetTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF VisibleSubnetEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Visible subnetworks table."
+    ::={ configuration 5 }
+
+visibleSubnetEntry OBJECT-TYPE
+    SYNTAX      VisibleSubnetEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is a visible subnetwork."
+    INDEX       { vsbIndex }
+    ::={ visibleSubnetTable 1 }
+
+VisibleSubnetEntry ::= SEQUENCE
+    {
+        vsbIndex            INTEGER,
+        vsbConnection       INTEGER,
+        vsbSubnetAddress    IpAddress,
+        vsbSubnetMask       IpAddress,
+        vsbVirtualGateway   IpAddress,
+        vsbDelete           INTEGER
+    }
+
+vsbIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Visible subnetwork order inside the table."
+    ::={ visibleSubnetEntry 1 }
+
+vsbConnection OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Identifier of the IP connection through which the subnetwork
+                will be visible."
+    ::={ visibleSubnetEntry 2 }
+
+vsbSubnetAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Visible subnetwork IP address."
+    ::={ visibleSubnetEntry 3 }
+
+vsbSubnetMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Visible subnetwork mask."
+    ::={ visibleSubnetEntry 4 }
+
+vsbVirtualGateway OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Default gateway IP address configured in the workstations
+                belonging to this visible subnetwork."
+    ::={ visibleSubnetEntry 5 }
+
+vsbDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the visible subnetwork
+                will be erased. Reading this value, it is possible to know the
+                last operation result: ok (2) if the subnetwork was erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ visibleSubnetEntry 6 }
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LOS PUERTOS VISIBLES
+--
+--      * Õndice
+--      * Conexin IP de salida
+--      * Direccin IP de la estacin con puertos visibles
+--      * Puerto interno
+--      * Puerto externo
+--      * Tipo de puerto
+--      * Comando borrar
+--
+--******************************************************************************
+
+visiblePortTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF VisiblePortEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Visible ports table. The number of visible ports is limited
+                to ten."
+    ::={ configuration 6 }
+
+visiblePortEntry OBJECT-TYPE
+    SYNTAX      VisiblePortEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is a visible port."
+    INDEX       { vptIndex }
+    ::={ visiblePortTable 1 }
+
+VisiblePortEntry ::= SEQUENCE
+    {
+        vptIndex        INTEGER,
+        vptConnection   INTEGER,
+        vptSrcAddress   IpAddress,
+        vptIntPort      INTEGER,
+        vptExtPort      INTEGER,
+        vptPortType     INTEGER,
+        vptDelete       INTEGER
+    }
+
+vptIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Visible port order inside the table."
+    ::={ visiblePortEntry 1 }
+
+vptConnection OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Identifier of the IP connection through which the port will
+                be visible."
+    ::={ visiblePortEntry 2 }
+
+vptSrcAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP address of the workstation which the visible port
+                belongs to."
+    ::={ visiblePortEntry 3 }
+
+vptIntPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Port that will be visible."
+    ::={ visiblePortEntry 4 }
+
+vptExtPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "External port through which the internal port will be visible.
+                It can not be one of the followings: DNS (53), SNMP (161),
+                FTP (21) and TELNET (23), because these ports are being used
+                by the device for its own use. Neither can be one of the
+                ports belonging to the range from 32768 to 33791 (1024 ports, both
+                included) because these ports are used for NAPT."
+    ::={ visiblePortEntry 5 }
+
+vptPortType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        generic(1),
+                        ftp(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Service type of the visible port."
+    DEFVAL      {1}
+    ::={ visiblePortEntry 6 }
+
+vptDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the visible port will be
+                erased. Reading this value, it is possible to know the last
+                operation result: ok (2) if the port was erased successfully,
+                error (3) otherwise. The undefined (4) value indicates that
+                delete operations have not been made yet."
+    ::={ visiblePortEntry 7 }
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LOS CONTROLES DE ACCESO
+--
+--      * Õndice
+--      * Tipo de regla
+--      * Subred origen
+--          - direccin ip
+--          - mﬂscara
+--      * Subred destino
+--          - direccin ip
+--          - mﬂscara
+--      * Rango de protocolos
+--          - inicial
+--          - final
+--      * Rango de puertos origen
+--          - inicial
+--          - final
+--      * Rango de puertos destino
+--          - inicial
+--          - final
+--      * Comando borrar
+--
+--******************************************************************************
+
+accessControlTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AccessControlEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Access controls table."
+    ::={ configuration 7 }
+
+accessControlEntry OBJECT-TYPE
+    SYNTAX      AccessControlEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is a access control rule."
+    INDEX       { accIndex }
+    ::={ accessControlTable 1 }
+
+AccessControlEntry ::= SEQUENCE
+    {
+        accIndex            INTEGER,
+        accRuleType         INTEGER,
+        accSrcAddress       IpAddress,
+        accSrcMask          IpAddress,
+        accDstAddress       IpAddress,
+        accDstMask          IpAddress,
+        accMinProtocol      INTEGER,
+        accMaxProtocol      INTEGER,
+        accSrcMinPort       INTEGER,
+        accSrcMaxPort       INTEGER,
+        accDstMinPort       INTEGER,
+        accDstMaxPort       INTEGER,
+        accDelete           INTEGER
+    }
+
+accIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Access control rule order inside the table."
+    ::={ accessControlEntry 1 }
+
+accRuleType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        exclusive(1),
+                        inclusive(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Access control rule type. If the rule is exclusive (1), the
+                packet that carry out the rule will be rejected. If the rule is
+                inclusive (1), the packet will be forwarded."
+    DEFVAL      {2}
+    ::={ accessControlEntry 2 }
+
+accSrcAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Source subnetwork IP address."
+    ::={ accessControlEntry 3 }
+
+accSrcMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Source subnetwork mask."
+    ::={ accessControlEntry 4 }
+
+accDstAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination subnetwork IP address."
+    ::={ accessControlEntry 5 }
+
+accDstMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination subnetwork IP mask."
+    ::={ accessControlEntry 6 }
+
+accMinProtocol OBJECT-TYPE
+    SYNTAX      INTEGER(0..255)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Range of filtered protocols: minimum protocol."
+    DEFVAL      {0}
+    ::={ accessControlEntry 7 }
+
+accMaxProtocol OBJECT-TYPE
+    SYNTAX      INTEGER(0..255)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Range of filtered protocols: maximum protocol."
+    DEFVAL      {255}
+    ::={ accessControlEntry 8 }
+
+accSrcMinPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Range of filtered source ports: minimum port."
+    DEFVAL      {0}
+    ::={ accessControlEntry 9 }
+
+accSrcMaxPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Range of filtered source ports: maximum port."
+    DEFVAL      {65525}
+    ::={ accessControlEntry 10 }
+
+accDstMinPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Range of filtered destination ports: minimum port."
+    DEFVAL      {0}
+    ::={ accessControlEntry 11 }
+
+accDstMaxPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Range of filtered destination ports: maximum port."
+    DEFVAL      {65535}
+    ::={ accessControlEntry 12 }
+
+accDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the access control rule
+                will be erased. Reading this value, it is possible to know the
+                last operation result: ok (2) if the access control rule was
+                erased successfully, error (3) otherwise. The undefined (4)
+                value indicates that delete operations have not been made yet."
+    ::={ accessControlEntry 13 }
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DE LOS SERVIDORES DNS
+--
+--      * Õndice
+--      * Direccin IP del servidor DNS
+--      * Comando borrar
+--
+--******************************************************************************
+
+dnsServerTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF DnsServerEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "DNS servers table."
+    ::={ configuration 8 }
+
+dnsServerEntry OBJECT-TYPE
+    SYNTAX      DnsServerEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is a DNS server."
+    INDEX       { dnsIndex }
+    ::={ dnsServerTable 1 }
+
+DnsServerEntry ::= SEQUENCE
+    {
+        dnsIndex    INTEGER,
+        dnsAddress  IpAddress,
+        dnsDelete   INTEGER
+    }
+
+dnsIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "DNS server order inside the table."
+    ::={ dnsServerEntry 1 }
+
+dnsAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "DSN server IP address."
+    ::={ dnsServerEntry 2 }
+
+dnsDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the DNS server will be
+                erased. Reading this value, it is possible to know the last
+                operation result: ok (2) if the DNS server was erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ dnsServerEntry 3 }
+
+--
+--******************************************************************************
+--
+--  CONFIGURACI‘N DEL NAT EST¬TICO
+--
+--      * Õndice
+--      * Tipo de regla
+--      * Direccin de traduccin
+--      * Datos locales
+--          - conexin local
+--          - direccin de la subnet local
+--          - mﬂscara de la subnet local
+--      * Datos globales
+--          - conexin global
+--          - direccin de la subnet global
+--          - mﬂscara de la subnet global
+--      * Comando borrar
+--      * Tipo de conexin local  ($M1.7)
+--      * Tipo de conexin global ($M1.7)
+--******************************************************************************
+
+natRuleTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF NatRuleEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Static NAT rules table."
+    ::={ configuration 9 }
+
+natRuleEntry OBJECT-TYPE
+    SYNTAX      NatRuleEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each register is a static NAT rule."
+    INDEX       { natIndex }
+    ::={ natRuleTable 1 }
+
+NatRuleEntry ::= SEQUENCE
+    {
+        natIndex                INTEGER,
+        natType                 INTEGER,
+        natDirection            INTEGER,
+        natLocalConnection      INTEGER,
+        natLocalAddress         IpAddress,
+        natLocalMask            IpAddress,
+        natGlobalConnection     INTEGER,
+        natGlobalAddress        IpAddress,
+        natGlobalMask           IpAddress,
+        natDelete               INTEGER,
+        natLocalConnectionType  INTEGER,        --$M1.7
+        natGlobalConnectionType INTEGER         --$M1.7
+    }
+
+natIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "NAT rule order inside the table."
+    ::={ natRuleEntry 1 }
+
+natType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        intSource(1),
+                        intDestination(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "NAT translation type."
+    DEFVAL      {1}
+    ::={ natRuleEntry 2 }
+
+natDirection OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        bidirectional(1),
+                        localToGlobal(2),
+                        globalToLocal(3),
+                        skipLocal(4),
+                        skipGlobal(5)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Direction of application of the NAT translation."
+    DEFVAL      {1}
+    ::={ natRuleEntry 3 }
+
+natLocalConnection OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)  --$M1.7 ya no puede tomar el valor 0
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Local connection. Packets that come in through this connection
+                and will go out through the global connection will be translated
+                if they belong to the local subnet and its destination belongs
+                to the global subnet.
+                This OID only accepts connection identifiers that are already
+                configured."    --$M1.7
+    DEFVAL      {1}             --$M1.7
+    ::={ natRuleEntry 4 }
+
+natLocalAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Local subnetwork IP address."
+    ::={ natRuleEntry 5 }
+
+natLocalMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Local subnetwork mask."
+    ::={ natRuleEntry 6 }
+
+natGlobalConnection OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)  --$M1.7 ya no puede tomar el valor 0
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Global connection. Packets that go out through this connection
+                and came in through the local connection will be translated if
+                they belong to the local subnet and its destination belongs to
+                the global subnet.
+                This OID only accepts connection identifiers that are already
+                configured."    --$M1.7
+    DEFVAL      {1}             --$M1.7
+    ::={ natRuleEntry 7 }
+
+natGlobalAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Global subnetwork IP address."
+    ::={ natRuleEntry 8 }
+
+natGlobalMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Global subnetwork mask."
+    ::={ natRuleEntry 9 }
+
+natDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), these NAT rule will be
+                erased. Reading this value, it is possible to know the last
+                operation result: ok (2) if a NAT rule was erased successfully,
+                error (3) otherwise. The undefined (4) value indicates that
+                delete operations have not been made yet."
+    ::={ natRuleEntry 10 }
+
+-- Tipo de conexin local $M1.7
+
+natLocalConnectionType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        ip(1)
+                    }
+    ACCESS      read-only   --$M2.3
+    STATUS      obsolete
+    DESCRIPTION "Local connection type."
+    DEFVAL      {1}
+    ::={ natRuleEntry 11 }
+
+-- Tipo de conexin global $M1.7
+
+natGlobalConnectionType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        ip(1)
+                    }
+    ACCESS      read-only   --$M2.3
+    STATUS      obsolete
+    DESCRIPTION "Global connection type."
+    DEFVAL      {1}
+    ::={ natRuleEntry 12 }
+
+
+--
+--******************************************************************************
+--
+--  $M1.4
+--
+--  CONFIGURACI‘N DEL PROTOCOLO DHCP
+--
+--      * Tipo de servicio
+--      * Servidor DHCP
+--          - rango de direcciones IP a asignar
+--              + inicio
+--              + fin
+--          - mﬂscara de subred
+--          - router por defecto
+--          - servidor DNS
+--          - duracin de la asignacin
+--      * Agente DHCP
+--          - servidor DHCP primario
+--          - servidor DHCP secundario
+--
+--******************************************************************************
+
+dhcpProtocol OBJECT IDENTIFIER ::= { configuration 10 }
+
+dhcpService OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        none(0),
+                        relay(1),
+                        server(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This value specifies the DHCP service provided by the router.
+                If none (0), the protocol is disabled; if server (2), the router
+                will be a DHCP server; if relay (1), the router will be a
+                DHCP relay agent."
+    DEFVAL      { none }
+    ::={ dhcpProtocol 1 }
+
+dhcpServer OBJECT IDENTIFIER ::= { dhcpProtocol 2 }
+
+dsrvStartRange OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This value and the next define a range of IP addresses that
+                will be assigned when a host requests an IP address. This value
+                is valid when the DHCP protocol status is server (2)."
+    ::={ dhcpServer 1 }
+
+dsrvEndRange OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "End of the range of IP addresses. This value is valid when
+                the DHCP protocol status is server (2)."
+    ::={ dhcpServer 2 }
+
+dsrvSubnetMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This is the subnet mask that will be assigned to the host
+                configured with the DHCP protocol. This value is valid when
+                the DHCP protocol status is server (2)."
+    ::={ dhcpServer 3 }
+
+dsrvDefaultRouter OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This is the default router that will be assigned to the host
+                configured with the DHCP protocol. This value is valid when
+                the DHCP protocol status is server (2)."
+    ::={ dhcpServer 4 }
+
+dsrvDnsServer OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This is the DNS server that will be assigned to the host
+                configured with the DHCP protocol. This value is valid when
+                the DHCP protocol status is server (2)."
+    ::={ dhcpServer 5 }
+
+dsrvLeaseTime OBJECT-TYPE
+    SYNTAX      INTEGER(1..525600)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This is the duration of the lease (in minutes) of the
+                IP address assigned to a host configured with the DHCP
+                protocol. This value is valid when the DHCP protocol status
+                is server (2)."
+    DEFVAL      { 720 }
+    ::={ dhcpServer 6 }
+
+dhcpRelay OBJECT IDENTIFIER ::= { dhcpProtocol 3 }
+
+drlyPrimaryServer OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "The router, when used as DHCP relay agent, will send the
+                DHCP requests to this server."
+    ::={ dhcpRelay 1 }
+
+drlySecondaryServer OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "The router, when used as DHCP relay agent, will send the
+                DHCP requests to this server, too."
+    ::={ dhcpRelay 2 }
+
+
+--
+--******************************************************************************
+--
+--  $M1.7
+--
+--  CONFIGURACI‘N DE DIRECCIONES IP DEL INTERFAZ LAN ETHERNET
+--
+--      * Õndice
+--      * Direccin IP
+--      * Mﬂscara
+--      * Comando borrar
+--
+--******************************************************************************
+
+--$M2.3 Esta tabla se elimina por no utilizarse.
+
+--lanIPAddressTable OBJECT-TYPE
+--  SYNTAX      SEQUENCE OF LanIPAddressEntry
+--  ACCESS      not-accessible
+--  STATUS      obsolete
+--  DESCRIPTION "LAN interface IP address table.
+--              With this table it is possible to assign up to 5 IP address to
+--              the LAN interface."
+--  ::={ configuration 11 }
+
+--lanIPAddressEntry OBJECT-TYPE
+--  SYNTAX      LanIPAddressEntry
+--  ACCESS      not-accessible
+--  STATUS      obsolete
+--  DESCRIPTION "LAN interface IP Address table."
+--  INDEX       { lanIPIndex }
+--  ::={ lanIPAddressTable 1 }
+
+--LanIPAddressEntry ::= SEQUENCE
+--  {
+--      lanIPIndex          INTEGER(1..5),
+--      lanIPIdentifier     INTEGER(1..99),
+--      lanIPAddress        IpAddress,
+--      lanIPMask           IpAddress,
+--      lanIPDelete         INTEGER(1..4)
+--  }
+
+--lanIPIndex OBJECT-TYPE
+--  SYNTAX      INTEGER(1..5)
+--  ACCESS      read-only
+--  STATUS      obsolete
+--  DESCRIPTION "Index. Order inside the table."
+--  ::={ lanIPAddressEntry 1 }
+
+--lanIPIdentifier OBJECT-TYPE
+--  SYNTAX      INTEGER(1..99)
+--  ACCESS      read-write
+--  STATUS      obsolete
+--  DESCRIPTION "LAN address identifier. Identifier must be unique in the table."
+--  ::={ lanIPAddressEntry 2 }
+
+--lanIPAddress OBJECT-TYPE
+--  SYNTAX      IpAddress
+--  ACCESS      read-write
+--  STATUS      obsolete
+--  DESCRIPTION "IP Address of the LAN interface."
+--  DEFVAL      {"0.0.0.0"}
+--  ::={ lanIPAddressEntry 3 }
+
+--lanIPMask OBJECT-TYPE
+--  SYNTAX      IpAddress
+--  ACCESS      read-write
+--  STATUS      obsolete
+--  DESCRIPTION "Network mask of the LAN interface."
+--  DEFVAL      {"0.0.0.0"}
+--  ::={ lanIPAddressEntry 4 }
+
+--lanIPDelete OBJECT-TYPE
+--  SYNTAX      INTEGER
+--                  {
+--                      delete(1),
+--                      ok(2),
+--                      error(3),
+--                      undefined(4)
+--                  }
+--  ACCESS      read-write
+--  STATUS      obsolete
+--  DESCRIPTION "If this value is set to 1 (delete), the IP information will be
+--              erased. Reading this value, it is possible to know the last
+--              operation result: ok (2) if the IP information was erased
+--              successfully, error (3) otherwise. The undefined (4) value
+--              indicates that delete operations have not been made yet."
+--  ::={ lanIPAddressEntry 5 }
+
+
+--
+
+--******************************************************************************
+--
+--  $M1.7
+--
+--  CONFIGURACI‘N DEL PROTOCOLO RIP
+--
+--      * Estado del RIP
+--      * Tabla de configuracin del RIP
+--          - identificador de conexin
+--          - compatibilidad de transmisin
+--          - compatibilidad de recepcin
+--
+--******************************************************************************
+
+ripProtocol OBJECT IDENTIFIER ::= { configuration 12 }
+
+ripStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This value specifies the RIP protocol status."
+    DEFVAL      { disabled }
+    ::={ ripProtocol 1 }
+
+ripConfigurationTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF RipConfigurationEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "RIP protocol configuration table. Only is possible to read
+                (get, get next) and write (set) values in this table if
+                ripStatus is enabled. There is an entry for each configured
+                connection."
+    ::={ ripProtocol 2 }
+
+ripConfigurationEntry OBJECT-TYPE
+    SYNTAX      RipConfigurationEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "RIP protocol configuration table. There is an entry for each
+                configured connection."
+    INDEX       { ripCfgIndex }
+    ::={ ripConfigurationTable 1 }
+
+RipConfigurationEntry ::= SEQUENCE
+    {
+        ripCfgIndex                         INTEGER,
+        ripCfgConnectType                   INTEGER,
+        ripCfgConnectIdentifier             INTEGER,
+        ripCfgSendCompatibility             INTEGER,
+        ripCfgRecevCompatibility            INTEGER,
+        ripCfgFlagSendNetworkRoutes         INTEGER,        --$M4.1
+        ripCfgFlagSendSubnetworkRoutes      INTEGER,        --$M4.1
+        ripCfgFlagSendStaticRoutes          INTEGER,        --$M4.1
+        ripCfgFlagSendDirectRoutes          INTEGER,        --$M4.1
+        ripCfgFlagSendDefaultRoutes         INTEGER,        --$M4.1
+        ripCfgFlagPoisonedReverse           INTEGER,        --$M4.1
+        ripCfgFlagReceiveNetworkRoutes      INTEGER,        --$M4.1
+        ripCfgFlagReceiveSubnetworkRoutes   INTEGER,        --$M4.1
+        ripCfgFlagOverwriteDefaultRoutes    INTEGER,        --$M4.1
+        ripCfgFlagOverwriteStaticRoutes     INTEGER         --$M4.1
+    }
+
+ripCfgIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index: position of this entry in the table."
+    ::={ ripConfigurationEntry 1 }
+
+ripCfgConnectType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        ip(1)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Connection Type."
+    ::={ ripConfigurationEntry 2 }
+
+ripCfgConnectIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Connection Identifier."
+    ::={ ripConfigurationEntry 3 }
+
+ripCfgSendCompatibility OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        do_not_send(1),
+                        rip1(2),
+                        rip2_broadcast(3),
+                        rip2_multicast(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Sending compatibility."
+    ::={ ripConfigurationEntry 4 }
+
+ripCfgRecevCompatibility OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        rip1(1),
+                        rip2(2),
+                        rip1_or_rip2(3),
+                        do_not_receive(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Receiving compatibility."
+    ::={ ripConfigurationEntry 5 }
+
+-- $M4.1
+ripCfgFlagSendNetworkRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Sending Network Routes status."
+    DEFVAL      { enabled }
+    ::={ ripConfigurationEntry 6 }
+
+-- $M4.1
+ripCfgFlagSendSubnetworkRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Sending Subnetwork Routes status."
+    DEFVAL      { enabled }
+    ::={ ripConfigurationEntry 7 }
+
+-- $M4.1
+ripCfgFlagSendStaticRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Sending Static Routes status."
+    DEFVAL      { disabled }
+    ::={ ripConfigurationEntry 8 }
+
+-- $M4.1
+ripCfgFlagSendDirectRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Sending Direct Routes status."
+    DEFVAL      { enabled }
+    ::={ ripConfigurationEntry 9 }
+
+-- $M4.1
+ripCfgFlagSendDefaultRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Sending Default Routes status."
+    DEFVAL      { disabled }
+    ::={ ripConfigurationEntry 10 }
+
+-- $M4.1
+ripCfgFlagPoisonedReverse OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Poisoned Reverse status."
+    DEFVAL      { enabled }
+    ::={ ripConfigurationEntry 11 }
+
+-- $M4.1
+ripCfgFlagReceiveNetworkRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Receiving Network Routes status."
+    DEFVAL      { enabled }
+    ::={ ripConfigurationEntry 12 }
+
+-- $M4.1
+ripCfgFlagReceiveSubnetworkRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Receiving Subnetwork Routes status."
+    DEFVAL      { enabled }
+    ::={ ripConfigurationEntry 13 }
+
+-- $M4.1
+ripCfgFlagOverwriteDefaultRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Overwriting Default Routes status."
+    DEFVAL      { disabled }
+    ::={ ripConfigurationEntry 14 }
+
+-- $M4.1
+ripCfgFlagOverwriteStaticRoutes OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Overwriting Static Routes status."
+    DEFVAL      { disabled }
+    ::={ ripConfigurationEntry 15 }
+
+
+--
+--******************************************************************************
+--
+--  $M1.7
+--
+--  CONFIGURACI‘N DE CONTROLES DE TIEMPO POR CADA CONEXI‘N IP
+--
+--      * Õndice
+--      * Borrado
+--      * Conexin IP (1-99)
+--      * Hora de inicio
+--      * Minuto de inicio
+--      * Hora de fin
+--      * Minuto de fin
+--      * Filtro de dças
+--
+--******************************************************************************
+
+timecontrolTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TimecontrolEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Time control table.
+                Using this table it is possible to define time intervals and
+                week days when it is possible to use an IP connection.
+                This feature is not available in LAN connections."
+    ::={ configuration 13 }
+
+timecontrolEntry OBJECT-TYPE
+    SYNTAX      TimecontrolEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "There is an entry for each time control defined. Entries
+                in this table must be consecutive."
+    INDEX       { timeCtrlIndex }
+    ::={ timecontrolTable 1 }
+
+TimecontrolEntry ::= SEQUENCE
+    {
+        timeCtrlIndex               INTEGER,
+        timeCtrlDelete              INTEGER,
+        timeCtrlIPConnectIdentifier INTEGER,
+        timeCtrlInitHour            INTEGER,
+        timeCtrlInitMinute          INTEGER,
+        timeCtrlEndHour             INTEGER,
+        timeCtrlEndMinute           INTEGER,
+        timeCtrlDayFilter           DisplayString
+    }
+
+timeCtrlIndex OBJECT-TYPE
+    SYNTAX      INTEGER(1..10)
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index. Order inside the table."
+    ::={ timecontrolEntry 1 }
+
+timeCtrlDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the time control information
+                will be erased. Reading this value, it is possible to know the
+                last operation result: ok (2) if the time control information
+                was erased successfully, error (3) otherwise. The undefined
+                (4) value indicates that delete operations have not been made
+                yet."
+    ::={ timecontrolEntry 2 }
+
+timeCtrlIPConnectIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP connection identifier. Only it is possible to define a time
+                control for each IP connection."
+    ::={ timecontrolEntry 3 }
+
+timeCtrlInitHour OBJECT-TYPE
+    SYNTAX      INTEGER(0..23)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Hour of the beginning of the allowed interval of connection."
+    DEFVAL      {0}
+    ::={ timecontrolEntry 4 }
+
+timeCtrlInitMinute OBJECT-TYPE
+    SYNTAX      INTEGER(0..59)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Minute of the beginning of the allowed interval of connection."
+    DEFVAL      {0}
+    ::={ timecontrolEntry 5 }
+
+timeCtrlEndHour OBJECT-TYPE
+    SYNTAX      INTEGER(0..23)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Hour of the end of the allowed interval of connection."
+    DEFVAL      {23}
+    ::={ timecontrolEntry 6 }
+
+timeCtrlEndMinute OBJECT-TYPE
+    SYNTAX      INTEGER(0..59)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Minute of the end of the allowed interval of connection."
+    DEFVAL      {59}
+    ::={ timecontrolEntry 7 }
+
+timeCtrlDayFilter OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(7))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Week day filter.
+                This value is a character STRING OF 1 and 0 according this
+                format: SUN, MON, TUE, WED, THU, FRI, SAT.
+                character 1: it is possible to use the IP connection this day,
+                character 0: it is not possible to use the IP connection
+                this day."
+    DEFVAL      {"1111111"}
+    ::={ timecontrolEntry 8 }
+
+
+--
+--******************************************************************************
+--
+--  $M1.9
+--
+--  CONFIGURACI‘N DE RDSI
+--
+--
+--      * Tabla de configuracin de RDSI
+--          - identificador de conector
+--          - identificador de canal
+--          - estado del canal
+--          - se autoriza llamante
+--          - llamante autorizado
+--
+--**************************************************************************
+
+isdnParameter OBJECT IDENTIFIER ::= { configuration 14 }
+
+isdnParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IsdnParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "ISDN parameter configuration table. There is an entry for each
+                configured connection."
+    ::={ isdnParameter 1 }
+
+isdnParameterEntry OBJECT-TYPE
+    SYNTAX      IsdnParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "ISDN parameter configuration table. There is an entry for each
+                configured connection."
+    INDEX       {
+                    isdnConnector,
+                    isdnBChannel
+                }
+    ::={ isdnParameterTable 1 }
+
+IsdnParameterEntry ::= SEQUENCE
+    {
+        isdnConnector       INTEGER,
+        isdnBChannel        INTEGER,
+        isdnType            INTEGER,
+        isdnIncCallsAllowed INTEGER,
+        isdnAuthCaller      DisplayString
+    }
+
+isdnConnector OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index1: position of this entry in the table."
+    ::={ isdnParameterEntry 1 }
+
+
+isdnBChannel OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index2: position of this entry in the table."
+    ::={ isdnParameterEntry 2 }
+
+isdnType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        permanent(1),
+                        switched(2),
+                        b1plusb2(3)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Type."
+    ::={ isdnParameterEntry 3 }
+
+isdnIncCallsAllowed OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        false(0),
+                        true(1)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Calls Allowed."
+    ::={ isdnParameterEntry 4 }
+
+isdnAuthCaller OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(19))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of auth caller"
+    DEFVAL      {""}
+    ::={ isdnParameterEntry 5 }
+
+--
+--******************************************************************************
+--
+--  $M1.9
+--
+--  CONFIGURACI‘N DE RTC
+--
+--
+--      * Tabla de configuracin de RTC
+--          - tipo de interfaz que soporta el modem (wan o uart)
+--          - identificador de rtc
+--          - si se autorizan llamadas entrantes
+--          - si se utiliza patrn de llamadas
+--          - nîmero de tonos del patrn de llamadas utilizado
+--          - nîmero de silencios del patrn de llamadas
+--          - llamante autorizado
+--
+--**************************************************************************
+
+pstnParameter OBJECT IDENTIFIER ::= { configuration 15 }
+
+pstnParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF PstnParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "PSTN parameter configuration table. There is an entry for each
+                configured connection."
+    ::={ pstnParameter 1 }
+
+pstnParameterEntry OBJECT-TYPE
+    SYNTAX      PstnParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "PSTN parameter configuration table. There is an entry for each
+                configured connection."
+    INDEX       {
+                    pstnConnectionType,
+                    pstnIdentifier
+                }
+    ::={ pstnParameterTable 1 }
+
+PstnParameterEntry ::= SEQUENCE
+    {
+        pstnConnectionType      INTEGER,
+        pstnIdentifier          INTEGER,
+        pstnIncCallsAllowed     INTEGER,
+        pstnRingPatern          INTEGER,
+        pstnPatternRing         INTEGER,
+        pstnPatternSilence      INTEGER,
+        pstnPatternTelephone    DisplayString
+    }
+
+pstnConnectionType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        wan(4),
+                        uart(5)
+                    }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Type of interface supporting the modem.
+                 Together with the pstnIdentifier specifies the interface
+                 supporting the modem."
+    ::={ pstnParameterEntry 1 }
+
+pstnIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Identifier of the instance of the interface type specified by
+                 pstnConnectionType supporting the modem connection"
+    ::={ pstnParameterEntry 2 }
+
+
+pstnIncCallsAllowed OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        false(0),
+                        true(1)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Incoming calls allowed: false (0), true (1)."
+    ::={ pstnParameterEntry 3 }
+
+pstnRingPatern OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        false(0),
+                        true(1)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Rings pattern enabled: false (0), true (1)."
+    ::={ pstnParameterEntry 4 }
+
+pstnPatternRing OBJECT-TYPE
+    SYNTAX      INTEGER(1..10)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of rings in the ring pattern."
+    ::={ pstnParameterEntry 5 }
+
+pstnPatternSilence OBJECT-TYPE
+    SYNTAX      INTEGER(6..60)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of the silences in the ring pattern."
+    ::={ pstnParameterEntry 6 }
+
+pstnPatternTelephone OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(15))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of auth caller."
+    DEFVAL      {""}
+    ::={ pstnParameterEntry 7 }
+
+--
+--******************************************************************************
+--
+--  $M1.9
+--
+--  CONFIGURACI‘N DE WAN
+--
+--
+--      * Tabla de configuracin de WAN
+--          - identificador de wan
+--          - velocidad de la wan
+--          - modo
+--          - para aspd: control de flujo
+--          - para aspd: puerto TCP
+--          - para x25: activacion Xot      $M3.1
+--
+--**************************************************************************
+
+wanParameter OBJECT IDENTIFIER ::= { configuration 16 }
+
+wanParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF WanParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "WAN parameter configuration table. Only is possible to read
+                (get, get next) and write (set) values in this table."
+    ::={ wanParameter 1 }
+
+wanParameterEntry OBJECT-TYPE
+    SYNTAX      WanParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "WAN parameter configuration table. There is an entry for each
+                configured connection."
+    INDEX       { wanIdentifier }
+    ::={ wanParameterTable 1 }
+
+WanParameterEntry ::= SEQUENCE
+    {
+        wanIdentifier           INTEGER,
+        wanSpeed                INTEGER,            --$M2.2
+        wanMode                 INTEGER,            --$M3.0
+        wanFlowControl          INTEGER,            --$M3.0
+        wanPortTcp              INTEGER,            --$M3.0
+        wanXotActive            INTEGER             --$M3.1
+    }
+
+wanIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index1: position of this entry in the table."
+    ::={ wanParameterEntry 1 }
+
+wanSpeed OBJECT-TYPE
+    SYNTAX      INTEGER(1..115200)      --$M2.2
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Line Speed."
+    ::={ wanParameterEntry 2 }
+
+wanMode OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        at_commands(1),
+                        asynchronous_serial_device_proxy(2),
+                        point_of_sale(3),
+                        asynchronous_line(4),
+                        x25(5)          --$M3.0
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Mode."
+    ::={ wanParameterEntry 3 }
+
+wanFlowControl OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        no_sense(0),    --$M3.0
+                        hardware(1),    --$M2.2
+                        xon_xoff(2)     --$M2.2
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Flow Control. If the Flow Control has no sense for the WAN mode
+                 set it is shown as 0."
+    ::={ wanParameterEntry 4 }
+
+wanPortTcp OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)       --$M3.0
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "TCP Port. If the WAN mode is not asynchronous_serial_device_proxy(2),
+                 the value of this variable makes no sense and it will be
+                 displayed as 0."
+    ::={ wanParameterEntry 5 }
+
+--$M3.1
+wanXotActive OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        no_sense(0),
+                        yes(1),
+                        no(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Xot active. If the Xot active parameter has no sense for the
+                 WAN mode set it is shown as 0."
+    ::={ wanParameterEntry 6 }
+
+--
+--******************************************************************************
+--
+--  $M1.9
+--
+--  CONFIGURACI‘N DE CALLBACK
+--
+--
+--      * Tabla de configuracin de CALLBACK
+--          - indice
+--          - identificar de conexin IP
+--          - Nîmero de telefono permitido
+--          - Comando Borrar
+--
+--**************************************************************************
+
+cBackParameter OBJECT IDENTIFIER ::= { configuration 17 }
+
+cBackParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CBackParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "CALLBACK parameter configuration table. There is an entry for
+                each configured callback connection."
+    ::={ cBackParameter 1 }
+
+cBackParameterEntry OBJECT-TYPE
+    SYNTAX      CBackParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "CALLBACK parameter configuration table. There is an entry for
+                each configured connection."
+    INDEX       { cBackIndex }
+    ::={ cBackParameterTable 1 }
+
+CBackParameterEntry ::= SEQUENCE
+    {
+        cBackIndex              INTEGER,
+        cBackIpIdentifier       INTEGER,
+        cBackAuthCaller         DisplayString,
+        cBackDelete             INTEGER
+    }
+
+cBackIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index: position of this entry in the table."
+    ::={ cBackParameterEntry 1 }
+
+cBackIpIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP Connections."
+    ::={ cBackParameterEntry 2 }
+
+cBackAuthCaller OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(19))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of auth caller"
+    DEFVAL      {""}
+    ::={ cBackParameterEntry 3 }
+
+cBackDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the IP information will be
+                erased. Reading this value, it is possible to know the last
+                operation result: ok (2) if the IP information was erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ cBackParameterEntry 4 }
+
+--
+--******************************************************************************
+--
+--  $M1.9
+--
+--  CONFIGURACI‘N DE MULTILINK
+--
+--
+--      * Configuracin de Multilink
+--          - Estado habilitado / deshabilitado
+--          - identificar de conexin IP
+--          - Intervalo de activacin
+--          - Intervalo de desactivacin
+--          - Umbral de activacin
+--          - Umbral de desactivacin
+--          - Direccin
+--
+--**************************************************************************
+
+mpppParameter OBJECT IDENTIFIER ::= { configuration 18 }
+
+mpppEnabled OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        false(0),
+                        true(1)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Enabled."
+    ::={ mpppParameter 1 }
+
+mpppIpIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Ip Identifier."
+    ::={ mpppParameter 2 }
+
+mpppActInterval OBJECT-TYPE
+    SYNTAX      INTEGER(4..1800)    --$M3.3
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Activation Interval [4..1800]."
+    ::={ mpppParameter 3 }
+
+mpppDeactInterval OBJECT-TYPE
+    SYNTAX      INTEGER(4..1800)    --$M3.3
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Deactivation Interval [4..1800]"
+    ::={ mpppParameter 4 }
+
+mpppActThresHold OBJECT-TYPE
+    SYNTAX      INTEGER(0..100)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Threshold Activation [0..100]"
+    ::={ mpppParameter 5 }
+
+mpppDeactThresHold OBJECT-TYPE
+    SYNTAX      INTEGER(0..100)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Threshold Deactivation [0..100]"
+    ::={ mpppParameter 6 }
+
+mpppDirection OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        in(1),
+                        out(2),
+                        both(3)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Direction IN, OUT, BOTH."
+    ::={ mpppParameter 7 }
+
+mpppPreEmptive OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        false(0),
+                        true(1)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Pre Emptive"
+    ::={ mpppParameter 8 }
+
+--
+--******************************************************************************
+--
+--  $M1.9
+--
+--  CONFIGURACI‘N DE BACKUP
+--
+--
+--      * Tabla de configuracin de backup
+--          - indice
+--          - identificar de conexin IP principal
+--          - identificar de conexin IP backup
+--          - Prioridad del backup
+--          - Reintentos
+--          - Time Out
+--          - Comando de borrado
+--
+--**************************************************************************
+
+backupParameter OBJECT IDENTIFIER ::= { configuration 19 }
+
+backupParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF BackupParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "BACKUP parameter configuration table. There is an entry for
+                each configured backup connection."
+    ::={ backupParameter 1 }
+
+backupParameterEntry OBJECT-TYPE
+    SYNTAX      BackupParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "BACKUP parameter configuration table. There is an entry for
+                each configured connection."
+    INDEX       { backupIndex }
+    ::={ backupParameterTable 1 }
+
+BackupParameterEntry ::= SEQUENCE
+    {
+        backupIndex             INTEGER,
+        backupMIpIdentifier     INTEGER,
+        backupBIpIdentifier     INTEGER,
+        maximumBackupTime       INTEGER,
+        backupRetries           INTEGER,
+        backupTimeout           INTEGER,
+        backupDelete            INTEGER
+    }
+
+backupIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index: position of this entry in the table."
+    ::={ backupParameterEntry 1 }
+
+backupMIpIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Main IP Connection."
+    ::={ backupParameterEntry 2 }
+
+backupBIpIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Backup IP Connection."
+    ::={ backupParameterEntry 3 }
+
+maximumBackupTime OBJECT-TYPE
+    SYNTAX      INTEGER(20..200)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Maximum backup time"
+    ::={ backupParameterEntry 4 }
+
+backupRetries OBJECT-TYPE
+    SYNTAX      INTEGER(0..5)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Backup Retries"
+    ::={ backupParameterEntry 5 }
+
+backupTimeout OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Backup TimeOut"
+    ::={ backupParameterEntry 6 }
+
+backupDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this value is set to 1 (delete), the IP information will be
+                erased. Reading this value, it is possible to know the last
+                operation result: ok (2) if the IP information was erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ backupParameterEntry 7 }
+
+--
+--******************************************************************************
+--
+--  $M1.9
+--
+--  CONFIGURACI‘N DE MANAGER
+--
+--
+--      * Tabla de configuracin de manager
+--          - indice
+--          - direccin IP del router maestro
+--          - mascara del router maestro
+--          - direccin IP del gestor autorizado
+--          - mascara del gestor autorizado
+--          - login
+--          - password
+--          - telâfono del gestor
+--          - telâfono destino
+--
+--**************************************************************************
+
+managerParameter OBJECT IDENTIFIER ::= { configuration 20 }
+
+managerParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ManagerParameterEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "MANAGER parameter configuration table. There is an entry for
+                each configured manager."
+    ::={ managerParameter 1 }
+
+managerParameterEntry OBJECT-TYPE
+    SYNTAX      ManagerParameterEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "MANAGER parameter configuration table. There is an entry for
+                each configured connection."
+    INDEX       { managerIndex }
+    ::={ managerParameterTable 1 }
+
+ManagerParameterEntry ::= SEQUENCE
+    {
+        managerIndex                INTEGER,
+        managerMasterRouterAddr     IpAddress,
+        managerMasterRouterMsk      IpAddress,
+        managerStationAddress       IpAddress,
+        managerStationMask          IpAddress,
+        managerLogin                DisplayString,
+        managerPassword             DisplayString,
+        managerTelManager           DisplayString,
+        managerTelDestination       DisplayString,
+        managerDelete               INTEGER
+    }
+
+managerIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Index: position of this entry in the table."
+    ::={ managerParameterEntry 1 }
+
+managerMasterRouterAddr OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Master Router IP address"
+    ::={ managerParameterEntry 2 }
+
+managerMasterRouterMsk OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Master Router IP mask"
+    ::={ managerParameterEntry 3 }
+
+managerStationAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Manager Station IP address"
+    ::={ managerParameterEntry 4 }
+
+managerStationMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Manager Station IP mask"
+    ::={ managerParameterEntry 5 }
+
+managerLogin OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(31))
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Login"
+    ::={ managerParameterEntry 6 }
+
+managerPassword OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(31))
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Password"
+    ::={ managerParameterEntry 7 }
+
+managerTelManager OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(31))
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Manager Telephone"
+    ::={ managerParameterEntry 8 }
+
+managerTelDestination OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(31))
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Destination Telephone"
+    ::={ managerParameterEntry 9 }
+
+managerDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "If this value is set to 1 (delete), the IP information will be
+                erased. Reading this value, it is possible to know the last
+                operation result: ok (2) if the IP information was erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ managerParameterEntry 10 }
+
+--
+--******************************************************************************
+--
+--  $M2.5
+--
+--  CONFIGURACI‘N DE UART
+--
+--
+--      * Tabla de configuracin de UART
+--          - identificador de uart
+--          - velocidad de la uart
+--          - modo
+--
+--**************************************************************************
+
+uartParameter OBJECT IDENTIFIER ::= { configuration 21 }
+
+uartParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF UartParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "UART parameter configuration table. Only is possible to read
+                 (get,get next) and write (set) values in this table if the
+                 licence is OK"
+
+    ::={ uartParameter 1 }
+
+uartParameterEntry OBJECT-TYPE
+    SYNTAX      UartParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "UART parameter configuration table. There is an entry for each
+                UART."
+    INDEX       { uartIdentifier }
+    ::={ uartParameterTable 1 }
+
+UartParameterEntry ::= SEQUENCE
+    {
+        uartIdentifier           INTEGER,
+        uartSpeed                INTEGER,
+        uartMode                 INTEGER
+    }
+
+uartIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index1: position of this entry in the table."
+    ::={ uartParameterEntry 1 }
+
+uartSpeed OBJECT-TYPE
+    SYNTAX      INTEGER(1..115200)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Line Speed."
+    ::={ uartParameterEntry 2 }
+
+uartMode OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        at_commands(1),
+                        point_of_sale(2),
+                        asynchronous_line(3),
+                        asynchronous_serial_device_proxy(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Mode."
+    ::={ uartParameterEntry 3 }
+
+--
+--******************************************************************************
+--
+--  $M2.8
+--
+--  CONFIGURACION DE IPSEC
+--
+--
+--      * Estado de IPSec: habilitado o deshabilitado
+--      * Tabla de configuracion de templates (remote tunnel endpoints)
+--          - indice (numero de orden)
+--          - identificador del template (remote tunnel endpoint)
+--          - numero de conexion IP
+--          - direccion remota (direccion IP)
+--          - primera direccion de backup (direccion IP)
+--          - segunda direccion de backup (direccion IP)
+--          - tercera direccion de backup (direccion IP)
+--          - tipo de identificador enviado por el extremo local: hostname
+--            o direccion IP
+--          - variable de borrado de las entradas de la tabla
+--      * Tabla de configuracion de selectores de trafico (controles de acceso)
+--          - indice (numero de orden)
+--          - identificador del selector de trafico
+--          - direccion IP destino
+--          - mascara IP destino
+--          - numero de template (remote tunnel endpoint)
+--          - variable de borrado de las entradas de la tabla
+--      * Tabla de configuracion de claves
+--          - indice (numero de orden)
+--          - tipo de identificador de host: hostname o direccion IP
+--          - direccion del host (direccion IP o hostname)
+--          - clave
+--          - variable de borrado de las entradas de la tabla
+--
+--**************************************************************************
+
+ipsecParameter OBJECT IDENTIFIER ::= { configuration 22 }
+
+ipsecStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This variable specifies the IPSec status."
+    DEFVAL      { disabled }
+    ::={ ipsecParameter 1 }
+
+ipsecTemplateTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IpsecTemplateEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Remote tunnel endpoints configuration table."
+    ::={ ipsecParameter 2 }
+
+ipsecTemplateEntry OBJECT-TYPE
+    SYNTAX      IpsecTemplateEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Remote tunnel endpoints configuration table. There is an entry
+                for each remote tunnel endpoint."
+    INDEX       { ipsecTemplateIndex }
+    ::={ ipsecTemplateTable 1 }
+
+IpsecTemplateEntry ::= SEQUENCE
+    {
+        ipsecTemplateIndex                  INTEGER,
+        ipsecTemplateIdentifier             INTEGER,
+        ipsecTemplateIPConnectionId         INTEGER,
+        ipsecTemplateRemoteAddress          DisplayString,
+        ipsecTemplateFirstBackupAddress     DisplayString,
+        ipsecTemplateSecondBackupAddress    DisplayString,
+        ipsecTemplateThirdBackupAddress     DisplayString,
+        ipsecTemplateAddressType            INTEGER,
+        ipsecTemplateDelete                 INTEGER,
+        ipsecTemplateNapt                   INTEGER,            --$M3.8
+        ipsecTemplateLifetime               INTEGER,            --$M3.8
+        ipsecTemplateUDPEncap               INTEGER             --$M4.0
+    }
+
+ipsecTemplateIndex OBJECT-TYPE
+    SYNTAX      INTEGER(1..65535)
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Order number of the entry in the table."
+    ::={ ipsecTemplateEntry 1 }
+
+ipsecTemplateIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Remote tunnel endpoint identifier."
+    ::={ ipsecTemplateEntry 2 }
+
+ipsecTemplateIPConnectionId OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "IP connection identifier."
+    ::={ ipsecTemplateEntry 3 }
+
+ipsecTemplateRemoteAddress OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..255))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Remote tunnel endpoint address. This variable must be an IP
+                address."
+    ::={ ipsecTemplateEntry 4 }
+
+ipsecTemplateFirstBackupAddress OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..255))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "First remote backup address. This variable must be an IP
+                address."
+    ::={ ipsecTemplateEntry 5 }
+
+ipsecTemplateSecondBackupAddress OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..255))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Second remote backup address. This variable must be an IP
+                address. Before set this variable (optional), it must be set
+                the first remote backup address."
+    ::={ ipsecTemplateEntry 6 }
+
+ipsecTemplateThirdBackupAddress OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..255))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Third remote backup address. This variable must be an IP
+                address. Before set this variable (optional), it must be set
+                the first and second remote backup addresses."
+    ::={ ipsecTemplateEntry 7 }
+
+ipsecTemplateAddressType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        hostname(1),
+                        ip_address(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Local identifier type: hostname if local peer acts as client
+                or IP address if it works as server."
+    ::={ ipsecTemplateEntry 8 }
+
+ipsecTemplateDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this values is set to 1 (delete), the corresponding
+                template entry will be deleted. Reading this values, it is
+                possible to know the last operation result: ok (2) if the
+                template entry were erased successfully, error (3) otherwise.
+                The undefined (4) value indicates that delete operations have
+                not been made yet."
+    ::={ ipsecTemplateEntry 9 }
+
+--$M3.8
+ipsecTemplateNapt OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        enabled(1),
+                        disabled(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this variable takes the value 1 (enabled), it indicates that
+                NAPT rules will be applied before IPSec, remote peer only will
+                accept IP addresses with mask 255.255.255.255, and source
+                address of the traffic which goes through this tunnel always is
+                the address of the IP connection taken as source of the IPSec
+                tunnel."
+    DEFVAL      { disabled }
+    ::={ ipsecTemplateEntry 10 }
+
+--$M3.8
+ipsecTemplateLifetime OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Lifetime for the isakmp template which will be created from
+                this entry. Lifetime for the dynamic template is calculated
+                applying the rate 3300/3600 to this value."
+    ::={ ipsecTemplateEntry 11 }
+
+--$M4.0
+ipsecTemplateUDPEncap OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        yes(1),
+                        no(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this variable takes the value 1 (yes), UDP encapsulation
+                will be applied to ESP packets before sending them through an
+                IPSec tunnel. Default value is 2 (no)."
+    DEFVAL      { 2 }
+    ::={ ipsecTemplateEntry 12 }
+
+ipsecAccessTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IpsecAccessEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Traffic selectors configuration table."
+    ::={ ipsecParameter 3 }
+
+ipsecAccessEntry OBJECT-TYPE
+    SYNTAX      IpsecAccessEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Traffic selectors configuration table. There is an entry for
+                each traffic selector."
+    INDEX       { ipsecAccessIndex }
+    ::={ ipsecAccessTable 1 }
+
+IpsecAccessEntry ::= SEQUENCE
+    {
+        ipsecAccessIndex           INTEGER,
+        ipsecAccessIdentifier      INTEGER,
+        ipsecAccessDestIPAddress   IpAddress,
+        ipsecAccessDestIPMask      IpAddress,
+        ipsecAccessTemplateId      INTEGER,
+        ipsecAccessDelete          INTEGER
+    }
+
+ipsecAccessIndex OBJECT-TYPE
+    SYNTAX      INTEGER(1..65535)
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Order number of the entry in the table."
+    ::={ ipsecAccessEntry 1 }
+
+ipsecAccessIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Traffic selector identifier."
+    ::={ ipsecAccessEntry 2 }
+
+ipsecAccessDestIPAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination IP address."
+    ::={ ipsecAccessEntry 3 }
+
+ipsecAccessDestIPMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination IP mask."
+    ::={ ipsecAccessEntry 4 }
+
+ipsecAccessTemplateId OBJECT-TYPE
+    SYNTAX      INTEGER(1..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Remote tunnel endpoint identifier."
+    ::={ ipsecAccessEntry 5 }
+
+ipsecAccessDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this values is set to 1 (delete), the corresponding
+                access control entry will be deleted. Reading this values,
+                it is possible to know the last operation result: ok (2) if
+                the access control entry were erased successfully, error (3)
+                otherwise. The undefined (4) value indicates that delete
+                operations have not been made yet."
+    ::={ ipsecAccessEntry 6 }
+
+ipsecKeyTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IpsecKeyEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Keys configuration table."
+    ::={ ipsecParameter 4 }
+
+ipsecKeyEntry OBJECT-TYPE
+    SYNTAX      IpsecKeyEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Keys configuration table. There is an entry for each host
+                (identified by its hostname or by its IP address)."
+    INDEX       { ipsecKeyIndex }
+    ::={ ipsecKeyTable 1 }
+
+IpsecKeyEntry ::= SEQUENCE
+    {
+        ipsecKeyIndex              INTEGER,
+        ipsecKeyAddressType        INTEGER,
+        ipsecKeyHostAddress        DisplayString,
+        ipsecKeyKey                DisplayString,
+        ipsecKeyDelete             INTEGER
+    }
+
+ipsecKeyIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Order number of the entry in the table."
+    ::={ ipsecKeyEntry 1 }
+
+ipsecKeyAddressType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        hostname(1),
+                        ip_address(2)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "This variable specifies the identifier type used in variable
+                 ipsecKeyHostAddress."
+    ::={ ipsecKeyEntry 2 }
+
+ipsecKeyHostAddress OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Host identifier. This variable may be an IP address or a
+                hostname."
+    ::={ ipsecKeyEntry 3 }
+
+ipsecKeyKey OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..31))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Key."
+    ::={ ipsecKeyEntry 4 }
+
+ipsecKeyDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this values is set to 1 (delete), the corresponding
+                key entry will be deleted. Reading this values, it is possible
+                to know the last operation result: ok (2) if the key entry were
+                erased successfully, error (3) otherwise. The undefined (4)
+                value indicates that delete operations have not been made yet."
+    ::={ ipsecKeyEntry 5 }
+
+
+--
+--******************************************************************************
+--
+--  $M3.7
+--
+--  CONFIGURACI‘N DE ADSL
+--
+--
+--      * Tabla de configuracin de ADSL
+--          - identificador de adsl
+--          - relacin entre la velocidad mﬂxima y mçnima de la lçnea
+--          - ADSL Open Mode
+--
+--**************************************************************************
+
+adslParameter OBJECT IDENTIFIER ::= { configuration 23 }
+
+adslParameterTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdslParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "ADSL parameter configuration table. Only is possible to read
+                (get, get next) and write (set) values in this table."
+    ::={ adslParameter 1 }
+
+adslParameterEntry OBJECT-TYPE
+    SYNTAX      AdslParameterEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "ADSL parameter configuration table. There is an entry for each
+                configured connection."
+    INDEX       { adslIdentifier }
+    ::={ adslParameterTable 1 }
+
+AdslParameterEntry ::= SEQUENCE
+    {
+        adslIdentifier          INTEGER,
+        adslRatio               INTEGER,
+        adslOpenMode            INTEGER
+    }
+
+adslIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index1: position of this entry in the table."
+    ::={ adslParameterEntry 1 }
+
+adslRatio OBJECT-TYPE
+    SYNTAX      INTEGER(1..200)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ADSL1 maximum/minimum line rate ratio. The ratio between
+                the maximum rate and minimum rate of the ATM connections
+                defined over this line must be less or equal to this value."
+    DEFVAL      { 25 }
+    ::= { adslParameterEntry 2 }
+
+adslOpenMode OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        multimode(1),
+                        gLite(2),
+                        ansi_t1_413(3)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "ADSL Open Mode."
+    DEFVAL      {1}
+    ::= { adslParameterEntry 3 }
+
+
+--
+--******************************************************************************
+--
+--  $M3.5
+--
+--  MONITORIZACI‘N OAM
+--
+--
+--      * Parﬂmetros de monitorizacin OAM
+--          - monitorizacin deshabilitada o de loopback
+--          - monitorizacin por segmento o extremo a extremo
+--
+--**************************************************************************
+
+oamMonParameters OBJECT IDENTIFIER ::= { configuration 24 }
+
+oamMonType OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        disabled(0),
+                        enabled-loopback(1)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "OAM Monitoring status."
+    DEFVAL      {0}
+    ::= { oamMonParameters 1 }
+
+oamMonSegment OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        end-to-end(0),
+                        segment(1)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "OAM Monitoring type."
+    DEFVAL      {0}
+    ::= { oamMonParameters 2 }
+
+
+--
+--**************************************************************************
+--
+--  $M3.9
+--
+--  TIDP (Teldat IP Discovery Protocol)
+--
+--
+--      * Tabla de IP Discovery Stations
+--          - indice (numero de orden)
+--          - identificador de la Discovery Station
+--          - direccion de la Discovery Station (direccion IP o hostname): de
+--            momento SOLO se permite direccion IP, el codigo del equipo no se
+--            encuentra adaptado a direcciones DNS
+--          - puerto destino
+--          - puerto origen
+--          - intervalo entre notificaciones (notification timer)
+--          - variable de borrado de las entradas de la tabla
+--
+--**************************************************************************
+
+tidpParameters OBJECT IDENTIFIER ::= { configuration 25 }
+
+tidpIpDiscoveryStationTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TidpIpDiscoveryStationEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Teldat IP Discovery Protocol configuration table."
+    ::={ tidpParameters 1 }
+
+tidpIpDiscoveryStationEntry OBJECT-TYPE
+    SYNTAX      TidpIpDiscoveryStationEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Teldat IP Discovery Protocol Station entry. There is an entry
+                for each discovery station."
+    INDEX       { tidpIpDiscoveryStationIndex }
+    ::={ tidpIpDiscoveryStationTable 1 }
+
+TidpIpDiscoveryStationEntry ::= SEQUENCE
+    {
+        tidpIpDiscoveryStationIndex         INTEGER,
+        tidpIpDiscoveryStationIdentifier    INTEGER,
+        tidpIpDiscoveryStationAddress       DisplayString,
+        tidpIpDiscoveryStationDestPort      INTEGER,
+        tidpIpDiscoveryStationSourcePort    INTEGER,
+        tidpIpDiscoveryNotificationInterval INTEGER,
+        tidpIpDiscoveryStationDelete        INTEGER
+    }
+
+tidpIpDiscoveryStationIndex OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Position of this entry in the table."
+    ::={ tidpIpDiscoveryStationEntry 1 }
+
+tidpIpDiscoveryStationIdentifier OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Discovery Station identifier."
+    ::={ tidpIpDiscoveryStationEntry 2 }
+
+tidpIpDiscoveryStationAddress OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..255))
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Discovery Station address. This variable must be an IP
+                address (in the future this could be a DNS address)."
+    ::={ tidpIpDiscoveryStationEntry 3 }
+
+tidpIpDiscoveryStationDestPort OBJECT-TYPE
+    SYNTAX      INTEGER(1..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Destination UDP port."
+    ::={ tidpIpDiscoveryStationEntry 4 }
+
+tidpIpDiscoveryStationSourcePort OBJECT-TYPE
+    SYNTAX      INTEGER(1..65535)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Source UDP port."
+    ::={ tidpIpDiscoveryStationEntry 5 }
+
+tidpIpDiscoveryNotificationInterval OBJECT-TYPE
+    SYNTAX      INTEGER(1..86400)
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Time between notifications (in seconds)."
+    ::={ tidpIpDiscoveryStationEntry 6 }
+
+tidpIpDiscoveryStationDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "If this values is set to 1 (delete), the corresponding
+                key entry will be deleted. Reading this values, it is possible
+                to know the last operation result: ok (2) if the key entry were
+                erased successfully, error (3) otherwise. The undefined (4)
+                value indicates that delete operations have not been made yet."
+    ::={ tidpIpDiscoveryStationEntry 7 }
+
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N
+--
+--      * Creacin de nodos
+--          - monitorizacin diaria
+--          - monitorizacin quincenal
+--          - recogida de estadçsticos
+--
+--******************************************************************************
+
+daily OBJECT IDENTIFIER ::= { monitoring 1 }
+fortnightly OBJECT IDENTIFIER ::= { monitoring 2 }
+collector OBJECT IDENTIFIER ::= { monitoring 3 }
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N DIARIA DE PAR¬METROS GLOBALES
+--
+--      * Estadçsticos de la red LAN
+--          - estado
+--          - colisiones
+--          - errores
+--          - bytes recibidos
+--          - bytes transmitidos
+--      * Estadçsticos de la red ADSL
+--          - autenticaciones fallidas
+--          - autenticaciones exitosas
+--          - paquetes entrantes con puerto destino no admitido (NAPT)
+--$M2.0 * Estadçsticos de los canales B RDSI y de la RTC
+--          - autenticaciones exitosas
+--          - autenticaciones fallidas
+--
+--******************************************************************************
+
+globalStatistics OBJECT IDENTIFIER ::= { daily 1 }
+
+gstLanStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        up(1),
+                        down(2),
+                        testing(3)
+                    }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "LAN interface status."
+    ::={ globalStatistics 1 }
+
+gstLanCollisions OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Number of frames not transmitted because of too collisions.
+                It only can be set to zero for clearing."
+    ::={ globalStatistics 2 }
+
+gstLanErrors OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Number of errors over the LAN interface. It only can be set
+                to zero for clearing."
+    ::={ globalStatistics 3 }
+
+gstLanReceivedBytes OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Number of bytes received from the LAN interface. It only can
+                be set to zero for clearing."
+    ::={ globalStatistics 4 }
+
+gstLanTransmittedBytes OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Number of bytes transmitted through the LAN interface. It only
+                can be set to zero for clearing."
+    ::={ globalStatistics 5 }
+
+gstAdslSuccessfulAuthentications OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Number of successful authentications (only for PPP connections
+                over the ADSL interface). It only can be set to zero for
+                clearing."
+    ::={ globalStatistics 6 }
+
+gstAdslFailedAuthentications OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Number of failed authentications in PPP connections over the
+                the ADSL interface. It only can be set to zero for clearing."
+    ::={ globalStatistics 7 }
+
+gstAdslUnexpectedPort OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "Number of incoming packets from the ADSL, ISDN or PSTN
+                interfaces with a destination port that has not an associated
+                NAPT entry. These incoming packets have not an associated
+                outgoing packet or have it, but the NAPT entry expired." --$M2.0
+    ::={ globalStatistics 8 }
+
+--$M2.0
+gstIsdnPstnGroup OBJECT IDENTIFIER ::= { globalStatistics 9 }
+
+gstIsdnB1SuccessfulAuth OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of successful authentications for PPP connections
+                over the B1 channel of the ISDN. It only can be set to zero for
+                clearing."
+    ::={ gstIsdnPstnGroup 1 }
+
+gstIsdnB1FailedAuth OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of failed authentications for PPP connections over the
+                B1 channel of the ISDN. It only can be set to zero for
+                clearing."
+    ::={ gstIsdnPstnGroup 2 }
+
+gstIsdnB2SuccessfulAuth OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of successful authentications for PPP connections
+                over the B2 channel of the ISDN. It only can be set to zero for
+                clearing."
+    ::={ gstIsdnPstnGroup 3 }
+
+gstIsdnB2FailedAuth OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of failed authentications for PPP connections over the
+                B2 channel of the ISDN. It only can be set to zero for
+                clearing."
+    ::={ gstIsdnPstnGroup 4 }
+
+gstPstnSuccessfulAuth OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of successful authentications for PPP connections
+                using the PSTN. It only can be set to zero for clearing."
+    ::={ gstIsdnPstnGroup 5 }
+
+gstPstnFailedAuth OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-write
+    STATUS      obsolete
+    DESCRIPTION "Number of failed authentications for PPP connections using the
+                PSTN. It only can be set to zero for clearing."
+    ::={ gstIsdnPstnGroup 6 }
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N DIARIA DE SUBREDES VISIBLES
+--
+--      * Õndice
+--      * Subred visible
+--          - conexin IP de salida
+--          - direccin
+--          - mﬂscara
+--      * Bytes de entrada
+--      * Bytes de salida
+--      * Paquetes de entrada
+--      * Paquetes de salida
+--
+--******************************************************************************
+
+subnetStatisticsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF SubnetStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Visible subnetwork statistics table."
+    ::={ daily 2 }
+
+subnetStatisticsEntry OBJECT-TYPE
+    SYNTAX      SubnetStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has information about a visible subnet and its
+                traffic. If the IP connection associated with the visible
+                subnet has an IP address that belongs to the visible subnet,
+                traffic whose payee is the router itself are not entered in the
+                accounts."
+    INDEX       { sstIndex }
+    ::={ subnetStatisticsTable 1 }
+
+SubnetStatisticsEntry ::= SEQUENCE
+    {
+        sstIndex        INTEGER,
+        sstConnection   INTEGER,
+        sstAddress      IpAddress,
+        sstMask         IpAddress,
+        sstBytesIn      Counter,
+        sstBytesOut     Counter,
+        sstPacketsIn    Counter,
+        sstPacketsOut   Counter
+    }
+
+sstIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Visible subnet statistics order inside the table."
+    ::={ subnetStatisticsEntry 1 }
+
+sstConnection OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "IP connection identifier associated with the visible subnet.
+                This is the IP connection through with the subnet will be
+                visible."
+    ::={ subnetStatisticsEntry 2 }
+
+sstAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "IP address of the visible subnetwork."
+    ::={ subnetStatisticsEntry 3 }
+
+sstMask OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Visible subnetwork mask."
+    ::={ subnetStatisticsEntry 4 }
+
+sstBytesIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Number of bytes received by the visible subnetwork."
+    ::={ subnetStatisticsEntry 5 }
+
+sstBytesOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Number of bytes transmitted by the visible subnetwork."
+    ::={ subnetStatisticsEntry 6 }
+
+sstPacketsIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Number of packets received by the visible subnetwork."
+    ::={ subnetStatisticsEntry 7 }
+
+sstPacketsOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Number of packets transmitted by the visible subnetwork."
+    ::={ subnetStatisticsEntry 8 }
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N DIARIA DE PUERTOS VISIBLES
+--
+--      * Estadçsticos globales
+--          - trﬂfico de entrada en paquetes
+--          - trﬂfico de salida en paquetes
+--          - paquetes ICMP
+--      * Estadçsticos por puerto visible
+--          - çndice
+--          - puerto interno visible
+--          - puerto externo asociado
+--          - direccin del host del puerto visible
+--          - conexin IP de salida
+--          - trﬂfico relativo al puerto visible
+--              ∏ entrante en bytes
+--              ∏ saliente en bytes
+--              ∏ entrante en paquetes
+--              ∏ saliente en paquetes
+--$M2.0     - canal o interfaz a travâs del cual el puerto es visible
+--
+--******************************************************************************
+
+portStatistics OBJECT IDENTIFIER ::= { daily 3 }
+
+
+--******************************************************************************
+--
+--  Estadçsticos globales
+--
+--******************************************************************************
+
+portGlobalStatistics OBJECT IDENTIFIER ::= { portStatistics 1 }
+
+
+pstTotalPacketsIn OBJECT-TYPE
+    SYNTAX      INTEGER             --$M3.4
+    ACCESS      read-write          --$M3.4
+    STATUS      mandatory
+    DESCRIPTION "Number of packets received from ADSL interface belonging to
+                the visible ports."
+    ::={ portGlobalStatistics 1 }
+
+pstTotalPacketsOut OBJECT-TYPE
+    SYNTAX      INTEGER             --$M3.4
+    ACCESS      read-write          --$M3.4
+    STATUS      mandatory
+    DESCRIPTION "Number of packets transmitted through the ADSL interface
+                belonging to the visible ports."
+    ::={ portGlobalStatistics 2 }
+
+pstTotalPacketsICMP OBJECT-TYPE
+    SYNTAX      INTEGER             --$M3.4
+    ACCESS      read-write          --$M3.4
+    STATUS      mandatory
+    DESCRIPTION "Number of ICMP packets with type 3 (destination unreachable),
+                code 4 (Fragmentation needed but fragment bit not set)
+                received from ADSL interface as reply to packets sent by
+                the visible ports."
+    ::={ portGlobalStatistics 3 }
+
+--******************************************************************************
+--
+--  Estadçsticos por puerto visible
+--
+--******************************************************************************
+
+portStatisticsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF PortStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Visible port statistics table."
+    ::={ portStatistics 2 }
+
+portStatisticsEntry OBJECT-TYPE
+    SYNTAX      PortStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry identifies the visible port and has its traffic
+                statistics."
+    INDEX       { pstIndex }
+    ::={ portStatisticsTable 1 }
+
+PortStatisticsEntry ::= SEQUENCE
+    {
+        pstIndex        INTEGER,
+        pstIntPort      INTEGER,
+        pstExtPort      INTEGER,
+        pstHost         IpAddress,
+        pstConnection   INTEGER,
+        pstBytesIn      Counter,
+        pstBytesOut     Counter,
+        pstPacketsIn    Counter,
+        pstPacketsOut   Counter,
+        pstInterface    INTEGER         --$M2.0
+    }
+
+pstIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the index of the table: order or position of the entry."
+    ::={ portStatisticsEntry 1 }
+
+pstIntPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Port that will be visible."
+    ::={ portStatisticsEntry  2 }
+
+pstExtPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "The internal port will be translated to this port when using
+                NAPT translation."
+    ::={ portStatisticsEntry 3 }
+
+pstHost OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the IP address of the host the visible port belongs to."
+    ::={ portStatisticsEntry 4 }
+
+pstConnection OBJECT-TYPE
+    SYNTAX      INTEGER(1..99)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "IP connection through which the port will be visible."
+    ::={ portStatisticsEntry 5 }
+
+pstBytesIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Incoming bytes from the ADSL interface whose addressee is
+                the visible port."
+    ::={ portStatisticsEntry 6 }
+
+pstBytesOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Outgoing bytes througt the ADSL interface whose sender is
+                the visible port."
+    ::={ portStatisticsEntry 7 }
+
+pstPacketsIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Incoming packets from the ADSL interface whose addressee is
+                the visible port."
+    ::={ portStatisticsEntry 8 }
+
+pstPacketsOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Outgoing packets througt the ADSL interface whose sender is
+                the visible port."
+    ::={ portStatisticsEntry 9}
+
+--$M2.0
+pstInterface OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    b1(1),
+                    b2(2),
+                    rtc(3)
+                }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Interface through which this port is visible: b1(1), b2(2),
+                rtc(3)"
+    ::={ portStatisticsEntry 10}
+
+--
+--******************************************************************************
+--
+--  $M2.0
+--  MONITORIZACI‘N DIARIA DE LAS ESTACIONES QUE HAN PROVOCADO LLAMADAS
+--
+--      * Õndice (nîmero de estacin)
+--      * Fecha y hora en que esa estacin inici la llamada
+--      * Direccin IP origen
+--      * Direccin IP destino
+--      * Protocolo
+--      * Puerto origen
+--      * Puerto destino
+--      * Canal
+--
+--******************************************************************************
+
+callerStationsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF CallerStationsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "This table contains the last 20 stations of the LAN that caused
+                ISDN calls."
+    ::={ daily 4 }
+
+callerStationsEntry OBJECT-TYPE
+    SYNTAX      CallerStationsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has the date and time when the call was established,
+                the IP address of the station that caused the call, the
+                destination IP address, protocol, source port (if the protocol
+                is TCP or UDP) and destination port of the packet which caused
+                the call, and the channel (B1, B2, PSTN) through which the call
+                was established."
+    INDEX       { callerStIndex }
+    ::={ callerStationsTable 1 }
+
+CallerStationsEntry ::= SEQUENCE
+    {
+        callerStIndex           INTEGER,
+        callerStDate            OCTET STRING,
+        callerStTime            OCTET STRING,
+        callerStSourceIPAddr    IpAddress,
+        callerStDestIPAddr      IpAddress,
+        callerStProtocol        INTEGER,
+        callerStSourcePort      INTEGER,
+        callerStDestPort        INTEGER,
+        callerStChannel         INTEGER
+    }
+
+callerStIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Index of the tabla. The index of the first entry is 2147483647,
+                and it decreases for each new call which is established."
+    ::={ callerStationsEntry 1 }
+
+callerStDate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Date when the call was established. It is a 3 bytes value in
+                BCD format, indicating day, month and year respectively."
+    ::={ callerStationsEntry 2 }
+
+callerStTime OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Time when the call was established. It is a 3 bytes value in
+                BCD format, indicating hour, minutes and seconds respectively."
+    ::={ callerStationsEntry 3 }
+
+callerStSourceIPAddr OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Source IP address of the packet which caused the call."
+    ::={ callerStationsEntry 4 }
+
+callerStDestIPAddr OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Destination IP address of the packet which caused the call."
+    ::={ callerStationsEntry 5 }
+
+callerStProtocol OBJECT-TYPE
+    SYNTAX      INTEGER(0..255)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Protocol of the packet which caused the call."
+    ::={ callerStationsEntry 6 }
+
+callerStSourcePort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Source port of the packet which caused the call, if its
+                protocol is TCP or UDP. This variable takes the value 0 if the
+                protocol is other than TCP or UDP."
+    ::={ callerStationsEntry 7 }
+
+callerStDestPort OBJECT-TYPE
+    SYNTAX      INTEGER(0..65535)
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Destination port of the packet which caused the call, if its
+                protocol is TCP or UDP. This variable takes the value 0 if the
+                protocol is other than TCP or UDP."
+    ::={ callerStationsEntry 8 }
+
+callerStChannel OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    b1(1),
+                    b2(2),
+                    pstn(3)
+                }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Channel through which the call was established. The permitted
+                values are:
+                1: B1 channel of the ISDN.
+                2: B2 channel of the ISDN.
+                3: PSTN."
+    ::={ callerStationsEntry 9 }
+
+--
+--******************************************************************************
+--
+--  $M2.0
+--  MONITORIZACI‘N DIARIA DE LAS LLAMADAS ACTIVAS A TRAV–S DE LOS CANALES B DE
+--  LA RDSI
+--
+--      * Õndice (nîmero de orden de la llamada)
+--      * Tipo de llamada (entrante/saliente/permanente)
+--      * Acceso bﬂsico RDSI por el que se establece la llamada
+--      * Canal B de la RDSI por el que se establece la llamada (B1, B2)
+--      * Nîmero llamado
+--      * Nîmero llamante
+--      * Coste (Charge)
+--      * Hora de inicio de la llamada
+--      * Fecha de inicio de la llamada
+--
+--******************************************************************************
+
+activeCallsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ActiveCallsEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Active calls table."
+    ::={ daily 5 }
+
+activeCallsEntry OBJECT-TYPE
+    SYNTAX      ActiveCallsEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each entry of the table contains the index to search an entry
+                through the table, the type of call (incoming, outgoing or
+                permanent), the ISDN line or number of the basic access through
+                which the call is established, the channel used by the call
+                (B1, B2), the call reference, numbers of the called and the
+                calling TE, the cost of the call (if it is provided by the
+                network) and the start time and date of the call."
+    INDEX       { activeCallsIndex }
+    ::={ activeCallsTable 1 }
+
+ActiveCallsEntry ::= SEQUENCE
+    {
+        activeCallsIndex            INTEGER,
+        activeCallsType             INTEGER,
+        activeCallsLine             INTEGER,
+        activeCallsChannel          INTEGER,
+        activeCallsRef              INTEGER,
+        activeCallsCalledNum        DisplayString,
+        activeCallsCallingNum       DisplayString,
+        activeCallsCharge           INTEGER,
+        activeCallsStartTime        OCTET STRING,
+        activeCallsStartDate        OCTET STRING
+    }
+
+activeCallsIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index of the table. It is the number of order of the entry in
+                the table."
+    ::={ activeCallsEntry 1 }
+
+activeCallsType OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    incoming(0),
+                    outgoing(1),
+                    permanent(2)
+                }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Type of the call: incoming(0), outgoing(1) or permanent(2)."
+    ::={ activeCallsEntry 2 }
+
+activeCallsLine OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "ISDN line or number of the basic access through which the call
+                is established."
+    ::={ activeCallsEntry 3 }
+
+activeCallsChannel OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    b1(1),
+                    b2(2)
+                }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Channel through which the call is established: b1(1), b2(2)."
+    ::={ activeCallsEntry 4 }
+
+activeCallsRef OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Reference value of the call in use."
+    ::={ activeCallsEntry 5 }
+
+activeCallsCalledNum OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..12))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Number of the called TE."
+    ::={ activeCallsEntry 6 }
+
+activeCallsCallingNum OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..12))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Number of the calling TE."
+    ::={ activeCallsEntry 7 }
+
+activeCallsCharge OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Cost of the call (should the network provide this)."
+    ::={ activeCallsEntry 8 }
+
+activeCallsStartTime OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Indicates the time the call is established. It is a 3 bytes
+                value in BCD format, indicating hour, minutes and seconds
+                respectively."
+    ::={ activeCallsEntry 9 }
+
+activeCallsStartDate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Indicates the date the call is established. It is a 3 bytes
+                value in BCD format, indicating hour, minutes and seconds
+                respectively."
+    ::={ activeCallsEntry 10 }
+
+--
+--******************************************************************************
+--
+--  $M2.0
+--  MONITORIZACI‘N DIARIA DE LAS LLAMADAS RDSI LIBERADAS
+--
+--      * Õndice (nîmero de orden de la llamada)
+--      * Tipo de llamada (entrante/saliente/permanente)
+--      * Lçnea o acceso bﬂsico RDSI por el que se estableci la llamada
+--      * Canal (B1 o B2) por el que se estableci la llamada
+--      * Nîmero llamado
+--      * Nîmero llamante
+--      * Coste (Charge)
+--      * Causa de la liberacin
+--      * Diagnstico de la liberacin
+--      * Hora de inicio
+--      * Fecha de inicio
+--      * Hora de finalizacin o liberacin
+--      * Fecha de liberacin
+--
+--******************************************************************************
+
+releasedCallsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF ReleasedCallsEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Released calls table."
+    ::={ daily 6 }
+
+releasedCallsEntry OBJECT-TYPE
+    SYNTAX      ReleasedCallsEntry
+    ACCESS      not-accessible
+    STATUS      obsolete
+    DESCRIPTION "Each entry of the table contains the index to search an entry
+                inside the table, the type of call (incoming, outgoing or
+                permanent), the ISDN line or number of the basic access through
+                which the call was established, the channel used by the call
+                (B1, B2), numbers of the called and the calling TE, the cost of
+                the call (if it is provided by the network), cause and diagnosis
+                of call release (in decimal), the date and time when the call
+                was established, and the date and time when the call was
+                released."
+    INDEX       { releasedCallsIndex }
+    ::={ releasedCallsTable 1 }
+
+ReleasedCallsEntry ::= SEQUENCE
+    {
+        releasedCallsIndex      INTEGER,
+        releasedCallsType       INTEGER,
+        releasedCallsLine       INTEGER,
+        releasedCallsChannel    INTEGER,
+        releasedCallsCalledNum  DisplayString,
+        releasedCallsCallingNum DisplayString,
+        releasedCallsCharge     INTEGER,
+        releasedCallsCause      INTEGER,
+        releasedCallsDiagnosis  INTEGER,
+        releasedCallsStartTime  OCTET STRING,
+        releasedCallsStartDate  OCTET STRING,
+        releasedCallsEndTime    OCTET STRING,
+        releasedCallsEndDate    OCTET STRING
+    }
+
+releasedCallsIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Index of the table. It is the number of order of this entry in
+                the table."
+    ::={ releasedCallsEntry 1 }
+
+releasedCallsType OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    incoming(0),
+                    outgoing(1),
+                    permanent(2)
+                }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Type of the call: incoming(0), outgoing(1) or permanent(2)."
+    ::={ releasedCallsEntry 2 }
+
+releasedCallsLine OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "ISDN line or number of the basic access through which the call
+                was established."
+    ::={ releasedCallsEntry 3 }
+
+releasedCallsChannel OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    b1(1),
+                    b2(2)
+                }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Channel through which the call is established: b1(1), b2(2)."
+    ::={ releasedCallsEntry 4 }
+
+releasedCallsCalledNum OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..12))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Number of the called TE."
+    ::={ releasedCallsEntry 5 }
+
+releasedCallsCallingNum OBJECT-TYPE
+    SYNTAX      DisplayString(SIZE(0..12))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Number of the calling TE."
+    ::={ releasedCallsEntry 6 }
+
+releasedCallsCharge OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Cost of the call (should the network provide this)."
+    ::={ releasedCallsEntry 7 }
+
+releasedCallsCause OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    unassigned-number(1),
+                    no-route-to-the-destination(3),
+                    unnacceptable-channel(6),
+                    call-awarded(7),
+                    normal-call-clearing(16),
+                    user-busy(17),
+                    no-answer-from-user(18),
+                    no-answer-from-notified-user(19),
+                    call-rejected(21),
+                    changed-number(22),
+                    destination-out-of-order(27),
+                    invalid-format-number(28),
+                    normal-unspecified(31),
+                    no-circuit-or-channel-available(34),
+                    network-out-of-order(38),
+                    temporary-failure(41),
+                    switching-equipment-congestion(42),
+                    solicited-circuit-or-channel-no-avaible(44),
+                    resources-unavailable(47),
+                    quality-of-service-not-available(49),
+                    bearer-capacity-not-autorized(57),
+                    bearer-capacity-not-available(58),
+                    service-class-not-avaible(63),
+                    bearer-capacity-not-implemented(65),
+                    canal-type-not-implemented(66),
+                    service-not-implemented(79),
+                    reference-value-invalid(81),
+                    identified-channel-not-exist(82),
+                    incompatible-destination(88),
+                    invalid-message-unspecified(95),
+                    compulsory-info-element-absent(96),
+                    message-type-not-implemented(97),
+                    message-not-compatible-with-state(98),
+                    info-element-no-exist(99),
+                    info-element-content-invalid(100),
+                    message-not-compatible-with-state-2(101),
+                    recovery-on-timer-expiry(102),
+                    protocol-error(111),
+                    interworking(127)
+                }
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Cause of the call release (in decimal). The permitted values
+                and its associated meaning are:
+                Unassigned number (1);
+                No route to the destination (3);
+                Unnacceptable channel (6);
+                Call awarded (7);
+                Normal call clearing (16);
+                User busy (17);
+                No answer from user (18);
+                No answer from notified user (19);
+                Call rejected (21);
+                Changed number (22);
+                Destination out of order (27);
+                Invalid format number (28);
+                Normal, unspecified (31);
+                No circuit/channel available (34);
+                Network out of order (38);
+                Temporary failure (41);
+                Switching equipment congestion (42);
+                Solicited circuit/channel no avaible (44);
+                Resources unavailable (47);
+                Quality of service not available (49);
+                Bearer capacity not autorized (57);
+                Bearer capacity not available (58);
+                Service class not avaible (63);
+                Bearer capacity not implemented (65);
+                Canal type not implemented (66);
+                Service not implemented (79);
+                Reference value invalid (81);
+                Identified channel not exist (82);
+                Incompatible destination (88);
+                Invalid message, unspecified (95);
+                Compulsory Info element absent (96);
+                Message type not implemented (97);
+                Message not compatible with state (98);
+                Info element no exist (99);
+                Info element content invalid (100);
+                Message not compatible with state (101);
+                Recovery on timer expiry (102);
+                Protocol error (111);
+                Interworking (127)."
+    ::={ releasedCallsEntry 8 }
+
+releasedCallsDiagnosis OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Diagnosis of the call release (in decimal)."
+    ::={ releasedCallsEntry 9 }
+
+releasedCallsStartTime OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Time when the call was established. It is a 3 bytes value in
+                BCD format, indicating day, month and year respectively."
+    ::={ releasedCallsEntry 10 }
+
+releasedCallsStartDate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Date when the call was established. It is a 3 bytes value in
+                BCD format, indicating day, month and year respectively."
+    ::={ releasedCallsEntry 11 }
+
+releasedCallsEndTime OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Time when the call was released. It is a 3 bytes value in BCD
+                format, indicating day, month and year respectively."
+    ::={ releasedCallsEntry 12 }
+
+releasedCallsEndDate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      obsolete
+    DESCRIPTION "Date when the call was released. It is a 3 bytes value in BCD
+                format, indicating day, month and year respectively."
+    ::={ releasedCallsEntry 13 }
+
+--
+--******************************************************************************
+--
+--  $M2.0
+--  VARIABLE PARA INDICAR SI EL EQUIPO EST¬ EN GESTI‘N
+--
+--******************************************************************************
+
+managementStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    yes(1),
+                    no(2)
+                }
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This variable indicates whether the router is being managed (1)
+                or not (2)."
+    ::={ daily 7 }
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N QUINCENAL
+--      * Borrado de estadçsticos
+--      * Tabla de estadçsticos ADSL
+--      * Tabla de estadçsticos por host
+--      * Tabla de estadçsticos por direccin visitada
+--$M2.0 * Grupo de estadçsticos quincenales para la RDSI
+--          - Estadçsticos globales (por dça)
+--          - Estadçsticos por host
+--          - Estadçsticos por direccin visitada
+--
+--******************************************************************************
+
+--******************************************************************************
+--
+--  BORRADO DE ESTADÕSTICOS
+--
+--******************************************************************************
+
+resetCommand OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        reset(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "If this variable is set to 1, all statistics of the last
+                fortnight will be cleared. Reading the value it is possible to
+                know the result of the last reset: ok (1) or error (2). Value
+                undefined (4) indicates that reset operations have not been
+                made yet."
+    ::={ fortnightly 1 }
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N QUINCENAL DE ESTADÕSTICOS ADSL
+--      * Õndice
+--      * Fecha
+--          - dia
+--          - hora
+--      * Trﬂfico en bytes
+--          - entrada
+--          - salida
+--      * Trﬂfico en paquetes
+--          - entrada
+--          - salida
+--      * Autenticaciones
+--          - exitosas
+--          - fallidas
+--      * Comando borrar
+--
+--******************************************************************************
+
+adslStatisticsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF AdslStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "ADSL interface statistics collected during last fortnight."
+    ::={ fortnightly 2 }
+
+adslStatisticsEntry OBJECT-TYPE
+    SYNTAX      AdslStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has the statistics of one day."
+    INDEX       { adslIndex }
+    ::={ adslStatisticsTable 1 }
+
+AdslStatisticsEntry ::= SEQUENCE
+    {
+        adslIndex       INTEGER,
+        adslDate        OCTET STRING,
+        adslLastUpdate  OCTET STRING,
+        adslBytesIn     Counter,
+        adslBytesOut    Counter,
+        adslPacketsIn   Counter,
+        adslPacketsOut  Counter,
+        adslAuthOk      Counter,
+        adslAuthFail    Counter,
+        adslDelete      INTEGER
+    }
+
+adslIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the index of the table. The entry whose index is 1
+                contains information referred to the actual day."
+    ::={ adslStatisticsEntry 1 }
+
+adslDate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Specifies the entry date. It is a 3 bytes value in BCD format,
+                indicating day, month and year respectively."
+    ::={ adslStatisticsEntry 2 }
+
+adslLastUpdate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Specifies the last time this entry was updated. It is a 3 bytes
+                value in BCD format, indicating hour, minutes and seconds
+                respectively."
+    ::={ adslStatisticsEntry 3 }
+
+adslBytesIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Incoming traffic from ADSL interface in bytes."
+    ::={ adslStatisticsEntry 4 }
+
+adslBytesOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Outgoing traffic through ADSL interface in bytes."
+    ::={ adslStatisticsEntry 5 }
+
+adslPacketsIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Incoming traffic from ADSL interface in packets."
+    ::={ adslStatisticsEntry 6 }
+
+adslPacketsOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Outgoing traffic througt ADSL interface in packets."
+    ::={ adslStatisticsEntry 7 }
+
+adslAuthOk OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Success authentications in PPP connections over the
+                ADSL interface."
+    ::={ adslStatisticsEntry 8 }
+
+adslAuthFail OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Failed authentications in PPP connections over the
+                ADSL interface."
+    ::={ adslStatisticsEntry 9 }
+
+adslDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "If this values is set to 1 (delete), the statistics of this
+                day will be deleted, as well as the associated entries in
+                the per-host statistics table and favourites statistics table.
+                Reading this values, it is possible to know the last
+                operation result: ok (2) if the statistics were erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ adslStatisticsEntry 10 }
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N QUINCENAL DE ESTADÕSTICOS POR HOST
+--      * Õndice de dça
+--      * Õndice de host
+--      * Direccin IP del host
+--      * Trﬂfico en bytes
+--          - entrada
+--          - salida
+--      * Trﬂfico en paqutes
+--          - entrada
+--          - salida
+--
+--******************************************************************************
+
+hostStatisticsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF HostStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "This table has the statistics of the first 50 workstations
+                (or 25, depending on the equipment and the version of the
+                fortnightly statistics) that caused traffic per each day of the
+                last fortnight."
+    ::={ fortnightly 3 }
+
+hostStatisticsEntry OBJECT-TYPE
+    SYNTAX      HostStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has the traffic per-host statistics for one day
+                of the last fortnight."
+    INDEX       { hostDayIndex, hostIndex }
+    ::={ hostStatisticsTable 1 }
+
+HostStatisticsEntry ::= SEQUENCE
+    {
+        hostDayIndex    INTEGER,
+        hostIndex       INTEGER,
+        hostAddress     IpAddress,
+        hostBytesIn     Counter,
+        hostBytesOut    Counter,
+        hostPacketsIn   Counter,
+        hostPacketsOut  Counter
+    }
+
+hostDayIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "First table index. With this index we can know the
+                associated day of the entry using the table of the
+                statistics for the last fortnight (adslStatisticsTable)."
+    ::={ hostStatisticsEntry 1 }
+
+hostIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Second table index. This index is the order of the host entries
+                for a specific day."
+    ::={ hostStatisticsEntry 2 }
+
+hostAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "IP address of the host."
+    ::={ hostStatisticsEntry 3 }
+
+hostBytesIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Incoming traffic in bytes from the ADSL interface whose
+                payee is the host."
+    ::={ hostStatisticsEntry 4 }
+
+hostBytesOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Outgoing traffic in bytes through the ADSL interface generated
+                by the host."
+    ::={ hostStatisticsEntry 5 }
+
+hostPacketsIn OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Incoming traffic in packets from the ADSL inteface whose
+                payee is the host."
+    ::={ hostStatisticsEntry 6 }
+
+hostPacketsOut OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Outgoing traffic in packets trough the ADSL interface generated
+                by the host."
+    ::={ hostStatisticsEntry 7 }
+
+--
+--******************************************************************************
+--
+--  MONITORIZACI‘N QUINCENAL DE ESTADÕSTICOS POR DIRECCI‘N VISITADA
+--      * Õndice de dça
+--      * Õndice de direccin visitada
+--      * Direccin IP visitada
+--      * Trﬂfico en bytes
+--          - entrada
+--          - salida
+--      * Trﬂfico en paqutes
+--          - entrada
+--          - salida
+--
+--******************************************************************************
+
+favouriteStatisticsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF FavouriteStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "This table has the statistics of the first 256 IP addresses
+                (or 128, depending on the equipment and the version of the
+                fortnightly statistics) visited each day of the last fortnight."
+    ::={ fortnightly 4 }
+
+favouriteStatisticsEntry OBJECT-TYPE
+    SYNTAX      FavouriteStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has the traffic statistics for one day associated
+                with an IP address."
+    INDEX       { fvrtDayIndex, fvrtIndex }
+    ::={ favouriteStatisticsTable 1 }
+
+FavouriteStatisticsEntry ::= SEQUENCE
+    {
+        fvrtDayIndex    INTEGER,
+        fvrtIndex       INTEGER,
+        fvrtAddress     IpAddress,
+        fvrtBytesTo     Counter,
+        fvrtBytesFrom   Counter,
+        fvrtPacketsTo   Counter,
+        fvrtPacketsFrom Counter
+    }
+
+fvrtDayIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "First index of the table. It relates each entry with
+                its day through the ADSL statistics table (adslStatisticsTable)."
+    ::={ favouriteStatisticsEntry 1 }
+
+fvrtIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Second index of the table. It is the order of the favourite
+                entry for a specific day."
+    ::={ favouriteStatisticsEntry 2 }
+
+fvrtAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "IP address of the host accessed."
+    ::={ favouriteStatisticsEntry 3 }
+
+fvrtBytesTo OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic sent to the related host, in bytes."
+    ::={ favouriteStatisticsEntry 4 }
+
+fvrtBytesFrom OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic received from the related host, in bytes."
+    ::={ favouriteStatisticsEntry 5 }
+
+fvrtPacketsTo OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic sent to the related host, in packets."
+    ::={ favouriteStatisticsEntry 6 }
+
+fvrtPacketsFrom OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic received from the related host, in packets."
+    ::={ favouriteStatisticsEntry 7 }
+
+--
+--******************************************************************************
+--
+--  $M2.0
+--  MONITORIZACI‘N QUINCENAL DE ESTADÕSTICOS RDSI
+--      * Estadçsticos globales (por dça)
+--      * Estadçsticos por host
+--      * Estadçsticos por direccin visitada
+--
+--******************************************************************************
+
+fortIsdnStatsGroup OBJECT IDENTIFIER ::={ fortnightly 5 }
+
+--******************************************************************************
+--
+--  $M2.0
+--  MONITORIZACI‘N QUINCENAL DE ESTADÕSTICOS RDSI GLOBALES
+--      * Õndice
+--      * Fecha
+--          - dça
+--          - hora
+--      * Trﬂfico total en bytes
+--          - canal B1
+--          - canal B2
+--      * Trﬂfico total en paquetes
+--          - canal B1
+--          - canal B2
+--      * Tiempo total de conexin
+--          - canal B1
+--          - canal B2
+--      * Nîmero total de llamadas realizadas
+--          - canal B1
+--          - canal B2
+--      * Autenticaciones aceptadas
+--          - canal B1
+--          - canal B2
+--      * Comando borrar
+--
+--******************************************************************************
+
+isdnStatisticsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IsdnStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "ISDN statistics collected during last fortnight."
+    ::={ fortIsdnStatsGroup 1 }
+
+isdnStatisticsEntry OBJECT-TYPE
+    SYNTAX      IsdnStatisticsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has the ISDN statistics of one day, and consists of:
+                an index to search an entry inside the table (the day of the
+                last fortnight, 1 for the present day), the date when the
+                statistics of this entry were stored, the last time this entry
+                was updated, the number of bytes and the number of packets
+                exchanged through B1 and B2 channels during this day, the total
+                time that B1 and B2 channels have been used this day, the number
+                of calls established through B1 and B2 ISDN channels, successful
+                and failed authentications in PPP connections over ISDN B1 and
+                B2 channels, and a variable to delete the statistics of the day
+                this entry refers to."
+    INDEX       { isdnStatsIndex }
+    ::={ isdnStatisticsTable 1 }
+
+IsdnStatisticsEntry ::= SEQUENCE
+    {
+        isdnStatsIndex      INTEGER,
+        isdnStatsDate       OCTET STRING,
+        isdnStatsLastUpdate OCTET STRING,
+        isdnStatsBytesB1    Counter,
+        isdnStatsBytesB2    Counter,
+        isdnStatsPacketsB1  Counter,
+        isdnStatsPacketsB2  Counter,
+        isdnStatsTimeB1     Counter,
+        isdnStatsTimeB2     Counter,
+        isdnStatsCallsB1    Counter,
+        isdnStatsCallsB2    Counter,
+        isdnStatsAuthOkB1   Counter,
+        isdnStatsAuthOkB2   Counter,
+        isdnStatsDelete     INTEGER
+    }
+
+isdnStatsIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the index of the table. The entry whose index is 1
+                contains information referred to the current day."
+    ::={ isdnStatisticsEntry 1 }
+
+isdnStatsDate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Specifies the entry date. It is a 3 bytes value in BCD format,
+                indicating day, month and year respectively."
+    ::={ isdnStatisticsEntry 2 }
+
+isdnStatsLastUpdate OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(3))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Specifies the last time this entry was updated. It is a 3 bytes
+                value in BCD format, indicating hour, minutes and seconds
+                respectively."
+    ::={ isdnStatisticsEntry 3 }
+
+isdnStatsBytesB1 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic through B1 in bytes."
+    ::={ isdnStatisticsEntry 4 }
+
+isdnStatsBytesB2 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic through B2 in bytes."
+    ::={ isdnStatisticsEntry 5 }
+
+isdnStatsPacketsB1 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic through B1 in packets."
+    ::={ isdnStatisticsEntry 6 }
+
+isdnStatsPacketsB2 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic through B2 in packets."
+    ::={ isdnStatisticsEntry 7 }
+
+isdnStatsTimeB1 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Total time the ISDN B1 channel was used. It doesn't include the
+                time of the management calls established through this channel."
+    ::={ isdnStatisticsEntry 8 }
+
+isdnStatsTimeB2 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Total time the ISDN B2 channel was used. It doesn't include the
+                time of the management calls established through this channel."
+    ::={ isdnStatisticsEntry 9 }
+
+isdnStatsCallsB1 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Total calls established through ISDN B1 channel, without
+                distinguish between successful and failed PPP authentications.
+                Management calls established through this channel is not enter
+                in this account."
+    ::={ isdnStatisticsEntry 10 }
+
+isdnStatsCallsB2 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Total calls established through ISDN B2 channel, without
+                distinguish between successful and failed PPP authentications.
+                Management calls established through this channel is not enter
+                in this account."
+    ::={ isdnStatisticsEntry 11 }
+
+isdnStatsAuthOkB1 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Successful authentications in PPP connections over the ISDN B1
+                channel."
+    ::={ isdnStatisticsEntry 12 }
+
+isdnStatsAuthOkB2 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Successful authentications in PPP connections over the ISDN B2
+                channel."
+    ::={ isdnStatisticsEntry 13 }
+
+isdnStatsDelete OBJECT-TYPE
+    SYNTAX      INTEGER
+                    {
+                        delete(1),
+                        ok(2),
+                        error(3),
+                        undefined(4)
+                    }
+    ACCESS      read-write
+    STATUS      mandatory
+    DESCRIPTION "If this values is set to 1 (delete), the statistics of this
+                day will be deleted, as well as the associated entries in
+                the per-host statistics table and favourites statistics table.
+                Reading this values, it is possible to know the last
+                operation result: ok (2) if the statistics were erased
+                successfully, error (3) otherwise. The undefined (4) value
+                indicates that delete operations have not been made yet."
+    ::={ isdnStatisticsEntry 14 }
+
+--
+--******************************************************************************
+--
+--  $M2.0
+--  MONITORIZACI‘N QUINCENAL DE ESTADÕSTICOS RDSI POR HOST
+--      * Õndice de dça
+--      * Õndice de host
+--      * Direccin IP del host
+--      * Trﬂfico total en paquetes
+--          - a travâs del canal B1
+--          - a travâs del canal B2
+--
+--******************************************************************************
+
+isdnHostStatsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IsdnHostStatsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "This table has the statistics of the first 50 workstations
+                (or 25, depending on the equipment and the version of the
+                fortnightly statistics) that caused traffic per each
+                day of the last fortnight."
+    ::={ fortIsdnStatsGroup 2 }
+
+isdnHostStatsEntry OBJECT-TYPE
+    SYNTAX      IsdnHostStatsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has the traffic per-host statistics for one day
+                of the last fortnight: traffic through B1 and traffic through B2
+                that is generated or addressed to the host during the day the
+                entry refers to. The table has two index to search an entry: the
+                day of the last fortnight associated to the data included in
+                this entry and the order of the host for a specific day."
+    INDEX       { isdnHostDayIndex, isdnHostIndex }
+    ::={ isdnHostStatsTable 1 }
+
+IsdnHostStatsEntry ::= SEQUENCE
+    {
+        isdnHostDayIndex    INTEGER,
+        isdnHostIndex       INTEGER,
+        isdnHostAddress     IpAddress,
+        isdnHostPacketsB1   Counter,
+        isdnHostPacketsB2   Counter
+    }
+
+isdnHostDayIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "First table index. With this index we can know the
+                associated day of the entry using the table of the ISDN
+                statistics for the last fortnight (isdnStatisticsTable)."
+    ::={ isdnHostStatsEntry 1 }
+
+isdnHostIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Second table index. This index is the order of the host entries
+                for a specific day."
+    ::={ isdnHostStatsEntry 2 }
+
+isdnHostAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "IP address of the host."
+    ::={ isdnHostStatsEntry 3 }
+
+isdnHostPacketsB1 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic through B1 that is generated or addressed to the host
+                during this day, in packets."
+    ::={ isdnHostStatsEntry 4 }
+
+isdnHostPacketsB2 OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic through B2 that is generated or addressed to the host,
+                during this day in packets."
+    ::={ isdnHostStatsEntry 5 }
+
+--
+--******************************************************************************
+--
+--  $M2.0
+--  MONITORIZACI‘N QUINCENAL DE ESTADÕSTICOS RDSI POR DIRECCI‘N VISITADA
+--      * Õndice de dça
+--      * Õndice de direccin o estacin visitada
+--      * Direccin IP visitada
+--      * Trﬂfico con esa estacin en paquetes
+--
+--******************************************************************************
+
+isdnFavouriteStatsTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IsdnFavouriteStatsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "This table has the statistics of the first 256 IP addresses
+                (or 128, depending on the equipment and the version of the
+                fortnightly statistics) visited each day of the last fortnight."
+    ::={ fortIsdnStatsGroup 3 }
+
+isdnFavouriteStatsEntry OBJECT-TYPE
+    SYNTAX      IsdnFavouriteStatsEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry has the traffic statistics for one day associated
+                with an IP address, and includes two indexes to search an entry
+                in the table (the day of the last fortnight the entry refers to
+                and the order of the favourite entry for this day), the IP
+                address of the host accessed (or favourite address) and the
+                traffic with the related host, in packets."
+    INDEX       { isdnFvrtDayIndex, isdnFvrtIndex }
+    ::={ isdnFavouriteStatsTable 1 }
+
+IsdnFavouriteStatsEntry ::= SEQUENCE
+    {
+        isdnFvrtDayIndex    INTEGER,
+        isdnFvrtIndex       INTEGER,
+        isdnFvrtAddress     IpAddress,
+        isdnFvrtPackets     Counter
+    }
+
+isdnFvrtDayIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "First index of the table. It relates each entry with
+                its day through the ISDN statistics table (isdnStatisticsTable)."
+    ::={ isdnFavouriteStatsEntry 1 }
+
+isdnFvrtIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Second index of the table. It is the order of the favourite
+                entry for a specific day."
+    ::={ isdnFavouriteStatsEntry 2 }
+
+isdnFvrtAddress OBJECT-TYPE
+    SYNTAX      IpAddress
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "IP address of the host accessed."
+    ::={ isdnFavouriteStatsEntry 3 }
+
+isdnFvrtPackets OBJECT-TYPE
+    SYNTAX      Counter
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Traffic with the related host, in packets."
+    ::={ isdnFavouriteStatsEntry 4 }
+
+--
+--******************************************************************************
+--
+--  RECOGIDA DE ESTADÕSTICOS QUINCENALES
+--      * Versin
+--      * Tabla de bloques de estadçsticos
+--          - nîmero de bloques
+--          - estadçsticos
+--$M2.0 * Tabla de bloques de estadçsticos quincenales correspondientes a la RDSI
+--          - nîmero de bloques
+--          - estadçsticos
+--
+--******************************************************************************
+
+blockVersion OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(2))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Two bytes that specify the version of the fortnightly
+                statistics. For each version, the format of this statistics
+                will be different."
+    ::={ collector 1 }
+
+blockTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF BlockEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "This table is a sequence of data blocks that contain the
+                fornightly statistics."
+    ::={ collector 2 }
+
+blockEntry OBJECT-TYPE
+    SYNTAX      BlockEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry is a data block. The size of each block is 1025
+                bytes, except for the last block, whose size could be less."
+    INDEX       { blkIndex }
+    ::={ blockTable 1 }
+
+BlockEntry ::= SEQUENCE
+    {
+        blkIndex    INTEGER,
+        blkData     OCTET STRING
+    }
+
+blkIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the index of the table (number of block)."
+    ::={ blockEntry 1 }
+
+blkData OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(1..1024))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Block data. For the last block, the size of the data block
+                could be less than 1024."
+    ::={ blockEntry 2 }
+
+-- $M2.0
+isdnBlockTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF IsdnBlockEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "This table is a sequence of data blocks that contain the
+                ISDN fornightly statistics."
+    ::={ collector 3 }
+
+isdnBlockEntry OBJECT-TYPE
+    SYNTAX      IsdnBlockEntry
+    ACCESS      not-accessible
+    STATUS      mandatory
+    DESCRIPTION "Each entry is a data block. The size of each block is 1024
+                bytes, except for the last block, whose size could be less."
+    INDEX       { isdnBlkIndex }
+    ::={ isdnBlockTable 1 }
+
+IsdnBlockEntry ::= SEQUENCE
+    {
+        isdnBlkIndex    INTEGER,
+        isdnBlkData     OCTET STRING
+    }
+
+isdnBlkIndex OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "This is the index of the table (number of block)."
+    ::={ isdnBlockEntry 1 }
+
+isdnBlkData OBJECT-TYPE
+    SYNTAX      OCTET STRING(SIZE(1..1024))
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "Block data. For the last block, the size of the data block
+                could be less than 1024."
+    ::={ isdnBlockEntry 2 }
+
+END
