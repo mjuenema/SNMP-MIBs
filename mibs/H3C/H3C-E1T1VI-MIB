@@ -1,17 +1,22 @@
 -- =============================================================
--- Copyright (C) 2007 by H3C TECHNOLOGIES. All rights reserved.
+-- Copyright (c) 2004-2010 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description: E1T1VI MIB
--- Reference: None
--- Version: V1.0
+-- Reference:
+-- Version: V1.2
 -- History:
 --   V1.0 2007-04-05 Initial Version by yandehan
+--   V1.1 2009-06-08 modified by TONGWEI
+--        Added h3cE1T1VIUsingTimeslotsRatio
+--          and h3cE1T1VINotifications
+--   V1.2 2010-04-08 modified by TONGWEI
+--        Added h3cE1T1VIGeneral
 -- =============================================================
 H3C-E1T1VI-MIB DEFINITIONS ::= BEGIN
     IMPORTS
-        MODULE-IDENTITY, OBJECT-TYPE, Integer32
+        MODULE-IDENTITY, OBJECT-TYPE, Integer32, NOTIFICATION-TYPE
             FROM SNMPv2-SMI
-        ifIndex
+        ifIndex, ifDescr
             FROM RFC1213-MIB
         h3cCommon
             FROM HUAWEI-3COM-OID-MIB;
@@ -21,17 +26,23 @@ H3C-E1T1VI-MIB DEFINITIONS ::= BEGIN
 -- E1T1VI Module
 -- =============================================================
 h3cE1T1VI MODULE-IDENTITY
-    LAST-UPDATED    "200704051542Z"         -- Apr. 5, 2007 at 00:00 GMT
+    LAST-UPDATED    "201004081855Z"         -- Apr. 8, 2010 at 18:55 GMT
     ORGANIZATION
-        "H3C Technologies Co., Ltd."
+        "Hangzhou H3C Technologies Co., Ltd."
     CONTACT-INFO
         "Platform Team H3C Technologies Co., Ltd.
          Hai-Dian District Beijing P.R. China
-         Http://www.h3c.com
-         Zip:100085"
+         http://www.h3c.com
+         Zip: 100085"
     DESCRIPTION
         "This MIB provides E1/T1 voice interface information that are
         excluded by RFC 1213 and RFC 2233"
+    REVISION        "201004081855Z"
+    DESCRIPTION
+        "To fix bugs in the MIB file."
+    REVISION        "200906081741Z"
+    DESCRIPTION
+        "To fix bugs in the MIB file."
     REVISION        "200704051542Z"
     DESCRIPTION
         "Initial version of this MIB module."
@@ -43,7 +54,7 @@ h3cE1T1VITable OBJECT-TYPE
     MAX-ACCESS  not-accessible
     STATUS      current
     DESCRIPTION
-        "This table contains E1/T1 voice interface information, 
+        "This table contains E1/T1 voice interface information,
         such as the total number of using time slot."
     ::= { h3cE1T1VI 1 }
 
@@ -63,7 +74,8 @@ h3cE1T1VIEntry OBJECT-TYPE
 
 H3cE1T1VIEntry ::= SEQUENCE
     {
-        h3cE1T1VIUsingTimeslots    Integer32
+        h3cE1T1VIUsingTimeslots    Integer32,
+        h3cE1T1VIUsingTimeslotsRatio    Integer32
     }
 
 h3cE1T1VIUsingTimeslots OBJECT-TYPE
@@ -71,7 +83,42 @@ h3cE1T1VIUsingTimeslots OBJECT-TYPE
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "The total number of using time slot on this interface."
+        "The total number of using time slots on this interface."
     ::= { h3cE1T1VIEntry 1 }
+
+h3cE1T1VIUsingTimeslotsRatio OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total ratio of using time slots on this interface."
+    ::= { h3cE1T1VIEntry 2 }
+
+h3cE1T1VINotifications OBJECT IDENTIFIER ::= { h3cE1T1VI 2 }
+h3cE1T1VITrapPrefix    OBJECT IDENTIFIER ::= { h3cE1T1VINotifications 0 }
+
+h3cE1T1VITrapTimeSlot NOTIFICATION-TYPE
+    OBJECTS { ifIndex, ifDescr }
+    STATUS current
+    DESCRIPTION
+        "This trap is sent to the manager under the following
+         condidion: All the available time slots of a E1/T1
+         voice interface has been in use."
+    ::= { h3cE1T1VITrapPrefix 1 }
+
+h3cE1T1VIGeneral  OBJECT IDENTIFIER ::= { h3cE1T1VI 3 }
+
+h3cE1T1VITrapTimeSlotEnable OBJECT-TYPE
+    SYNTAX  INTEGER {
+            enable(1),
+            disable(2)
+        }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This attribute controls whether the h3cE1T1VITrapTimeSlot trap will
+        be sent or not."
+    DEFVAL { enable }
+    ::= { h3cE1T1VIGeneral 1 }
 
 END

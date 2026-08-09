@@ -28,14 +28,14 @@ ENTERASYS-MULTI-AUTH-MIB DEFINITIONS ::= BEGIN
 --  parties a non-exclusive license to use this Specification in 
 --  connection with the management of Enterasys Networks products.
 
---  Copyright August 2004 Enterasys Networks, Inc.
+--  Copyright February 2008 Enterasys Networks, Inc.
 
 IMPORTS
     MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE
         FROM SNMPv2-SMI
     Unsigned32, Integer32, Gauge32
         FROM SNMPv2-SMI
-    TEXTUAL-CONVENTION, TruthValue, TimeStamp
+    TEXTUAL-CONVENTION, TruthValue, TimeStamp, DateAndTime
         FROM SNMPv2-TC
     MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
         FROM SNMPv2-CONF
@@ -47,11 +47,13 @@ IMPORTS
         FROM INET-ADDRESS-MIB
     StationAddressType, StationAddress
         FROM ENTERASYS-UPN-TC-MIB
+    EnabledStatus
+        FROM P-BRIDGE-MIB
     etsysModules
-        FROM ENTERASYS-MIB-NAMES;
+        FROM ENTERASYS-MIB-NAMES;    
 
 etsysMultiAuthMIB MODULE-IDENTITY
-    LAST-UPDATED "200408311350Z"  -- Tue Aug 31 13:50 GMT 2004
+    LAST-UPDATED "200802051840Z"  -- Tue Feb  5 18:40 UTC 2008
     ORGANIZATION "Enterasys Networks, Inc."
     CONTACT-INFO
         "Postal:  Enterasys Networks
@@ -68,6 +70,28 @@ etsysMultiAuthMIB MODULE-IDENTITY
          configuration of multiple authentication mechanisms
          to be run simultaneously on a device."
 
+    REVISION    "200802051840Z"  -- Tue Feb  5 18:40 UTC 2008
+    DESCRIPTION 
+        "Added a new authentication type for RADIUS Snooping."
+
+    REVISION    "200603231332Z"  -- Thu Mar 23 13:32 UTC 2006
+    DESCRIPTION 
+        "Added etsysMultiAuthSessionVlanTunnelAttribute leaf for
+         RFC 3580 support."
+
+    REVISION    "200602031915Z"  -- Fri Feb  3 19:15 GMT 2006
+    DESCRIPTION 
+        "Added NOTIFICATIONs for the system and module maximum 
+         number of users being reached.  Also added objects
+         to enable and disable these NOTIFICATIONs."
+
+    REVISION    "200504061810Z"  -- Wed Apr  6 18:10 GMT 2005
+    DESCRIPTION 
+        "Added objects to control and report timeout parameters for
+         authentication sessions.  Also added objects to report
+         the number of authenticated users on a per authentication
+         type basis."
+    
     REVISION    "200408301343Z"  -- Mon Aug 30 13:43 GMT 2004
     DESCRIPTION 
         "Added read-only leaves to represent the potential for
@@ -100,8 +124,9 @@ EtsysMultiAuthTypes ::= TEXTUAL-CONVENTION
                                  -- Access Control
                    pwa(2),       -- Enterasys Port Web Authentication
                    macAuth(3),   -- Enterasys Mac Authentication
-                   cep(4)        -- Enterasys Convergence End Point  
+                   cep(4),       -- Enterasys Convergence End Point  
                                  -- Detection
+                   radiusSnooping(5) -- Enterasys RADIUS Snooping
                  }
 
 EtsysMultiAuthTypePrecedence ::= TEXTUAL-CONVENTION
@@ -116,8 +141,8 @@ EtsysMultiAuthTypePrecedence ::= TEXTUAL-CONVENTION
          first octet contains the authentication type with the highest
          precedence, the second octet contains the type of the next
          highest precedence, and so forth. For example, a precedence
-         from highest to lowest of ieee8021x(1), macAuth(3), pwa(2), cep(4)
-         would be represented as '01030204'H."
+         from highest to lowest of ieee8021x(1), macAuth(3), pwa(2), cep(4),
+         radiusSnooping(5) would be represented as '0103020405'H."
     SYNTAX       OCTET STRING (SIZE (0..32))
 
 EtsysMultiAuthStatus ::= TEXTUAL-CONVENTION
@@ -133,7 +158,12 @@ EtsysMultiAuthStatus ::= TEXTUAL-CONVENTION
          means that the request to the authorization server for this
          session timed out without a reply from the server.  A value
          of authTerminated(5) indicates that the session was active
-         or in progress and was subsequently terminated."
+         or in progress and was subsequently terminated.  A session 
+         may be terminated for several reasons, including but not 
+         limited to, session timeout, idle timeout, the ifOperStatus 
+         of the interface on which the session was authenticated 
+         transitioning out of the up(1) state, or explicit 
+         administrative management action."
     SYNTAX       INTEGER {
                    authSuccess(1),
                    authFailed(2),
@@ -178,7 +208,8 @@ etsysMultiAuthSystemSupportedTypes OBJECT-TYPE
                    ieee8021x(0),
                    pwa(1),
                    macAuth(2),
-                   cep(3)
+                   cep(3),
+                   radiusSnooping(4)
                  }
     MAX-ACCESS   read-only
     STATUS       current
@@ -239,7 +270,7 @@ etsysMultiAuthSystemDefaultPrecedence OBJECT-TYPE
          to network traffic by default.  This object will have a size
          equal to the number of enumerations specified by the
          EtsysMultiAuthTypes textual convention."
-    DEFVAL       { '01020304'h }
+    DEFVAL       { '0102030405'h }
     ::= { etsysMultiAuthSystem 5 }
 
 etsysMultiAuthSystemAdminPrecedence OBJECT-TYPE
@@ -278,7 +309,107 @@ etsysMultiAuthSystemOperPrecedence OBJECT-TYPE
          EtsysMultiAuthTypes textual convention."
     ::= { etsysMultiAuthSystem 7 }
 
+etsysMultiAuthTypePropertiesTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF EtsysMultiAuthTypePropertiesEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "A table of properties per authentication type."
+    ::= {  etsysMultiAuthSystem 8 }
+    
+etsysMultiAuthTypePropertiesEntry OBJECT-TYPE
+    SYNTAX       EtsysMultiAuthTypePropertiesEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "An entry containing per authentication type properties."
+    INDEX  { etsysMultiAuthType }
+    ::= { etsysMultiAuthTypePropertiesTable 1 }
 
+EtsysMultiAuthTypePropertiesEntry ::=
+    SEQUENCE {
+        etsysMultiAuthType
+            EtsysMultiAuthTypes,
+        etsysMultiAuthSessionTimeout
+            Unsigned32,
+        etsysMultiAuthIdleTimeout
+            Unsigned32,
+        etsysMultiAuthCurrentNumUsers
+            Gauge32
+    }
+
+etsysMultiAuthType OBJECT-TYPE
+    SYNTAX       EtsysMultiAuthTypes
+    MAX-ACCESS   accessible-for-notify
+    STATUS       current
+    DESCRIPTION
+        "The authentication type the entry properties pertain to."
+    ::= { etsysMultiAuthTypePropertiesEntry 1 }
+
+etsysMultiAuthSessionTimeout OBJECT-TYPE
+    SYNTAX       Unsigned32 (0|1..65535)
+    UNITS        "seconds"
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "The maximum number of seconds an authenticated session may last
+         before termination of the session.  A value of zero indicates
+         that no session timeout will be applied.  This value MAY be 
+         superseded by a session timeout value provided by the 
+         authenticating server.  For example, if a session is 
+         authenticated by a RADIUS server, that server may encode a
+         Session-Timeout Attribute in its authentication response.  The
+         operational timeout value of a given authenticated session
+         is specified by the etsysMultiAuthSessionSessionTimeout object."
+    REFERENCE
+        "RFC 2865, 'Remote Authentication Dial In User Service (RADIUS)',
+         Section 5.27"
+    DEFVAL { 0 }
+    ::= { etsysMultiAuthTypePropertiesEntry 2 }
+
+etsysMultiAuthIdleTimeout OBJECT-TYPE
+    SYNTAX       Unsigned32 (0|1..65535)
+    UNITS        "seconds"
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "The maximum number of consecutive seconds an authenticated 
+         session may be idle before termination of the session.  A 
+         value of zero indicates that no idle timeout will be applied.
+         This value MAY be superseded by a idle timeout value provided 
+         by the authenticating server.  For example, if a session is 
+         authenticated by a RADIUS server, that server may encode a
+         Idle-Timeout Attribute in its authentication response.  The
+         operational idle timeout value of a given authenticated 
+         session is specified by the etsysMultiAuthSessionIdleTimeout
+         object."
+    REFERENCE
+        "RFC 2865, 'Remote Authentication Dial In User Service (RADIUS)',
+         Section 5.28"
+    DEFVAL { 0 }
+    ::= { etsysMultiAuthTypePropertiesEntry 3 }
+
+etsysMultiAuthCurrentNumUsers OBJECT-TYPE
+    SYNTAX       Gauge32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The current number of users the are actively authenticated or
+         have authentications in progress for this authentication type 
+         in the system."
+    ::= { etsysMultiAuthTypePropertiesEntry 4 }
+
+etsysMultiAuthSystemMaxNumUsersReachedTrapEnable OBJECT-TYPE
+    SYNTAX       EnabledStatus
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "This object allows for the enabling or disabling the
+         transmission of the etsysMultiAuthSystemMaxNumUsersReached
+         NOTIFICATION."
+    DEFVAL       { disabled }
+    ::= { etsysMultiAuthSystem 9 }    
+    
 -- -------------------------------------------------------------
 -- The Multiple Authentication Port Group
 -- -------------------------------------------------------------
@@ -431,6 +562,40 @@ etsysMultiAuthPortTrapEnable OBJECT-TYPE
     DEFVAL       { { } }
     ::= { etsysMultiAuthPortEntry 6 }
 
+etsysMultiAuthPortTypeTable OBJECT-TYPE
+    SYNTAX       SEQUENCE OF EtsysMultiAuthPortTypeEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "A table of per port, per authentication type information."
+    ::= {  etsysMultiAuthPort 2 }
+
+etsysMultiAuthPortTypeEntry OBJECT-TYPE
+    SYNTAX       EtsysMultiAuthPortTypeEntry
+    MAX-ACCESS   not-accessible
+    STATUS       current
+    DESCRIPTION
+        "An entry containing per port, per authentication type data.
+         Only interfaces that are able to authenticate users are
+         represented in this table."
+    INDEX  { ifIndex, etsysMultiAuthType }
+    ::= { etsysMultiAuthPortTypeTable 1 }
+
+EtsysMultiAuthPortTypeEntry ::=
+    SEQUENCE {
+        etsysMultiAuthPortTypeCurrentNumUsers
+            Gauge32
+    }
+
+etsysMultiAuthPortTypeCurrentNumUsers OBJECT-TYPE
+    SYNTAX       Gauge32
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The current number of users the are actively authenticated or
+         have authentications in progress for this authentication type
+         on the specified port."
+    ::= { etsysMultiAuthPortTypeEntry 1 }
 
 -- -------------------------------------------------------------
 -- The Multiple Authentication Station Group
@@ -551,7 +716,19 @@ EtsysMultiAuthSessionStationEntry ::=
         etsysMultiAuthSessionPolicyIndex
             Integer32,
         etsysMultiAuthSessionIsApplied
-            TruthValue
+            TruthValue,
+        etsysMultiAuthSessionTerminationTime
+            DateAndTime,
+        etsysMultiAuthSessionSessionTimeout
+            Unsigned32,
+        etsysMultiAuthSessionIdleTimeout
+            Unsigned32,
+        etsysMultiAuthSessionDuration
+            Gauge32,
+        etsysMultiAuthSessionIdleTime
+            Gauge32,
+        etsysMultiAuthSessionVlanTunnelAttribute
+            Integer32
     }
 
 etsysMultiAuthSessionAgentType OBJECT-TYPE
@@ -577,8 +754,8 @@ etsysMultiAuthSessionAuthAttemptTime OBJECT-TYPE
     DESCRIPTION
         "The value of sysUpTime when this session last attempted 
          authorization.  For entries that have a value of 
-         authInProgress(3) for etsysMultiAuthSessionAuthStatus
-         this object may return a value of zero."
+         authInProgress(3) for etsysMultiAuthSessionStationAuthStatus
+         this object MAY return a value of zero."
     ::= { etsysMultiAuthSessionStationEntry 3 }
 
 etsysMultiAuthSessionAuthServerType OBJECT-TYPE
@@ -590,7 +767,7 @@ etsysMultiAuthSessionAuthServerType OBJECT-TYPE
     STATUS       current
     DESCRIPTION
         "The type of authentication server used to authenticate this
-         session.  A value of radius(1) indicates that a radius request
+         session.  A value of radius(1) indicates that a RADIUS request
          and response were attempted in order to authenticate the session.
          A value of local(2) indicates that the session was authenticated 
          by a local file or configuration on the device itself."
@@ -627,11 +804,11 @@ etsysMultiAuthSessionPolicyIndex OBJECT-TYPE
          server for this session.  
 
          The value of zero indicates that no policy will be applied 
-         for this session.  If the etsysMultiAuthSessionAuthStatus 
+         for this session.  If the etsysMultiAuthSessionStationAuthStatus 
          object returns a value of authSuccess(1), then a value of 
          zero is the result of the policy not being configured on the 
          authorization server.  For all other values of 
-         etsysMultiAuthSessionAuthStatus a value of zero for this object
+         etsysMultiAuthSessionStationAuthStatus a value of zero for this object
          is the result of authorization not succeeding or not having 
          completed.  
 
@@ -661,6 +838,95 @@ etsysMultiAuthSessionIsApplied OBJECT-TYPE
          authentication types determines which if any type will be 
          applied."
     ::= { etsysMultiAuthSessionStationEntry 8 }
+
+etsysMultiAuthSessionTerminationTime OBJECT-TYPE
+    SYNTAX      DateAndTime (SIZE(8))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The local date and time that the session was terminated.
+         If the session is not in the authTerminated(5) state 
+         this object MUST return '00000000'H."
+    DEFVAL { '00000000'H }
+    ::= { etsysMultiAuthSessionStationEntry 9 }
+
+etsysMultiAuthSessionSessionTimeout OBJECT-TYPE
+    SYNTAX       Unsigned32 (0|1..65535)
+    UNITS        "seconds"
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The maximum number of seconds this session may last before 
+         automatic termination.  A value of zero indicates
+         that no session timeout will be applied.  This value MAY be
+         provided by the etsysMultiAuthSessionTimeout object or
+         by the authenticating server."
+    ::= { etsysMultiAuthSessionStationEntry 10 }
+
+etsysMultiAuthSessionIdleTimeout OBJECT-TYPE
+    SYNTAX       Unsigned32 (0|1..65535)
+    UNITS        "seconds"
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The maximum number of consecutive seconds this session may 
+         be idle before automatic termination.  A value of zero 
+         indicates that no idle timeout will be applied.  This value MAY
+         be provided by the etsysMultiAuthIdleTimeout object or
+         by the authenticating server."
+    ::= { etsysMultiAuthSessionStationEntry 11 }
+
+etsysMultiAuthSessionDuration OBJECT-TYPE
+    SYNTAX       Gauge32 
+    UNITS        "seconds"
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The length of this session in seconds.  This object MAY return
+         zero for a session in any state other than authSuccess(1)."
+    ::= { etsysMultiAuthSessionStationEntry 12 }
+
+etsysMultiAuthSessionIdleTime OBJECT-TYPE
+    SYNTAX       Gauge32
+    UNITS        "seconds"
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The number of consecutive seconds this session has been idle.
+         This object MAY return zero for a session in any state other
+         than authSuccess(1)."
+    ::= { etsysMultiAuthSessionStationEntry 13 }
+
+etsysMultiAuthSessionVlanTunnelAttribute OBJECT-TYPE
+    SYNTAX       Integer32 (0|1..4094|4095)
+    MAX-ACCESS   read-only
+    STATUS       current
+    DESCRIPTION
+        "The VLAN Tunnel Attribute (Tunnel-Group-ID) returned from the
+         authentication server for this session.
+
+         This value is interpreted as the 12 bit VLAN identifier
+         to be applied to traffic from the session entity.  Policy VLAN
+         classification rules have precedence in assigning VLAN,
+         however, in the absence of any applicable rules, this VLAN
+         will be used.  If the traffic is already tagged, this VLAN
+         will only be applied if TCI overwrite has been enabled
+         (through Policy or ctDot1qPortReplaceTCI).
+
+         A value of zero indicates that there is no authenticated VLAN
+         ID for the given session (none was provided by the authentication
+         server). Should a session become unauthenticated this value
+         MUST return zero.
+
+         A value of 4095 indicates that a the session has been
+         authenticated, but that the VLAN returned could not be applied
+         to the port (possibly because of resource constraints or
+         misconfiguration).  The traffic from the session entity will
+         be assigned VLAN through Policy or standard 802.1Q mechanisms."
+    REFERENCE
+        "RFC 3580, 'IEEE 802.1X Remote Authentication Dial In User Service
+         (RADIUS) Usage Guidelines', Section 3.31"
+    ::= { etsysMultiAuthSessionStationEntry 14 }
 
 etsysMultiAuthSessionPortTable OBJECT-TYPE
     SYNTAX       SEQUENCE OF EtsysMultiAuthSessionPortEntry
@@ -758,6 +1024,16 @@ etsysMultiAuthModuleCurrentNumUsers OBJECT-TYPE
          for the same module."
     ::= { etsysMultiAuthModuleEntry 2 }
 
+etsysMultiAuthModuleMaxNumUsersReachedTrapEnable OBJECT-TYPE
+    SYNTAX       EnabledStatus
+    MAX-ACCESS   read-write
+    STATUS       current
+    DESCRIPTION
+        "This object allows for the enabling or disabling the
+         transmission of the etsysMultiAuthModuleMaxNumUsersReached
+         NOTIFICATION."
+    DEFVAL       { disabled }
+    ::= { etsysMultiAuthModule 2 }    
 
 -- -------------------------------------------------------------
 -- The Multiple Authentication Notification Group
@@ -830,7 +1106,28 @@ etsysMultiAuthMaxNumUsersReached NOTIFICATION-TYPE
          object."
     ::= { etsysMultiAuthNotification 4 }
 
-
+etsysMultiAuthModuleMaxNumUsersReached NOTIFICATION-TYPE
+    OBJECTS { entPhysicalIndex }
+    STATUS  current
+    DESCRIPTION
+        "An etsysMultiAuthModuleMaxNumUsersReached trap signifies that the 
+         SNMP entity, acting in an agent role, has a module where 
+         subsequent to a successful authentication, the number of current
+         sessions on the module equals the maximum number of sessions 
+         allowed for that module.  The module that the maximum 
+         number of sessions has been reached is specified by the 
+         entPhysicalIndex object."
+    ::= { etsysMultiAuthNotification 5 }
+    
+etsysMultiAuthSystemMaxNumUsersReached NOTIFICATION-TYPE
+    STATUS  current
+    DESCRIPTION
+        "An etsysMultiAuthSystemMaxNumUsersReached trap signifies that the 
+         SNMP entity, acting in an agent role, where subsequent to a successful 
+         authentication, has the number of current sessions on the system equals 
+         the maximum number of sessions allowed for that system, ."
+    ::= { etsysMultiAuthNotification 6 }    
+    
 -- -------------------------------------------------------------
 -- Conformance Information
 -- -------------------------------------------------------------
@@ -907,7 +1204,7 @@ etsysMultiAuthSessionGroup OBJECT-GROUP
         etsysMultiAuthSessionIsApplied,
         etsysMultiAuthSessionPortAuthStatus
     }
-    STATUS     current
+    STATUS     deprecated
     DESCRIPTION
         "The session group for all devices supporting Multiple
          Authentication."
@@ -937,7 +1234,92 @@ etsysMultiAuthModuleGroup OBJECT-GROUP
          Authentication."
     ::= { etsysMultiAuthGroups 7 }
 
+etsysMultiAuthSessionGroup2 OBJECT-GROUP
+    OBJECTS {
+        etsysMultiAuthSessionAgentType,
+        etsysMultiAuthSessionStationAuthStatus,
+        etsysMultiAuthSessionAuthAttemptTime,
+        etsysMultiAuthSessionAuthServerType,
+        etsysMultiAuthSessionAuthServerAddrType,
+        etsysMultiAuthSessionAuthServerAddr,
+        etsysMultiAuthSessionPolicyIndex,
+        etsysMultiAuthSessionIsApplied,
+        etsysMultiAuthSessionTerminationTime,
+        etsysMultiAuthSessionPortAuthStatus
+    }
+    STATUS     current
+    DESCRIPTION
+        "The session group for all devices supporting Multiple
+         Authentication."
+    ::= { etsysMultiAuthGroups 8 }
 
+etsysMultiAuthTimeoutGroup OBJECT-GROUP
+    OBJECTS {
+        etsysMultiAuthType,
+        etsysMultiAuthSessionTimeout,
+        etsysMultiAuthIdleTimeout,
+        etsysMultiAuthSessionSessionTimeout,
+        etsysMultiAuthSessionIdleTimeout,
+        etsysMultiAuthSessionDuration,
+        etsysMultiAuthSessionIdleTime
+    }
+    STATUS     current
+    DESCRIPTION
+        "The group of objects for all devices that support timing out
+         Multiple Authentication sessions."
+    ::= { etsysMultiAuthGroups 9 }
+
+etsysMultiAuthCurrentNumUsersGroup OBJECT-GROUP
+    OBJECTS {
+        etsysMultiAuthCurrentNumUsers,
+        etsysMultiAuthPortTypeCurrentNumUsers
+    }
+    STATUS     current
+    DESCRIPTION
+        "The group of objects for all devices that support counting the 
+         number of current users on a per authentication type basis."
+    ::= { etsysMultiAuthGroups 10 }
+
+etsysMultiAuthModuleTrapGroup OBJECT-GROUP
+    OBJECTS { etsysMultiAuthModuleMaxNumUsersReachedTrapEnable }
+    STATUS     current
+    DESCRIPTION
+        "The group of objects for all devices supporting module 
+         SNMP notifications."
+    ::= { etsysMultiAuthGroups 11 }
+    
+etsysMultiAuthSystemTrapGroup OBJECT-GROUP
+    OBJECTS { etsysMultiAuthSystemMaxNumUsersReachedTrapEnable }
+    STATUS     current
+    DESCRIPTION
+        "The group of objects for all devices supporting system 
+         SNMP notifications."
+    ::= { etsysMultiAuthGroups 12 }
+
+etsysMultiAuthNotificationModuleGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { etsysMultiAuthModuleMaxNumUsersReached }
+    STATUS  current
+    DESCRIPTION
+        "The group of per module notifications for Multiple 
+         Authentication."
+    ::= { etsysMultiAuthGroups 13 }
+    
+etsysMultiAuthNotificationSystemGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { etsysMultiAuthSystemMaxNumUsersReached }
+    STATUS  current
+    DESCRIPTION
+        "The group of per system notifications for Multiple 
+         Authentication."
+    ::= { etsysMultiAuthGroups 14 }
+                
+etsysMultiAuthTunnelAttributeGroup OBJECT-GROUP
+    OBJECTS { etsysMultiAuthSessionVlanTunnelAttribute }
+    STATUS     current
+    DESCRIPTION
+        "The group of objects for all devices supporting 802.1X
+         RADIUS tunnel attributes for 802.1Q VLANs." 
+    ::= { etsysMultiAuthGroups 15 }
+    
 -- -------------------------------------------------------------
 -- Compliance statements
 -- -------------------------------------------------------------
@@ -989,10 +1371,10 @@ etsysMultiAuthCompliance MODULE-COMPLIANCE
     ::= { etsysMultiAuthCompliances 1 }
 
 etsysMultiAuthCompliance2 MODULE-COMPLIANCE
-    STATUS     current
+    STATUS     deprecated
     DESCRIPTION
-        "The compliance statement for devices that support Multiple
-         Authentication."
+        "This compliance statement has been deprecated in favor of
+         the expanded group defined by etsysMultiAuthCompliance3."
 
     MODULE
         MANDATORY-GROUPS {
@@ -1039,5 +1421,183 @@ etsysMultiAuthCompliance2 MODULE-COMPLIANCE
             "Write access is not required."
 
     ::= { etsysMultiAuthCompliances 2 }
+
+etsysMultiAuthCompliance3 MODULE-COMPLIANCE
+    STATUS     deprecated
+    DESCRIPTION
+        "This compliance statement has been deprecated in favor of
+         the expanded group defined by etsysMultiAuthCompliance4."
+
+    MODULE
+        MANDATORY-GROUPS {
+            etsysMultiAuthSystemGroup,
+            etsysMultiAuthPortBaseGroup,
+            etsysMultiAuthStationGroup,
+            etsysMultiAuthSessionGroup2
+        }
+
+        GROUP       etsysMultiAuthPortTrapGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             interface notifications for Multiple Authentication."
+
+        GROUP       etsysMultiAuthNotificationPortGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             interface notifications for Multiple Authentication."
+
+        GROUP       etsysMultiAuthModuleGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support
+             module authentication resources that are not shared
+             between modules."
+
+        OBJECT      etsysMultiAuthSystemAdminPrecedence
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+        OBJECT      etsysMultiAuthPortNumUsersAllowed
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+        OBJECT      etsysMultiAuthPortClearUsers
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+        OBJECT      etsysMultiAuthStationClearUsers
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+    ::= { etsysMultiAuthCompliances 3 }   
+
+etsysMultiAuthTimeoutCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for devices that support timing out 
+         of Multiple Authentication sessions."
+
+    MODULE
+        GROUP       etsysMultiAuthTimeoutGroup
+        DESCRIPTION
+           "This group is mandatory for all devices that support timing
+            out Multiple Authentication sessions."
+        
+        OBJECT      etsysMultiAuthSessionTimeout
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+        OBJECT      etsysMultiAuthIdleTimeout
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+    ::= { etsysMultiAuthCompliances  4 }
+
+etsysMultiAuthCurrentNumUserCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for all devices that support counting
+         the number of current users on a per authentication type 
+         basis."
+
+    MODULE
+        GROUP       etsysMultiAuthCurrentNumUsersGroup
+        DESCRIPTION
+           "This group is mandatory for all devices that support 
+            support counting the number of current users on a per 
+            authentication type basis."
+
+    ::= { etsysMultiAuthCompliances 5 }
+  
+etsysMultiAuthCompliance4 MODULE-COMPLIANCE
+    STATUS     current
+    DESCRIPTION
+        "The compliance statement for devices that support Multiple
+         Authentication."
+
+    MODULE
+        MANDATORY-GROUPS {
+            etsysMultiAuthSystemGroup,
+            etsysMultiAuthPortBaseGroup,
+            etsysMultiAuthStationGroup,
+            etsysMultiAuthSessionGroup2
+        }
+
+        GROUP       etsysMultiAuthPortTrapGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             interface notifications for Multiple Authentication."
+
+        GROUP       etsysMultiAuthNotificationPortGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             interface notifications for Multiple Authentication."
+
+        GROUP       etsysMultiAuthModuleGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support
+             module authentication resources that are not shared
+             between modules."
+
+        OBJECT      etsysMultiAuthSystemAdminPrecedence
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+        OBJECT      etsysMultiAuthPortNumUsersAllowed
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+        OBJECT      etsysMultiAuthPortClearUsers
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+
+        OBJECT      etsysMultiAuthStationClearUsers
+        MIN-ACCESS  read-only
+        DESCRIPTION
+            "Write access is not required."
+            
+        GROUP       etsysMultiAuthModuleTrapGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             module notifications for Multiple Authentication."
+
+        GROUP       etsysMultiAuthNotificationModuleGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             module notifications for Multiple Authentication."
+             
+        GROUP       etsysMultiAuthSystemTrapGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             system notifications for Multiple Authentication."
+
+        GROUP       etsysMultiAuthNotificationSystemGroup
+        DESCRIPTION
+            "This group is mandatory for all devices that support per
+             system notifications for Multiple Authentication."                 
+
+    ::= { etsysMultiAuthCompliances 6 }     
+
+etsysMultiTunnelAttributeCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for all devices that support 802.1X
+         RADIUS Tunnel Attributes."
+
+    MODULE
+        GROUP       etsysMultiAuthTunnelAttributeGroup
+        DESCRIPTION
+           "This group is mandatory for all devices that support
+            support 802.1X RADIUS Tunnel Attributes."
+
+    ::= { etsysMultiAuthCompliances 7 }
 
 END

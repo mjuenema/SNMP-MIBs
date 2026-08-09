@@ -1,9 +1,9 @@
 -- ===========================================================
--- Copyright (C) 2008 by H3C Technologies. All rights reserved.
+-- Copyright (c) 2004-2011 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description:
 -- Reference:
--- Version: V2.1
+-- Version: V2.4
 -- History:
 -- V1.0 created by liyue.
 --     Define MODULE-IDENTITY for h3cEpon
@@ -77,6 +77,18 @@
 --        Add h3cEponOnuAutoBindTrap and h3cEponOperationResult.
 --        Add h3cOnuFirmwareVersion and h3cOnuVendorId to h3cOnuInfoTable.
 --        Change the description of h3cOnuDistance.
+-- V2.2 2009-08-18 updated by zhaodan.
+--        Add h3cEponOnuStpPortTable.
+--        Add h3cEponOnuPortStpStateTrap to h3cEponTrapPrefix.
+-- V2.3 2010-02-25 updated by zhaodan.
+--        Add h3cEponOnuLaserState and h3cEponOnuLaserFailedTrap.
+--        Add h3cOnuOpticalPowerReceivedByOlt to h3cOnuInfoTable.
+--        Add h3cOltOpticalPowerTx and h3cOltOpticalPowerRx to h3cOltInfoTable.
+--        Add h3cOnuPhysicalTable and h3cOnuSmlkTable.
+--        Add h3cOnuSmlkSwitchoverTrap to h3cEponTrapPrefix.
+-- V2.4 2010-12-02 updated by zhaodan.
+--        Add h3cOnuRS485PropertiesTable, h3cOnuRS485SessionSummaryTable,
+--            h3cOnuRS485SessionTable and h3cOnuRS485SessionErrInfoTable.
 -- =================================================================
 H3C-EPON-MIB DEFINITIONS ::= BEGIN
 
@@ -91,17 +103,19 @@ IMPORTS
         NOTIFICATION-TYPE
     FROM SNMPv2-SMI
         TruthValue, MacAddress, DateAndTime, RowStatus, DisplayString
-    FROM SNMPv2-TC;
+    FROM SNMPv2-TC
+        InetAddress, InetAddressType
+    FROM INET-ADDRESS-MIB;
 
 h3cEponMibObjects MODULE-IDENTITY
     LAST-UPDATED "200705221008Z"
     ORGANIZATION
         "Hangzhou H3C Technologies Co., Ltd."
     CONTACT-INFO
-        "Platform Team Hangzhou H3C Technologies Co., Ltd.
+        "Platform Team H3C Technologies Co., Ltd.
          Hai-Dian District Beijing P.R. China
          http://www.h3c.com
-         Zip:100085"
+         Zip: 100085"
     DESCRIPTION
         "
         The objects in this MIB module are used to manage and
@@ -968,7 +982,9 @@ H3cOltInfoEntry ::= SEQUENCE
         h3cOltAgcLockTime         Integer32,
         h3cOltAgcCdrTime          Integer32,
         h3cOltMacAddress          MacAddress,
-        h3cOltWorkMode            INTEGER
+        h3cOltWorkMode            INTEGER,
+        h3cOltOpticalPowerTx      Integer32,
+        h3cOltOpticalPowerRx      Integer32
     }
 
 h3cOltFirmMajorVersion OBJECT-TYPE
@@ -1070,6 +1086,28 @@ h3cOltWorkMode OBJECT-TYPE
         closed(4) - The OLT is closed.
         "
     ::= { h3cOltInfoEntry 8 }
+
+h3cOltOpticalPowerTx OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The optical power transmitted by this OLT.
+        It measured in 0.01 dBm unit.
+        "
+    ::= { h3cOltInfoEntry 9 }
+
+h3cOltOpticalPowerRx OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The burst optical power received by this OLT.
+        It measured in 0.01 dBm unit.
+        "
+    ::= { h3cOltInfoEntry 10 }
 
 --
 -- h3cOltDbaManTable
@@ -2611,7 +2649,8 @@ H3cOnuInfoEntry ::= SEQUENCE
         h3cOnuDistance            Integer32,
         h3cOnuLlid                Integer32,
         h3cOnuVendorId            OCTET STRING,
-        h3cOnuFirmwareVersion     OCTET STRING
+        h3cOnuFirmwareVersion     OCTET STRING,
+        h3cOnuOpticalPowerReceivedByOlt  Integer32
     }
 
 h3cOnuHardMajorVersion OBJECT-TYPE
@@ -2810,6 +2849,18 @@ h3cOnuFirmwareVersion OBJECT-TYPE
         ONU firmware version.
         "
     ::= { h3cOnuInfoEntry 17 }
+
+h3cOnuOpticalPowerReceivedByOlt OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "
+        The burst ONU optical power received by OLT,
+        and when the ONU status is up the value is usable.
+        It measured in 0.01 dBm unit.
+        "
+    ::= { h3cOnuInfoEntry 18 }
 
 --
 -- h3cOnuMacAddrInfoTable
@@ -4200,6 +4251,686 @@ h3cOnuCosToLocalPrecedenceValue OBJECT-TYPE
     ::={ h3cOnuCosToLocalPrecedenceEntry 2 }
 
 --
+-- h3cEponOnuStpPortTable
+--
+
+h3cEponOnuStpPortTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cEponOnuStpPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Table of ONU STP ports."
+    ::= { h3cEponOnuMan 28 }
+
+h3cEponOnuStpPortEntry OBJECT-TYPE
+    SYNTAX      H3cEponOnuStpPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Configuration information of ONU STP ports."
+    INDEX
+        {
+            ifIndex,
+            h3cEponStpPortIndex
+        }
+    ::= { h3cEponOnuStpPortTable 1 }
+
+H3cEponOnuStpPortEntry ::= SEQUENCE
+    {
+        h3cEponStpPortIndex     Integer32,
+        h3cEponStpPortDescr     OCTET STRING,
+        h3cEponStpPortState     INTEGER
+    }
+
+h3cEponStpPortIndex OBJECT-TYPE
+    SYNTAX      Integer32(0..144)
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The index of the STP ports."
+    ::={ h3cEponOnuStpPortEntry 1 }
+
+h3cEponStpPortDescr OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The description of the STP ports."
+    ::={ h3cEponOnuStpPortEntry 2 }
+
+h3cEponStpPortState OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            disabled(1),
+            discarding(2),
+            learning(3),
+            forwarding(4)
+        }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The current state of the port (i.e. disabled, discarding,
+         learning and forwarding)."
+    ::={ h3cEponOnuStpPortEntry 3 }
+
+--
+-- h3cOnuPhysicalTable
+--
+
+h3cOnuPhysicalTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cOnuPhysicalEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "
+        This table is used for getting ONU physical information.
+        "
+    ::= { h3cEponOnuMan 29 }
+
+h3cOnuPhysicalEntry OBJECT-TYPE
+    SYNTAX      H3cOnuPhysicalEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "
+        The entry of the h3cOnuPhysicalTable.
+        "
+    INDEX
+        {
+            ifIndex
+        }
+    ::= { h3cOnuPhysicalTable 1 }
+
+H3cOnuPhysicalEntry ::= SEQUENCE
+    {
+        h3cOnuBridgeMac         MacAddress,
+        h3cOnuFirstPonMac       MacAddress,
+        h3cOnuFirstPonRegState  INTEGER,
+        h3cOnuSecondPonMac      MacAddress,
+        h3cOnuSecondPonRegState INTEGER
+    }
+
+h3cOnuBridgeMac OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The bridge MAC address of ONU.
+        "
+    ::= { h3cOnuPhysicalEntry 1 }
+
+h3cOnuFirstPonMac OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The MAC address of ONU first PON port.
+        "
+    ::= { h3cOnuPhysicalEntry 2 }
+
+h3cOnuFirstPonRegState OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            notExist(1),
+            absent(2),
+            offline(3),
+            silent(4),
+            down(5),
+            up(6)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The register state of ONU first PON port.
+        "
+    ::= { h3cOnuPhysicalEntry 3 }
+
+h3cOnuSecondPonMac OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The MAC address of ONU second PON port.
+        "
+    ::= { h3cOnuPhysicalEntry 4 }
+
+h3cOnuSecondPonRegState OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            notExist(1),
+            absent(2),
+            offline(3),
+            silent(4),
+            down(5),
+            up(6)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The register state of ONU second PON port.
+        "
+    ::= { h3cOnuPhysicalEntry 5 }
+
+--
+-- h3cOnuSmlkTable
+--
+
+h3cOnuSmlkTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cOnuSmlkEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "
+        This table is used for getting ONU SMLK information.
+        "
+    ::= { h3cEponOnuMan 30 }
+
+h3cOnuSmlkEntry OBJECT-TYPE
+    SYNTAX      H3cOnuSmlkEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "
+        The entry of the h3cOnuSmlkTable.
+        "
+    INDEX
+        {
+            ifIndex,
+            h3cOnuSmlkGroupID
+        }
+    ::= { h3cOnuSmlkTable 1 }
+
+H3cOnuSmlkEntry ::= SEQUENCE
+    {
+        h3cOnuSmlkGroupID            Integer32,
+        h3cOnuSmlkFirstPonRole       INTEGER,
+        h3cOnuSmlkFirstPonStatus     INTEGER,
+        h3cOnuSmlkSecondPonRole      INTEGER,
+        h3cOnuSmlkSecondPonStatus    INTEGER
+    }
+
+h3cOnuSmlkGroupID OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The SMLK group ID of ONU.
+        "
+    ::= { h3cOnuSmlkEntry 1 }
+
+h3cOnuSmlkFirstPonRole OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            master(1),
+            slave(2),
+            null(3)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The role of ONU first PON port in a SMLK group.
+        "
+    ::= { h3cOnuSmlkEntry 2 }
+
+h3cOnuSmlkFirstPonStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            active(1),
+            standby(2),
+            down(3),
+            null(4)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The transmitting status of ONU first PON port in a SMLK group.
+        "
+    ::= { h3cOnuSmlkEntry 3 }
+
+h3cOnuSmlkSecondPonRole OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            master(1),
+            slave(2),
+            null(3)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The role of ONU second PON port in a SMLK group.
+        "
+    ::= { h3cOnuSmlkEntry 4 }
+
+h3cOnuSmlkSecondPonStatus OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            active(1),
+            standby(2),
+            down(3),
+            null(4)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The transmitting status of ONU second PON port in a SMLK group.
+        "
+    ::= { h3cOnuSmlkEntry 5 }
+
+--
+-- h3cOnuRS485PropertiesTable
+--
+
+h3cOnuRS485PropertiesTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cOnuRS485PropertiesEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "Property table."
+    ::= { h3cEponOnuMan 31 }
+
+h3cOnuRS485PropertiesEntry OBJECT-TYPE
+    SYNTAX          H3cOnuRS485PropertiesEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+            "The entry of property table."
+    INDEX      {
+                ifIndex,
+                h3cOnuRS485SerialIndex
+               }
+    ::= { h3cOnuRS485PropertiesTable 1 }
+
+H3cOnuRS485PropertiesEntry ::=
+    SEQUENCE{
+        h3cOnuRS485SerialIndex
+            Integer32,
+        h3cOnuRS485BaudRate
+            INTEGER,
+        h3cOnuRS485DataBits
+            INTEGER,
+        h3cOnuRS485Parity
+            INTEGER,
+        h3cOnuRS485StopBits
+            INTEGER,
+        h3cOnuRS485FlowControl
+            INTEGER,
+        h3cOnuRS485TXOctets
+            Integer32,
+        h3cOnuRS485RXOctets
+            Integer32,
+        h3cOnuRS485TXErrOctets
+            Integer32,
+        h3cOnuRS485RXErrOctets
+            Integer32,
+        h3cOnuRS485ResetStatistics
+            INTEGER
+    }
+
+h3cOnuRS485SerialIndex OBJECT-TYPE
+    SYNTAX          Integer32 (1..64)
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "The index of serial port."
+    ::= { h3cOnuRS485PropertiesEntry 1 }
+
+h3cOnuRS485BaudRate OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        baudRate300(1),
+                        baudRate600(2),
+                        baudRate1200(3),
+                        baudRate2400(4),
+                        baudRate4800(5),
+                        baudRate9600(6),
+                        baudRate19200(7),
+                        baudRate38400(8),
+                        baudRate57600(9),
+                        baudRate115200(10)
+                        }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "The port baud rate."
+    DEFVAL          { baudRate9600 }
+    ::= { h3cOnuRS485PropertiesEntry 2 }
+
+h3cOnuRS485DataBits OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        five(1),            -- 5 data bits
+                        six(2),             -- 6 data bits
+                        seven(3),           -- 7 data bits
+                        eight(4)            -- 8 data bits
+                    }
+    UNITS           "bit"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "The port number of data bits in a character."
+    DEFVAL          { eight }
+    ::= { h3cOnuRS485PropertiesEntry 3 }
+
+h3cOnuRS485Parity OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        none(1),
+                        odd(2),
+                        even(3),
+                        mark(4),
+                        space(5)
+                    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "The port sense of a character parity bit."
+    DEFVAL          { none }
+    ::= { h3cOnuRS485PropertiesEntry 4 }
+
+h3cOnuRS485StopBits OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        one(1),               -- 1 stop bit
+                        two(2),               -- 2 stop bits
+                        oneAndHalf(3)         -- 1.5 stop bits
+                    }
+    UNITS           "bit"
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "The port number of stop bits."
+    DEFVAL          { one }
+    ::= { h3cOnuRS485PropertiesEntry 5 }
+
+h3cOnuRS485FlowControl OBJECT-TYPE
+    SYNTAX          INTEGER{
+                        none(1),
+                        hardware(2),
+                        xonOrxoff(3)
+                    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "The port type of input flow control.
+             'none' indicates no flow control at this level.
+             'hardware' indicates using hardware signals.
+             'xonOrxoff' indicates using software function."
+    DEFVAL          { none }
+    ::= { h3cOnuRS485PropertiesEntry 6 }
+
+h3cOnuRS485TXOctets OBJECT-TYPE
+    SYNTAX          Integer32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The number of output octets about the port.
+             The unit is byte."
+    ::= { h3cOnuRS485PropertiesEntry 7 }
+
+h3cOnuRS485RXOctets OBJECT-TYPE
+    SYNTAX          Integer32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The number of input octets about the port.
+             The unit is byte."
+    ::= { h3cOnuRS485PropertiesEntry 8 }
+
+h3cOnuRS485TXErrOctets OBJECT-TYPE
+    SYNTAX          Integer32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The number of output error octets about the port.
+             The unit is byte."
+    ::= { h3cOnuRS485PropertiesEntry 9 }
+
+h3cOnuRS485RXErrOctets OBJECT-TYPE
+    SYNTAX          Integer32
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The number of input error octets about the port.
+             The unit is byte."
+    ::= { h3cOnuRS485PropertiesEntry 10 }
+
+h3cOnuRS485ResetStatistics OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        counting(1),
+                        clear(2)
+                    }
+    MAX-ACCESS      read-write
+    STATUS          current
+    DESCRIPTION
+            "Reset the counters to zero, including h3cOnuRS485TXOctets,
+             h3cOnuRS485RXOctets, h3cOnuRS485TXErrOctets and
+             h3cOnuRS485RXErrOctets."
+    DEFVAL          { counting }
+    ::= { h3cOnuRS485PropertiesEntry 11 }
+
+--
+-- h3cOnuRS485SessionSummaryTable
+--
+
+h3cOnuRS485SessionSummaryTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cOnuRS485SessionSummaryEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "Session summary table."
+    ::= { h3cEponOnuMan 32 }
+
+h3cOnuRS485SessionSummaryEntry OBJECT-TYPE
+    SYNTAX          H3cOnuRS485SessionSummaryEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+            "The entry of session summary table."
+    INDEX      {
+                ifIndex,
+                h3cOnuRS485SerialIndex
+               }
+    ::= { h3cOnuRS485SessionSummaryTable 1 }
+
+H3cOnuRS485SessionSummaryEntry ::=
+    SEQUENCE{
+        h3cOnuRS485SessionMaxNum
+            Integer32,
+        h3cOnuRS485SessionNextIndex
+            Integer32
+            }
+
+h3cOnuRS485SessionMaxNum OBJECT-TYPE
+    SYNTAX          Integer32 (1..64)
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The max session number of every serial port
+             which can be supported."
+    ::= { h3cOnuRS485SessionSummaryEntry 1 }
+
+h3cOnuRS485SessionNextIndex OBJECT-TYPE
+    SYNTAX          Integer32 (0..64)
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+            "The next valid index used for creating a new session raw.
+             When there is no valid index left, it will return 0.
+            "
+    ::= { h3cOnuRS485SessionSummaryEntry 2 }
+
+--
+-- h3cOnuRS485SessionTable
+--
+
+h3cOnuRS485SessionTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cOnuRS485SessionEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "RS485 raw session table.  Data received from RS485 will be sent
+            to the destination by raw sockets.
+            "
+    ::= { h3cEponOnuMan 33 }
+
+h3cOnuRS485SessionEntry OBJECT-TYPE
+    SYNTAX          H3cOnuRS485SessionEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+            "The entry of session table."
+    INDEX      {
+                ifIndex,
+                h3cOnuRS485SerialIndex,
+                h3cOnuRS485SessionIndex
+               }
+    ::= { h3cOnuRS485SessionTable 1 }
+
+H3cOnuRS485SessionEntry ::=
+    SEQUENCE{
+        h3cOnuRS485SessionIndex
+            Integer32,
+        h3cOnuRS485SessionType
+            INTEGER,
+        h3cOnuRS485SessionAddType
+            InetAddressType,
+        h3cOnuRS485SessionRemoteIP
+            InetAddress,
+        h3cOnuRS485SessionRemotePort
+            Integer32,
+        h3cOnuRS485SessionLocalPort
+            Integer32,
+        h3cOnuRS485SessionRowStatus
+            RowStatus
+    }
+
+h3cOnuRS485SessionIndex OBJECT-TYPE
+    SYNTAX          Integer32 (1..64)
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+            "Raw session index."
+    ::= { h3cOnuRS485SessionEntry 1 }
+
+h3cOnuRS485SessionType OBJECT-TYPE
+    SYNTAX          INTEGER {
+                        udp(1),
+                        tcpClient(2),
+                        tcpServer(3)
+                    }
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "The type of a session.
+             A session can use UDP socket, TCP socket as a client,
+             or TCP socket as a server."
+    ::= { h3cOnuRS485SessionEntry 2 }
+
+h3cOnuRS485SessionAddType OBJECT-TYPE
+    SYNTAX          InetAddressType
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "This object indicates the transport type of the
+             address contained in h3cOnuRS485SessionRemoteIP object."
+    ::= { h3cOnuRS485SessionEntry 3 }
+
+h3cOnuRS485SessionRemoteIP OBJECT-TYPE
+    SYNTAX          InetAddress
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "The IP of remote landing.
+            When session type is 'udp', this is the peer IP.
+            When session type is 'tcpClient', this is the server IP.
+            When session type is 'tcpServer', this is invalid.
+            "
+    ::= { h3cOnuRS485SessionEntry 4 }
+
+h3cOnuRS485SessionRemotePort OBJECT-TYPE
+    SYNTAX          Integer32 (1024..65535)
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "The port of remote landing.
+            When session type is 'udp', this is the peer port.
+            When session type is 'tcpClient', this is the server port.
+            When session type is 'tcpServer', this is invalid.
+            "
+    ::= { h3cOnuRS485SessionEntry 5 }
+
+h3cOnuRS485SessionLocalPort OBJECT-TYPE
+    SYNTAX          Integer32 (1024..65535)
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "Local socket port.
+            When session type is 'udp', this is local UDP socket port.
+            When session type is 'tcpClient', this is invalid.
+            When session type is 'tcpServer', this is the local port which
+            will be listened.
+            "
+    ::= { h3cOnuRS485SessionEntry 6 }
+
+h3cOnuRS485SessionRowStatus OBJECT-TYPE
+    SYNTAX          RowStatus
+    MAX-ACCESS      read-create
+    STATUS          current
+    DESCRIPTION
+            "The status used for creating,
+            modifying, and deleting instances of
+            the columnar objects in raw session table."
+    ::= { h3cOnuRS485SessionEntry 7 }
+
+--
+-- h3cOnuRS485SessionErrInfoTable
+--
+
+h3cOnuRS485SessionErrInfoTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cOnuRS485SessionErrInfoEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+            "Error information table.  When failed to create a session,
+             error information can be got from this table."
+    ::= { h3cEponOnuMan 34 }
+
+h3cOnuRS485SessionErrInfoEntry OBJECT-TYPE
+    SYNTAX          H3cOnuRS485SessionErrInfoEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+            "The entry of error information table."
+    INDEX      {
+                ifIndex,
+                h3cOnuRS485SerialIndex,
+                h3cOnuRS485SessionIndex
+               }
+    ::= { h3cOnuRS485SessionErrInfoTable 1 }
+
+H3cOnuRS485SessionErrInfoEntry ::=
+    SEQUENCE{
+        h3cOnuRS485SessionErrInfo
+            DisplayString
+    }
+
+h3cOnuRS485SessionErrInfo OBJECT-TYPE
+    SYNTAX          DisplayString
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "Error information string.  When a response with 'noCreeation' for
+        row creation in table h3cOnuRS485SessionTable,
+        the error reason can be got from this object."
+    ::= { h3cOnuRS485SessionErrInfoEntry 1 }
+
+--
 -- h3cEponBatchOperationBySlotTable
 --
 
@@ -4580,6 +5311,22 @@ h3cEponOperationResult OBJECT-TYPE
         The result of EPON operation.
         "
     ::= { h3cEponErrorInfo 12 }
+
+h3cEponOnuLaserState OBJECT-TYPE
+    SYNTAX      INTEGER
+    {
+        normal(1),
+        laserAlwaysOn(2),
+        signalDegradation(3),
+        endOfLife(4)
+    }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "
+        The state of ONU laser.
+        "
+    ::= { h3cEponErrorInfo 13 }
 
 --
 -- h3cEpon NOTIFICATION
@@ -5099,6 +5846,56 @@ h3cEponOnuAutoBindTrap NOTIFICATION-TYPE
         when a silent ONU is bound automatically.
         "
     ::= { h3cEponTrapPrefix 34 }
+
+h3cEponOnuPortStpStateTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifIndex,
+            ifDescr,
+            h3cEponStpPortIndex,
+            h3cEponStpPortDescr,
+            h3cEponStpPortState
+        }
+    STATUS      current
+    DESCRIPTION
+        "
+        A h3cEponOnuPortStpStateTrap notification is sent when
+        a port turns into another state in STP environment.
+        "
+    ::= { h3cEponTrapPrefix 35 }
+
+h3cEponOnuLaserFailedTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifIndex,
+            ifDescr,
+            h3cEponOnuLaserState
+        }
+    STATUS      current
+    DESCRIPTION
+        "
+        A h3cEponOnuLaserFailedTrap notification is sent when
+        an ONU has trouble with laser, such as laser constantly turned on,
+        signal degradation or optics EOL (End of Life).
+        "
+    ::= { h3cEponTrapPrefix 36 }
+
+h3cOnuSmlkSwitchoverTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifIndex,
+            ifDescr,
+            h3cOnuSmlkGroupID,
+            h3cOnuSmlkFirstPonStatus,
+            h3cOnuSmlkSecondPonStatus
+        }
+    STATUS      current
+    DESCRIPTION
+        "
+        A h3cOnuSmlkSwitchoverTrap notification is sent when
+        an ONU SMLK switchover is detected.
+        "
+    ::= { h3cEponTrapPrefix 37 }
 
 h3cEponStat OBJECT IDENTIFIER ::= { h3cEponMibObjects 9 }
 

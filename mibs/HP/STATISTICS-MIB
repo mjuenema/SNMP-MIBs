@@ -10,7 +10,7 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
             FROM RFC-1212
         DisplayString
             FROM RFC1213-MIB
-        HpSwitchPortType
+        HpSwitchPortType, VidList
             FROM HP-ICF-TC
         InetAddress, InetAddressType,
         InetPortNumber
@@ -301,7 +301,9 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
     HpSwitchPortFdbAddrEntry ::=
         SEQUENCE {
             hpSwitchPortFdbId       INTEGER,
-            hpSwitchPortFdbAddress  MacAddress
+            hpSwitchPortFdbAddress  MacAddress,
+	    hpSwitchPortFdbVlanId   VlanID,
+            hpSwitchPortFdbVidList  VidList
         }
 
     hpSwitchPortFdbId OBJECT-TYPE
@@ -322,6 +324,21 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
                     forwarding and/or filtering information."
         ::= { hpSwitchPortFdbAddrEntry 2 }
 
+    hpSwitchPortFdbVlanId OBJECT-TYPE
+        SYNTAX      VlanID
+        ACCESS      read-only
+        STATUS      deprecated
+        DESCRIPTION "The VLAN ID to which this entry belongs.
+                     Deprecated - hpSwitchPortFdbVidList
+                     should be used instead."
+        ::= { hpSwitchPortFdbAddrEntry 3 }
+
+    hpSwitchPortFdbVidList OBJECT-TYPE
+        SYNTAX      VidList
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION "A VidList of VLAN IDs to which this entry belongs."
+        ::= { hpSwitchPortFdbAddrEntry 4 }
 
     hpSwitchStpStat OBJECT IDENTIFIER ::= { hpSwitchStatistics 5 }
 
@@ -362,9 +379,9 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
         SYNTAX      HpSwitchFddiIpFragStatEntry
         ACCESS      not-accessible
         STATUS      mandatory
-        DESCRIPTION "An Fddi IP fragmentation entry which is 
-                    containing statictics for the FDDI 
-                    cards in the switch."
+        DESCRIPTION "An Fddi IP fragmentation entry which is
+                     containing statistics for the FDDI
+                     cards in the switch."
         INDEX       {  hpSwitchFddiIpFragStatIndex }
         ::= { hpSwitchFddiIpFragStatTable 1 }
 
@@ -433,8 +450,8 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
         ACCESS      not-accessible
         STATUS      mandatory
         DESCRIPTION "An Fddi system entry which is 
-                    containing statictics for the FDDI 
-                    cards in the switch."
+                     containing statistics for the FDDI
+                     cards in the switch."
         INDEX       {  hpSwitchFddiSystemStatIndex }
         ::= { hpSwitchFddiSystemStatTable 1 }
 
@@ -537,8 +554,8 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
         ACCESS      not-accessible
         STATUS      mandatory
         DESCRIPTION "A table that contains statistic information about
-                    Automatic Broadcast Control on any  given VLAN on
-                    the switch."
+                     Automatic Broadcast Control on any given VLAN on
+                     the switch."
         ::= { hpABCStats 1 }
 
     hpABCStatsEntry OBJECT-TYPE
@@ -690,7 +707,7 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
                     on a group, thus if a query is heard before this
                     object's group joins, the value will be zero. It will
                     be non-zero when an all host query, or group specific
-                    query for the assoicated group, is heard after the
+                    query for the associated group, is heard after the
                     associated group has joined."
         ::= { hpIgmpStatsEntry 4 }
 
@@ -881,7 +898,9 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
             hpLdbalStatsPortIndex             INTEGER,
             hpLdbalStatsPortState             INTEGER,
             hpLdbalStatsAdjacentSwitch        MacAddress,
-            hpLdbalStatsPeerPort              MacAddress
+            hpLdbalStatsPeerPort              MacAddress,
+            hpLdbalStatsAdjacentHost          DisplayString,
+            hpLdbalStatsMeshWarningStatus     INTEGER
         }
 
     hpLdbalStatsPortIndex OBJECT-TYPE
@@ -947,6 +966,28 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
         ::= { hpLdbalStatsPortEntry 4 }
 
 
+    hpLdbalStatsAdjacentHost OBJECT-TYPE
+        SYNTAX      DisplayString
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION "The name of the adjacent Host"
+        ::= { hpLdbalStatsPortEntry 5 }
+
+    hpLdbalStatsMeshWarningStatus OBJECT-TYPE
+        SYNTAX      INTEGER{
+                        enabled(1),
+                        disabled(2)
+                    }
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION "This variable provides a high level summary of any
+                     mismatch in the mesh configuration and remind users
+                     to check the log for any mesh warning messages.
+                     If it is Yes then there is at least one warning
+                     message and will be No if there are no warning
+                     messages"
+
+        ::= { hpLdbalStatsPortEntry 6 } 
 
     -- Load Balance Protocol Statistics end
 
@@ -1220,7 +1261,7 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
         ACCESS      not-accessible
         STATUS      mandatory
         DESCRIPTION "A table that contains statistic information about
-                    GVRP on any  given VLAN on the switch."
+                     GVRP on any given VLAN on the switch."
         ::= { hpGvrpStats 1 }
 
     hpGvrpStatsEntry OBJECT-TYPE
@@ -1283,7 +1324,8 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
     hpPortGvrpCtrlStatus OBJECT-TYPE
         SYNTAX      INTEGER {
                         learn(1),
-                        block(2)
+                        block(2),
+                        disable(3)
                     }
         ACCESS      read-only
         STATUS      mandatory
@@ -1347,7 +1389,7 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
         DESCRIPTION "Contains the information about source ip address and 
                      port number of active SSH session (e.g. 192.168.31.114:1722).
 
-                     This object has been depreceted as its not big enough to store 
+                     This object has been deprecated as its not big enough to store
                      IPv6 addresses. It is loosely replaced by hpSshStatsSourceIpAddress
                      and hpSshStatsSourceIpPortNum"
         ::= { hpSshStatsEntry 3 }
@@ -1427,6 +1469,55 @@ STATISTICS-MIB DEFINITIONS ::= BEGIN
         STATUS      mandatory
         DESCRIPTION "The type for this port."
         ::= { hpSwitchPhysicalPortEntry 2 }
-          
+
+    hpSwitchCosStats   OBJECT IDENTIFIER ::= { hpSwitchStatistics 19 }
+         
+    hpSwitchQueueWatchStatsTable OBJECT-TYPE
+        SYNTAX      SEQUENCE OF HpSwitchQueueWatchStatsEntry
+        ACCESS      not-accessible
+        STATUS      mandatory
+        DESCRIPTION "A table that contains statistic information about
+                    Egress Queue drops on the switch."
+        ::= { hpSwitchCosStats 1 }
+
+    hpSwitchQueueWatchStatsEntry OBJECT-TYPE
+        SYNTAX      HpSwitchQueueWatchStatsEntry
+        ACCESS      not-accessible
+        STATUS      mandatory
+        DESCRIPTION "The information associated with each row in the
+                    Queue Watch Statistics Table."
+        INDEX       { hpSwitchQueueWatchStatsPortIndex,hpSwitchQueueWatchStatsQueueIndex }
+        ::= { hpSwitchQueueWatchStatsTable 1 }
+
+    HpSwitchQueueWatchStatsEntry ::=
+        SEQUENCE {
+            hpSwitchQueueWatchStatsPortIndex         INTEGER,
+            hpSwitchQueueWatchStatsQueueIndex        INTEGER,
+            hpSwitchQueueWatchStatsQueueDrops        Counter
+        }
+
+    hpSwitchQueueWatchStatsPortIndex OBJECT-TYPE
+        SYNTAX      INTEGER (1..65535)
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION "The ifIndex value which uniquely identifies a row
+                    in the Interfaces Table."
+        ::= { hpSwitchQueueWatchStatsEntry 1 }
+
+    hpSwitchQueueWatchStatsQueueIndex OBJECT-TYPE
+        SYNTAX      INTEGER (1..65535)
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION "The specific value which uniquely identifies a specific port queue."
+        ::= { hpSwitchQueueWatchStatsEntry 2 }
+
+    hpSwitchQueueWatchStatsQueueDrops OBJECT-TYPE
+        SYNTAX      Counter
+        ACCESS      read-only
+        STATUS      mandatory
+        DESCRIPTION "The number of packets dropped for a particular egress port queue."
+        ::= { hpSwitchQueueWatchStatsEntry 3 }
+
+ 
 END
 

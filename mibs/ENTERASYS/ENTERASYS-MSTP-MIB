@@ -29,7 +29,7 @@ ENTERASYS-MSTP-MIB DEFINITIONS ::= BEGIN
 --  parties a non-exclusive license to use this Specification in 
 --  connection with the management of Enterasys Networks products.
 
---  Copyright September, 2002-2004 Enterasys Networks, Inc.
+--  Copyright 2002-2006 Enterasys Networks, Inc.
 
 IMPORTS
     MODULE-IDENTITY, OBJECT-TYPE, Unsigned32, Counter32, TimeTicks
@@ -50,7 +50,7 @@ IMPORTS
         FROM ENTERASYS-MIB-NAMES;
 
 etsysMstpMIB MODULE-IDENTITY
-    LAST-UPDATED "200407141625Z"  -- Wed Jul 14 16:25 GMT 2004
+    LAST-UPDATED "200611091640Z"  -- Thu Nov  9 16:40 GMT 2006
     ORGANIZATION "Enterasys Networks, Inc"
     CONTACT-INFO
         "Postal:  Enterasys Networks
@@ -69,6 +69,19 @@ etsysMstpMIB MODULE-IDENTITY
          This MIB is used to manage devices which support MSTP.  
          It will be supported until a standard IEEE 802.1s MIB has 
          been defined by the IETF."
+
+    REVISION "200611091640Z"  -- Thu Nov  9 16:40 GMT 2006
+    DESCRIPTION
+        "Renamed the etsysMstpPortExtnErrorConditions object as
+         the etsysMstpPortExtnNonForwardingReason object, and
+         revamped its definition."
+
+    REVISION "200610041954Z"  -- Wed Oct  4 19:54 GMT 2006
+    DESCRIPTION
+        "Added the etsysMstpPortExtnTable, containing objects for
+         configuring the Loop Protect feature on MSTIs as well as
+         summarizing Spanning Tree error conditions on MSTIs.
+         Added the etsysMstpLoopProtectEvent notification."
 
     REVISION "200407141625Z"  -- Wed Jul 14 16:25 GMT 2004
     DESCRIPTION
@@ -117,10 +130,11 @@ HexString  ::=  TEXTUAL-CONVENTION
 -- branches in the ENTERASYS-MSTP MIB
 -- ---------------------------------------------------------- --
 
-etsysMstpConfig  OBJECT IDENTIFIER ::= { etsysMstpObjects 1 }
-etsysMstpBridge  OBJECT IDENTIFIER ::= { etsysMstpObjects 2 }
-etsysMstpPort    OBJECT IDENTIFIER ::= { etsysMstpObjects 3 }
-etsysMstpExtn    OBJECT IDENTIFIER ::= { etsysMstpObjects 4 }
+etsysMstpConfig          OBJECT IDENTIFIER ::= { etsysMstpObjects 1 }
+etsysMstpBridge          OBJECT IDENTIFIER ::= { etsysMstpObjects 2 }
+etsysMstpPort            OBJECT IDENTIFIER ::= { etsysMstpObjects 3 }
+etsysMstpExtn            OBJECT IDENTIFIER ::= { etsysMstpObjects 4 }
+etsysMstpNotifications   OBJECT IDENTIFIER ::= { etsysMstpObjects 0 }
 
 
 -- ---------------------------------------------------------- --
@@ -900,6 +914,127 @@ etsysMstpMstiExtnBackupRootEnable OBJECT-TYPE
     DEFVAL { disabled }
     ::= { etsysMstpMstiExtnEntry 1 }
 
+etsysMstpPortExtnTable OBJECT-TYPE
+    SYNTAX        SEQUENCE OF EtsysMstpPortExtnEntry
+    MAX-ACCESS    not-accessible
+    STATUS        current
+    DESCRIPTION
+      "Extensions to the table that contains port parameter values for
+       each configured Multiple Spanning Tree instance."
+    ::= { etsysMstpExtn 4 }
+
+etsysMstpPortExtnEntry OBJECT-TYPE
+    SYNTAX        EtsysMstpPortExtnEntry
+    MAX-ACCESS    not-accessible
+    STATUS        current
+    DESCRIPTION
+      "A list of extensions to the information maintained for every
+       port by each Multiple Spanning Tree instance configured
+       on this bridge."     
+    AUGMENTS { etsysMstpPortEntry }
+    ::= { etsysMstpPortExtnTable 1 }
+
+EtsysMstpPortExtnEntry ::=
+    SEQUENCE { 
+        etsysMstpPortExtnNonForwardingReason  INTEGER,
+        etsysMstpPortExtnLoopProtectEnable    EnabledStatus,
+        etsysMstpPortExtnLoopProtectBlocking  INTEGER
+    }
+
+etsysMstpPortExtnNonForwardingReason OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    none(1),
+                    disputed(2),
+                    spanGuardLocked(3),
+                    loopProtectEvent(4),
+                    loopProtectAdvisory(5),
+                    loopbackDetected(6)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Indicates the reason why this port has been placed in a
+         non-forwarding state on this MSTI (other than as a result
+         of normal Spanning Tree protocol operation).
+
+         none(1) - the port has not been placed in a non-forwarding
+                   state due to any exceptional condition.
+
+         disputed(2) - the port has been placed in listening state
+                       because it has a designated role and an 
+                       inferior designated BPDU has been received.
+
+         spanGuardLocked(3) - the port has been placed in blocking
+                              state because it is configured as an
+                              admin edge port and a BPDU has been
+                              received.
+
+         loopProtectEvent(4) - the port has been placed in listening
+                               or blocking state because a BPDU
+                               timeout has occurred and the port is
+                               awaiting reception of a type 2 BPDU
+                               on a point-to-point link.
+
+         loopProtectAdvisory(5) - the port has been placed in
+                                  listening state because a BPDU
+                                  timeout has occurred (as with a
+                                  Loop Protect event), but this
+                                  condition may be normal because
+                                  the link partner does not support
+                                  the Loop Protect feature.
+
+         loopbackDetected(6) - the port has been placed in blocking
+                               state because a loopback condition
+                               has been detected."
+    ::= { etsysMstpPortExtnEntry 1 }
+
+etsysMstpPortExtnLoopProtectEnable OBJECT-TYPE
+    SYNTAX      EnabledStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The enabled/disabled status of the Loop Protect functionality
+         for this port on this MSTI."
+    DEFVAL { disabled }
+    ::= { etsysMstpPortExtnEntry 2 }
+
+etsysMstpPortExtnLoopProtectBlocking   OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The state of this port on this MSTI with respect to
+         the Loop Protect feature.
+
+         true(1)   - this port is being held in the blocking state
+                     by the Loop Protect feature.
+
+         false(2)  - this port is not being held in the blocking 
+                     state by the Loop Protect feature.
+
+         When this object has a value of true(1) setting its value
+         to false(2) will cause the Loop Protect feature to no longer
+         hold the port in the blocking state.
+
+         All other set operations on this object are undefined and
+         MUST NOT have any effect."
+    DEFVAL { false }
+    ::= { etsysMstpPortExtnEntry 3 }
+
+
+-- ---------------------------------------------------------- --
+-- Notifications 
+-- ---------------------------------------------------------- --
+
+etsysMstpLoopProtectEvent NOTIFICATION-TYPE
+    OBJECTS     { etsysMstpMstId, etsysMstpPortNumber,
+                  etsysMstpPortExtnLoopProtectBlocking }
+    STATUS      current
+    DESCRIPTION
+        "This notification indicates that a Loop Protect event
+         has occurred on a bridge port on an MSTI."
+    ::= { etsysMstpNotifications 1 }
+
 
 -- -------------------------------------------------------------
 -- Conformance Information
@@ -1009,6 +1144,36 @@ etsysMstpMaxInstancesGroup OBJECT-GROUP
       "An object for restricting the number of configurable MSTIs."
     ::= { etsysMstpGroups 7 }
 
+etsysMstpNonForwardingReasonGroup OBJECT-GROUP
+    OBJECTS {
+        etsysMstpPortExtnNonForwardingReason
+    }
+    STATUS      current
+    DESCRIPTION
+      "An object that indicates the reason for an exceptional
+       non-forwarding condition per port/MSTI."
+    ::= { etsysMstpGroups 8 }
+
+etsysMstpLoopProtectGroup OBJECT-GROUP
+    OBJECTS {
+        etsysMstpPortExtnLoopProtectEnable,
+        etsysMstpPortExtnLoopProtectBlocking
+    }
+    STATUS      current
+    DESCRIPTION
+      "A collection of objects providing support for the 
+       Loop Protect feature."
+    ::= { etsysMstpGroups 9 }
+
+etsysMstpLoopProtectNotificationGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        etsysMstpLoopProtectEvent
+    }
+    STATUS      current
+    DESCRIPTION
+        "The Loop Protect Event Notification for MSTIs."
+    ::= { etsysMstpGroups 10 }
+
 
 -- -------------------------------------------------------------
 -- Compliance statements
@@ -1047,6 +1212,23 @@ etsysMstpCompliance MODULE-COMPLIANCE
             "Support for this group is optional and only applies
              to products that support the ability to limit the
              number of configurable MSTIs."
+
+        GROUP       etsysMstpNonForwardingReasonGroup
+        DESCRIPTION
+            "Support for this group is optional and only applies
+             to products that wish to provide the reasons for
+             exceptional non-forwarding conditions."
+
+        GROUP       etsysMstpLoopProtectGroup
+        DESCRIPTION
+            "Support for this group is optional and only applies
+             to products that support the Loop Protect feature."
+
+        GROUP       etsysMstpLoopProtectNotificationGroup
+        DESCRIPTION
+            "Support for this group is optional and only applies
+             to products that support the Loop Protect feature."
+
     ::= { etsysMstpCompliances 1 }
 
 END

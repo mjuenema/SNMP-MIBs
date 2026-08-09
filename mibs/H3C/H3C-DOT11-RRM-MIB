@@ -1,30 +1,50 @@
 -- ==========================================================================
--- Copyright (C) 2008 by Hangzhou H3C Technologies Co., Ltd. All rights reserved.
+-- Copyright (c) 2004-2011 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description: The purpose of this MIB file is to provide object definition
 --              of WLAN radio resource management (RRM).
 -- Reference:
--- Version: V1.0
+-- Version: V1.5
 -- History:
 -- V1.0 2008-07-16 Initial version, created by ChenWei
+-- V1.1 2009-04-16 modified by WangChunsheng
+-- Add new table of h3cDot11MonitorDetectedDevTable for h3cDot11MonitorDetectedGroup.
+-- Add new table of h3cDot11RRMAPCfgTable for h3cDot11RRMConfigGroup.
+-- V1.2 2009-05-07 modified by Wang Shaojie, wangchunsheng
+--      Add h3cDot11APInterfNumThreshhd, h3cDot11StaInterfNumThreshhd
+--      to h3cDot11GlobeConfigGroup.
+--      Modify h3cDot11RRMCfgIntrvl
+-- V1.3 2009-05-07 modified by Wang Shaojie
+--      Add new node h3cDot11MonitorDevSNR to h3cDot11MonitorDetectedDevTable
+-- V1.4 2010-02-22 modified by Wang Chunsheng
+--      Add new table h3cDot11RRMSDRadioGroupTable to h3cDot11RRMConfigGroup
+--      2010-03-18 Modified by Wang Lu
+--      Add h3cDot11RRMAPCfg2Table
+-- V1.5 2010-09-21 Modified by wu xiaopeng
+--      Add new node h3cDot11RRMCoChlIntfTrapThhd, h3cDot11RRMAdjChlIntfTrapThhd
+--      to h3cDot11RRMAPCfg2Table    
+-- V1.6 2011-03-23 Modified by NiuJian
+--      Add new node h3cDot11RrmNbrSSID
+--      to h3cDot11RRMNbrInfoTable
 -- ==========================================================================
-
 H3C-DOT11-RRM-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
-    H3cDot11RadioType, H3cDot11ChannelScopeType, H3cDot11RadioElementIndex
+    H3cDot11RadioType, H3cDot11ChannelScopeType, H3cDot11RadioElementIndex,
+    H3cDot11RadioScopeType, h3cDot11APElementIndex
         FROM H3C-DOT11-REF-MIB
     Integer32, Unsigned32, OBJECT-TYPE, MODULE-IDENTITY,
     NOTIFICATION-TYPE
         FROM SNMPv2-SMI
-    TruthValue, MacAddress, DateAndTime
+    TruthValue, MacAddress, DateAndTime, RowStatus
         FROM SNMPv2-TC
-    h3cDot11
+    h3cDot11,
+    H3cDot11ObjectIDType,
+    H3cDot11SSIDStringType
         FROM H3C-DOT11-REF-MIB;
 
-
 h3cDot11RRM MODULE-IDENTITY
-    LAST-UPDATED "200807141429Z"        -- July 14, 2008 at 14:29 GMT
+    LAST-UPDATED "201009251800Z"        -- Sep 25, 2010 at 18:00 GMT
     ORGANIZATION
         "Hangzhou H3C Technologies Co., Ltd."
     CONTACT-INFO
@@ -35,12 +55,26 @@ h3cDot11RRM MODULE-IDENTITY
     DESCRIPTION
         "This MIB file is to provide the object definition of
         WLAN radio resource management (RRM)."
+
+    REVISION "201009251800Z"        -- Sep 25, 2010 at 18:00 GMT
+    DESCRIPTION
+        "Modified to add new nodes."
+    REVISION "201002231800Z"        -- Feb 23, 2010 at 18:00 GMT
+    DESCRIPTION
+        "Modified to add new nodes."
+    REVISION "200908012000Z"        -- Aug 1, 2009 at 20:00 GMT
+    DESCRIPTION
+        "Modified to add new nodes and new table."
+    REVISION "200905072000Z"        -- May 7, 2009 at 20:00 GMT
+    DESCRIPTION
+        "Modified to add new nodes and new table."
+    REVISION "200904172000Z"        -- April 17, 2009 at 20:00 GMT
+    DESCRIPTION
+        "Modified to add new table and new group."
     REVISION "200807141429Z"
     DESCRIPTION
         "The initial revision of this MIB module."
     ::= { h3cDot11 8 }
-
-
 
 --
 -- Node definitions
@@ -150,6 +184,32 @@ h3cDot11RRMScanRptIntvel OBJECT-TYPE
         "Set the scan report interval."
     DEFVAL { 10 }
     ::= { h3cDot11RRMGlobalCfgPara 8 }
+
+h3cDot11APInterfNumThreshhd OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Represents threshold of AP interference .
+         If the value of AP interference exceeds this threshold,
+         AP interference trap will be sent. If the value of this node
+         is zero, AP interference trap will be sent immediately."
+
+    DEFVAL      { 0 }
+    ::= { h3cDot11RRMGlobalCfgPara 9 }
+
+h3cDot11StaInterfNumThreshhd OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Represents threshold of STA interference.
+         If the value of STA interference exceeds this threshold,
+         STA interference trap will be sent. If the value of this
+         node is zero, STA interference trap will be sent immediately.
+         "
+    DEFVAL      { 0 }
+    ::= { h3cDot11RRMGlobalCfgPara 10 }
 
 h3cDot11RRMRadioCfgTable OBJECT-TYPE
     SYNTAX SEQUENCE OF H3cDot11RRMRadioCfgEntry
@@ -295,7 +355,7 @@ h3cDot11RRMPwrProntoRadioElmt OBJECT-TYPE
     ::= { h3cDot11RRMRadioCfgEntry 7 }
 
 h3cDot11RRMCfgIntrvl OBJECT-TYPE
-    SYNTAX Integer32 (8..180)
+    SYNTAX Integer32
     UNITS "minute"
     MAX-ACCESS read-write
     STATUS current
@@ -362,6 +422,195 @@ h3cDot11RRMCfgAdjacencyFctr OBJECT-TYPE
         when the nth neighbor is detected.  The value n is the adjacency factor."
     DEFVAL { 3 }
     ::= { h3cDot11RRMRadioCfgEntry 13 }
+
+h3cDot11RRMAPCfgTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF H3cDot11RRMAPCfgEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table defines the RRM parameters for AP."
+    ::= { h3cDot11RRMConfigGroup 3 }
+
+h3cDot11RRMAPCfgEntry OBJECT-TYPE
+    SYNTAX H3cDot11RRMAPCfgEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Each entry contains information of RRM parameters for AP."
+    INDEX { h3cDot11APElementIndex }
+    ::= { h3cDot11RRMAPCfgTable 1 }
+
+H3cDot11RRMAPCfgEntry ::=
+    SEQUENCE {
+        h3cDot11RRMAPWorkMode
+          INTEGER
+    }
+
+h3cDot11RRMAPWorkMode OBJECT-TYPE
+    SYNTAX INTEGER
+        {
+        normal(1),
+        monitor(2),
+        hybrid(3)
+        }
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "AP work mode."
+    ::= { h3cDot11RRMAPCfgEntry 1 }
+
+h3cDot11RRMSDRadioGroupTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF H3cDot11RRMSDRadioGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table defines RRM self-decisive radio group."
+    ::= { h3cDot11RRMConfigGroup 4 }
+
+h3cDot11RRMSDRadioGroupEntry OBJECT-TYPE
+    SYNTAX      H3cDot11RRMSDRadioGroupEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry contains information of one RRM self-decisive radio group."
+    INDEX
+        {
+            h3cDot11RRMSDRadioGroupId
+        }
+    ::= { h3cDot11RRMSDRadioGroupTable 1 }
+
+H3cDot11RRMSDRadioGroupEntry ::= SEQUENCE
+    {
+        h3cDot11RRMSDRadioGroupId             Unsigned32,
+        h3cDot11RRMSDRadioGroupDesc           OCTET STRING,
+        h3cDot11RRMSDRdGrpChlHolddownTm       Unsigned32,
+        h3cDot11RRMSDRdGrpPwrHolddownTm       Unsigned32,
+        h3cDot11RRMSDRdGroupRowStatus         RowStatus
+    }
+
+h3cDot11RRMSDRadioGroupId OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Represents RRM self-decisive radio group ID."
+    ::= { h3cDot11RRMSDRadioGroupEntry 1 }
+
+h3cDot11RRMSDRadioGroupDesc OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Represents the description of RRM self-decisive radio group."
+    ::= { h3cDot11RRMSDRadioGroupEntry 2 }
+
+h3cDot11RRMSDRdGrpChlHolddownTm OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS       "minute"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Represents the channel holddown time of RRM self-decisive radio group."
+    ::= { h3cDot11RRMSDRadioGroupEntry 3 }
+
+h3cDot11RRMSDRdGrpPwrHolddownTm OBJECT-TYPE
+    SYNTAX      Unsigned32
+    UNITS       "minute"
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Represents the power holddown time of RRM self-decisive radio group."
+    ::= { h3cDot11RRMSDRadioGroupEntry 4 }
+
+h3cDot11RRMSDRdGroupRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The row status of this table entry."
+    ::= { h3cDot11RRMSDRadioGroupEntry 5 }
+
+h3cDot11RRMAPCfg2Table OBJECT-TYPE
+    SYNTAX SEQUENCE OF H3cDot11RRMAPCfg2Entry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table defines the RRM parameters for AP."
+    ::= { h3cDot11RRMConfigGroup 5 }
+
+h3cDot11RRMAPCfg2Entry OBJECT-TYPE
+    SYNTAX H3cDot11RRMAPCfg2Entry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Each entry contains information of RRM parameters for AP."
+    INDEX { h3cDot11RRMAPSerialID }
+    ::= { h3cDot11RRMAPCfg2Table 1 }
+
+H3cDot11RRMAPCfg2Entry ::=
+    SEQUENCE {
+        h3cDot11RRMAPSerialID
+            H3cDot11ObjectIDType,
+        h3cDot11RRMAPIntfThreshold
+            Integer32,
+        h3cDot11RRMStaIntfThreshold
+            Integer32,
+        h3cDot11RRMCoChlIntfTrapThhd
+            Integer32,
+        h3cDot11RRMAdjChlIntfTrapThhd
+            Integer32
+    }
+
+h3cDot11RRMAPSerialID OBJECT-TYPE
+    SYNTAX H3cDot11ObjectIDType
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "Serial ID of the AP."
+    ::= { h3cDot11RRMAPCfg2Entry 1 }
+
+h3cDot11RRMAPIntfThreshold OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Represents threshold of AP interference .
+         If the number of AP interference exceeds this threshold,
+         AP interference trap will be sent."
+    ::= { h3cDot11RRMAPCfg2Entry 2 }
+
+h3cDot11RRMStaIntfThreshold OBJECT-TYPE
+    SYNTAX Integer32
+    MAX-ACCESS read-write
+    STATUS current
+    DESCRIPTION
+        "Represents threshold of STA interference.
+         If the number of STA interference exceeds this threshold,
+         station interference trap will be sent."
+    ::= { h3cDot11RRMAPCfg2Entry 3 }
+
+h3cDot11RRMCoChlIntfTrapThhd OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "dbm"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Represents threshold of interference trap with current ap.
+        If signal strength of the device exceeds this threshold,
+        corresponding trap will be sent."
+    ::= { h3cDot11RRMAPCfg2Entry 4 }
+
+
+h3cDot11RRMAdjChlIntfTrapThhd OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "dbm"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Represents threshold of adjacent interference trap with current ap.
+        If signal strength of the device exceeds this threshold,
+        corresponding trap will be sent."
+    ::= { h3cDot11RRMAPCfg2Entry 5 }
 
 h3cDot11RRMDetectGroup OBJECT IDENTIFIER ::= { h3cDot11RRM 2 }
 
@@ -555,7 +804,9 @@ H3cDot11RRMNbrInfoEntry ::=
         h3cDot11RrmNbrRSSI
             Integer32,
         h3cDot11RrmNbrType
-            INTEGER
+            INTEGER,
+        h3cDot11RrmNbrSSID
+            H3cDot11SSIDStringType
      }
 
 h3cDot11RrmNbrBSSID OBJECT-TYPE
@@ -603,6 +854,14 @@ h3cDot11RrmNbrType OBJECT-TYPE
     DESCRIPTION
         "Type of the AP, managed or unmanaged."
     ::= { h3cDot11RRMNbrInfoEntry 5 }
+
+h3cDot11RrmNbrSSID OBJECT-TYPE
+    SYNTAX H3cDot11SSIDStringType
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "SSID of the Neighbor."
+    ::= { h3cDot11RRMNbrInfoEntry 6 }
 
 h3cDot11RRMHistoryTable OBJECT-TYPE
     SYNTAX SEQUENCE OF H3cDot11RRMHistoryEntry
@@ -842,5 +1101,176 @@ h3cDot11OldPower OBJECT-TYPE
     DESCRIPTION
         "Power of the radio before the change of power."
     ::= { h3cDot11RRMNotificationsVar 2 }
+
+h3cDot11MonitorDetectedGroup OBJECT IDENTIFIER ::= { h3cDot11RRM 4 }
+
+h3cDot11MonitorDetectedDevTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF H3cDot11MonitorDetectedDevEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table shows the devices of AP detected"
+    ::= { h3cDot11MonitorDetectedGroup 1 }
+
+h3cDot11MonitorDetectedDevEntry OBJECT-TYPE
+    SYNTAX      H3cDot11MonitorDetectedDevEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry contains information of detected devices."
+    INDEX
+        {
+            h3cDot11MonitorDevMAC, h3cDot11APElementIndex
+        }
+    ::= { h3cDot11MonitorDetectedDevTable 1 }
+
+H3cDot11MonitorDetectedDevEntry ::=
+    SEQUENCE {
+        h3cDot11MonitorDevMAC
+            MacAddress,
+        h3cDot11MonitorDevType
+            INTEGER,
+        h3cDot11MonitorDevVendor
+            OCTET STRING,
+        h3cDot11MonitorDevSSID
+            OCTET STRING,
+        h3cDot11MonitorDevBSSID
+            MacAddress,
+        h3cDot11MonitorDevChannel
+            H3cDot11ChannelScopeType,
+        h3cDot11MonitorRadioId
+            H3cDot11RadioScopeType,
+        h3cDot11MonitorDevMaxRSSI
+            Integer32,
+        h3cDot11MonitorDevBeaconIntvl
+            Integer32,
+        h3cDot11MonitorDevFstDctTime
+            DateAndTime,
+        h3cDot11MonitorDevLstDctTime
+            DateAndTime,
+        h3cDot11MonitorDevClear
+            TruthValue,
+        h3cDot11MonitorDevSNR
+            Integer32
+     }
+
+h3cDot11MonitorDevMAC OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Represents MAC address of the device detected."
+    ::= { h3cDot11MonitorDetectedDevEntry 1 }
+
+h3cDot11MonitorDevType OBJECT-TYPE
+    SYNTAX      INTEGER
+                {
+                    client(1),
+                    ap(2),
+                    adhoc(3),
+                    wirelessBridge(4),
+                    unknown(5)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents type of the device detected."
+    ::= { h3cDot11MonitorDetectedDevEntry 2 }
+
+h3cDot11MonitorDevVendor OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents vendor of the detected device."
+    ::= { h3cDot11MonitorDetectedDevEntry 3 }
+
+h3cDot11MonitorDevSSID OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the service set identifier for the ESS of the device which
+         type is ap or adhoc."
+    ::= { h3cDot11MonitorDetectedDevEntry 4 }
+
+h3cDot11MonitorDevBSSID OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the basic service set identifier of the detected device."
+    ::= { h3cDot11MonitorDetectedDevEntry 5 }
+
+h3cDot11MonitorDevChannel OBJECT-TYPE
+    SYNTAX      H3cDot11ChannelScopeType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the channel in which the device was last detected. AP will
+         choose the channel which has maximum signal strength as effective
+         channel, as there is interference between adjacent channels."
+    ::= { h3cDot11MonitorDetectedDevEntry 6 }
+
+h3cDot11MonitorRadioId OBJECT-TYPE
+    SYNTAX      H3cDot11RadioScopeType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the radio ID of the AP that detected the device."
+    ::= { h3cDot11MonitorDetectedDevEntry 7 }
+
+h3cDot11MonitorDevMaxRSSI OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "dbm"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the maximum detected RSSI of the device in a scan report cycle."
+    ::= { h3cDot11MonitorDetectedDevEntry 8 }
+
+h3cDot11MonitorDevBeaconIntvl OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "millisecond"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the beacon interval for the detected device(not include
+         the device which type is client)."
+    ::= { h3cDot11MonitorDetectedDevEntry 9 }
+
+h3cDot11MonitorDevFstDctTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the time at which the device was first detected."
+    ::= { h3cDot11MonitorDetectedDevEntry 10 }
+
+h3cDot11MonitorDevLstDctTime OBJECT-TYPE
+    SYNTAX      DateAndTime
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the time at which the device was detected last time."
+    ::= { h3cDot11MonitorDetectedDevEntry 11 }
+
+h3cDot11MonitorDevClear OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object is used to clear the information of the device detected
+         in the WLAN.
+         It will return false for get operation."
+    ::= { h3cDot11MonitorDetectedDevEntry 12 }
+
+h3cDot11MonitorDevSNR OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the SNR of the device in a scan report cycle."
+    ::= { h3cDot11MonitorDetectedDevEntry 13 }
 
 END

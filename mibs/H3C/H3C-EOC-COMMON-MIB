@@ -1,9 +1,9 @@
 -- =================================================================
--- Copyright (C) 2007 by H3C TECHNOLOGIES. All rights reserved.
+-- Copyright (c) 2004-2009 by H3C Technologies. All rights reserved.
 --
 -- Description:
 -- Reference:
--- Version: V1.3
+-- Version: V1.5
 -- History:
 -- V1.0 created by liujingya.
 --     Initial version of the MIB
@@ -17,6 +17,13 @@
 --     h3cEOCComCnuTxRateDrop, h3cEOCComCnuRxRateDrop, h3cEOCCnuTxRateDropTrap,
 --     h3cEOCCnuTxRateDropRecoverTrap, h3cEOCCnuRxRateDropTrap and
 --     h3cEOCCnuRxRateDropRecoverTrap by xujun
+-- V1.4 2009-2-13 Added h3cEOCCnuFWDownLoadErrTrap,
+--     h3cEOCCnuFWDownLoadErrReTrap, h3cEOCCnuDeviceTypeErrTrap,
+--     h3cEOCCnuDeviceTypeErrReTrap, h3cEOCCnuAutoUpdateErrTrap,
+--     h3cEOCCnuAutoUpdateSuccTrap and
+--     modified MAX-ACCESS of h3cEOCComCnuDeviceType by liujingya.
+-- V1.5 2010-1-7 Added h3cEocComCnuTypeIdx, h3cEOCComCnuDescripton,
+--     h3cEOCComCltMaxAllowToAccess, h3cEocComCnuNumber by xujun
 -- =================================================================
 H3C-EOC-COMMON-MIB DEFINITIONS ::= BEGIN
 
@@ -31,7 +38,9 @@ IMPORTS
         IANAifType
     FROM IANAifType-MIB
         MacAddress, RowStatus, DisplayString, TruthValue
-    FROM SNMPv2-TC;
+    FROM SNMPv2-TC
+        h3cHPEOCDownLoadCNUFWResult
+    FROM H3C-HPEOC-MIB;
 
 
 h3cEOCCommon MODULE-IDENTITY
@@ -120,7 +129,8 @@ h3cEOCCommonCltManEntry OBJECT-TYPE
 
 H3cEOCCommonCltManEntry ::= SEQUENCE
     {
-        h3cEOCCommonCltAutoAuthorize    TruthValue
+        h3cEOCCommonCltAutoAuthorize    TruthValue,
+        h3cEOCCommonCltMaxAllowToAccess Integer32
     }
 
 h3cEOCCommonCltAutoAuthorize OBJECT-TYPE
@@ -144,6 +154,22 @@ h3cEOCCommonCltAutoAuthorize OBJECT-TYPE
         }
     ::= { h3cEOCCommonCltManEntry 1 }
 
+h3cEOCCommonCltMaxAllowToAccess OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+         "
+         This value determines how many CNU can be bound
+         in this CLT. If the number of CNU is more than this
+         value , then the rest of CNU should not be allow to
+         access.
+         "
+    DEFVAL
+        {
+            253
+        }
+    ::= { h3cEOCCommonCltManEntry 2 }
 
 --
 -- h3cEOCComCnuMan
@@ -300,7 +326,7 @@ h3cEOCComCnuCableIfindex OBJECT-TYPE
 
 h3cEOCComCnuDeviceType OBJECT-TYPE
     SYNTAX     DisplayString
-    MAX-ACCESS read-only
+    MAX-ACCESS read-write
     STATUS     current
     DESCRIPTION
         "
@@ -1404,8 +1430,6 @@ h3cEOCUniOutOctets   OBJECT-TYPE
         "The total number of octets transmitted out of the interface."
     ::= { h3cEOCComUniCountEntry 22 }
 
-
-
 --
 -- h3cEOCCommon NOTIFICATION
 --
@@ -1648,4 +1672,192 @@ h3cEOCCnuRxRateDropRecoverTrap NOTIFICATION-TYPE
         rate of RX capability recover from the recent rate-drop trap.
         "
     ::= { h3cEOCTrapPrefix 16 }
+
+h3cEOCCnuFWDownLoadErrTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            h3cHPEOCDownLoadCNUFWResult
+        }
+    STATUS current
+    DESCRIPTION
+        "
+        A h3cEOCCnuFWDownLoadErrTrap notification is sent when CLT can't
+        download CNU firmware from the server successfully.
+        "
+    ::= { h3cEOCTrapPrefix 17 }
+
+h3cEOCCnuFWDownLoadErrReTrap NOTIFICATION-TYPE
+    STATUS current
+    DESCRIPTION
+        "
+        A h3cEOCCnuFWDownLoadErrReTrap notification is sent when CLT recover
+        from the download CNU firmware error.
+        "
+    ::= { h3cEOCTrapPrefix 18 }
+
+h3cEOCCnuDeviceTypeErrTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifIndex,
+            ifDescr,
+            h3cEOCComCnuMacAddress,
+            h3cEOCComCnuDeviceType
+        }
+    STATUS current
+    DESCRIPTION
+        "
+        A h3cEOCCnuDeviceTypeErrTrap notification is sent when the online CNU
+        doesn't match the type which user defined earlier.
+        "
+    ::= { h3cEOCTrapPrefix 19 }
+
+h3cEOCCnuDeviceTypeErrReTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifIndex,
+            ifDescr,
+            h3cEOCComCnuMacAddress
+        }
+    STATUS current
+    DESCRIPTION
+        "
+        A h3cEOCCnuDeviceTypeErrReTrap notification is sent when the online CNU
+        doesn't match the type which user defined earlier and then recover.
+        "
+    ::= { h3cEOCTrapPrefix 20 }
+
+h3cEOCCnuAutoUpdateErrTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifIndex,
+            ifDescr,
+            h3cEOCComCnuMacAddress
+        }
+    STATUS current
+    DESCRIPTION
+        "
+        A h3cEOCCnuAutoUpdateErrTrap notification is sent when the online CNU
+        doesn't auto update successfully.
+        "
+    ::= { h3cEOCTrapPrefix 21 }
+
+h3cEOCCnuAutoUpdateSuccTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifIndex,
+            ifDescr,
+            h3cEOCComCnuMacAddress
+        }
+    STATUS current
+    DESCRIPTION
+        "
+        A h3cEOCCnuAutoUpdateSuccTrap notification is sent when the online CNU
+        auto update successfully.
+        "
+    ::= { h3cEOCTrapPrefix 22 }
+
+--
+-- h3cEOCComOnLineCnuMan
+--
+
+h3cEOCComOnLineCnuMan OBJECT IDENTIFIER ::= { h3cEOCCommon 6 }
+--
+-- h3cEOCComCnuTypeTable
+--
+h3cEOCComCnuTypeTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF H3cEOCComCnuTypeEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "
+        This table defines the description of cnu typ.
+        "
+    ::= { h3cEOCComOnLineCnuMan 1 }
+
+h3cEOCComCnuTypeEntry OBJECT-TYPE
+    SYNTAX     H3cEOCComCnuTypeEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "
+        The entry of the table h3cEOCComCnuTypeTable.
+        "
+    INDEX
+        {
+            h3cEOCComCnuTypeIdx
+        }
+    ::= { h3cEOCComCnuTypeTable 1 }
+
+H3cEOCComCnuTypeEntry ::= SEQUENCE
+    {
+        h3cEOCComCnuTypeIdx    Unsigned32,
+        h3cEOCComCnuDescripton DisplayString
+    }
+
+h3cEOCComCnuTypeIdx OBJECT-TYPE
+    SYNTAX     Unsigned32
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "
+        A unique value for each cnu types.  Its value
+        ranges between 1 and the value of cny typess.
+        "
+    ::= { h3cEOCComCnuTypeEntry 1 }
+
+h3cEOCComCnuDescripton OBJECT-TYPE
+    SYNTAX     DisplayString
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "
+        The description for unique cnu types.
+        "
+    ::= { h3cEOCComCnuTypeEntry 2 }
+
+--
+-- h3cEOCComCnuNumTable
+--
+
+h3cEOCComCnuNumTable OBJECT-TYPE
+    SYNTAX     SEQUENCE OF H3cEOCComCnuNumEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "
+        This table defines the number of cnu registered in variable types
+        of the CLT .
+        "
+    ::= { h3cEOCComOnLineCnuMan 2 }
+
+h3cEOCComCnuNumEntry OBJECT-TYPE
+    SYNTAX     H3cEOCComCnuNumEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    DESCRIPTION
+        "
+        The entry of the table h3cEOCComCnuNumTable.
+        "
+    INDEX
+        {
+            ifIndex,
+            h3cEOCComCnuTypeIdx
+        }
+    ::= { h3cEOCComCnuNumTable 1 }
+
+H3cEOCComCnuNumEntry ::= SEQUENCE
+    {
+        h3cEOCComCnuNumber     Integer32
+    }
+
+h3cEOCComCnuNumber OBJECT-TYPE
+    SYNTAX     Integer32
+    MAX-ACCESS read-only
+    STATUS     current
+    DESCRIPTION
+        "
+        The number of special type of cnu that has been registerd in clt.
+        "
+    ::= { h3cEOCComCnuNumEntry 1 }
+
 END

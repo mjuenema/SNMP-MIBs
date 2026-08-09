@@ -28,17 +28,18 @@ ENTERASYS-IETF-BRIDGE-MIB-EXT-MIB DEFINITIONS ::= BEGIN
 --  parties a non-exclusive license to use this Specification in 
 --  connection with the management of Enterasys Networks products.
 
---  Copyright December, (2002-2004) Enterasys Networks, Inc.
+--  Copyright 2002-2007 Enterasys Networks, Inc.
 
 IMPORTS
-    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, Integer32
+    MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, Integer32, Unsigned32
         FROM SNMPv2-SMI
     TruthValue
         FROM SNMPv2-TC
     MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
         FROM SNMPv2-CONF
-    dot1dStpPortEntry, dot1dBasePortEntry, dot1dStpDesignatedRoot,
-    dot1dBasePort, dot1dBasePortIfIndex, dot1dBaseBridgeAddress
+    dot1dStpPort, dot1dStpPortEntry, dot1dStpDesignatedRoot,
+    dot1dBasePort, dot1dBasePortEntry, dot1dBasePortIfIndex,
+    dot1dBaseBridgeAddress
         FROM BRIDGE-MIB
     EnabledStatus
         FROM P-BRIDGE-MIB
@@ -48,7 +49,7 @@ IMPORTS
         FROM ENTERASYS-MIB-NAMES;
 
 etsysIetfBridgeMibExtMIB MODULE-IDENTITY
-    LAST-UPDATED "200411041447Z"  -- Thu Nov  4 14:47 GMT 2004
+    LAST-UPDATED "200707311819Z"  -- Tue Jul 31 18:19 UTC 2007
     ORGANIZATION "Enterasys Networks, Inc"
     CONTACT-INFO
         "Postal:  Enterasys Networks
@@ -64,6 +65,31 @@ etsysIetfBridgeMibExtMIB MODULE-IDENTITY
          MIBs under Enterasys Networks' enterprise OID pertaining to 
          proprietary extensions to the IETF BRIDGE-MIB as specified
          in RFC1493."
+
+    REVISION    "200707311819Z"  -- Tue Jul 31 18:19 UTC 2007
+    DESCRIPTION
+        "Added IMPORT of Unsigned32."
+
+    REVISION    "200703212102Z"  -- Wed Mar 21 21:02 GMT 2007
+    DESCRIPTION
+        "Added an additional scalar: 
+         etsysIetfBridgeDot1qStaticUcastAsMcast, which is intended to 
+         modify the behavior of the filter-database lookup, specifically
+         how static multicast entries in the database may be matched."
+
+    REVISION "200611091637Z"  -- Thu Nov  9 16:37 GMT 2006
+    DESCRIPTION
+        "Added a 'link partner capable' object for the Loop
+         Protect feature.  Recast the 'CIST error conditions'
+         object as the 'CIST non-forwarding reason' object.
+         Specified suitable default values for all Loop
+         Protect configuration objects."
+
+    REVISION "200610041951Z"  -- Wed Oct  4 19:51 GMT 2006
+    DESCRIPTION
+        "Addition of objects for configuring the Loop Protect
+         feature on the CIST, and an object for summarizing
+         Spanning Tree error conditions on the CIST."
 
     REVISION "200411041447Z"  -- Thu Nov  4 14:47 GMT 2004
     DESCRIPTION
@@ -133,6 +159,9 @@ etsysIetfBridgeDot1dSpanGuard     OBJECT IDENTIFIER
 etsysIetfBridgeDot1dBackupRoot    OBJECT IDENTIFIER
                                      ::= { etsysIetfBridgeMibExt 5 }
 
+etsysIetfBridgeDot1dLoopProtect   OBJECT IDENTIFIER
+                                     ::= { etsysIetfBridgeMibExt 6 }
+
 etsysIetfBridgeDot1Notifications  OBJECT IDENTIFIER
                                      ::= { etsysIetfBridgeMibExt 0 }
 
@@ -163,9 +192,10 @@ etsysIetfBridgeDot1dStpPortEntry OBJECT-TYPE
 
 EtsysIetfBridgeDot1dStpPortEntry ::=
     SEQUENCE { 
-        etsysIetfBridgeDot1dStpPortStpEnable          EnabledStatus,
-        etsysIetfBridgeDot1dStpPortSpanGuardBlocking  TruthValue,
-        etsysIetfBridgeDot1dStpPortCistRoleValue      INTEGER
+        etsysIetfBridgeDot1dStpPortStpEnable                EnabledStatus,
+        etsysIetfBridgeDot1dStpPortSpanGuardBlocking        TruthValue,
+        etsysIetfBridgeDot1dStpPortCistRoleValue            INTEGER,
+        etsysIetfBridgeDot1dStpPortCistNonForwardingReason  INTEGER
     }
 
 etsysIetfBridgeDot1dStpPortStpEnable   OBJECT-TYPE
@@ -226,7 +256,54 @@ etsysIetfBridgeDot1dStpPortCistRoleValue OBJECT-TYPE
                      on the CIST.
 
        backUp     -- this port has the role of backup port on the CIST."
-     ::= { etsysIetfBridgeDot1dStpPortEntry 3 }
+    ::= { etsysIetfBridgeDot1dStpPortEntry 3 }
+
+etsysIetfBridgeDot1dStpPortCistNonForwardingReason OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    none(1),
+                    disputed(2),
+                    spanGuardLocked(3),
+                    loopProtectEvent(4),
+                    loopProtectAdvisory(5),
+                    loopbackDetected(6)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Indicates the reason why this port has been placed in a
+         non-forwarding state on the CIST (other than as a result
+         of normal Spanning Tree protocol operation).
+
+         none(1) - the port has not been placed in a non-forwarding
+                   state due to any exceptional condition.
+
+         disputed(2) - the port has been placed in listening state
+                       because it has a designated role and an 
+                       inferior designated BPDU has been received.
+
+         spanGuardLocked(3) - the port has been placed in blocking
+                              state because it is configured as an
+                              admin edge port and a BPDU has been
+                              received.
+
+         loopProtectEvent(4) - the port has been placed in listening
+                               or blocking state because a BPDU
+                               timeout has occurred and the port is
+                               awaiting reception of a type 2 BPDU
+                               on a point-to-point link.
+
+         loopProtectAdvisory(5) - the port has been placed in
+                                  listening state because a BPDU
+                                  timeout has occurred (as with a
+                                  Loop Protect event), but this
+                                  condition may be normal because
+                                  the link partner does not support
+                                  the Loop Protect feature.
+
+         loopbackDetected(6) - the port has been placed in blocking
+                               state because a loopback condition
+                               has been detected."
+    ::= { etsysIetfBridgeDot1dStpPortEntry 4 }
 
 
 -- ---------------------------------------------------------- --
@@ -331,7 +408,7 @@ etsysIetfBridgeDot1dStpSpanGuardBlockTime OBJECT-TYPE
          state until the entity is reset.  Ports that are being
          held in the blocking state can be returned to normal
          service by writing the value of false(2) to their
-         resective etsysIetfBridgeDot1dBasePortSpanGuardBlocking
+         respective etsysIetfBridgeDot1dBasePortSpanGuardBlocking
          objects."
     DEFVAL { 0 }
     ::= { etsysIetfBridgeDot1dSpanGuard 3 }
@@ -360,6 +437,126 @@ etsysIetfBridgeDot1dStpBackupRootTrapEnable OBJECT-TYPE
          trap."
     DEFVAL { disabled }
     ::= { etsysIetfBridgeDot1dBackupRoot 2 }
+
+
+-- ---------------------------------------------------------- --
+-- Proprietary Loop Protect Feature
+-- ---------------------------------------------------------- --
+
+etsysIetfBridgeDot1dStpLoopProtectPortTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF EtsysIetfBridgeDot1dStpLoopProtectPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of port based information for the Loop Protect
+         feature."
+    ::= { etsysIetfBridgeDot1dLoopProtect 1 }
+
+etsysIetfBridgeDot1dStpLoopProtectPortEntry OBJECT-TYPE
+    SYNTAX      EtsysIetfBridgeDot1dStpLoopProtectPortEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The per port information for the Loop Protect feature."
+    AUGMENTS { dot1dStpPortEntry }
+    ::= { etsysIetfBridgeDot1dStpLoopProtectPortTable 1 }
+
+EtsysIetfBridgeDot1dStpLoopProtectPortEntry ::=
+    SEQUENCE { 
+        etsysIetfBridgeDot1dStpLoopProtectPortCistEnable     EnabledStatus,
+        etsysIetfBridgeDot1dStpLoopProtectPortCistBlocking   TruthValue,
+        etsysIetfBridgeDot1dStpLoopProtectPortPartnerCapable TruthValue
+    }
+
+etsysIetfBridgeDot1dStpLoopProtectPortCistEnable OBJECT-TYPE
+    SYNTAX      EnabledStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The enabled/disabled status of the Loop Protect
+         feature for this port on the Common and Internal
+         Spanning Tree (CIST)."
+    DEFVAL { disabled }
+    ::= { etsysIetfBridgeDot1dStpLoopProtectPortEntry 1 }
+
+etsysIetfBridgeDot1dStpLoopProtectPortCistBlocking OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The state of the port on the CIST with respect to
+         the Loop Protect feature.
+
+         true(1)   - this port is being held in the blocking state
+                     by the Loop Protect feature.
+
+         false(2)  - this port is not being held in the blocking 
+                     state by the Loop Protect feature.
+
+         When this object has a value of true(1) setting its value
+         to false(2) will cause the Loop Protect feature to no longer
+         hold the port in the blocking state.
+
+         All other set operations on this object are undefined and
+         MUST NOT have any effect."
+    DEFVAL { false }
+    ::= { etsysIetfBridgeDot1dStpLoopProtectPortEntry 2 }
+
+etsysIetfBridgeDot1dStpLoopProtectPortPartnerCapable OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The capability of the port's link partner with respect to
+         the Loop Protect feature.
+
+         true(1)   - the partner supports the Loop Protect feature.
+
+         false(2)  - the partner does not support the Loop Protect
+                     feature.
+
+         When this object has a value of true(1) the full functionality
+         of the Loop Protect feature will be utilized on the port.
+         When this object has a value of false(2) limited Loop Protect
+         functionality will be utilized on the port."
+    DEFVAL { false }
+    ::= { etsysIetfBridgeDot1dStpLoopProtectPortEntry 3 }
+
+etsysIetfBridgeDot1dStpLoopProtectEventThreshold OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The number of Loop Protect events that must occur on a
+         given port on a given Spanning Tree instance within the
+         interval defined by etsysIetfBridgeDot1dLoopProtectEventWindow
+         for the port to become locked (i.e., held indefinitely in
+         the blocking state).  If this object is set to zero
+         no locking will be performed."
+    DEFVAL { 3 }
+    ::= { etsysIetfBridgeDot1dLoopProtect 2 }
+
+etsysIetfBridgeDot1dStpLoopProtectEventWindow OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This time value, measured in units of seconds, specifies
+         the length of the interval during which Loop Protect events
+         are counted for a given port on a given Spanning Tree
+         instance."
+    DEFVAL { 180 }
+    ::= { etsysIetfBridgeDot1dLoopProtect 3 }
+
+etsysIetfBridgeDot1dStpLoopProtectEventTrapEnable OBJECT-TYPE
+    SYNTAX      EnabledStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The enabled/disabled status of Loop Protect event
+         notification."
+    DEFVAL { disabled }
+    ::= { etsysIetfBridgeDot1dLoopProtect 4 }
 
 
 -- ---------------------------------------------------------- --
@@ -508,6 +705,26 @@ etsysIetfBridgeDot1qMovedAddrTrapEnable   OBJECT-TYPE
     DEFVAL { disabled }
     ::= { etsysIetfBridgeDot1qBase 2 }
 
+etsysIetfBridgeDot1qStaticUcastAsMcast    OBJECT-TYPE
+    SYNTAX      EnabledStatus
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "When this object is set to enabled(1), the agent will 
+         allow unicast traffic which matches all 48 bits of a static
+         and the source VLAN of a multicast entry in the filter-database, 
+         except for the multicast-bit (bit 8). This augments the behavior
+         defined in the IEEE 802.1Q specification.
+
+         For example, if a static multicast address is configured as
+         01-02-03-04-05-06, VLAN 7, frames with a destination MAC address
+         of either 01-02-03-04-05-06 or 00-02-03-04-05-06, received on
+         VLAN 7, will match this entry."
+    REFERENCE
+        "IEEE 802.1Q/D11 Section 8.10.1"
+    DEFVAL { disabled }
+    ::= { etsysIetfBridgeDot1qBase 3 }
+
 -- ---------------------------------------------------------- --
 -- Notifications 
 -- ---------------------------------------------------------- --
@@ -552,6 +769,15 @@ etsysIetfBridgeDot1qFdbMovedAddr NOTIFICATION-TYPE
          indicate a dot1qTpFdbAddress has moved from one port
          to another."
     ::= { etsysIetfBridgeDot1Notifications 4 }
+
+etsysIetfBridgeDot1dCistLoopProtectEvent NOTIFICATION-TYPE
+    OBJECTS     { dot1dStpPort,
+                  etsysIetfBridgeDot1dStpLoopProtectPortCistBlocking }
+    STATUS      current
+    DESCRIPTION
+        "This notification indicates that a Loop Protect event
+         has occurred on a bridge port on the CIST."
+    ::= { etsysIetfBridgeDot1Notifications 5 }
 
 
 -- -------------------------------------------------------------
@@ -693,6 +919,50 @@ etsysIetfBridgeDot1qFdbMovedAddrNotification NOTIFICATION-GROUP
         "The Moved Address Notification."
     ::= { etsysIetfBridgeGroups 12 }
 
+etsysIetfBridgeLoopProtect OBJECT-GROUP
+    OBJECTS {
+        etsysIetfBridgeDot1dStpLoopProtectPortCistEnable,
+        etsysIetfBridgeDot1dStpLoopProtectPortCistBlocking,
+        etsysIetfBridgeDot1dStpLoopProtectPortPartnerCapable,
+        etsysIetfBridgeDot1dStpLoopProtectEventThreshold,
+        etsysIetfBridgeDot1dStpLoopProtectEventWindow,
+        etsysIetfBridgeDot1dStpLoopProtectEventTrapEnable
+    }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects relating to the Loop Protect
+         feature."
+    ::= { etsysIetfBridgeGroups 13 }
+
+etsysIetfBridgeLoopProtectNotification NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        etsysIetfBridgeDot1dCistLoopProtectEvent
+    }
+    STATUS      current
+    DESCRIPTION
+        "The Loop Protect Event Notification for the CIST."
+    ::= { etsysIetfBridgeGroups 14 }
+
+etsysIetfBridgeStpCistNonForwardingReason OBJECT-GROUP
+    OBJECTS {
+        etsysIetfBridgeDot1dStpPortCistNonForwardingReason
+    }
+    STATUS      current
+    DESCRIPTION
+        "An object that indicates the reason for an exceptional
+         non-forwarding condition per port on the CIST."
+    ::= { etsysIetfBridgeGroups 15 }
+
+etsysIetfBridgeStaticUcastAsMcast OBJECT-GROUP
+    OBJECTS {
+        etsysIetfBridgeDot1qStaticUcastAsMcast
+    }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects pertaining to the transmission of
+         unicast packets received by the device."
+    ::= { etsysIetfBridgeGroups 16 }
+
 
 -- -------------------------------------------------------------
 -- Compliance statements
@@ -770,7 +1040,37 @@ etsysIetfBridgeCompliance MODULE-COMPLIANCE
             "Support for this group is mandatory for entities
              that support the Moved Address notification feature."
 
+        GROUP       etsysIetfBridgeLoopProtect
+        DESCRIPTION
+            "Support for this group is mandatory for entities
+             that support the Loop Protect feature."
+
+        GROUP       etsysIetfBridgeLoopProtectNotification
+        DESCRIPTION
+            "Support for this group is mandatory for entities
+             that support the Loop Protect feature."
+
+        GROUP       etsysIetfBridgeStpCistNonForwardingReason
+        DESCRIPTION
+            "Support for this group is optional and only applies
+             to products that wish to provide the reasons for
+             exceptional non-forwarding conditions."
 
     ::= { etsysIetfBridgeCompliances 1 }
+
+etsysIetfBridgeStaticUcastAsMcastCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for devices that support
+        the ability to transmit unicast frames as multicast frames."
+
+    MODULE
+        GROUP       etsysIetfBridgeStaticUcastAsMcast
+        DESCRIPTION
+           "This group is mandatory for all devices that support the
+            ability to transmit unicast frames as if the multicast bit
+            was set in the destination MAC address."
+    ::= { etsysIetfBridgeCompliances  2 }
+
 
 END

@@ -1,19 +1,18 @@
 -- ===========================================================
--- Copyright (C) 2007 by H3C TECHNOLOGIES. All rights reserved.
+-- Copyright (C) 2004 by H3C Technologies. All rights reserved.
 -- Description: The MIB is designed to manage the disk.
 -- Reference:
--- Version: V1.0
+-- Version: V1.1
 -- History:
 --   V1.0 2007-09-04 created by lizhicheng
+--   V1.1 2010-02-05
+--        Add h3cDiskPowerOffReason to h3cDiskEntry
 -- =================================================================
 H3C-DISK-MIB DEFINITIONS ::= BEGIN
 IMPORTS
-        Counter32, Integer32,
-        OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
+        Integer32, OBJECT-TYPE, MODULE-IDENTITY
     FROM SNMPv2-SMI
-        entPhysicalIndex
-    FROM ENTITY-MIB
-        H3cStorageEnableState, H3cStorageActionType, h3cStorageRef
+        h3cStorageRef, H3cStorageEnableState, H3cStorageActionType
     FROM H3C-STORAGE-REF-MIB;
 
 h3cDisk MODULE-IDENTITY
@@ -70,7 +69,8 @@ H3cDiskEntry ::= SEQUENCE
         h3cDiskGlobalSpare         INTEGER,
         h3cDiskLocalSpare          INTEGER,
         h3cDiskReadCache           H3cStorageEnableState,
-        h3cDiskWriteCache          H3cStorageEnableState
+        h3cDiskWriteCache          H3cStorageEnableState,
+        h3cDiskPowerOffReason      INTEGER
     }
 
 h3cDiskIndex OBJECT-TYPE
@@ -240,4 +240,23 @@ h3cDiskWriteCache OBJECT-TYPE
         "This object identifies the state of write cache."
     DEFVAL { enable }
     ::= { h3cDiskEntry 13 }
+
+h3cDiskPowerOffReason OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            environmentUnstable(1),
+            mediumError(2),
+            smartCheckError(3),
+            generalError(4)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object describes the reason of disk poweroff.
+        The value 'environmentUnstable' means disk poweroff and may poweron again.
+        The value 'mediumError' means disk poweroff and never poweron.
+        The value 'smartCheckError' means disk's SMART check failed and poweroff.
+        The value 'generalError' means disk poweroff because of general error."
+    ::= { h3cDiskEntry 14 }
+
 END

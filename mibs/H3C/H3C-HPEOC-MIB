@@ -1,9 +1,9 @@
 -- =================================================================
--- Copyright (C) 2007 by H3C TECHNOLOGIES. All rights reserved.
+-- Copyright (C) 2009 by H3C Technologies.  All rights reserved.
 --
 -- Description:
 -- Reference:
--- Version: V1.2
+-- Version: V1.3
 -- History:
 -- V1.0 created by liujingya.
 --    Initial version of the MIB
@@ -11,6 +11,10 @@
 -- V1.2 2008-5-19 Added h3cHPEOCCltAutoUpgrade, h3cHPEOCCnuAnonymStatus and
 --    h3cHPEOCBitPerSymbolTable, modified description of h3cHPEOCCnuBcastControl
 --    by liujingya.
+-- V1.3 2009-2-13 Added h3cHPEOCOnLineCnuNumber, h3cHPEOCCpuMacAddress,
+--    h3cHPEOCOffLineCnuNumber, h3cHPEOCDownLoadCNUFWResult,
+--    h3cHPEOCCltAutoUpgradeType, h3cHPEOCServerAddress, h3cHPEOCServerUser,
+--    h3cHPEOCServerPassword and h3cHPEOCCnuMacLimit by liujingya.
 -- =================================================================
 H3C-HPEOC-MIB DEFINITIONS ::= BEGIN
 
@@ -19,9 +23,10 @@ IMPORTS
     FROM HUAWEI-3COM-OID-MIB
         ifIndex
     FROM IF-MIB
-        Integer32, Unsigned32, Counter64, OBJECT-TYPE, MODULE-IDENTITY
+        Integer32, Unsigned32, Counter64, OBJECT-TYPE, MODULE-IDENTITY,
+        IpAddress
     FROM SNMPv2-SMI
-        DisplayString, TruthValue
+        DisplayString, TruthValue, MacAddress
     FROM SNMPv2-TC;
 
 
@@ -196,7 +201,8 @@ h3cHPEOCCnuSysManEntry OBJECT-TYPE
 H3cHPEOCCnuSysManEntry ::= SEQUENCE
     {
         h3cHPEOCCnuBcastControl    TruthValue,
-        h3cHPEOCCnuAnonymStatus    TruthValue
+        h3cHPEOCCnuAnonymStatus    TruthValue,
+        h3cHPEOCCnuMacLimit        Unsigned32
     }
 
 h3cHPEOCCnuBcastControl OBJECT-TYPE
@@ -218,10 +224,24 @@ h3cHPEOCCnuAnonymStatus OBJECT-TYPE
     DESCRIPTION
         "
         Anonymity status.
-        true(1)  - the user which use the CNU is anonymous.
-        false(2) - the user which use the CNU has an account.
+        true(1)  - the user which uses the CNU is anonymous.
+        false(2) - the user which uses the CNU has an account.
         "
     ::= { h3cHPEOCCnuSysManEntry 2 }
+
+h3cHPEOCCnuMacLimit OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "
+        Configure the max number of MAC address entries which can access
+        through the CNU, it ranges from 1 to 8.
+        Otherwise,
+        If configure 0, the CNU won't limit the MAC address entry.
+        If configure 0xFF, it means no MAC address entry can access the CNU.
+        "
+    ::= { h3cHPEOCCnuSysManEntry 3 }
 
 h3cHPEOCCltAutoUpgrade OBJECT-TYPE
     SYNTAX      TruthValue
@@ -231,13 +251,111 @@ h3cHPEOCCltAutoUpgrade OBJECT-TYPE
         "
         Auto upgrade Status.
         true(1) - The firmware of the CNU will be auto changed by CLT.
-        false(2)- The firmware of the CNU will not be auto changed. 
+        false(2)- The firmware of the CNU will not be auto changed.
         "
     DEFVAL
         {
             false
         }
     ::= { h3cHPEOCSystem 5 }
+
+h3cHPEOCOnLineCnuNumber OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The total number of the online CNU(s).
+        "
+    ::= { h3cHPEOCSystem 6 }
+
+h3cHPEOCCpuMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        EOC CPU's MAC address.
+        "
+    ::= { h3cHPEOCSystem 7 }
+
+h3cHPEOCOffLineCnuNumber OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "
+        The total number of the offline CNU(s).
+        "
+    ::= { h3cHPEOCSystem 8 }
+
+h3cHPEOCDownLoadCNUFWResult OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "
+        Download CNU firmware result.
+        "
+    ::= { h3cHPEOCSystem 9 }
+
+h3cHPEOCCltAutoUpgradeType OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            flash(1),
+            ftp(2),
+            tftp(3)
+        }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "
+        Type of auto upgrade status.
+        It depends on h3cHPEOCCltAutoUpgrade status.
+        flash - The CLT auto upgrade the firmware inside its flash
+                   to the CNUs.
+        ftp    - First download the firmware from FTP server to the CLT,
+                   then the CLT auto upgrade the firmware to the CNUs.
+        tftp   - First download the firmware from TFTP server to the CLT,
+                   then the CLT auto upgrade the firmware to the CNUs.
+        "
+    ::= { h3cHPEOCSystem 10 }
+
+h3cHPEOCAutoUpObjects OBJECT IDENTIFIER ::= { h3cHPEOCSystem 11 }
+
+h3cHPEOCServerAddress OBJECT-TYPE
+    SYNTAX     IpAddress
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "
+        The address of remote host acting as server for operation.
+        The default value is 0.0.0.0
+        "
+    ::= { h3cHPEOCAutoUpObjects 1 }
+
+h3cHPEOCServerUser OBJECT-TYPE
+    SYNTAX     DisplayString
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "
+        When using ftp to transfer files, the user name must be
+        specified through this node.  It contains 1 to 30 characters.
+        "
+    ::= { h3cHPEOCAutoUpObjects 2 }
+
+h3cHPEOCServerPassword OBJECT-TYPE
+    SYNTAX     DisplayString
+    MAX-ACCESS read-write
+    STATUS     current
+    DESCRIPTION
+        "
+        Remote user password for copying via ftp protocol. Optionally,
+        this object may be ignored for protocols other than ftp.
+        It contains 1 to 31 characters.
+        "
+    ::= { h3cHPEOCAutoUpObjects 3 }
 
 --
 -- h3cHPEOCCableInfo
@@ -416,7 +534,7 @@ h3cHPEOCBitPerSymbolIndex OBJECT-TYPE
     STATUS     current
     DESCRIPTION
         "
- 	The index of the h3cHPEOCBitPerSymbolTable.
+        The index of the h3cHPEOCBitPerSymbolTable.
         "
     ::= { h3cHPEOCBitPerSymbolEntry 1 }
 
@@ -427,7 +545,7 @@ h3cHPEOCBitPerSymbol OBJECT-TYPE
     DESCRIPTION
         "
         h3cHPEOCBitPerSymbol returns all the bits per symbol on the fixed
-        frequency.  Each 4 bits stand for one value, all the values 
+        frequency.  Each 4 bits stand for one value, all the values
         picking-up will make up a cable bit map.
         "
     ::= { h3cHPEOCBitPerSymbolEntry 2 }

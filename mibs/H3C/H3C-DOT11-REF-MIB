@@ -1,10 +1,10 @@
 -- =============================================================================
--- Copyright (C) 2006 by HUAWEI-3COM TECHNOLOGIES.  All rights reserved.
+-- Copyright (c) 2004-2010 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description:
 --   The file defines a MIB to provide root node and TC for 802.11 MIB series.
 -- Reference:
--- Version: V1.3
+-- Version: V1.6
 -- History:
 --   V1.0 created by shiyang (Richard)
 --     Initial version 2006-05-10
@@ -21,6 +21,14 @@
 --        Add enumerations to H3cDot11RadioType.
 --        Remove hyphen in enumerations of H3cDot11QosAcType.
 --        Add h3cDot11ElementGroup.
+--   V1.4 2008-11-18 modified by Wang Lu
+--        Add H3cDot11WorkMode and H3cDot11CirMode
+--   V1.5 2009-05-07 modified by Wang Shaojie
+--        Modify H3cDot11SSIDEncryptModeType
+--   V1.6 2010-01-07 modified by Wang Shaojie
+--        Modify H3cDot11SecIEStatusType, H3cDot11CipherType
+--        2010-03-18 modified by Wang Lu
+--        Modify H3cDot11AKMType and H3cDot11CipherType
 -- =============================================================================
 H3C-DOT11-REF-MIB DEFINITIONS ::= BEGIN
 
@@ -34,14 +42,15 @@ IMPORTS
     FROM HUAWEI-3COM-OID-MIB;
 
 h3cDot11 MODULE-IDENTITY
-    LAST-UPDATED "200706212000Z"        -- Jun 21, 2007 at 20:00 GMT
+    LAST-UPDATED "201001072000Z"        -- Jan 7, 2009 at 20:00 GMT
     ORGANIZATION
-        "HUAWEI-3COM Technologies Co., Ltd."
+        "Hangzhou H3C Tech. Co., Ltd."
     CONTACT-INFO
-        "Platform Team HUAWEI-3COM Technologies Co., Ltd.
-         Hai-Dian District Beijing P.R. China
-         Http://www.huawei-3com.com
-         Zip:100085"
+        "Platform Team Hangzhou H3C Tech. Co., Ltd.
+        Hai-Dian District Beijing P.R. China
+        http://www.h3c.com
+        Zip:100085
+        "
     DESCRIPTION
         "This MIB defines the root node and TC for 802.11 features.
         By this way, the MIB series for 802.11 will be easily maintained.
@@ -82,6 +91,13 @@ h3cDot11 MODULE-IDENTITY
         The authentication and key management method defined by
         802.11i, and which includes 802.1x and pre-shared key."
 
+
+    REVISION "201001072000Z"        -- Jan 7, 2010 at 20:00 GMT
+    DESCRIPTION
+        "Modified for CMCC of GuangDong province."
+    REVISION "200905072000Z"        -- May 7, 2009 at 20:00 GMT
+    DESCRIPTION
+        "Modified for CMCC of GuangDong province."
     REVISION "200706212000Z"        -- Jun 21, 2007 at 20:00 GMT
     DESCRIPTION
         "Modified for CMCC(China Mobile Communication Corporation)
@@ -184,11 +200,13 @@ H3cDot11SSIDEncryptModeType ::=   TEXTUAL-CONVENTION
         "Represents encryption mode for the specific ESS:
         The following values are supported:
         cleartxt(1)  - clear txt,
-        cipher(2)    - WPA and 802.11i"
+        cipher(2)    - WPA and 802.11i
+        wapi(3)      - WAPI."
     SYNTAX      INTEGER
         {
             cleartxt(1),
-            cipher(2)
+            cipher(2),
+            wapi(3)
         }
 
 H3cDot11PreambleType ::=   TEXTUAL-CONVENTION
@@ -250,13 +268,15 @@ H3cDot11SecIEStatusType ::=   TEXTUAL-CONVENTION
         none(1) - both wpa and rsn are disabled,
         rsn(2)  - only enable rsn,
         wpa(3)  - only enable wpa,
-        all(4)  - both wpa and rsn are enabled."
+        all(4)  - both wpa and rsn are enabled,
+        wapi(5) - only enable wapi."
     SYNTAX      INTEGER
         {
             none(1),
             rsn(2),
             wpa(3),
-            all(4)
+            all(4),
+            wapi(5)
         }
 
 H3cDot11CipherType ::=   TEXTUAL-CONVENTION
@@ -270,14 +290,18 @@ H3cDot11CipherType ::=   TEXTUAL-CONVENTION
         wep40(2)    - 40-bit WEP key,
         tkip(4)     - WPA Temporal Key encryption,
         aesccmp(16) - WPA AES CCMP encryption,
-        wep104(32)  - 104-bit WEP key."
+        wep104(32)  - 104-bit WEP key,
+        wpisms4(64) - WAPI encryption,
+        wep128(128) - 128-bit WEP key."
     SYNTAX      INTEGER
         {
             none(1),
             wep40(2),
             tkip(4),
             aesccmp(16),
-            wep104(32)
+            wep104(32),
+            wpisms4(64),
+            wep128(128)
         }
 
 H3cDot11AuthenType ::=   TEXTUAL-CONVENTION
@@ -305,12 +329,14 @@ H3cDot11AKMType ::=   TEXTUAL-CONVENTION
         The following values are supported:
         none(1)         - No key management mode configured,
         psk(2)          - pre-shared key authentication,
-        dot1x(3)        - 802.1x authentication."
+        dot1x(3)        - 802.1x authentication,
+        wapi(4)         - WAPI."
     SYNTAX      INTEGER
         {
             none(1),
             psk(2),
-            dot1x(3)
+            dot1x(3),
+            wapi(4)
         }
 
 H3cDot11AssocFailType ::=   TEXTUAL-CONVENTION
@@ -395,6 +421,34 @@ H3cDot11RadioElementIndex ::= TEXTUAL-CONVENTION
 -- *****************************************************************************
 -- *  Major sections
 -- *****************************************************************************
+
+H3cDot11WorkMode ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+    "Work mode of device.
+    In normal mode, the device will provide WLAN service.
+    In monitor mode, the device will monitor the environment.
+    In hybrid mode, the device will provide WLAN service while monitoring the
+    environment."
+    SYNTAX INTEGER
+    {
+        normal(1),
+        monitor(2),
+        hybrid(3)
+    }
+
+H3cDot11CirMode ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+    "The mode of committed information rate.
+    'static' means station will use the configured CIR seperately.
+    For example, if the CIR is 1Mbps, every station can enjoy 1Mbps.
+    'dynamic' means all stations will share the configured CIR in common."
+    SYNTAX INTEGER
+    {
+        static(1),
+        dynamic(2)
+    }
 
 h3cDot11Common OBJECT IDENTIFIER ::= { h3cDot11 12 }
 

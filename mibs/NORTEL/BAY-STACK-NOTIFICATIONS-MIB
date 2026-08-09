@@ -21,14 +21,45 @@ IMPORTS
     SnmpAdminString
         FROM SNMP-FRAMEWORK-MIB
     bayStackConfigExpectedStackSize
-        FROM BAY-STACK-MIB;
+        FROM BAY-STACK-MIB
+    s5ChasComType
+        FROM S5-CHASSIS-MIB
+    InterfaceIndex
+        FROM IF-MIB;
 
 bayStackNotificationsMib    MODULE-IDENTITY
-   LAST-UPDATED "200508220000Z"
+   LAST-UPDATED "200909280000Z"
    ORGANIZATION "Nortel Networks"
-   CONTACT-INFO ""
+   CONTACT-INFO "Nortel Networks"
    DESCRIPTION
        "Miscellaneous NOTIFICATION definitions for BayStack products."
+
+   REVISION "200909280000Z" -- 28 September 2009
+   DESCRIPTION
+       "Version 16:  Added bsnRateLimitExceeded."
+
+   REVISION "200807090000Z" -- 09 July 2008
+   DESCRIPTION
+       "Version 15:  Added bsnTemperatureExceeded."
+
+   REVISION "200803310000Z" -- 31 March 2008
+   DESCRIPTION
+       "Version 14:  Added bsnEnteredForcedStackModeMAC,
+                           bsnEnteredForcedStackMode."
+
+   REVISION "200703050000Z" -- 05 March 2007
+   DESCRIPTION
+       "Version 13:  Added bsnTrialLicenseExpirationTime,
+                           bsnTrialLicenseExpirationNumber,
+                           bsnTrialLicenseExpiration."
+
+   REVISION "200604060000Z" -- 06 April 2006
+   DESCRIPTION
+       "Version 12:  Fix typo."
+
+   REVISION "200604040000Z" -- 04 April 2006
+   DESCRIPTION
+       "Version 11:  Added bsnEapUbpFailure trap."
 
    REVISION "200508220000Z" -- 22 August 2005
    DESCRIPTION
@@ -123,6 +154,76 @@ bsnActualStackSize OBJECT-TYPE
         "The actual stack size when a bsnStackConfigurationError
          notification is generated."
     ::= { bsnObjects 6 }
+
+bsnEapUbpFailureIfIndex OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The ifIndex of the port for which UBP policies could
+         not be installed."
+    ::= { bsnObjects 7 }
+
+bsnEapUbpFailureMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The MAC address for which UBP policies could not be
+         installed."
+    ::= { bsnObjects 8 }
+
+bsnEapUbpFailureRoleString OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..64))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The role string of the UBP policies which could not
+         be installed."
+    ::= { bsnObjects 9 }
+
+bsnTrialLicenseExpirationTime OBJECT-TYPE
+    SYNTAX      Integer32 (0..30)
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The number of days until a feature trial license will expire.
+         A value of 0 means the license has expired."
+    ::= { bsnObjects 10 }
+
+bsnTrialLicenseExpirationNumber OBJECT-TYPE
+    SYNTAX      Integer32 (1..10)
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The number of the license that will expire or that has expired."
+    ::= { bsnObjects 11 }
+
+bsnEnteredForcedStackModeMAC OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The MAC address of a switch which has entered forced stack mode."
+    ::= { bsnObjects 12 }
+
+bsnEapRAVErrorMacAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The MAC address that was authorized on a port which could not be
+         moved to the Radius-Assigned VLAN."
+    ::= { bsnObjects 13 }
+
+bsnEapRAVErrorPort OBJECT-TYPE
+    SYNTAX      InterfaceIndex
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The ifIndex of the port that could not be moved to the Radius-Assigned
+         VLAN."
+    ::= { bsnObjects 14 }
 
 --
 -- Notification types
@@ -246,7 +347,7 @@ bsnLacPortDisabledDueToLossOfVLACPDU NOTIFICATION-TYPE
     }
     STATUS current
     DESCRIPTION
-        ""
+        "Generated when a port is disabled due to the loss of a VLACP PDU."
     ::= { bsnNotifications0 11 }
 
 bsnLacPortEnabledDueToReceiptOfVLACPDU NOTIFICATION-TYPE
@@ -255,7 +356,7 @@ bsnLacPortEnabledDueToReceiptOfVLACPDU NOTIFICATION-TYPE
     }
     STATUS current
     DESCRIPTION
-        ""
+        "Generated when a port is enabled due to receipt of a VLACP PDU."
     ::= { bsnNotifications0 12 }
 
 bsnStackConfigurationError NOTIFICATION-TYPE
@@ -268,6 +369,74 @@ bsnStackConfigurationError NOTIFICATION-TYPE
         "This notification is generated when the expected size of
          a stack is not equal to the actual size of the stack."
     ::= { bsnNotifications0 13 }
+
+bsnEapUbpFailure NOTIFICATION-TYPE
+    OBJECTS {
+        bsnEapUbpFailureIfIndex,
+        bsnEapUbpFailureMacAddress,
+        bsnEapUbpFailureRoleString
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification is generated when installation of a UBP
+         policy fails following EAP authentication."
+    ::= { bsnNotifications0 14 }
+
+bsnTrialLicenseExpiration NOTIFICATION-TYPE
+    OBJECTS {
+        bsnTrialLicenseExpirationTime,
+        bsnTrialLicenseExpirationNumber
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification is generated to indicate that a trial license is
+         going to expire soon, or has already expired."
+    ::= { bsnNotifications0 15 }
+
+bsnEnteredForcedStackMode NOTIFICATION-TYPE
+    OBJECTS {
+        bsnEnteredForcedStackModeMAC
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification is generated to indicate that a switch has
+         entered forced stack mode."
+    ::= { bsnNotifications0 16 }
+
+bsnTemperatureExceeded NOTIFICATION-TYPE
+    OBJECTS {
+        s5ChasComType
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification is generated when the temperature of a chassis
+         component has exceeded some threshold.  The instance of s5ChasComType
+         included in the notification identifies the component."
+    ::= { bsnNotifications0 17 }
+
+bsnEapRAVError NOTIFICATION-TYPE
+    OBJECTS {
+        dot1xAuthPaeState,
+        dot1xAuthBackendAuthState,
+        bsnEapRAVErrorMacAddress,
+        bsnEapRAVErrorPort
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification indicates that an Eap client MAC address was
+         authorized on a port, but the port could not be moved to the
+         Radius-Assigned VLAN."
+    ::= { bsnNotifications0 18 }
+
+bsnEapRateLimitExceeded NOTIFICATION-TYPE
+    OBJECTS {
+        ifIndex
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification indicates that incoming traffic on a port
+         exceeded the rate limit settings on that port."
+    ::= { bsnNotifications0 19 }
 
 END
 

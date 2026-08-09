@@ -1,9 +1,9 @@
 -- =================================================================
--- Copyright (C) 2002 by HUAWEI-3COM TECHNOLOGIES.  All rights reserved.
+-- Copyright (c) 2004-2010 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description: interface extension mib
 -- Reference: IF-MIB
--- Version: V1.2
+-- Version: V1.5
 -- History:
 --   V1.0 created by gaolong
 --     Initial version 2004-11-13
@@ -12,28 +12,33 @@
 --   V1.2 Modified by chenxi
 --     Add h3cRTParentIfTable, h3cRTSubIfTable and
 --     h3cIfLinkModeTable 2007-10-15
+--   V1.3 2009-05-05 Add h3cIfPhysicalNumber, h3cIfTable
+--   V1.4 2009-08-08 Add h3cIfMtu, h3cIfBandwidth, h3cIfDiscardPktRate,
+--     h3cIfExtTrapCfgTable
+--   V1.5 2010-09-04 Add h3cIfInNUcastPkts, h3cIfOutNUcastPkts and h3cIfStatusKeepTime by shuaixj
 -- =================================================================
 H3C-IF-EXT-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
         h3cCommon
     FROM HUAWEI-3COM-OID-MIB
-        ifIndex
+        ifIndex, ifDescr
     FROM IF-MIB
-        Integer32, Unsigned32, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
+        Integer32, Counter64, Unsigned32, TimeTicks,
+        OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
     FROM SNMPv2-SMI
         DisplayString, RowStatus, TruthValue
     FROM SNMPv2-TC;
 
 h3cIfExt MODULE-IDENTITY
-    LAST-UPDATED "200411131936Z"        -- December 13, 2004 at 19:36 GMT
+    LAST-UPDATED "200905061936Z"        -- May 6, 2009 at 19:36 GMT
     ORGANIZATION
-        "Huawei 3Com Technologies Co., Ltd."
+        "Hangzhou H3C Technologies Co., Ltd."
     CONTACT-INFO
-        "Platform Team Huawei 3Com Technologies Co., Ltd.
+        "Platform Team H3C Technologies Co., Ltd.
          Hai-Dian District Beijing P.R. China
-         Http://www.huawei-3com.com
-         Zip:100085"
+         http://www.h3c.com
+         Zip: 100085"
     DESCRIPTION
         "This MIB is an extension of interface MIBs such as IF-MIB.
 
@@ -43,6 +48,9 @@ h3cIfExt MODULE-IDENTITY
         so users should refer to the related documents to acquire more
         detail information.
         "
+    REVISION "200905061936Z"
+    DESCRIPTION
+        "Update this MIB module."
     REVISION "200411131936Z"        -- December 13, 2004 at 19:36 GMT
     DESCRIPTION
         "The initial revision of this MIB module."
@@ -483,15 +491,192 @@ h3cIfLinkModeSwitchSupport OBJECT-TYPE
         only in bridge or route mode."
     ::= { h3cIfLinkModeEntry 3 }
 
+h3cIfInterfaces OBJECT IDENTIFIER ::= { h3cIfExtGroup 3 }
+
+h3cIfPhysicalNumber OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the number of physical interfaces in the device."
+    ::= { h3cIfInterfaces 1 }
+
+h3cIfTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cIfEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A list of interface entries. The number of entries is given by
+         the value of IfNumber."
+    ::= { h3cIfInterfaces 2 }
+
+h3cIfEntry OBJECT-TYPE
+    SYNTAX      H3cIfEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An entry containing management information applicable to a
+         particular interface."
+    INDEX
+        {
+            ifIndex
+        }
+    ::= { h3cIfTable 1 }
+
+H3cIfEntry ::= SEQUENCE
+    {
+        h3cIfUpDownTimes      Integer32,
+        h3cIfMtu              Integer32,
+        h3cIfBandwidthRate    Integer32,
+        h3cIfDiscardPktRate   Integer32,
+        h3cIfStatusKeepTime   TimeTicks,
+        h3cIfInNUcastPkts     Counter64,
+        h3cIfOutNUcastPkts    Counter64
+    }
+
+h3cIfUpDownTimes OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The interface's up/down times, since the device was initialized."
+    ::= { h3cIfEntry 1 }
+
+h3cIfMtu OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The size of the largest datagram which can be sent/received on the
+        interface, specified in octets.  For interfaces that are used for
+        transmitting network datagram, this is the size of the largest network
+        datagram that can be sent on the interface."
+    ::= { h3cIfEntry 2 }
+
+h3cIfBandwidthRate OBJECT-TYPE
+    SYNTAX      Integer32(0..100)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The rate of the bandwidth for an interface."
+    ::= { h3cIfEntry 3 }
+
+h3cIfDiscardPktRate OBJECT-TYPE
+    SYNTAX      Integer32(0..100)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The rate of the discarded packets for an interface."
+    ::= { h3cIfEntry 4 }
+
+h3cIfStatusKeepTime OBJECT-TYPE
+    SYNTAX      TimeTicks
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The time since the interface
+        entered its current operational state."
+    ::= { h3cIfEntry 5 }
+
+h3cIfInNUcastPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The number of non-unicast (i.e., subnetwork-
+        broadcast or subnetwork-multicast) packets
+        delivered to a higher-layer protocol."
+    ::= { h3cIfEntry 6 }
+
+h3cIfOutNUcastPkts OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The total number of packets that higher-level
+        protocols requested be transmitted to a non-
+        unicast (i.e., a subnetwork-broadcast or
+        subnetwork-multicast) address."
+    ::= { h3cIfEntry 7 }
+
 --
 -- Notification definitions
 --
 -- =================================================================
 -- Traps are defined below.
+
 h3cIfExtTrap OBJECT IDENTIFIER ::= { h3cIfExt 3 }
-
--- All trap definitions should be placed under this object.
 h3cIfExtTrapPrex OBJECT IDENTIFIER ::= { h3cIfExtTrap 0 }
+-- All trap definitions should be placed under this object.
 
+h3cIfBandwidthUsageHigh NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifDescr,
+            h3cIfBandwidthRate,
+            h3cIfBandwidthUpperLimit
+        }
+    STATUS current
+    DESCRIPTION
+        "The notification is generated when the rate of the bandwidth for the
+         interface exceeds the upper limit."
+    ::= { h3cIfExtTrapPrex 1 }
+
+h3cIfDiscardPktRateHigh NOTIFICATION-TYPE
+    OBJECTS
+        {
+            ifDescr,
+            h3cIfDiscardPktRate,
+            h3cIfDiscardPktRateUpperLimit
+        }
+    STATUS current
+    DESCRIPTION
+        "The notification is generated when the rate of the discarded packets
+         for the interface exceeds the upper limit."
+    ::= { h3cIfExtTrapPrex 2 }
+
+h3cIfExtTrapObject OBJECT IDENTIFIER ::= { h3cIfExtTrap 1 }
+
+h3cIfExtTrapCfgTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF H3cIfExtTrapCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The trap configuration table."
+    ::= { h3cIfExtTrapObject 1 }
+
+h3cIfExtTrapCfgEntry OBJECT-TYPE
+    SYNTAX      H3cIfExtTrapCfgEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "An entry for this table."
+    INDEX
+        {
+            ifIndex
+        }
+    ::= { h3cIfExtTrapCfgTable 1 }
+
+H3cIfExtTrapCfgEntry ::= SEQUENCE
+    {
+        h3cIfBandwidthUpperLimit      Integer32,
+        h3cIfDiscardPktRateUpperLimit Integer32
+    }
+
+h3cIfBandwidthUpperLimit OBJECT-TYPE
+    SYNTAX      Integer32(1..100)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The rate of the bandwidth upper limit for an interface."
+    ::= { h3cIfExtTrapCfgEntry 1 }
+
+h3cIfDiscardPktRateUpperLimit OBJECT-TYPE
+    SYNTAX      Integer32(1..100)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The rate of the discarded packets upper limit for an interface."
+    ::= { h3cIfExtTrapCfgEntry 2 }
 
 END

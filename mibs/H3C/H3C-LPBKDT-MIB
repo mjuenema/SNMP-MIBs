@@ -3,9 +3,12 @@
 --
 -- Description: Loopback detection MIB
 -- Reference:
--- Version: V1.0
+-- Version: V1.1
 -- History:
 -- V1.0 2008-09-27 Created by LuoXuefang
+-- V1.1 2009-03-30 Added h3cLpbkdtTrapPerVlanLoopbacked, 
+--                 h3cLpbkdtTrapPerVlanRecovered and
+--                 h3cLpbkdtObjects by TongWei.
 -- ==================================================================
 H3C-LPBKDT-MIB DEFINITIONS ::= BEGIN
 
@@ -14,11 +17,13 @@ IMPORTS
         FROM HUAWEI-3COM-OID-MIB
     ifIndex, ifDescr
         FROM IF-MIB
-    MODULE-IDENTITY, NOTIFICATION-TYPE
+    VlanId
+        FROM Q-BRIDGE-MIB
+    OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
         FROM SNMPv2-SMI;
 
 h3cLpbkdt MODULE-IDENTITY
-    LAST-UPDATED "200809271504Z"        -- September 27, 2008 at 15:04 GMT
+    LAST-UPDATED "200903301741Z"        -- March 30, 2009 at 17:41 GMT
     ORGANIZATION "H3C Technologies Co., Ltd."
     CONTACT-INFO
         "Comware Team H3C Technologies Co., Ltd.
@@ -28,6 +33,13 @@ h3cLpbkdt MODULE-IDENTITY
     DESCRIPTION
         "Loops may cause broadcast storms.  The purpose of loopback detection
          is to detect loops on the device and to protect the network."
+
+    REVISION "200903301741Z"
+    DESCRIPTION
+        "To fix bugs in the MIB file."
+    REVISION "200809271504Z"
+    DESCRIPTION
+        "The initial revision of this MIB module."
     ::= { h3cCommon 95 }
 
 -- ==================================================================
@@ -36,8 +48,9 @@ h3cLpbkdt MODULE-IDENTITY
 --
 -- ==================================================================
 
-h3cLpbkdtNotifications OBJECT IDENTIFIER ::= {  h3cLpbkdt 1  }
-h3cLpbkdtTrapPrefix OBJECT IDENTIFIER ::= { h3cLpbkdtNotifications 0 }
+h3cLpbkdtNotifications OBJECT IDENTIFIER ::= { h3cLpbkdt 1 }
+h3cLpbkdtObjects       OBJECT IDENTIFIER ::= { h3cLpbkdt 2 }
+h3cLpbkdtTrapPrefix    OBJECT IDENTIFIER ::= { h3cLpbkdtNotifications 0 }
 
 h3cLpbkdtTrapLoopbacked NOTIFICATION-TYPE
     OBJECTS { ifIndex, ifDescr }
@@ -53,5 +66,28 @@ h3cLpbkdtTrapRecovered NOTIFICATION-TYPE
         "Trap message is generated when the loops on the interface
          are eliminated."
     ::= { h3cLpbkdtTrapPrefix 2 }
+
+h3cLpbkdtTrapPerVlanLoopbacked NOTIFICATION-TYPE
+    OBJECTS { ifIndex, ifDescr, h3cLpbkdtVlanID }
+    STATUS current
+    DESCRIPTION
+        "Trap message is generated when the interface is looped in the VLAN."
+    ::= { h3cLpbkdtTrapPrefix 3 }
+
+h3cLpbkdtTrapPerVlanRecovered NOTIFICATION-TYPE
+    OBJECTS { ifIndex, ifDescr, h3cLpbkdtVlanID }
+    STATUS current
+    DESCRIPTION
+        "Trap message is generated when the loop on the interface
+         is eliminated in the VLAN."
+    ::= { h3cLpbkdtTrapPrefix 4 }
+
+h3cLpbkdtVlanID OBJECT-TYPE
+    SYNTAX      VlanId
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The ID of VLAN."
+    ::= { h3cLpbkdtObjects 1 }
 
 END

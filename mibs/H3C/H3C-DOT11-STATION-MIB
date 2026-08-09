@@ -1,11 +1,11 @@
 -- =============================================================================
--- Copyright (C) 2006 by HUAWEI-3COM TECHNOLOGIES.  All rights reserved.
+-- Copyright (c) 2004-2010 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description:
 --   The file defines a MIB to provide 802.11 MAC information such
 --   as station statistic and notification events.
 -- Reference:
--- Version: V1.5
+-- Version: V2.0
 -- History:
 --   V1.0 created by shiyang (Richard)
 --     Initial version 2006-05-10
@@ -32,6 +32,36 @@
 --        Change OBJECTS of h3cDot11StationAuthorFailTrap,
 --        h3cDot11StationAssocFailTrap, h3cDot11StationDeAssocTrap and
 --        h3cDot11StationAuthorSuccTrap
+--   V1.6 2008-11-07 modified by Wang Lu and Li Yugang
+--        Add h3cDot11StationRxRetryPkts, h3cDot11StationTxRetryPkts,
+--        h3cDot11StationRxRetryBytes and h3cDot11StationTxRetryBytes
+--        to h3cDot11StationStatisTable.
+--        Add new variable bindings h3cDot11StationAPName and
+--        h3cDot11StationBSSID to h3cDot11StationAuthorSuccTrap and
+--        h3cDot11StationDeAssocTrap.
+--        Add new notification h3cDot11StationDisconnectTrap.
+--        Add h3cDot11StationThroughput to h3cDot11StationStatisTable.
+--   V1.7 2009-05-07 modified by Wang Shaojie
+--        Add h3cDot11StationMACAddress to h3cDot11StationAssociateTable
+--   V1.8 2009-04-14 modified by Heziqi
+--        Add new node h3cDot11StationSuccessTxCnt, h3cDot11StationRxFragCnt
+--        and h3cDot11StationSuccessTxDataCnt for h3cDot11StationStatisTable.
+--        Add new node h3cDot11StationTxSpeed, h3cDot11StationRxSpeed
+--        and h3cDot11StationWmmMode for h3cDot11StationAssociateTable.
+--        Add new node h3cDot11StationRxDataFrameCnt,
+--        h3cDot11StationTxDataFrameCnt, h3cDot11StationRxDataFrameBytes
+--        h3cDot11StationTxDataFrameBytes for h3cDot11StationAssociateTable.
+--   V1.9 2009-08-07 modified by Wang Shaojie
+--        Modify description of h3cDot11StationTxSpeed, h3cDot11StationRxSpeed
+--   V2.0 2010-02-23 Add new node h3cDot11StaRxErrDataFrameCnt and
+--        h3cDot11StaTxRetryDataFrameCnt to h3cDot11StationStatisTable.
+--        Add new node h3cDot11StationUpTimeTicks, h3cDot11StationSecIEStatus
+--        to h3cDot11StationAssociateTable.
+--        Add h3cDot11StationAuthMode to h3cDot11StationTrapVarObjects.
+--        2010-08-07 modified by Wang Shaojie
+--        Add h3cDot11StationACIPv6Add to h3cDot11StationTrapVarObjects.
+--        2010-09-02 modified by Yin junjie
+--        Modify h3cDot11StationDisconnectTrap.
 -- =============================================================================
 H3C-DOT11-STATION-MIB DEFINITIONS ::= BEGIN
 
@@ -45,7 +75,8 @@ IMPORTS
         Unsigned32,
         Counter32,
         Counter64,
-        IpAddress
+        IpAddress,
+        TimeTicks
     FROM SNMPv2-SMI
         h3cDot11,
         H3cDot11RadioType,
@@ -58,18 +89,19 @@ IMPORTS
         H3cDot11RadioScopeType,
         H3cDot11SSIDEncryptModeType,
         H3cDot11AssocFailType,
-        H3cDot11AuthorFailType
+        H3cDot11AuthorFailType,
+        H3cDot11SecIEStatusType
     FROM H3C-DOT11-REF-MIB;
 
 h3cDot11STATION MODULE-IDENTITY
-    LAST-UPDATED "200802251800Z"        -- Feb 25, 2008 at 18:00 GMT
+    LAST-UPDATED "201009021800Z"        -- Sep 2, 2010 at 18:00 GMT
     ORGANIZATION
         "Hangzhou H3C Technologies Co., Ltd."
     CONTACT-INFO
-        "Platform Team Hangzhou H3C Technologies Co., Ltd.
+        "Platform Team H3C Technologies Co., Ltd.
          Hai-Dian District Beijing P.R. China
-         Http://www.h3c.com
-         Zip:100085"
+         http://www.h3c.com
+         Zip: 100085"
     DESCRIPTION
         "This MIB defines the configuration and statistic information of
         stations.
@@ -134,6 +166,21 @@ h3cDot11STATION MODULE-IDENTITY
         The authentication and key management method defined by
         802.11i, and which includes 802.1x and pre-shared key."
 
+    REVISION "201009021800Z"        -- Sep 2, 2010 at 18:00 GMT
+    DESCRIPTION
+        "Modify h3cDot11StationDisconnectTrap."
+    REVISION "200908071800Z"        -- Aug 07, 2009 at 18:00 GMT
+    DESCRIPTION
+        "Modify description of h3cDot11StationTxSpeed, h3cDot11StationRxSpeed"
+    REVISION "200907291800Z"        -- Jul 29, 2009 at 18:00 GMT
+    DESCRIPTION
+        "Modified to add new nodes."
+    REVISION "200905072000Z"        -- May 7, 2009 at 20:00 GMT
+    DESCRIPTION
+        "Modified to add new nodes."
+    REVISION "200811071730Z"        -- Nov 07, 2008 at 17:30 GMT
+    DESCRIPTION
+        "Modified to add new nodes."
     REVISION "200802251800Z"        -- Feb 25, 2008 at 18:00 GMT
     DESCRIPTION
         "Modified to add new trap and add h3cDot11StationRxNoise to h3cDot11StationAssociateTable."
@@ -215,7 +262,13 @@ H3cDot11StationAssociateEntry ::= SEQUENCE
         h3cDot11StationRxRate             Integer32,
         h3cDot11StationVendorName         OCTET STRING,
         h3cDot11StationRadioMode          H3cDot11RadioType,
-        h3cDot11StationRxNoise            Integer32
+        h3cDot11StationRxNoise            Integer32,
+        h3cDot11StationMACAddress         MacAddress,
+        h3cDot11StationTxSpeed            Integer32,
+        h3cDot11StationRxSpeed            Integer32,
+        h3cDot11StationWmmMode            INTEGER,
+        h3cDot11StationSecIEStatus        H3cDot11SecIEStatusType,
+        h3cDot11StationUpTimeTicks        TimeTicks
     }
 
 h3cDot11StationMAC OBJECT-TYPE
@@ -427,6 +480,67 @@ h3cDot11StationRxNoise OBJECT-TYPE
     DESCRIPTION
         "Represents the received noise of the station."
     ::= { h3cDot11StationAssociateEntry 22 }
+
+
+h3cDot11StationMACAddress OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents MAC Address of station."
+    ::= { h3cDot11StationAssociateEntry 23 }
+
+h3cDot11StationTxSpeed OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "byte/s"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the bytes of transmitted data frames to the
+        station per second in sample interval."
+    ::= { h3cDot11StationAssociateEntry 24 }
+
+h3cDot11StationRxSpeed OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "byte/s"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the bytes of received data frames from the
+        station per second in sample interval."
+    ::= { h3cDot11StationAssociateEntry 25 }
+
+h3cDot11StationWmmMode  OBJECT-TYPE
+    SYNTAX      INTEGER
+        {
+            wmm(1),
+            nonwmm(2)
+        }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the QoS mode of station.
+        The following values are supported:
+        wmm(1)    - This QoS function is supported by this station.
+        nonwmm(2) - This QoS function is not supported by this station."
+    ::= { h3cDot11StationAssociateEntry 26 }
+
+h3cDot11StationSecIEStatus OBJECT-TYPE
+    SYNTAX      H3cDot11SecIEStatusType
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the security Information element for this station."
+    ::= { h3cDot11StationAssociateEntry 27 }
+
+h3cDot11StationUpTimeTicks OBJECT-TYPE
+    SYNTAX      TimeTicks
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how long this station has been associated
+         with this device."
+    ::= { h3cDot11StationAssociateEntry 28 }
 -- *****************************************************************************
 -- *  End of h3cDot11StaAssociateTable Definition
 -- *****************************************************************************
@@ -523,7 +637,21 @@ H3cDot11StationStatisEntry ::= SEQUENCE
         h3cDot11StationDropFrameCnt      Counter32,
         h3cDot11StationRxFrameBytes      Counter64,
         h3cDot11StationTxFrameBytes      Counter64,
-        h3cDot11StationDropFrameBytes    Counter64
+        h3cDot11StationDropFrameBytes    Counter64,
+        h3cDot11StationRxRetryPkts       Counter32,
+        h3cDot11StationTxRetryPkts       Counter32,
+        h3cDot11StationRxRetryBytes      Counter64,
+        h3cDot11StationTxRetryBytes      Counter64,
+        h3cDot11StationThroughput        Counter64,
+        h3cDot11StationSuccessTxCnt      Counter32,
+        h3cDot11StationSuccessTxDataCnt  Counter32,
+        h3cDot11StationRxDataFrameCnt    Counter32,
+        h3cDot11StationTxDataFrameCnt    Counter32,
+        h3cDot11StationRxDataFrameBytes  Counter64,
+        h3cDot11StationTxDataFrameBytes  Counter64,
+        h3cDot11StationRxFragCnt         Counter32,
+        h3cDot11StaRxErrDataFrameCnt     Counter64,
+        h3cDot11StaTxRetryDataFrameCnt   Counter64
     }
 
 h3cDot11StationRxFrameCnt OBJECT-TYPE
@@ -531,7 +659,7 @@ h3cDot11StationRxFrameCnt OBJECT-TYPE
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "Represents how many frames are received by station."
+        "Represents the count of frames that are received by AP from station."
     ::= { h3cDot11StationStatisEntry 1 }
 
 h3cDot11StationTxFrameCnt OBJECT-TYPE
@@ -539,7 +667,7 @@ h3cDot11StationTxFrameCnt OBJECT-TYPE
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "Represents how many frames are sent by station."
+        "Represents the count of frames that are sent to station from AP."
     ::= { h3cDot11StationStatisEntry 2 }
 
 h3cDot11StationDropFrameCnt OBJECT-TYPE
@@ -547,7 +675,7 @@ h3cDot11StationDropFrameCnt OBJECT-TYPE
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "Represents how many frames are dropped by station."
+        "Represents the count of frames that are dropped."
     ::= { h3cDot11StationStatisEntry 3 }
 
 h3cDot11StationRxFrameBytes OBJECT-TYPE
@@ -556,7 +684,7 @@ h3cDot11StationRxFrameBytes OBJECT-TYPE
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "Represents how many bytes are received by station."
+        "Represents the count of bytes that are received by AP from station."
     ::= { h3cDot11StationStatisEntry 4 }
 
 h3cDot11StationTxFrameBytes OBJECT-TYPE
@@ -565,7 +693,7 @@ h3cDot11StationTxFrameBytes OBJECT-TYPE
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "Represents how many bytes are sent by station."
+        "Represents the count of bytes that are sent to station from AP."
     ::= { h3cDot11StationStatisEntry 5 }
 
 h3cDot11StationDropFrameBytes OBJECT-TYPE
@@ -574,8 +702,128 @@ h3cDot11StationDropFrameBytes OBJECT-TYPE
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "Represents how many bytes are dropped by station."
+        "Represents how many bytes are dropped."
     ::= { h3cDot11StationStatisEntry 6 }
+
+h3cDot11StationRxRetryPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the count of frames that are retransmitted to AP from station."
+    ::= { h3cDot11StationStatisEntry 7 }
+
+h3cDot11StationTxRetryPkts OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the count of frames that are retransmitted to station from AP."
+    ::= { h3cDot11StationStatisEntry 8 }
+
+h3cDot11StationRxRetryBytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the count of bytes that are retransmitted to AP from station."
+    ::= { h3cDot11StationStatisEntry 9 }
+
+h3cDot11StationTxRetryBytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the count of bytes that are retransmitted to station from AP."
+    ::= { h3cDot11StationStatisEntry 10 }
+
+h3cDot11StationThroughput OBJECT-TYPE
+    SYNTAX      Counter64
+    UNITS       "bytes"
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how many payload bytes of data frame are sent and received
+         by station."
+    ::= { h3cDot11StationStatisEntry 11 }
+
+h3cDot11StationSuccessTxCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how many frames have been successfully sent to station."
+    ::= { h3cDot11StationStatisEntry 12 }
+
+h3cDot11StationSuccessTxDataCnt  OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how many data frames have been successfully sent to
+        station."
+    ::= { h3cDot11StationStatisEntry 13 }
+
+h3cDot11StationRxDataFrameCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how many data frames have been received from station."
+    ::= { h3cDot11StationStatisEntry 14 }
+
+h3cDot11StationTxDataFrameCnt OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how many data frames have been sent to station."
+    ::= { h3cDot11StationStatisEntry 15 }
+
+h3cDot11StationRxDataFrameBytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how many bytes of data frames have been received
+        from station."
+    ::= { h3cDot11StationStatisEntry 16 }
+
+h3cDot11StationTxDataFrameBytes OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents how many bytes of data frames have been sent to
+        station."
+    ::= { h3cDot11StationStatisEntry 17 }
+
+h3cDot11StationRxFragCnt  OBJECT-TYPE
+    SYNTAX      Counter32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Represents the number of fragmented data frames that received
+         from station."
+    ::= { h3cDot11StationStatisEntry 18 }
+
+h3cDot11StaRxErrDataFrameCnt  OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "Represents the count of error data frames that are received by AP
+                 from station."
+    ::= { h3cDot11StationStatisEntry 19 }
+
+h3cDot11StaTxRetryDataFrameCnt  OBJECT-TYPE
+        SYNTAX      Counter64
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+                "Represents the count of data frames that are retransmitted to station
+                 from AP."
+    ::= { h3cDot11StationStatisEntry 20 }
 -- *****************************************************************************
 -- *  End of h3cDot11StationStatisTable Definition
 -- *****************************************************************************
@@ -628,7 +876,9 @@ h3cDot11StationAuthorFailTrap NOTIFICATION-TYPE
             h3cDot11StationSSIDName,
             h3cDot11StationAuthorFailCause,
             h3cDot11StationFailCauseDesc,
-            h3cDot11CurrAPID
+            h3cDot11CurrAPID,
+            h3cDot11StationBSSID,
+            h3cDot11StationAuthMode
         }
     STATUS      current
     DESCRIPTION
@@ -659,7 +909,9 @@ h3cDot11StationDeAssocTrap NOTIFICATION-TYPE
             h3cDot11CurrRadioID,
             h3cDot11StationSSIDName,
             h3cDot11StationSessionDuration,
-            h3cDot11CurrAPID
+            h3cDot11CurrAPID,
+            h3cDot11StationAPName,
+            h3cDot11StationBSSID
         }
     STATUS      current
     DESCRIPTION
@@ -675,7 +927,9 @@ h3cDot11StationAuthorSuccTrap NOTIFICATION-TYPE
             h3cDot11StationSessionStartTime,
             h3cDot11CurrRadioID,
             h3cDot11StationSSIDName,
-            h3cDot11CurrAPID
+            h3cDot11CurrAPID,
+            h3cDot11StationAPName,
+            h3cDot11StationBSSID
         }
     STATUS      current
     DESCRIPTION
@@ -692,12 +946,31 @@ h3cDot11StationRoamingTrap NOTIFICATION-TYPE
             h3cDot11StationRoamingTime,
             h3cDot11CurrRadioID,
             h3cDot11StationSSIDName,
-            h3cDot11StationACIPAddress
+            h3cDot11StationACIPAddress,
+            h3cDot11StationACIPv6Add
         }
     STATUS      current
     DESCRIPTION
         "This trap is sent when a station roamed successfully."
     ::= { h3cDot11StationTraps 7 }
+
+h3cDot11StationDisconnectTrap NOTIFICATION-TYPE
+    OBJECTS
+        {
+            h3cDot11StationAPName,
+            h3cDot11StationBSSID,
+            h3cDot11StationSSIDName,
+            h3cDot11StationSessionDuration,
+            h3cDot11StationVlanId,
+            h3cDot11CurrAPID,
+            h3cDot11CurrRadioID,
+            h3cDot11StaDisconnectReason,
+            h3cDot11StationTrapStaMAC
+        }
+    STATUS      current
+    DESCRIPTION
+        "This notification is sent when station disconnects with AP."
+    ::= { h3cDot11StationTraps 8 }
 
 -- 802.11 station Notify variable object
 
@@ -779,6 +1052,52 @@ h3cDot11StationACIPAddress OBJECT-TYPE
         "For roam-in station, it represents the ip address of home AC.
          For roam-out station, it represents the ip address of foreign AC."
     ::= { h3cDot11StationTrapVarObjects 9 }
+
+h3cDot11StationAPName OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Name of the AP which the station connects to."
+    ::= { h3cDot11StationTrapVarObjects 10 }
+
+h3cDot11StationBSSID OBJECT-TYPE
+    SYNTAX      MacAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "BSSID which the station connects to."
+    ::= { h3cDot11StationTrapVarObjects 11 }
+
+h3cDot11StaDisconnectReason OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Reason why the station disconnects with the AP."
+    ::= { h3cDot11StationTrapVarObjects 12 }
+
+h3cDot11StationAuthMode OBJECT-TYPE
+    SYNTAX      INTEGER
+    {
+        opensystem(1),
+        sharedkey(2)
+    }
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "Represents station's authentication mode."
+    ::= { h3cDot11StationTrapVarObjects 13 }
+
+h3cDot11StationACIPv6Add OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "For roam-in station, it represents the IPv6 address of home AC.
+         For roam-out station, it represents the IPv6 address of foreign AC."
+    ::= { h3cDot11StationTrapVarObjects 14 }
+
 -- *****************************************************************************
 -- *     End OF NotifyGroup
 -- *****************************************************************************

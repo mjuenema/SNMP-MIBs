@@ -28,7 +28,7 @@ ENTERASYS-SPANNING-TREE-DIAGNOSTIC-MIB DEFINITIONS ::= BEGIN
 --  parties a non-exclusive license to use this Specification in 
 --  connection with the management of Enterasys Networks products.
 
---  Copyright September, 2002-2004 Enterasys Networks, Inc.
+--  Copyright 2002-2006 Enterasys Networks, Inc.
 
 IMPORTS
     MODULE-IDENTITY, OBJECT-TYPE, Unsigned32, Counter32
@@ -39,13 +39,13 @@ IMPORTS
         FROM SNMPv2-CONF
     InterfaceIndex
         FROM IF-MIB
-    BridgeId, dot1dBasePortEntry, dot1dBasePort
+    BridgeId, dot1dStpPortEntry, dot1dStpPort
         FROM BRIDGE-MIB
     etsysModules
         FROM ENTERASYS-MIB-NAMES;
 
 etsysSpanningTreeDiagnosticMIB MODULE-IDENTITY
-    LAST-UPDATED "200406101419Z"  -- Thu Jun 10 14:19 GMT 2004
+    LAST-UPDATED "200610041949Z"  -- Wed Oct  4 19:49 GMT 2006
     ORGANIZATION "Enterasys Networks, Inc"
     CONTACT-INFO
         "Postal:  Enterasys Networks
@@ -60,6 +60,16 @@ etsysSpanningTreeDiagnosticMIB MODULE-IDENTITY
         "This MIB module defines a portion of the SNMP enterprise
          MIBs under Enterasys Networks' enterprise OID pertaining to 
          the Spanning Tree Protocols IEEE 802.1D, 802.1w, and 802.1s."
+
+    REVISION "200610041949Z"  -- Wed Oct  4 19:49 GMT 2006
+    DESCRIPTION
+        "Added an object specifying a disputed BPDU threshold value,
+         and added two disputed BPDU threshold exceeded notifications,
+         one for the CIST and one for MSTIs."
+
+    REVISION "200501241546Z"  -- Mon Jan 24 15:46 GMT 2005
+    DESCRIPTION
+        "Changed references of dot1dBasePort to dot1dStpPort."
 
     REVISION "200406071920Z"  -- Mon Jun  7 19:20 GMT 2004
     DESCRIPTION
@@ -123,14 +133,16 @@ EtsysStpPortRole ::= TEXTUAL-CONVENTION
 -- branches in the ENTERASYS-SPANNING-TREE-DIAGNOSTIC-MIB
 -- ---------------------------------------------------------- --
 
-etsysStpDiagObjects      OBJECT IDENTIFIER ::= { etsysSpanningTreeDiagnosticMIB 1 }
+etsysStpDiagObjects        OBJECT IDENTIFIER ::= { etsysSpanningTreeDiagnosticMIB 1 }
 
-etsysStpDiagControl      OBJECT IDENTIFIER ::= { etsysStpDiagObjects 1 }
-etsysStpDiagCommon       OBJECT IDENTIFIER ::= { etsysStpDiagObjects 2 }
-etsysStpDiagCistPort     OBJECT IDENTIFIER ::= { etsysStpDiagObjects 3 }
-etsysStpDiagMsti         OBJECT IDENTIFIER ::= { etsysStpDiagObjects 4 }
-etsysStpDiagMstiPort     OBJECT IDENTIFIER ::= { etsysStpDiagObjects 5 }
-etsysStpDiagRootHistory  OBJECT IDENTIFIER ::= { etsysStpDiagObjects 6 }
+etsysStpDiagControl        OBJECT IDENTIFIER ::= { etsysStpDiagObjects 1 }
+etsysStpDiagCommon         OBJECT IDENTIFIER ::= { etsysStpDiagObjects 2 }
+etsysStpDiagCistPort       OBJECT IDENTIFIER ::= { etsysStpDiagObjects 3 }
+etsysStpDiagMsti           OBJECT IDENTIFIER ::= { etsysStpDiagObjects 4 }
+etsysStpDiagMstiPort       OBJECT IDENTIFIER ::= { etsysStpDiagObjects 5 }
+etsysStpDiagRootHistory    OBJECT IDENTIFIER ::= { etsysStpDiagObjects 6 }
+etsysStpDiagTrapConfig     OBJECT IDENTIFIER ::= { etsysStpDiagObjects 7 }
+etsysStpDiagNotifications  OBJECT IDENTIFIER ::= { etsysStpDiagObjects 0 }
 
 
 -- ---------------------------------------------------------- --
@@ -669,7 +681,7 @@ etsysStpDiagCistPortDisputedBpdu        OBJECT-TYPE
 -- ---------------------------------------------------------- --
 --
 -- ---------------------------------------------------------- --
--- NOTE:  This table augments dot1dBasePortEntry
+-- NOTE:  This table augments dot1dStpPortEntry
 -- ---------------------------------------------------------- --
 
 etsysStpDiagCistBridgePortTable OBJECT-TYPE
@@ -687,7 +699,7 @@ etsysStpDiagCistBridgePortEntry OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "A list of diagnostic information maintained for every port."
-    AUGMENTS { dot1dBasePortEntry }
+    AUGMENTS { dot1dStpPortEntry }
     ::= { etsysStpDiagCistBridgePortTable 1 }
 
 EtsysStpDiagCistBridgePortEntry ::=
@@ -1203,7 +1215,7 @@ etsysStpDiagMstiBridgePortEntry OBJECT-TYPE
     DESCRIPTION
         "A list of diagnostic information for each port on every IEEE
          802.1s Multiple Spanning Tree Instance that is configured."
-    INDEX { etsysStpDiagMstiBridgePortMstiId, dot1dBasePort }
+    INDEX { etsysStpDiagMstiBridgePortMstiId, dot1dStpPort }
     ::= { etsysStpDiagMstiBridgePortTable 1 }
 
 EtsysStpDiagMstiBridgePortEntry ::=
@@ -1376,6 +1388,53 @@ etsysStpDiagRootHistoryDateAndTime OBJECT-TYPE
     ::= { etsysStpDiagRootHistoryEntry 4 }
 
 
+-- ---------------------------------------------------------- --
+-- Trap configuration
+-- ---------------------------------------------------------- --
+
+etsysStpDiagDisputedBpduTrapThreshold OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The number of disputed BPDUs that must be received on a
+         particular port on a particular Spanning Tree instance before
+         a disputed BPDU notification is generated.  If a notification
+         has been previously generated on behalf of this port/instance,
+         then this object represents the number of disputed BPDUs that
+         must be received since the prior notification before generating
+         a subsequent notification.  Setting this object to zero will
+         cause generation of notifications to be disabled."
+    DEFVAL { 0 }
+    ::= { etsysStpDiagTrapConfig 1 }
+
+
+-- ---------------------------------------------------------- --
+-- Notifications 
+-- ---------------------------------------------------------- --
+
+etsysStpDiagCistDisputedBpduThresholdExceeded NOTIFICATION-TYPE
+    OBJECTS     { dot1dStpPort, etsysStpDiagCistBridgePortDisputedBpdu }
+    STATUS      current
+    DESCRIPTION
+        "This notification indicates that the number of disputed
+         BPDUs received by a bridge port on the CIST since the previous
+         notification (if any) has exceeded the threshold defined
+         by etsysStpDiagDisputedBpduTrapThreshold."
+    ::= { etsysStpDiagNotifications 1 }
+
+etsysStpDiagMstiDisputedBpduThresholdExceeded NOTIFICATION-TYPE
+    OBJECTS     { etsysStpDiagMstiBridgePortMstiId, dot1dStpPort,
+                  etsysStpDiagMstiBridgePortDisputedBpdu }
+    STATUS      current
+    DESCRIPTION
+        "This notification indicates that the number of disputed
+         BPDUs received by a bridge port on an MSTI since the previous
+         notification (if any) has exceeded the threshold defined
+         by etsysStpDiagDisputedBpduTrapThreshold."
+    ::= { etsysStpDiagNotifications 2 }
+
+
 -- -------------------------------------------------------------
 -- Conformance Information
 -- -------------------------------------------------------------
@@ -1541,6 +1600,29 @@ etsysStpDiagDot1sBridgePortGroup OBJECT-GROUP
          Spanning Tree Protocol diagnostics."
     ::= { etsysStpDiagGroups 7 }
 
+etsysStpDiagTrapConfigGroup OBJECT-GROUP
+    OBJECTS {
+        etsysStpDiagDisputedBpduTrapThreshold
+    }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing support for
+         configuration of Spanning Tree Protocol diagnostic
+         traps."
+    ::= { etsysStpDiagGroups 8 }
+
+etsysStpDiagNotificationGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        etsysStpDiagCistDisputedBpduThresholdExceeded,
+        etsysStpDiagMstiDisputedBpduThresholdExceeded
+    }
+    STATUS      current
+    DESCRIPTION
+        "The group of Spanning Tree Protocol diagnostic
+         notifications."
+    ::= { etsysStpDiagGroups 9 }
+
+
 -- -------------------------------------------------------------
 -- Compliance statements
 -- -------------------------------------------------------------
@@ -1579,6 +1661,14 @@ etsysStpDiagCompliance MODULE-COMPLIANCE
     GROUP etsysStpDiagHistoryGroup
     DESCRIPTION
         "Root bridge history information."
+
+    GROUP etsysStpDiagTrapConfigGroup
+    DESCRIPTION
+        "Trap configuration parameters."
+
+    GROUP etsysStpDiagNotificationGroup
+    DESCRIPTION
+        "Notifications."
 
     ::= { etsysStpDiagCompliances 1 }
 

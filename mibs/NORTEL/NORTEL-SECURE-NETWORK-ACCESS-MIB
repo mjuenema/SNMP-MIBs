@@ -10,7 +10,7 @@ IMPORTS
         FROM IF-MIB
     SnmpAdminString
         FROM SNMP-FRAMEWORK-MIB
-    VlanId
+    VlanId, VlanIdOrNone
         FROM Q-BRIDGE-MIB
     InetAddressType, InetAddress, InetAddressPrefixLength, InetPortNumber
         FROM INET-ADDRESS-MIB
@@ -20,7 +20,7 @@ IMPORTS
         FROM SYNOPTICS-ROOT-MIB;
 
 nortelSecureNetworkAccessMib MODULE-IDENTITY
-    LAST-UPDATED    "200510240000Z"
+    LAST-UPDATED    "200706290000Z"
     ORGANIZATION    "Nortel Networks"
     CONTACT-INFO    "Nortel Networks"
     DESCRIPTION
@@ -37,6 +37,39 @@ nortelSecureNetworkAccessMib MODULE-IDENTITY
          This Specification is supplied 'AS IS,' and Nortel Networks
          makes no warranty, either express or implied, as to the use,
          operation, condition, or performance of the Specification."
+
+    REVISION "200706290000Z" -- 29 June 2007
+    DESCRIPTION "v21:  Clarified description of nsnaNsnasStatusQuoInterval."
+
+    REVISION "200705210000Z" -- 21 May 2007
+    DESCRIPTION "v20:  Added additional enumerations in
+                       nsnaNsnasConnectionState."
+
+    REVISION "200704180000Z" -- 18 April 2007
+    DESCRIPTION "v19:  Change fail-open vlan objects to VlanIdOrNone."
+
+    REVISION "200703130000Z" -- 13 March 2007
+    DESCRIPTION "v18:  Undo last changes to fail-open objects."
+
+    REVISION "200611300000Z" -- 30 November 2006
+    DESCRIPTION "v17:  Added NSNAS RADIUS and Hub Mode support.  Updated
+                       fail-open objects."
+
+    REVISION "200607070000Z" -- 07 July 2006
+    DESCRIPTION "v16:  Added nsnaNsnasConnectionVersion."
+
+    REVISION "200605220000Z" -- 22 May 2006
+    DESCRIPTION "v15:  Added nsnaClientStatus."
+
+    REVISION "200605190000Z" -- 19 May 2006
+    DESCRIPTION "v14:  Changes to make Fail-Open configurable on switch."
+
+    REVISION "200604260000Z" -- 26 April 2006
+    DESCRIPTION "v13:  Added objects for MAC authentication and
+                       Fail-Open features."
+
+    REVISION "200602240000Z" -- 24 February 2006
+    DESCRIPTION "v12:  Added nsnaSnasConnected."
 
     REVISION "200510240000Z" -- 24 October 2005
     DESCRIPTION "v11:  Added nsnaClientExpired."
@@ -123,12 +156,17 @@ nsnaEnabled OBJECT-TYPE
 nsnaNsnasConnectionState OBJECT-TYPE
     SYNTAX      INTEGER {
                     notConnected(1),
-                    connected(2)
+                    connected(2),
+                    connecting(3),
+                    closing(4)
                 }
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
-        "Indicates whether a NSNAS is currently connected to the switch."
+        "Indicates whether the switch currently has a connection to
+         an NSNAS, whether the switch is currently in the process of
+         establishing a connection to an NSNAS, or whether an existing
+         connecting to an NSNAS is in the process of being closed."
     ::= { nsnaScalars 3 }
 
 nsnaNsnasInetAddressType OBJECT-TYPE
@@ -188,14 +226,84 @@ nsnaNsnasStatusQuoInterval OBJECT-TYPE
         "The status-quo interval for the current or last SSCP connection.
          If the NSNAS is disconnected from the switch for any reason, the
          switch will wait this period of time before moving all NSNA enabled
-         ports to the red VLAN.  The maximum value, 65535, indicates that no
-         status quo interval is used, and SSA enabled ports will not be
-         moved to the red VLAN.
+         ports to the red VLAN.  The maximum value, 65535, indicates an
+         infinite status quo interval, i.e., SSA enabled ports will not be
+         moved to the red VLAN.  A value of 0 means no status quo interval
+         is used, and ports are immediately moved the the red VLAN if the
+         NSNAS is disconnected.
 
          If the NSNAS has disconnected and the status-quo interval timer is
          running, this value will reflect the remaining time until the
          status-quo timer will expire."
     ::= { nsnaScalars 8 }
+
+nsnaMacAuthenticationEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object indicates whether MAC Authentication is currently
+         enabled on the switch."
+    ::= { nsnaScalars 9 }
+
+nsnaFailOpenEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object indicates whether the Fail-Open feature is currently
+         enabled on the switch."
+    ::= { nsnaScalars 10 }
+
+nsnaFailOpenVlan OBJECT-TYPE
+    SYNTAX      VlanIdOrNone
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the current Fail-Open Vlan ID.  A value of
+         0 indicates the value either has not been set, or that the
+         previous value is no longer valid."
+    ::= { nsnaScalars 11 }
+
+nsnaFailOpenFilterVlan OBJECT-TYPE
+    SYNTAX      VlanIdOrNone
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the current Vlan ID whose associated filters
+         are to be used as the Fail-Open filters.  A value of 0 indicates
+         the value either has not been set, or that the previous value is
+         no longer valid."
+    ::= { nsnaScalars 12 }
+
+nsnaNsnasConnectionVersion OBJECT-TYPE
+    SYNTAX      Integer32 (0..65535)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object indicates the SSCP version being used in the
+         current NSNAS connection.  If there is no current connection,
+         the value will be 0."
+    ::= { nsnaScalars 14 }
+
+nsnaNsnasRadiusServerEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object indicates whether the NSNAS currently connected
+         to the switch is acting as a RADIUS server."
+    ::= { nsnaScalars 15 }
+
+nsnaNsnasRadiusServerPort OBJECT-TYPE
+    SYNTAX      InetPortNumber
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "If there is an NSNAS currently connected to the switch that
+         is acting as a RADIUS server, this object returns the port
+         on which that server listens for RADIUS requests."
+    ::= { nsnaScalars 16 }
 
 -- -------------------------------------------------------------
 -- NSNA NSNAS Table
@@ -297,13 +405,15 @@ nsnaPortEntry OBJECT-TYPE
 
 NsnaPortEntry ::=
     SEQUENCE {
-        nsnaPortIfIndex        InterfaceIndex,
-        nsnaPortMode           INTEGER,
-        nsnaPortGreenVlanId    NsnaVlanIdOrNone,
-        nsnaPortVoipVlans      IdList,
-        nsnaPortUplinkVlans    IdList,
-        nsnaPortState          INTEGER,
-        nsnaPortDhcpState      INTEGER
+        nsnaPortIfIndex            InterfaceIndex,
+        nsnaPortMode               INTEGER,
+        nsnaPortGreenVlanId        NsnaVlanIdOrNone,
+        nsnaPortVoipVlans          IdList,
+        nsnaPortUplinkVlans        IdList,
+        nsnaPortState              INTEGER,
+        nsnaPortDhcpState          INTEGER,
+        nsnaPortHubModeEnabled     TruthValue,
+        nsnaPortHubModeMaxClients  Integer32
     }
 
 nsnaPortIfIndex OBJECT-TYPE
@@ -319,7 +429,8 @@ nsnaPortMode OBJECT-TYPE
                     disabled(1),
                     static(2),
                     dynamic(3),
-                    uplink(4)
+                    uplink(4),
+                    secure(5)
                 }
     MAX-ACCESS  read-write
     STATUS      current
@@ -343,8 +454,8 @@ nsnaPortVoipVlans OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The set of VOIP VLANs to which this port belongs.  This value is
-        only used when the corresponding value of nsnaPortMode is static(2)
-        or dynamic(3)."
+        only used when the corresponding value of nsnaPortMode is static(2),
+        dynamic(3), or secure(5)."
     ::= { nsnaPortEntry 4 }
 
 nsnaPortUplinkVlans OBJECT-TYPE
@@ -379,6 +490,23 @@ nsnaPortDhcpState OBJECT-TYPE
     DESCRIPTION
         "The DHCP state of the port."
     ::= { nsnaPortEntry 7 }
+
+nsnaPortHubModeEnabled OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Indicates whether Hub Mode is enabled on a port."
+    ::= { nsnaPortEntry 8 }
+
+nsnaPortHubModeMaxClients OBJECT-TYPE
+    SYNTAX      Integer32 (1..8)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "The maximum number of clients allowed on a port when Hub Mode
+         is enabled.  The value is ignored if Hub Mode is disabled."
+    ::= { nsnaPortEntry 9 }
 
 -- -------------------------------------------------------------
 -- NSNA VLAN Table
@@ -514,7 +642,9 @@ NsnaClientEntry ::=
         nsnaClientVlanId            VlanId,
         nsnaClientAddressType       InetAddressType,
         nsnaClientAddress           InetAddress,
-        nsnaClientExpired           TruthValue
+        nsnaClientExpired           TruthValue,
+        nsnaClientFilterVlanId      VlanId,
+        nsnaClientStatus            INTEGER
     }
 
 nsnaClientIfIndex OBJECT-TYPE
@@ -538,7 +668,7 @@ nsnaClientDeviceType OBJECT-TYPE
                     unknown(0),
                     pc(1),
                     ipPhone(2),
-                    printer(3)
+                    passive(3)
                 }
     MAX-ACCESS  read-only
     STATUS      current
@@ -578,6 +708,32 @@ nsnaClientExpired OBJECT-TYPE
     DESCRIPTION
         "Indicates whether this client has been aged-out."
     ::= { nsnaClientEntry 7 }
+
+nsnaClientFilterVlanId OBJECT-TYPE
+    SYNTAX      VlanId
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The Vlan ID whose associated filter set is installed on
+         this port for this client.  This is used when MAC
+         Authentication is enabled.  If MAC Authentication is
+         no enabled, this object will return the same value as
+         nsnaClientVlanId."
+    ::= { nsnaClientEntry 8 }
+
+nsnaClientStatus OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    authenticatedByNsnas(1),
+                    authenticatedLocally(2),
+                    disallowedByNsnas(3),
+                    isolatedByNsnas(4),
+                    blacklistedByNsnas(5)
+                }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The status of this client."
+    ::= { nsnaClientEntry 9 }
 
 -- -------------------------------------------------------------
 -- NSNA Static Client Table
@@ -632,7 +788,7 @@ nsnaStaticClientDeviceType OBJECT-TYPE
     SYNTAX      INTEGER {
                     pc(1),
                     ipPhone(2),
-                    printer(3)
+                    passive(3)
                 }
     MAX-ACCESS  read-create
     STATUS      current
@@ -780,6 +936,20 @@ nsnaInvalidMessageFromSnas NOTIFICATION-TYPE
          received message is corrupted.  As much of the message header
          as is available will be included in nsnaInvalidMessageHeader."
     ::= { nsnaNotifications 3 }
+
+nsnaSnasConnected NOTIFICATION-TYPE
+    OBJECTS {
+        nsnaNsnasInetAddressType,
+        nsnaNsnasInetAddress,
+        nsnaNsnasSendHelloInterval,
+        nsnaNsnasInactivityInterval,
+        nsnaNsnasStatusQuoInterval
+    }
+    STATUS current
+    DESCRIPTION
+        "This notification is generated whenever an NSNAS successfully
+         connects to the switch."
+    ::= { nsnaNotifications 4 }
 
 END
 

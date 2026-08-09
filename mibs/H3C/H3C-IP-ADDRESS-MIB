@@ -1,9 +1,9 @@
 -- ====================================================================
--- Copyright (C) 2005 by HUAWEI-3COM TECHNOLOGIES. All rights reserved.
+-- Copyright (c) 2004-2010 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description: IPv4 address MIB
--- Reference: huawei-3com enterprise MIB
--- Version: V1.2
+-- Reference:
+-- Version: V1.4
 -- History:
 --   V1.0 2005-11-22 Created by Wang Hui and Liu Jinguang
 --        Initial version
@@ -11,27 +11,33 @@
 --        Modify the description of some objects.
 --   V1.2 2007-12-18 Modify by Zhangyinfei
 --        Add enmu 'vrrp' for h3cIpAddrReadSourceType and h3cIpAddrReadCatalog
+--   V1.3 2009-8-11 Modify by lifei
+--        Add ip address change notify trap
+--   V1.4 2010-03-06 Modify by Jianzhuang Ge
+--        Add ipv4 address management table h3cIpv4AddrTable
 -- ====================================================================
 H3C-IP-ADDRESS-MIB DEFINITIONS ::= BEGIN
 
     IMPORTS
         h3cCommon
             FROM HUAWEI-3COM-OID-MIB
-        Integer32, IpAddress, OBJECT-TYPE, MODULE-IDENTITY
+        Integer32, IpAddress, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
             FROM SNMPv2-SMI
         RowStatus
             FROM SNMPv2-TC
         InetAddressType,InetAddress
-            FROM INET-ADDRESS-MIB;
+            FROM INET-ADDRESS-MIB
+        ifIndex
+            FROM IF-MIB;
 
     h3cIpAddrMIB MODULE-IDENTITY
         LAST-UPDATED "200511220000Z"
         ORGANIZATION
-            "Huawei 3Com Technologies Co., Ltd."
+            "H3C Technologies Co., Ltd."
         CONTACT-INFO
-            "Platform Team Huawei 3Com Technologies Co., Ltd.
+            "Platform Team H3C Technologies Co., Ltd.
             Hai-Dian District Beijing P.R. China
-            http://www.huawei-3com.com
+            http://www.h3c.com
             Zip:100085
             "
         DESCRIPTION
@@ -176,8 +182,8 @@ H3C-IP-ADDRESS-MIB DEFINITIONS ::= BEGIN
         STATUS current
         DESCRIPTION
             "This object is used to create a new row or delete an
-            existing row in this table, only support active(1),
-            createAndGo(4) and destroy(6).
+            existing row in this table, only support active,
+            createAndGo and destroy.
             "
         ::= { h3cIpAddrSetEntry 7 }
 
@@ -296,4 +302,124 @@ H3C-IP-ADDRESS-MIB DEFINITIONS ::= BEGIN
         DESCRIPTION
             "Indicate the category of the IPv4 address."
         ::= { h3cIpAddrReadEntry 6 }
+
+    h3cIpv4AddrTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF H3cIpv4AddrEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "This table is used to configure primary IPv4 address of an
+             interface identified by ifIndex."
+        ::= { h3cIpAddressConfig 3 }
+
+    h3cIpv4AddrEntry OBJECT-TYPE
+        SYNTAX H3cIpv4AddrEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "Define the IPv4 address information.
+            "
+        INDEX { ifIndex }
+        ::= { h3cIpv4AddrTable 1 }
+
+    H3cIpv4AddrEntry ::=
+        SEQUENCE
+        {
+            h3cIpv4AddrAddr
+                IpAddress,
+            h3cIpv4AddrMask
+                IpAddress,
+            h3cIpv4AddrRowStatus
+                RowStatus
+        }
+
+    h3cIpv4AddrAddr OBJECT-TYPE
+        SYNTAX IpAddress
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+            "The IPv4 address to which this entry's address information
+            pertains.
+            "
+        ::= { h3cIpv4AddrEntry 1 }
+
+    h3cIpv4AddrMask OBJECT-TYPE
+        SYNTAX IpAddress
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+            "The subnet mask associated with the IPv4 address of this
+            entry.  The value of the mask is an IPv4 address with all the
+            network bits set to 1 and all the hosts bits set to 0.
+            "
+        ::= { h3cIpv4AddrEntry 2 }
+
+    h3cIpv4AddrRowStatus OBJECT-TYPE
+        SYNTAX RowStatus
+        MAX-ACCESS read-create
+        STATUS current
+        DESCRIPTION
+            "This object is used to create a new row or delete an
+            existing row in this table, only support active,
+            notInService, createAndGo and destroy.
+            "
+        ::= { h3cIpv4AddrEntry 3 }
+
+--
+-- Define the IP Address Traps.
+--
+
+h3cIpAddrNotify OBJECT IDENTIFIER ::= { h3cIpAddrMIB 2 }
+
+-- Scalar Objects for Notify
+h3cIpAddrNotifyScalarObjects OBJECT IDENTIFIER ::= { h3cIpAddrNotify 1 }
+
+h3cIpAddrNotifyIfIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..2147483647)
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The IP address IfIndex of specified interface on the device."
+    ::= { h3cIpAddrNotifyScalarObjects 1 }
+
+h3cIpAddrOldIpAddress OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The Old IP address of specified interface on the device."
+    ::= { h3cIpAddrNotifyScalarObjects 2 }
+
+h3cIpAddrNewIpAddress OBJECT-TYPE
+    SYNTAX      InetAddress
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "The New IP address of specified interface on the device."
+    ::= { h3cIpAddrNotifyScalarObjects 3 }
+
+
+-- Notification Objects
+h3cIpAddrNotifyObjects OBJECT IDENTIFIER ::= { h3cIpAddrNotify 2 }
+
+h3cIpAddrNotifyObjectsPrefix OBJECT IDENTIFIER ::= { h3cIpAddrNotifyObjects 0 }
+
+h3cIpAddressChangeNotify NOTIFICATION-TYPE
+    OBJECTS
+        {
+            h3cIpAddrNotifyIfIndex,
+            h3cIpAddrOldIpAddress,
+            h3cIpAddrNewIpAddress
+         }
+    STATUS      current
+    DESCRIPTION
+        "This notification will be generated when the IP address of interface
+        is changed.  The change maybe originate from NMS, DHCP server or
+        administrator.
+
+        This notification announces useful IP address change.  So it
+        is triggered by significative IP address change."
+
+    ::= { h3cIpAddrNotifyObjectsPrefix 1 }
+
 END

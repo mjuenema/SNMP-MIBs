@@ -1,30 +1,37 @@
 -- =============================================================================
--- Copyright (C) 2006-2007 by HUAWEI-3COM TECHNOLOGIES.  All rights reserved.
+-- Copyright (c) 2004-2010 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description:
 --   The file defines a MIB to provide WLAN configuration extended.
 -- Reference:
--- Version: V1.1
+-- Version: V1.2
 -- History:
 --   V1.0 2007-04-25 Initial version, created by shiyang (Richard)
 --   V1.1 2008-07-17 Changed by chenwei
 --        Add h3cDot11LoadBalanceTrafficGap and
 --        h3cDot11LoadBalanceSessionGap to h3cDot11LBGlobalGroup.
+--   V1.2 2010-02-22 Changed by Wang Chunsheng
+--        Add new table of h3cDot11LBRadioGroupTable for h3cDot11LoadBalance.
+--        2010-06-02 Changed by Yin Junjie
+--        Add new node h3cDot11LBTrafficThresKbps and
+--        h3cDot11LBTrafficGapKbps to h3cDot11LBGlobalGroup.
 -- =============================================================================
 H3C-DOT11-CFGEXT-MIB DEFINITIONS ::= BEGIN
 
 IMPORTS
-        TruthValue
+        TruthValue,
+        RowStatus
     FROM SNMPv2-TC
         MODULE-IDENTITY,
         OBJECT-TYPE,
-        Integer32
+        Integer32,
+        Unsigned32
     FROM SNMPv2-SMI
         h3cDot11
     FROM H3C-DOT11-REF-MIB;
 
 h3cDot11CFGEXT MODULE-IDENTITY
-    LAST-UPDATED "200704252000Z"            -- Apr. 25, 2007 at 20:00 GMT
+    LAST-UPDATED "201006021400Z"        -- Jun 02, 2010 at 14:00 GMT
     ORGANIZATION
         "HUAWEI-3COM Technologies Co., Ltd."
     CONTACT-INFO
@@ -98,6 +105,9 @@ h3cDot11CFGEXT MODULE-IDENTITY
         The authentication and key management method defined by
         802.11i, and which includes 802.1x and pre-shared key."
 
+    REVISION "201006021400Z"        -- Jun 02, 2010 at 14:00 GMT
+    DESCRIPTION
+        "Modified to add new nodes."
     REVISION "200704252000Z"        -- Apr. 25, 2007 at 20:00 GMT
     DESCRIPTION
         "The initial revision of this MIB module."
@@ -170,7 +180,85 @@ h3cDot11LoadBalanceSessionGap OBJECT-TYPE
     DEFVAL { 4 }
     ::= { h3cDot11LBGlobalGroup 6 }
 
+h3cDot11LBTrafficThresKbps OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "kbps"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Represents the threshold value for Traffic based load balancing."
+    ::= { h3cDot11LBGlobalGroup 7 }
+
+h3cDot11LBTrafficGapKbps OBJECT-TYPE
+    SYNTAX      Integer32
+    UNITS       "kbps"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Traffic gap threshold. Load balancing is carried out for a radio
+        when the traffic threshold gap are exceeded."
+    ::= { h3cDot11LBGlobalGroup 8 }
+
 -- *****************************************************************************
 -- *  End of h3cDot11LBGlobalGroup Definition
 -- *****************************************************************************
+
+-- *****************************************************************************
+-- *  h3cDot11LBRadioGroup Definition
+-- *****************************************************************************
+h3cDot11LBRadioGroupTable OBJECT-TYPE
+    SYNTAX SEQUENCE OF H3cDot11LBRadioGroupEntry
+    MAX-ACCESS not-accessible
+    STATUS current
+    DESCRIPTION
+        "This table defines load balance radio group."
+    ::= { h3cDot11LoadBalance 2 }
+
+h3cDot11LBRadioGroupEntry OBJECT-TYPE
+    SYNTAX      H3cDot11LBRadioGroupEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry contains information of one load balance radio group."
+    INDEX
+        {
+            h3cDot11LBRadioGroupId
+        }
+    ::= { h3cDot11LBRadioGroupTable 1 }
+
+H3cDot11LBRadioGroupEntry ::= SEQUENCE
+    {
+        h3cDot11LBRadioGroupId        Unsigned32,
+        h3cDot11LBRadioGroupDesc      OCTET STRING,
+        h3cDot11LBRadioGroupRowStatus RowStatus
+    }
+
+h3cDot11LBRadioGroupId OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Represents load balance radio group ID."
+    ::= { h3cDot11LBRadioGroupEntry 1 }
+
+h3cDot11LBRadioGroupDesc OBJECT-TYPE
+    SYNTAX      OCTET STRING
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Represents the description of load balance radio group."
+    ::= { h3cDot11LBRadioGroupEntry 2 }
+
+h3cDot11LBRadioGroupRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The row status of this table entry."
+    ::= { h3cDot11LBRadioGroupEntry 3 }
+
+-- *****************************************************************************
+-- *  End of h3cDot11LBRadioGroup Definition
+-- *****************************************************************************
+
 END

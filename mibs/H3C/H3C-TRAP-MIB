@@ -1,10 +1,10 @@
 -- =================================================================
--- Copyright (C) 2008 by H3C Technologies. All rights reserved.
+-- Copyright (c) 2004-2010 Hangzhou H3C Tech. Co., Ltd. All rights reserved.
 --
 -- Description: This file describes the enterprise mib implementation
 --              of sending some traps.
 -- Reference:
--- Version: V1.3
+-- Version: V1.5
 -- History:
 --   V1.0 created by Huang Yang
 --     Initial version 2005-01-25
@@ -12,28 +12,40 @@
 --   V1.2 2007-02-06  added h3cNdTabTrapEnable, h3cNdTabTrapInterval,
 --                    h3cNdTabLen and h3cNdTabFullTrap by lizuxing04859
 --   V1.3 2008-07-18  added h3cPeriodicalTrapGroup by songhao
+--   V1.4 2009-10-09   modified h3cPeriodicalTrapInterval by lisong
+--   V1.5 2010-03-06  added h3cPeriodicalTrapSwitch, h3cTrapDesInfoTable
+--                    h3cTrapConfigTable by haoyan
+--        2010-04-29  added h3cDefaultRtDelTrap by wenchenhua
+--        2010-06-05  added h3cTrapDesAddrTAddress by jinyi
 -- =================================================================
 H3C-TRAP-MIB DEFINITIONS ::= BEGIN
 
     IMPORTS
-        h3cCommon
-            FROM HUAWEI-3COM-OID-MIB
-        ifIndex, ifDescr
+        IpAddress
+            FROM SNMPv2-SMI
+        SnmpAdminString
+            FROM SNMP-FRAMEWORK-MIB
+        ifIndex, ifDescr, InterfaceIndex
             FROM IF-MIB
-        Integer32, Unsigned32, OBJECT-TYPE,
+        RowStatus, TAddress, TruthValue
+            FROM SNMPv2-TC
+        Integer32, OBJECT-TYPE,
         MODULE-IDENTITY, NOTIFICATION-TYPE
-            FROM SNMPv2-SMI;
+            FROM SNMPv2-SMI
+        InetAddressType, InetAddress
+            FROM INET-ADDRESS-MIB
+        h3cCommon
+            FROM HUAWEI-3COM-OID-MIB;
 
     h3cTrap MODULE-IDENTITY
-        LAST-UPDATED "200807181150Z"
+        LAST-UPDATED "201006051050Z"
         ORGANIZATION
-            "H3C Technologies Co., Ltd."
+            "Hangzhou H3C Technologies Co., Ltd."
         CONTACT-INFO
             "Platform Team H3C Technologies Co., Ltd.
-            Hai-Dian District Beijing P.R. China
-            http://www.h3c.com
-            Zip:100085
-            "
+             Hai-Dian District Beijing P.R. China
+             http://www.h3c.com
+             Zip: 100085"
         DESCRIPTION
             "This MIB is applicable to routers, switches and other products.
 
@@ -41,7 +53,7 @@ H3C-TRAP-MIB DEFINITIONS ::= BEGIN
             so users should refer to the related documents to acquire more
             detail information.
             "
-        REVISION "200501251354Z"        -- January 25, 2005 at 13:54 GMT
+        REVISION "201006051050Z"
         DESCRIPTION
             "The initial revision of this MIB module."
         ::= { h3cCommon 38 }
@@ -266,6 +278,36 @@ H3C-TRAP-MIB DEFINITIONS ::= BEGIN
             routing tables also use the same object."
         ::= { h3cRtTabTrapInfo 1 }
 
+    h3cDefaultRtNextHopType OBJECT-TYPE
+        SYNTAX InetAddressType
+        MAX-ACCESS accessible-for-notify
+        STATUS current
+        DESCRIPTION
+            "The IP address type of the next hop of the default route.
+            The value must be ipv4 or ipv6"
+        ::= { h3cRtTabTrapInfo 2 }
+
+    h3cDefaultRtNextHop OBJECT-TYPE
+        SYNTAX InetAddress
+        MAX-ACCESS accessible-for-notify
+        STATUS current
+        DESCRIPTION
+            "The IP address of the next hop of the default route."
+        ::= { h3cRtTabTrapInfo 3 }
+
+    h3cDefaultRtOutIf OBJECT-TYPE
+        SYNTAX InterfaceIndex
+        MAX-ACCESS accessible-for-notify
+        STATUS current
+        DESCRIPTION
+            "The index value which uniquely identifies the
+             local interface through which the next hop of this
+             route should be reached.  The interface identified
+             by a particular value of this index is the same
+             interface as identified by the same value of
+             ifIndex."
+        ::= { h3cRtTabTrapInfo 4 }
+
     h3cRtTabTrap OBJECT IDENTIFIER ::= { h3cRtTabStatGroup 5 }
 
     h3cRtTabFullTrap NOTIFICATION-TYPE
@@ -285,6 +327,23 @@ H3C-TRAP-MIB DEFINITIONS ::= BEGIN
                 interval between two traps generated should be longer than
                 h3cRtTabTrapInterval."
             ::= { h3cRtTabTrap 2 }
+
+    h3cDefaultRtDelTrap NOTIFICATION-TYPE
+            OBJECTS { h3cDetailRtProType, h3cDefaultRtNextHopType, h3cDefaultRtNextHop, h3cDefaultRtOutIf }
+            STATUS current
+            DESCRIPTION
+                "Send this trap when the default route is deleted."
+            ::= { h3cRtTabTrap 3 }
+
+    h3cDefaultRtDelTrapEnable OBJECT-TYPE
+        SYNTAX TruthValue
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Indicates whether h3cDefaultRtDelTrap traps should
+            be generated when the default route is deleted."
+        DEFVAL { false }
+        ::= { h3cRtTabStatGroup 6 }
 
 -- Describe objects for multicast table
     h3cMulticastTabStatGroup OBJECT IDENTIFIER ::= { h3cTableGroup 4 }
@@ -402,16 +461,31 @@ H3C-TRAP-MIB DEFINITIONS ::= BEGIN
         ::= { h3cPeriodicalTrapGroup 1 }
 
     h3cPeriodicalTrapInterval OBJECT-TYPE
-        SYNTAX Integer32 (10..3600)
+        SYNTAX Integer32 (0|10..3600)
         UNITS "seconds"
         MAX-ACCESS read-write
         STATUS current
         DESCRIPTION
             "Definition of the periodical interval.
             If no trap occurs during the certain interval, an h3cPeriodicalTrap
-            will be generated."
+            will be generated.
+            If the interval is set to 0, no h3cPeriodicalTrap will be generated."
         DEFVAL { 60 }
         ::= { h3cPeriodicalTrapObjects 1 }
+
+    h3cPeriodicalTrapSwitch OBJECT-TYPE
+        SYNTAX INTEGER {
+                        enable(1),
+                        disable(2)
+                        }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Definition of the periodical switch.
+            If the value is off,the h3cPeriodicalTrap will not be generated.
+            the h3cPeriodicalTrapInterval will be set to 0."
+        DEFVAL { enable }
+        ::= { h3cPeriodicalTrapObjects 2 }
 
 -- Describe information for SNMP periodical trap
     h3cPeriodicalTrapInfo OBJECT IDENTIFIER
@@ -428,8 +502,143 @@ H3C-TRAP-MIB DEFINITIONS ::= BEGIN
             STATUS current
             DESCRIPTION
                 "If no trap occurs during the interval spicified by
-                h3cPeriodicalTrapInterval, a h3cPeriodicalTrap
-                will be generated."
+                h3cPeriodicalTrapInterval, an h3cPeriodicalTrap
+                will be generated. If the interval is set to 0, no
+                h3cPeriodicalTrap will be generated."
             ::= { h3cPeriodicalNotificationPrefix 1 }
+
+-- Describe SNMP TrapDesInfo group
+    h3cTrapDesInfo OBJECT IDENTIFIER ::= { h3cTableGroup 7 }
+
+    h3cTrapDesInfoTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF H3cTrapDesInfoEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "A table of trap destination host address and port ."
+            ::= { h3cTrapDesInfo 1 }
+
+    h3cTrapDesInfoEntry OBJECT-TYPE
+            SYNTAX H3cTrapDesInfoEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The entry of trap destination host address and port."
+            INDEX { h3cTrapDesInfoIndex }
+            ::= { h3cTrapDesInfoTable 1 }
+
+    H3cTrapDesInfoEntry ::=
+            SEQUENCE {
+                h3cTrapDesInfoIndex Integer32,
+                h3cTrapDesIPAddress IpAddress,
+                h3cTrapDesPort Integer32,
+                h3cTrapDesRowStatus  RowStatus,
+                h3cTrapDesAddrTAddress TAddress
+            }
+
+    h3cTrapDesInfoIndex OBJECT-TYPE
+            SYNTAX Integer32 (1..20)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The index of this table."
+            ::= { h3cTrapDesInfoEntry 1 }
+
+    h3cTrapDesIPAddress OBJECT-TYPE
+            SYNTAX IpAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "The host IP address of the trap destination."
+            ::= { h3cTrapDesInfoEntry 2 }
+
+    h3cTrapDesPort OBJECT-TYPE
+            SYNTAX Integer32 (0..65535)
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "The port of the trap destination."
+            ::= { h3cTrapDesInfoEntry 3 }
+
+    h3cTrapDesRowStatus OBJECT-TYPE
+            SYNTAX RowStatus
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "The status of this table entry."
+            ::= { h3cTrapDesInfoEntry 4 }
+
+    h3cTrapDesAddrTAddress OBJECT-TYPE
+            SYNTAX TAddress
+            MAX-ACCESS read-create
+            STATUS current
+            DESCRIPTION
+                "This object contains a transport address."
+            ::= { h3cTrapDesInfoEntry 5 }
+
+-- Describe SNMP TrapConfig group
+    h3cTrapConfig OBJECT IDENTIFIER ::= { h3cTableGroup 8 }
+
+    h3cTrapConfigTable OBJECT-TYPE
+            SYNTAX SEQUENCE OF H3cTrapConfigEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "A table of trap configuration."
+            ::= { h3cTrapConfig 1 }
+
+    h3cTrapConfigEntry OBJECT-TYPE
+            SYNTAX H3cTrapConfigEntry
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The entry of trap configuration."
+            INDEX { h3cTrapConfigIndex }
+            ::= { h3cTrapConfigTable 1 }
+
+    H3cTrapConfigEntry ::=
+            SEQUENCE {
+                    h3cTrapConfigIndex Integer32,
+                    h3cTrapConfigName SnmpAdminString,
+                    h3cTrapConfigDescr SnmpAdminString,
+                    h3cTrapConfigSwitch INTEGER
+            }
+
+    h3cTrapConfigIndex OBJECT-TYPE
+            SYNTAX Integer32 (1..2147483647)
+            MAX-ACCESS not-accessible
+            STATUS current
+            DESCRIPTION
+                "The index of this table."
+            ::= { h3cTrapConfigEntry 1 }
+
+    h3cTrapConfigName OBJECT-TYPE
+            SYNTAX SnmpAdminString (SIZE(0..127))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "The name of the appointed traps."
+            ::= { h3cTrapConfigEntry 2 }
+
+    h3cTrapConfigDescr OBJECT-TYPE
+            SYNTAX SnmpAdminString (SIZE(0..127))
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "The description of the appointed traps."
+            ::= { h3cTrapConfigEntry 3 }
+
+    h3cTrapConfigSwitch OBJECT-TYPE
+            SYNTAX INTEGER {
+                            enable(1),
+                            disable(2)
+                            }
+            MAX-ACCESS read-write
+            STATUS current
+            DESCRIPTION
+                "Indicates whether the appointed traps
+                should be generated."
+            DEFVAL { enable }
+            ::= { h3cTrapConfigEntry 4 }
 
 END
