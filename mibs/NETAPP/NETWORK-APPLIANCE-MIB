@@ -8,7 +8,7 @@
 	-- RFC1213 MIB is not included in this file.                --
 	-- =======================================================  --
 
-	-- Version 1.17.3, November 2005 (See NOTE below)
+	-- Version 1.18, October 2004 (See NOTE below)
 
 	-- Copyright (c) 1995-2001 Network Appliance, Inc.
 	-- All rights reserved.
@@ -171,7 +171,8 @@
 	productVendor	OBJECT-TYPE
 	SYNTAX		INTEGER {
 			    netapp(1),
-			    dell(2)
+			    dell(2),
+			    ibm(3)
 	}
 	ACCESS		read-only
 	STATUS		mandatory
@@ -186,7 +187,7 @@
 	STATUS		mandatory
 	DESCRIPTION
 			"The model name of the system.  Examples
-			 are C720 and F760."
+			 are FAS980 and FAS3050."
 	::= { product 5 }
 
 	productFirmwareVersion	OBJECT-TYPE
@@ -250,6 +251,24 @@
 
 			
         ::= { product 11 }
+
+	productTrapData	OBJECT-TYPE
+	SYNTAX			DisplayString
+	ACCESS			read-only
+	STATUS			mandatory
+	DESCRIPTION
+			"This returns a static string. This object is used
+			as a placeholder for enterprise traps."
+	::= { product 12 }
+
+	productMachineType	OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION
+			"The machine type of the system.  Examples
+			 are FAS980 and FAS3050."
+	::= { product 13 }
 
 	-- -- -- -- -- -- -- --
 	-- the sysStat group --
@@ -10237,7 +10256,7 @@
                 aggrStatus      DisplayString,
                 aggrOptions     DisplayString,
                 aggrUUID        DisplayString,
-		aggrFlexvollist DisplayString,
+		aggrFlexvollist OCTET STRING,
 		aggrType	INTEGER
             }
 
@@ -10316,7 +10335,7 @@
         ::= { aggrEntry 8 }
 
         aggrFlexvollist OBJECT-TYPE
-        SYNTAX          DisplayString
+        SYNTAX          OCTET STRING (SIZE (0..1024))
         ACCESS          read-only
         STATUS          mandatory
         DESCRIPTION
@@ -10426,8 +10445,7 @@
 		failed(6),
 		addingSpare(7),
 		spare(8),
-		prefailed(9),
-		offline(10)
+		prefailed(9)
 	}
 	ACCESS		read-only
 	STATUS		deprecated
@@ -10627,8 +10645,7 @@
 		parityVerificationInProgress(4),
 		scrubbingInProgress(5),
 		failed(6),
-		prefailed(9),
-		offline(10)
+		prefailed(9)
 	}
 	ACCESS		read-only
 	STATUS		mandatory
@@ -11019,8 +11036,7 @@
                             spare(1),
                             addingspare(2),
                             bypassed(3),
-                            unknown(4),
-			    offline(10)
+                            unknown(4)
 	}
 	ACCESS		read-only
 	STATUS		mandatory
@@ -11744,8 +11760,7 @@
 				parityVerificationInProgress(4),
 				scrubbingInProgress(5),
 				failed(6),
-				prefailed(9),
-				offline(10)
+				prefailed(9)
 				}
 	ACCESS		read-only
 	STATUS		mandatory
@@ -21616,6 +21631,7 @@ ViaConnEntry  ::= SEQUENCE {
 				   partner-standby(5),
 				   local-primary(6),
 				   dual-fabric(7),
+				   ssi(8),
 				   unknown(256)
 	                        }
         ACCESS          read-only
@@ -21623,6 +21639,120 @@ ViaConnEntry  ::= SEQUENCE {
         DESCRIPTION
 			"Failover setting for the FCP target cluster."
 	::= { blocks 18 }
+
+	
+	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	-- Port sets
+	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+	
+	pset 		OBJECT IDENTIFIER ::= {blocks 19}
+
+	psetTable 	OBJECT-TYPE
+	SYNTAX		SEQUENCE OF PortSetEntry
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION
+			"Provide a report of portset general 
+			information "
+	::= {pset 1}
+
+	psetEntry 	OBJECT-TYPE
+	SYNTAX		PortSetEntry
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION	
+			"Provide a report of portset information"
+	INDEX	{ psetIndex }
+	::= { psetTable 1 }
+	
+	PortSetEntry ::=
+	    SEQUENCE {
+		psetIndex INTEGER,
+		psetName  DisplayString,
+		psetType  INTEGER
+		}
+
+	psetIndex	OBJECT-TYPE
+        SYNTAX          INTEGER (1..2147483647)
+        ACCESS          read-only
+        STATUS          mandatory
+        DESCRIPTION
+                     "A number that identifies a specific port set."
+        ::= { psetEntry 1 }
+
+	psetName	OBJECT-TYPE
+	SYNTAX		DisplayString
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION
+		    "The name of the port set"
+	::= { psetEntry 2 }
+	
+	psetType 	OBJECT-TYPE
+        SYNTAX          INTEGER {
+                                     fcp(1),
+                                     iSCSI(2)
+                                }
+	ACCESS		read-only
+	STATUS		mandatory
+	DESCRIPTION
+		    "Type of this port set, either iSCSI or FCP"
+	::= { psetEntry 3 }
+	
+	psetMemberTable	OBJECT-TYPE
+	SYNTAX		SEQUENCE OF PsetMemberEntry
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION
+			"Table of individual Port names in each Port
+			set"
+	::= {pset 2}
+
+	psetMemberEntry	OBJECT-TYPE
+	SYNTAX		PsetMemberEntry
+	ACCESS		not-accessible
+	STATUS		mandatory
+	DESCRIPTION	
+			"Provide a report of portset port information"
+	INDEX	{ psetMemberIndex, psetMemberNameIndex}
+	::= { psetMemberTable 1 }
+	
+	PsetMemberEntry ::=
+	    SEQUENCE {
+		psetMemberIndex
+			INTEGER,
+		psetMemberNameIndex
+			INTEGER,
+		psetPortName	
+			DisplayString
+		}
+
+	psetMemberIndex OBJECT-TYPE
+        SYNTAX          INTEGER (1..2147483647)
+        ACCESS          read-only
+        STATUS          mandatory
+        DESCRIPTION
+                     "A number that identifies a specific port set."
+        ::= { psetMemberEntry 1 }
+
+	psetMemberNameIndex	OBJECT-TYPE
+        SYNTAX          	INTEGER (1..2147483647)
+        ACCESS          	read-only
+        STATUS          	mandatory
+        DESCRIPTION
+                      "A number the identifies the port in the set."
+        ::= { psetMemberEntry 2 }
+	
+	psetPortName	OBJECT-TYPE
+	SYNTAX		DisplayString
+        ACCESS          read-only
+        STATUS          mandatory
+        DESCRIPTION
+		    "A textual name for this port."
+	::= { psetMemberEntry 3 }
+	
 
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
@@ -23481,6 +23611,13 @@ ViaConnEntry  ::= SEQUENCE {
 	--
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
+	scsitgtFCPLinkBreak TRAP-TYPE
+	ENTERPRISE		netapp
+	DESCRIPTION
+		"SCSI Target: Link Break on FCP adapter"
+
+	::= 222
+
 	scsitgtPartnerPathMisconfigured	TRAP-TYPE
 	ENTERPRISE		netapp
 	DESCRIPTION
@@ -23994,10 +24131,6 @@ ViaConnEntry  ::= SEQUENCE {
 		The string sent with this trap specifies name of 
 		affected plex or mirrored traditional volume or aggregate."
 	::= 454
-
-	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-	--  Trap range from 46x through 47x is reserved
-	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
 
 	-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
 	--  This section contains traps related to maxdirsize.

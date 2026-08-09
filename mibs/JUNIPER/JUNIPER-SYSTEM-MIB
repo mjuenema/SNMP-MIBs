@@ -5,7 +5,8 @@
 -- Juniper Networks Enterprise MIB
 --   E-series System MIB
 --
--- Copyright (c) 2002-2006 Juniper Networks, Inc.  All Rights Reserved.
+-- Copyright (c) 2008-2010 Juniper Networks, Inc.  All rights reserved.
+-- Copyright (c) 2002-2008 Juniper Networks, Inc.  All Rights Reserved.
 -- *****************************************************************************
 
 Juniper-System-MIB  DEFINITIONS ::= BEGIN
@@ -30,7 +31,7 @@ IMPORTS
         FROM Juniper-TC;
 
 juniSystemMIB  MODULE-IDENTITY
-    LAST-UPDATED "200605180831Z"  -- 18-May-06 02:01 PM EST
+    LAST-UPDATED "201203130512Z"  -- 13-Mar-12 10:42 AM EST
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -52,6 +53,31 @@ juniSystemMIB  MODULE-IDENTITY
             ERX   - first generation E-series systems
             ES2    - second generation E-series systems "
     -- Revision History
+    REVISION    "201203130512Z"  -- 13-Mar-12 10:42 AM EST  - JUNOSe 13.3
+    DESCRIPTION
+        "Added fpga corruption trap for linecard fpga corruption detection"
+    REVISION    "201010250512Z"  -- 25-Oct-10 10:42 AM EST  - JUNOSe 9.3
+    DESCRIPTION
+        "Added new state for juniSystemTempStatus object to reflect the
+        new temperature state 'maxfanSpeed'."
+    REVISION    "201003121345Z"  -- 12-Mar-10 07:15 PM EST  - JUNOSe 11.2
+    DESCRIPTION
+        "Added environment trap for sfps thresholds"
+    REVISION    "200806111101Z"  -- 11-Jun-08 07:01 AM EDT  - JUNOSe 10.0
+    DESCRIPTION
+        "Added es2Lm10s support."
+    REVISION    "200805051241Z"  -- 05-May-08 08:41 AM EDT  - JUNOSe 9.2
+    DESCRIPTION
+        "Add ISSU Support for ERX-1440."
+    REVISION    "200705071012Z"  -- 07-May-07 06:12 AM EDT  - JUNOSe 9.0
+    DESCRIPTION
+        "Add ISSU support."
+    REVISION    "200612182125Z"  -- 18-Dec-06 04:25 PM EST  - JUNOSe 8.3
+    DESCRIPTION
+        "Add LM10 Access Support."
+    REVISION    "200611240913Z"  -- 24-Nov-06 04:13 AM EST  - JUNOSe 8.2
+    DESCRIPTION
+        "Add suppot for ES2 primary modules SRP-120 and SFM-120 for E120."
     REVISION    "200605180831Z"  -- 18-May-06 02:01 PM EST  - JUNOSe 8.0
     DESCRIPTION
         "Add last 5 seconds, 1 minute and 5 minutes avergae CPU utilzation
@@ -269,6 +295,7 @@ JuniSystemModuleType  ::= TEXTUAL-CONVENTION
             e320Srp320                 ES2 320Gb System Route Processor with integrated
                                         fabric slice
             e320Sfm320                 ES2 320Gb Switch Fabric Slice
+            es2Lm10s                   ES2 10Gb (series 4) Line Module(LM).  
         ES2 I/O adapter (IOA) modules:
             e320SrpIoa                 ES2 system resource processor IOA
             es2Ge4S1Ioa                ES2 4 port Gigabit Ethernet S1 IOA
@@ -280,7 +307,14 @@ JuniSystemModuleType  ::= TEXTUAL-CONVENTION
             es2Oc12Stm4x2AtmS1Ioa      ES2 OC12/STM4-2 ATM S1 IOA
             es2dash10GeS1Ioa           ES2 10GE-1 SR S1 IOA
             es2Ge8S1Ioa                ES2 8 port Gigabit Ethernet S1 IOA
-            es2dash10GePrS2Ioa         ES2 10GE-1 Port Redundancy S2 IOA"
+            es2dash10GePrS2Ioa         ES2 10GE-1 Port Redundancy S2 IOA
+            es2Ge20S2Ioa               ES2 20 port Gigabit Ethernet S2 IOA
+        ES2 primary modules for E120:
+            e120Srp120                 ES2 120Gb System Route Processor with integrated
+                                        fabric slice
+            e120Sfm120                 ES2 120Gb Switch Fabric Slice"
+
+
     SYNTAX      INTEGER {
                     unknown(0),
                 -- ERX primary module types
@@ -388,6 +422,7 @@ JuniSystemModuleType  ::= TEXTUAL-CONVENTION
                     es2Lm10(2052),
                     e320Srp320(2053),
                     e320Sfm320(2054),
+                    es2Lm10s(2055),
                 -- ES2 I/O adapter (IOA) module types
                     e320SrpIoa(3072),
                     es2Ge4S1Ioa(3073),
@@ -399,7 +434,11 @@ JuniSystemModuleType  ::= TEXTUAL-CONVENTION
                     es2Oc12Stm4x2AtmS1Ioa(3079),
                     es2dash10GeS1Ioa(3080),
                     es2Ge8S1Ioa(3081),
-                    es2dash10GePrS2Ioa(3082) }
+                    es2dash10GePrS2Ioa(3082),
+                    es2Ge20S2Ioa(3083) ,
+                -- ES2 primary module types for E120
+                    e120Srp120(4096),
+                    e120Sfm120(4097) }
 
 JuniSystemSlotLevel  ::= TEXTUAL-CONVENTION
     STATUS      current
@@ -529,6 +568,7 @@ juniSystemNvs            OBJECT IDENTIFIER ::= { juniSystemObjects 7 }
 juniSystemPower          OBJECT IDENTIFIER ::= { juniSystemObjects 8 }
 juniSystemTemperature    OBJECT IDENTIFIER ::= { juniSystemObjects 9 }
 juniSystemUtilization    OBJECT IDENTIFIER ::= { juniSystemObjects 10 }
+juniSystemIssu           OBJECT IDENTIFIER ::= { juniSystemObjects 11 }
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2164,9 +2204,10 @@ juniSystemTempStatus  OBJECT-TYPE
                     failed(1),
                     tooLow(2),
                     nominal(3),
-                    tooHigh(4),
-                    tooLowWarning(5),
-                    tooHighWarning(6) }
+                    increasedFanSpeed(4),
+                    tooHigh(5),
+                    tooLowWarning(6),
+                    tooHighWarning(7) }
     MAX-ACCESS  read-only
     STATUS      current
     DESCRIPTION
@@ -2175,6 +2216,7 @@ juniSystemTempStatus  OBJECT-TYPE
             failed            - sensor is broken
             tooLow            - temperature is below nominal range
             nominal           - temperature is within nominal range
+            increasedFanSpeed - temperature is within nominal range
             tooHigh           - temperature is above nominal range
             tooLowWarning     - temperature is near the nominal lower limit
             tooHighWarning    - temperature is near the nominal upper limit "
@@ -2660,7 +2702,145 @@ juniSystemCpuUtilizationNumberOfInstances  OBJECT-TYPE
         "Number of instances consolidated for CPU utilization calculation in this 
         task profile entry."
     ::= { juniSystemCpuUtilizationEntry 11 }
-   
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- ISSU objects
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+juniSystemIssuState   OBJECT-TYPE 
+    SYNTAX      INTEGER {
+                    idle(1),
+                    initializing(2),
+                    initialized(3),
+                    upgrading(4),
+                    stopping(5) }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The state of the system with respect to ISSU upgrade:
+            idle         - ISSU is currently idle
+            initializing - ISSU initialization is in-progress 
+            initialized  - ISSU has successfully initialized
+            upgrading    - ISSU is currently upgrading to the new armed release
+            stopping     - ISSU is currently in the process of stopping
+
+        This object is supported on the second generation E-series
+        platform family (E320 & E120) in JUNOSe 9.0 and subsequent system
+        releases. This object is also supported on ERX-1440 in JUNOSe 9.2
+        and subsequent system releases."
+    ::= { juniSystemIssu  1 }
+
+juniSystemIssuRunningReleaseFile  OBJECT-TYPE 
+    SYNTAX          DisplayString (SIZE(0..128)) 
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The currently running release file name, with extension '.rel'.
+        The system was booted last time with this release file.
+
+        This object is supported on the second generation E-series
+        platform family (E320 & E120) in JUNOSe 9.0 and subsequent system
+        releases. This object is also supported on ERX-1440 in JUNOSe 9.2
+        and subsequent system releases."
+    ::= { juniSystemIssu  2 }
+
+juniSystemIssuArmedReleaseFile    OBJECT-TYPE 
+    SYNTAX          DisplayString (SIZE(0..128)) 
+    MAX-ACCESS      read-only
+    STATUS          current
+    DESCRIPTION
+        "The currently armed release file name, with extension '.rel'.
+        The system will be booted with this release file, after ISSU (if
+        it is not aborted).
+
+        This object is supported on the second generation E-series
+        platform family (E320 & E120) in JUNOSe 9.0 and subsequent system
+        releases. This object is also supported on ERX-1440 in JUNOSe 9.2
+        and subsequent system releases."
+    ::= { juniSystemIssu 3 }
+
+juniSystemIssuStatus  OBJECT-TYPE 
+    SYNTAX      INTEGER {
+                    ok(1),
+                    warning(2),
+                    error(3) }
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "The status of the system with respect to ISSU upgrade.
+            ok           - no error or warning found
+            warning      - at least one upgrade warning found, upgrade is possible
+            error        - at least one upgrade error found, upgrade is not possible
+
+        This object is supported on the second generation E-series
+        platform family (E320 & E120) in JUNOSe 9.0 and subsequent system
+        releases. This object is also supported on ERX-1440 in JUNOSe 9.2
+        and subsequent system releases."
+    ::= { juniSystemIssu  4 }
+
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- ISSU upgrade Criteria
+-- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+juniSystemIssuCriteriaTable OBJECT-TYPE
+    SYNTAX          SEQUENCE OF JuniSystemIssuCriteriaEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "A Table of criteria for an ISSU initialization.
+        
+        This table will be empty for unsupported platforms. These objects
+        are supported on the second generation E-series platform
+        family (E320 & E120) in JUNOSe 9.0 and subsequent system releases.
+        This object is also supported on ERX-1440 in JUNOSe 9.2 and
+        subsequent system releases."
+    ::= { juniSystemIssu 5 }
+
+juniSystemIssuCriteriaEntry  OBJECT-TYPE
+    SYNTAX          JuniSystemIssuCriteriaEntry
+    MAX-ACCESS      not-accessible
+    STATUS          current
+    DESCRIPTION
+        "A table entry describing the criteria for an ISSU initialization."
+    INDEX           { juniSystemIssuCriteriaIndex }
+    ::= { juniSystemIssuCriteriaTable 1 }
+
+    JuniSystemIssuCriteriaEntry ::= SEQUENCE {
+        juniSystemIssuCriteriaIndex                   Integer32,
+        juniSystemIssuCriteriaDescription             DisplayString,
+        juniSystemIssuCriteriaStatus                  INTEGER }
+
+juniSystemIssuCriteriaIndex   OBJECT-TYPE
+    SYNTAX      Integer32 (1..255)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The index associated with an entry of the system ISSU Criteria Table."
+    ::= { juniSystemIssuCriteriaEntry 1 }
+
+juniSystemIssuCriteriaDescription   OBJECT-TYPE
+    SYNTAX      DisplayString (SIZE(0..255))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "To initialize ISSU, few criteria need to be met. If these criteria
+        were not met, ISSU cannot be initialized. This object provides the
+        criteria details."
+    ::= { juniSystemIssuCriteriaEntry 2 }
+
+juniSystemIssuCriteriaStatus    OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    yes(1),
+                    no(2),
+                    conditional(3)}
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "To initialize ISSU, few criteria need to be met. If these criteria
+        were not met, ISSU cannot be initialized. This object indicates
+        whether a criteria has met. It will be conditional when that the
+        user can choose to accept the consequences of proceeding with ISSU
+        with non-ideal operating conditions."
+    ::= { juniSystemIssuCriteriaEntry 3 }
+
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Notification control objects
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2712,6 +2892,47 @@ juniSystemUtilizationTrapEnable  OBJECT-TYPE
         utilization event notifications."
     DEFVAL    { true }
     ::= { juniSystemGeneral 22 }
+
+juniSystemPortSfpPowerThresholdIfIndex  OBJECT-TYPE
+    SYNTAX      Unsigned32
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "interface phy-uid."
+    ::= { juniSystemGeneral 24 }
+
+juniSystemPortSfpPowerThresholdValue OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..16))
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION
+        "represents power tx/rx max/min threshold value of sfp. currently displays
+         1.0000 for trap raised, 0.0000 for trap cleared"
+    ::= { juniSystemGeneral 25 }
+
+juniSystemInterfaceName  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Displays the InterfaceName."
+    ::= { juniSystemGeneral 26 }
+
+juniSystemUserName  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Displays the UserName."
+    ::= { juniSystemGeneral 27 }
+
+juniSystemDefectiveSlotInformation  OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "Displays the Defective Slot Location."
+    ::= { juniSystemGeneral 28 }
 
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2836,6 +3057,72 @@ juniSystemUtilizationThreshold  NOTIFICATION-TYPE
         what conditions trigger a resource utilization notification."
     ::= { juniSystemTrap 9 }
 
+juniSystemIssuStateChange    NOTIFICATION-TYPE
+    OBJECTS {
+        juniSystemIssuState }
+    STATUS      current
+    DESCRIPTION
+        "Notification about changes in the status, in case of ISSU upgrade.
+        This notification is sent when the juniSystemIssuState changes. The
+        trap parameter will indicate the current value of the
+        juniSystemIssuState.
+
+        This notification is supported on the second generation E-series
+        platform family (E320 & E120) from 9.0 release onwards. This
+        object is also supported on ERX-1440 in JUNOSe 9.2 and
+        subsequent system releases."
+    ::= { juniSystemTrap 10 }
+
+juniSystemPortSfpTxMaxPowerThreshold NOTIFICATION-TYPE
+    OBJECTS {
+        juniSystemPortSfpPowerThresholdIfIndex,
+        juniSystemPortSfpPowerThresholdValue }
+    STATUS      current
+    DESCRIPTION
+        "Notification says that trap raised/cleared is with
+         respect to link sfp's tx-max power threshold"
+    ::= { juniSystemTrap 11 }
+
+juniSystemPortSfpTxMinPowerThreshold NOTIFICATION-TYPE
+    OBJECTS {
+        juniSystemPortSfpPowerThresholdIfIndex,
+        juniSystemPortSfpPowerThresholdValue }
+    STATUS      current
+    DESCRIPTION
+        "Notification says that trap raised/cleared is with
+         respect to link sfp's tx-min power threshold"
+    ::= { juniSystemTrap 12 }
+
+juniSystemPortSfpRxMaxPowerThreshold NOTIFICATION-TYPE
+    OBJECTS {
+        juniSystemPortSfpPowerThresholdIfIndex,
+        juniSystemPortSfpPowerThresholdValue }
+    STATUS      current
+    DESCRIPTION
+        "Notification says that trap raised/cleared is with
+         respect to link sfp's rx-max power threshold"
+    ::= { juniSystemTrap 13 }
+
+juniSystemPortSfpRxMinPowerThreshold NOTIFICATION-TYPE
+    OBJECTS {
+        juniSystemPortSfpPowerThresholdIfIndex,
+        juniSystemPortSfpPowerThresholdValue }
+    STATUS      current
+    DESCRIPTION
+        "Notification says that trap raised/cleared is with
+         respect to link sfp's rx-min power threshold"
+    ::= { juniSystemTrap 14 }
+
+juniSystemFpgaCorruptionDetected NOTIFICATION-TYPE
+    OBJECTS {
+        juniSystemInterfaceName,
+        juniSystemUserName, 
+        juniSystemDefectiveSlotInformation }
+    STATUS      current
+    DESCRIPTION
+        "Notification says that trap raised is with
+         respect to linecard fpga corruption detection"
+    ::= { juniSystemTrap 15 }
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Conformance information
@@ -2983,7 +3270,7 @@ juniSystemCompliance5  MODULE-COMPLIANCE
     ::= { juniSystemCompliances 5 }                                -- JUNOSe 7.3
 
 juniSystemCompliance6  MODULE-COMPLIANCE
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The compliance statement for entities that implement the Juniper
         E-series System MIB."
@@ -3001,7 +3288,53 @@ juniSystemCompliance6  MODULE-COMPLIANCE
             juniSystemUtilizationGroup2,
             juniSystemNotificationObjectsGroup,
             juniSystemNotificationGroup2 }
-    ::= { juniSystemCompliances 6 }                                -- JUNOSe 7.4
+    ::= { juniSystemCompliances 6 }                                -- JUNOSe 8.0
+
+juniSystemCompliance7  MODULE-COMPLIANCE
+    STATUS      obsolete
+    DESCRIPTION
+        "The compliance statement for entities that implement the Juniper
+        E-series System MIB."
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniSystemGeneralGroup2,
+            juniSystemSubsystemGroup,
+            juniSystemModuleGroup3,
+            juniSystemPortGroup,
+            juniSystemTimingGroup,
+            juniSystemFabricGroup,
+            juniSystemNvsGroup,
+            juniSystemPowerGroup,
+            juniSystemTemperatureGroup,
+            juniSystemUtilizationGroup2,
+            juniSystemNotificationObjectsGroup,
+            juniSystemIssuGroup,
+            juniSystemNotificationGroup3 }
+    ::= { juniSystemCompliances 7 }                                -- JUNOSe 9.0
+
+juniSystemCompliance8  MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for entities that implement the Juniper
+        E-series System MIB."
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniSystemGeneralGroup2,
+            juniSystemSubsystemGroup,
+            juniSystemModuleGroup3,
+            juniSystemPortGroup,
+            juniSystemTimingGroup,
+            juniSystemFabricGroup,
+            juniSystemNvsGroup,
+            juniSystemPowerGroup,
+            juniSystemTemperatureGroup,
+            juniSystemUtilizationGroup2,
+            juniSystemNotificationObjectsGroup,
+            juniSystemIssuGroup,
+            juniSystemNotificationGroup3,
+            juniSystemNotificationGroup4 }
+    ::= { juniSystemCompliances 8 }                                -- JUNOSe 11.2
+
 --
 -- units of conformance
 --
@@ -3229,7 +3562,7 @@ juniSystemNotificationGroup2  NOTIFICATION-GROUP
         juniSystemTempProtectionStatusChange,
         juniSystemReloadCommand,
         juniSystemUtilizationThreshold }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "A collection of notifications for system events in a Juniper E-series
         product."
@@ -3380,5 +3713,63 @@ juniSystemModuleGroup3  OBJECT-GROUP
     DESCRIPTION
         "A collection of management objects that provide system module
         information in a Juniper E-series product."
-    ::= { juniSystemGroups 17 }                                    -- JUNOSe 7.4
+    ::= { juniSystemGroups 17 }                                    -- JUNOSe 8.0
+
+juniSystemIssuGroup	OBJECT-GROUP
+	OBJECTS	{
+        juniSystemIssuState,
+        juniSystemIssuArmedReleaseFile,
+        juniSystemIssuRunningReleaseFile,
+        juniSystemIssuStatus,
+
+        juniSystemIssuCriteriaDescription,
+        juniSystemIssuCriteriaStatus }
+	STATUS		current
+	DESCRIPTION
+        "A collection of management objects that provide ISSU related
+        information in a Juniper E-series product."
+	::= { juniSystemGroups 18 }                                   -- JUNOSe 9.0
+
+juniSystemNotificationGroup3	NOTIFICATION-GROUP
+	NOTIFICATIONS	{
+        juniSystemHighMemUtil,
+        juniSystemAbatedMemUtil,
+        juniSystemModuleOperStatusChange,
+        juniSystemPowerStatusChange,
+        juniSystemFanStatusChange,
+        juniSystemTempStatusChange,
+        juniSystemTempProtectionStatusChange,
+        juniSystemReloadCommand,
+        juniSystemUtilizationThreshold,
+        juniSystemIssuStateChange }
+	STATUS		obsolete
+	DESCRIPTION		
+        "A collection of notifications for system events in a Juniper E-series
+        product."
+	::= { juniSystemGroups 19 }                                   -- JUNOSe 9.0
+
+
+juniSystemNotificationGroup4	NOTIFICATION-GROUP
+	NOTIFICATIONS	{
+        juniSystemHighMemUtil,
+        juniSystemAbatedMemUtil,
+        juniSystemModuleOperStatusChange,
+        juniSystemPowerStatusChange,
+        juniSystemFanStatusChange,
+        juniSystemTempStatusChange,
+        juniSystemTempProtectionStatusChange,
+        juniSystemReloadCommand,
+        juniSystemUtilizationThreshold,
+        juniSystemIssuStateChange,
+        juniSystemPortSfpTxMaxPowerThreshold,
+        juniSystemPortSfpTxMinPowerThreshold,
+        juniSystemPortSfpRxMaxPowerThreshold,
+        juniSystemPortSfpRxMinPowerThreshold }
+	STATUS		current
+	DESCRIPTION		
+        "A collection of notifications for system events in a Juniper E-series
+        product."
+	::= { juniSystemGroups 20 }                                   -- JUNOSe 11.2
+
 END
+

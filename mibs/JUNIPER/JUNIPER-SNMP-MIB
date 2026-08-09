@@ -8,7 +8,8 @@
 -- Copyright (c) 1998, 1999 Redstone Communications, Inc.
 -- Copyright (c) 2000, 2001 Unisphere Networks, Inc.
 -- Copyright (c) 2002, 2004 Juniper Networks, Inc.
--- Copyright (c) 2005 Juniper Networks, Inc.
+-- Copyright (c) 2005, 2006 Juniper Networks, Inc.
+-- Copyright (c) 2007, 2008 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -29,7 +30,7 @@ IMPORTS
         FROM Juniper-MIBs;
 
 juniSnmpMIB  MODULE-IDENTITY
-    LAST-UPDATED "200506231349Z"  -- 23-Jun-05 09:49 AM EDT
+    LAST-UPDATED "200809300659Z"  -- 30-Sep-08 12:29 PM EST
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -42,6 +43,22 @@ juniSnmpMIB  MODULE-IDENTITY
         "MIB objects for configuring SNMP-based management access into Juniper
         E-series products."
     -- Revision History
+    REVISION    "200809300659Z"  -- 30-Sep-08 12:29 PM EST  - JUNOSe 10.2
+    DESCRIPTION
+        "Added juniSnmpIntfCompTable. This provides option for interface 
+         compression based on table type. The behavior of 
+         juniSnmpInterfaceCompress scalars get modified becuase of this."
+    REVISION    "200804031029Z"  -- 03-Apr-08 03:59 PM EST  - JUNOSe 9.3
+    DESCRIPTION
+        "Added juniSnmpTrapSeverityFilterTable.
+        Added support for more traps in JuniSnmpTrapMask textual convention."
+    REVISION    "200609180809Z"  -- 18-Sep-06 04:09 AM EDT  - JUNOSe 8.2
+    DESCRIPTION
+        "Added support for mrouter  Traps."
+    REVISION    "200604261349Z"  -- 26-Apr-06 09:49 AM EDT  - JUNOSe 8.1
+    DESCRIPTION
+        "Updated JuniSnmpTrapMask textual convention to support 64 trap 
+        categories."
 	REVISION    "200601010000Z"  -- 01-Jan-06 00:00 AM EDT  - JUNOSe 7.3
     DESCRIPTION
         "Added support for DOS Protection Traps."
@@ -152,8 +169,8 @@ JuniSnmpTrapMask ::= TEXTUAL-CONVENTION
         "This octet string is interpreted as a bit mask, in which each bit
         corresponds to a category of SNMP trap.
 
-        Bit definitions are as follows, where bit 31 is the most significant bit
-        of the first octet, and bit 0 is the least significant bit of the fourth
+        Bit definitions are as follows, where bit 63 is the most significant bit
+        of the first octet, and bit 0 is the least significant bit of the eighth
         octet:
 
         Bit     Category
@@ -185,11 +202,16 @@ JuniSnmpTrapMask ::= TEXTUAL-CONVENTION
         24      Route Table traps
         25      IP Traps 
         26      Mirror Traps 
-		27      Vpn Traps
-		28      Bfd Traps
-		29      Dos Protection Platform Traps
-        30-31   Undefined."
-    SYNTAX      OCTET STRING (SIZE(4))
+        27      Vpn Traps
+        28      Bfd Traps
+        29      Dos Protection Platform Traps
+        30      Mrouter Traps
+        31      Ldp Traps
+        32      Mobile IPv4 Traps
+        33      ISSU Traps
+        34-63   Undefined."
+
+    SYNTAX      OCTET STRING (SIZE(8)) 
 
 JuniTrapSeverity ::= TEXTUAL-CONVENTION
     STATUS      current
@@ -337,7 +359,13 @@ juniSnmpIntfCompCompressed  OBJECT-TYPE
                      tables but are manageable from proprietary MIBs.
          false(2)  - the standard ifTable, ifXTable and ifStackTable contain
                      entries for every standard and proprietary interface type
-                     supported by this system."
+                     supported by this system.
+
+        This configuration is applicable to all interface related tables until
+        interface compression based on interface table-types is applied. If
+        interface table-type based compression is applied, get operation on 
+        this object will correspond only to ifTable/ifXTable/juniIfTable and 
+        set operation on this object will fail."
     DEFVAL    { false }
     ::= { juniSnmpInterfaceCompress 1 }
 
@@ -346,7 +374,7 @@ juniSnmpIntfCompEnhanced  OBJECT-TYPE
     MAX-ACCESS  read-write
     STATUS      current
     DESCRIPTION
-        "This object governs which interface types are visable to SNMP
+        "This object governs which interface types are visible to SNMP
         management clients that use the standard ifTable, ifXTable and
         ifStackTable.  The object is a variable length octet string that is
         interpreted as a bit mask.  Each bit respresents a specific Juniper
@@ -362,7 +390,13 @@ juniSnmpIntfCompEnhanced  OBJECT-TYPE
         the Juniper-UNI-IF-MIB.  For example, ip(0) and ppp(1) correspond to bit
         definitions 0 and 1 respectively.
 
-        In each octet, bit 0 is least significant, bit 7 most significant."
+        In each octet, bit 0 is least significant, bit 7 most significant.
+        
+        This configuration is applicable to all interface related tables until
+        interface compression based on interface table-types is applied. If
+        interface table-type based compression is applied, get operation on 
+        this object will correspond only to ifTable/ifXTable/juniIfTable and 
+        set operation on this object will fail."
     REFERENCE
         "Juniper-UNI-IF-MIB.JuniIfType"
     ::= { juniSnmpInterfaceCompress 2 }
@@ -375,7 +409,12 @@ juniSnmpIntfCompEnhancedDisplay  OBJECT-TYPE
         "This object displays the excluded interface types in human readable
         form.  Three dots (...) at the end of display string indicates that the
         output has been truncated.  The syntax rules are the same as for
-        SNMP-FRAMEWORK-MIB.SnmpAdminString, except for the size constraint."
+        SNMP-FRAMEWORK-MIB.SnmpAdminString, except for the size constraint.
+
+        This configuration is applicable to all interface related tables until
+        interface compression based on interface table-types is applied. If
+        interface table-type based compression is applied, this object will be 
+        applicable only to ifTable/ifXTable/juniIfTable."
     ::= { juniSnmpInterfaceCompress 3 }
 
 juniSnmpIntfCompRestricted  OBJECT-TYPE
@@ -406,6 +445,99 @@ juniSnmpIntfCompRestrictedDisplay  OBJECT-TYPE
         dots (...) at the end of display string indicates that the output has
         been truncated."
     ::= { juniSnmpInterfaceCompress 5 }
+
+juniSnmpIntfCompTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF JuniSnmpIntfCompEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "This table contains enhanced compression bitmask based on table-type."
+    ::= { juniSnmpInterfaceCompress 6 }
+
+juniSnmpIntfCompEntry  OBJECT-TYPE
+    SYNTAX      JuniSnmpIntfCompEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "Each entry corresponds to a table type for which interface compression
+        mask is applied."
+    INDEX     { juniSnmpIntfCompTableType }
+    ::= { juniSnmpIntfCompTable 1 }
+
+JuniSnmpIntfCompEntry ::= SEQUENCE {
+    juniSnmpIntfCompTableType         INTEGER,
+    juniSnmpIntfCompEntryCompressed   TruthValue,
+    juniSnmpIntfCompMask              OCTET STRING,
+    juniSnmpIntfCompMaskDisplay       OCTET STRING }
+
+juniSnmpIntfCompTableType  OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    others (0),
+                    ifTables(1),
+                    ifStackTables(2) }
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "SNMP interface tables for which interface compression bitmask will be
+        applicable. Supported values are:
+        others        : All the other interface related tables except ifTables
+                        and ifStackTables. Currently only ipNetToMediaTable is
+                        supported.
+        ifTables      : It consists of ifTable, ifXTable and juniIfTable.
+        ifStackTables : It consists of ifStackTable, ifInvStackTable and
+                       juniIfInvStackTable.
+        "
+    ::= { juniSnmpIntfCompEntry 1 }
+
+juniSnmpIntfCompEntryCompressed  OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "true(1)   - the standard ifTable, ifXTable and ifStackTable contain a
+                     subset of interface types.  Certain interface types like
+                     HDLC and IP and others are excluded from the standard
+                     tables but are manageable from proprietary MIBs.
+         false(2)  - the standard ifTable, ifXTable and ifStackTable contain
+                     entries for every standard and proprietary interface type
+                     supported by this system."
+    DEFVAL    { false }
+    ::= { juniSnmpIntfCompEntry 2 }
+
+juniSnmpIntfCompMask  OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(5..16))
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "This object governs which interface types are visible to SNMP
+        management clients. The object is a variable length octet string that
+        is interpreted as a bit mask.  Each bit respresents a specific Juniper
+        interface type that can be included or excluded in the standard
+        interface tables.
+
+        For each bit position in each octet of the string, a '1' or '0'
+        indicates the corresponding interface type is either filtered
+        (compressed) from the interface MIB tables, or included respectively.
+
+        Individual bit definitions follow the JuniIfType convention defined in
+        the Juniper-UNI-IF-MIB.  For example, ip(0) and ppp(1) correspond to bit
+        definitions 0 and 1 respectively.
+
+        In each octet, bit 0 is least significant, bit 7 most significant."
+    REFERENCE
+        "Juniper-UNI-IF-MIB.JuniIfType"
+    ::= { juniSnmpIntfCompEntry 3 }
+
+juniSnmpIntfCompMaskDisplay  OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..1000))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This object displays the excluded interface types in human readable
+        form.  Three dots (...) at the end of display string indicates that the
+        output has been truncated.  The syntax rules are the same as for
+        SNMP-FRAMEWORK-MIB.SnmpAdminString, except for the size constraint."
+    ::= { juniSnmpIntfCompEntry 4 }
 
 --
 -- The Management Application Table
@@ -955,6 +1087,60 @@ juniSnmpTrapTotalProxyOut  OBJECT-TYPE
         "Total number of trap requests sent to proxy virtual router."
     ::= { juniSnmpTrap 16 }
 
+juniSnmpTrapSeverityFilterTable  OBJECT-TYPE
+    SYNTAX      SEQUENCE OF JuniSnmpTrapSeverityFilterEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table of SNMP trap Severity filter."
+    ::= { juniSnmpTrap 17 }
+
+juniSnmpTrapSeverityFilterEntry  OBJECT-TYPE
+    SYNTAX      JuniSnmpTrapSeverityFilterEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "A table entry specifying the trap severity filter for a particular
+        trap category."
+    INDEX     { juniSnmpTrapCategory }
+    ::= { juniSnmpTrapSeverityFilterTable 1 }
+
+JuniSnmpTrapSeverityFilterEntry ::= SEQUENCE {
+    juniSnmpTrapCategory          Integer32, 
+    juniSnmpTrapSeverityFilter    JuniTrapSeverity }
+
+juniSnmpTrapCategory  OBJECT-TYPE
+    SYNTAX      Integer32 (0..63)
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The value of this object is an integer which is same as the bit 
+        position specified for a particular trap category in JuniSnmpTrapMask.
+        For example, value of juniSnmpTrapCategory object will be 6 for BGP
+        traps."
+    ::= { juniSnmpTrapSeverityFilterEntry 1 }
+
+juniSnmpTrapSeverityFilter  OBJECT-TYPE
+    SYNTAX      JuniTrapSeverity
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Traps flow through two levels of filtering: severity of a particular
+        trap category and trap destination. If the severity of a particular
+        category is not defined, global trap severity is used for computation.
+        The value of this object defines trap-category based minimum severity
+        level, a trap must have in order to be forwarded for the destination
+        level trap filtering. A trap will be discarded and counted in 
+        juniSnmpTrapGlobalDiscards if its severity level is less than the value
+        of this object. For security reasons, ‘Mirror’ category will not be
+        allowed to be configured through SNMP.
+        Only those trap categories which are configured using per category
+        based trap severity filter are displayed as part of this table.
+        If the value of juniSnmpTrapGlobalSeverityFilter is modified, it will
+        overwrite all the values specified in this table."
+
+    ::= { juniSnmpTrapSeverityFilterEntry 2 }
+
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Traps & Trap Control
@@ -1090,7 +1276,7 @@ juniSnmpCompliance5  MODULE-COMPLIANCE
     ::= { juniSnmpCompliances 5 }                                  -- JUNOSe 3.4
 
 juniSnmpCompliance6  MODULE-COMPLIANCE
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper SNMP
         MIB.  This statement became obsolete when support was added for access
@@ -1104,10 +1290,11 @@ juniSnmpCompliance6  MODULE-COMPLIANCE
     ::= { juniSnmpCompliances 6 }                                  -- JUNOSe 4.1
 
 juniSnmpCompliance7  MODULE-COMPLIANCE
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper SNMP
-        MIB."
+        MIB. This statement became obsolete when support was added for trap 
+        severity filter table."
     MODULE   -- this module
         MANDATORY-GROUPS {
             juniSnmpGeneralGroup3,
@@ -1116,6 +1303,33 @@ juniSnmpCompliance7  MODULE-COMPLIANCE
             juniSnmpAuthFailGroup }
     ::= { juniSnmpCompliances 7 }                                  -- JUNOSe 5.1
 
+
+juniSnmpCompliance8  MODULE-COMPLIANCE
+    STATUS      obsolete
+    DESCRIPTION
+        "The compliance statement for entities which implement the Juniper SNMP
+        MIB. This statement became obsolete when support was added for table
+        type based interface compression."
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniSnmpGeneralGroup3,
+            juniSnmpAccessGroup,
+            juniSnmpTrapGroup3,
+            juniSnmpAuthFailGroup }
+    ::= { juniSnmpCompliances 8 }                                  -- JUNOSe 9.3
+
+juniSnmpCompliance9  MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for entities which implement the Juniper SNMP
+        MIB."
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniSnmpGeneralGroup4,
+            juniSnmpAccessGroup,
+            juniSnmpTrapGroup3,
+            juniSnmpAuthFailGroup }
+    ::= { juniSnmpCompliances 9 }                                  -- JUNOSe 10.2
 
 --
 -- units of conformance
@@ -1291,10 +1505,11 @@ juniSnmpGeneralGroup2  OBJECT-GROUP
         juniSnmpIntfCompEnhancedDisplay,
         juniSnmpIntfCompRestricted,
         juniSnmpIntfCompRestrictedDisplay }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "A collection of management objects pertaining to general SNMP Agent
-        capabilities in a Juniper product."
+        capabilities in a Juniper product. This group became obsolete
+        when access permission was added."
     ::= { juniSnmpGroups 8 }                                       -- JUNOSe 3.4
 
 juniSnmpTrapGroup2  OBJECT-GROUP
@@ -1331,10 +1546,11 @@ juniSnmpTrapGroup2  OBJECT-GROUP
         juniSnmpTrapAgentSnmpNotAbleDiscards,
         juniSnmpTrapTotalTrapsOut,
         juniSnmpTrapTotalProxyOut }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
-        "A collection of management objects pertaining to SNMP Agent trap
-        capabilities in a Juniper product."
+        "Obsolete collection of management objects pertaining to SNMP Agent 
+        trap capabilities in a Juniper product. This group became obsolete when
+        support was added for trap severity filter table."
     ::= { juniSnmpGroups 9 }                                       -- JUNOSe 4.1
 
 juniSnmpGeneralGroup3  OBJECT-GROUP
@@ -1348,10 +1564,79 @@ juniSnmpGeneralGroup3  OBJECT-GROUP
         juniSnmpIntfCompRestricted,
         juniSnmpIntfCompRestrictedDisplay,
         juniSnmpManagementApplicationRowStatus }
+    STATUS   obsolete   
+    DESCRIPTION
+        "A collection of management objects pertaining to general SNMP Agent
+        capabilities in a Juniper product. This group became obsolete
+        when support for interface compression based on interface table type
+        was added."
+    ::= { juniSnmpGroups 10 }                                      -- JUNOSe 5.1
+
+juniSnmpTrapGroup3  OBJECT-GROUP
+    OBJECTS {
+        juniSnmpTrapGlobalFilter,
+        juniSnmpTrapSource,
+        juniSnmpTrapProxy,
+        juniSnmpTrapHostIpAddress,
+        juniSnmpTrapHostRowStatus,
+        juniSnmpTrapHostUdpPort,
+        juniSnmpTrapHostCommunity,
+        juniSnmpTrapHostProtocolVersion,
+        juniSnmpTrapHostFilter,
+        juniSnmpTrapHostSends,
+        juniSnmpTrapHostDiscards,
+        juniSnmpTrapHostSeverityFilter,
+        juniSnmpTrapHostPingTimeOut,
+        juniSnmpTrapHostIncludeLogVarbinds,
+        juniSnmpTrapHostQueueSize,
+        juniSnmpTrapHostQueueDrainRate,
+        juniSnmpTrapHostQueueFull,
+        juniSnmpTrapHostBadEncodingDiscards,
+        juniSnmpTrapHostQueueFullDiscards,
+        juniSnmpTrapHostNoResponseDiscards,
+        juniSnmpTrapTrapSeverity,
+        juniSnmpTrapGlobalDiscards,
+        juniSnmpTrapGlobalSeverityFilter,
+        juniSnmpTrapTotalTrapsReceived,
+        juniSnmpTrapLocalTrapsSubmitted,
+        juniSnmpTrapProxyTrapsSubmitted,
+        juniSnmpTrapTotalTrapsDiscarded,
+        juniSnmpTrapNoMemoryDiscards,
+        juniSnmpTrapNoQueueResourceDiscards,
+        juniSnmpTrapAgentSnmpNotAbleDiscards,
+        juniSnmpTrapTotalTrapsOut,
+        juniSnmpTrapTotalProxyOut,
+        juniSnmpTrapSeverityFilter
+    }
+    STATUS      current
+    DESCRIPTION
+        "A collection of management objects pertaining to SNMP Agent trap
+        capabilities in a Juniper product."
+    ::= { juniSnmpGroups 11 }                                       -- JUNOSe 9.3
+
+juniSnmpGeneralGroup4  OBJECT-GROUP
+    OBJECTS {
+        juniSnmpMaxPduSize,
+        juniSnmpProxyStatus,
+        juniSnmpAccessPermission,
+        juniSnmpIntfCompCompressed,
+        juniSnmpIntfCompEnhanced,
+        juniSnmpIntfCompEnhancedDisplay,
+        juniSnmpIntfCompRestricted,
+        juniSnmpIntfCompRestrictedDisplay,
+        juniSnmpManagementApplicationRowStatus,
+        juniSnmpIntfCompEntryCompressed,
+        juniSnmpIntfCompMask,
+        juniSnmpIntfCompMaskDisplay
+    }
     STATUS      current
     DESCRIPTION
         "A collection of management objects pertaining to general SNMP Agent
         capabilities in a Juniper product."
-    ::= { juniSnmpGroups 10 }                                      -- JUNOSe 5.1
+    ::= { juniSnmpGroups 12 }                                      -- JUNOSe 10.1
 
 END
+
+
+
+

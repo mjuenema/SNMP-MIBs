@@ -6,7 +6,7 @@
 --   Extensions for BGP Protocol Management
 --
 -- Copyright (c) 2000, 2002 Unisphere Networks, Inc.
--- Copyright (c) 2002, 2003, 2004, 2005 Juniper Networks, Inc.
+-- Copyright (c) 2002, 2003, 2004, 2005, 2007 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -26,7 +26,7 @@ IMPORTS
         FROM Juniper-TC;
 
 juniBgpMIB  MODULE-IDENTITY
-    LAST-UPDATED "200605151924Z"  -- 15-May-06 03:24 PM EDT
+    LAST-UPDATED "200705110517Z"  -- 11-May-07 01:17 AM EDT
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -38,6 +38,9 @@ juniBgpMIB  MODULE-IDENTITY
     DESCRIPTION
         "The BGP Protocol MIB for the Juniper Networks enterprise."
     -- Revision History
+    REVISION    "200705110517Z"  -- 11-May-07 01:17 AM EDT  - JUNOSe 9.0
+    DESCRIPTION
+        "Added support for BGP conditional advertisement"
     REVISION    "200605151924Z"  -- 15-May-06 03:24 PM EDT  - JUNOSe 8.0
     DESCRIPTION
         "Added support for BGP over TCPv6."
@@ -235,6 +238,24 @@ JuniBgpFourOctetAsNumber ::= TEXTUAL-CONVENTION
         "Four-octet AS-number."
     SYNTAX      Unsigned32
 
+JuniBgpAdvertiseMapName ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "32a"
+    STATUS      current
+    DESCRIPTION
+        "Advertise route-map name.  Represents textual information taken from the NVT
+        ASCII character set."
+    REFERENCE
+        "RFC 854: NVT ASCII character set.  See SNMPv2-TC.DisplayString
+        DESCRIPTION for a summary."
+    SYNTAX      OCTET STRING (SIZE(0..32))
+
+JuniBgpConditionalAdvStatus ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "BGP Conditional Advertisement Status"
+    SYNTAX      INTEGER {
+                    advertise(1),
+                    withdraw(2) }
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Managed objects
@@ -3023,10 +3044,107 @@ juniBgpPeerAddressFamilyNextHopUnchanged OBJECT-TYPE
     DEFVAL    { false }
     ::= { juniBgpPeerAddressFamilyEntry 55 }
 
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- BGP Peer Address Family Conditional Advertisement attributes
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+--
+--  BGP Peer Address Family Conditional Advertisement Table
+--
+juniBgpPeerAddressFamilyConditionalAdvTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF JuniBgpPeerAddressFamilyConditionalAdvEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Juniper BGP Peer Address Family Conditional Advertisement Table 
+        describes the BGP conditional advertisement attributes in an Address 
+        Family for a peer."
+    ::= { juniBgpObjects 30 }
 
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+juniBgpPeerAddressFamilyConditionalAdvEntry OBJECT-TYPE
+    SYNTAX      JuniBgpPeerAddressFamilyConditionalAdvEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Juniper BGP Peer Address Family Conditional Advertisement Entry 
+        describes a specific conditional advertisement entry in Address Family 
+        for a peer."
+    INDEX     { juniBgpPeerAddressFamilyVrfName,
+                juniBgpPeerAddressFamilyAfi,
+                juniBgpPeerAddressFamilySafi,
+                juniBgpPeerAddressFamilyRemoteAddress,
+                juniBgpPeerAddressFamilyConditionalAdvAdvertiseMap }
+    ::= { juniBgpPeerAddressFamilyConditionalAdvTable 1 }
+
+JuniBgpPeerAddressFamilyConditionalAdvEntry::= SEQUENCE {
+    juniBgpPeerAddressFamilyConditionalAdvAdvertiseMap  JuniBgpAdvertiseMapName,
+    juniBgpPeerAddressFamilyConditionalAdvConditionMap  DisplayString,
+    juniBgpPeerAddressFamilyConditionalAdvIsExistMap    TruthValue,
+    juniBgpPeerAddressFamilyConditionalAdvSequenceNum   Integer32,
+    juniBgpPeerAddressFamilyConditionalAdvStatus    JuniBgpConditionalAdvStatus,
+    juniBgpPeerAddressFamilyConditionalAdvRowStatus     RowStatus }
+
+juniBgpPeerAddressFamilyConditionalAdvAdvertiseMap OBJECT-TYPE
+    SYNTAX      JuniBgpAdvertiseMapName
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The route-map for conditional advertisement."
+    ::= { juniBgpPeerAddressFamilyConditionalAdvEntry 1 }
+
+juniBgpPeerAddressFamilyConditionalAdvConditionMap OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The condition-map to apply for this conditional advertisement entry."
+    ::= { juniBgpPeerAddressFamilyConditionalAdvEntry 2 }
+
+juniBgpPeerAddressFamilyConditionalAdvIsExistMap OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Set this value to true(1) if the condition-map specified should be 
+         applied as an exist-map. If the condition-map should be applied as 
+         a non-exist-map, set it to false(2). "
+    DEFVAL    { true }
+    ::= { juniBgpPeerAddressFamilyConditionalAdvEntry 3 }
+
+juniBgpPeerAddressFamilyConditionalAdvSequenceNum OBJECT-TYPE
+    SYNTAX      Integer32 (1..65535)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The sequence number of this conditional advertisement entry."
+    ::= { juniBgpPeerAddressFamilyConditionalAdvEntry 4 }
+
+juniBgpPeerAddressFamilyConditionalAdvStatus OBJECT-TYPE
+    SYNTAX      JuniBgpConditionalAdvStatus
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This value will be advertise(1) if the status of this advertise-map is
+         evaluated as advertise based on the condition-map. Otherwise it is 
+         withdraw(2)."
+    ::= { juniBgpPeerAddressFamilyConditionalAdvEntry 5 }
+
+juniBgpPeerAddressFamilyConditionalAdvRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        " Controls creation/deletion of entries in this table according to the 
+        RowStatus textual convention, constrained to support the following 
+        values only:
+            createAndGo,
+            destroy "
+    ::= { juniBgpPeerAddressFamilyConditionalAdvEntry 6 }
+
+
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- BGP Peer Group attributes
--- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 --
 --  BGP Peer Group Table
 --
@@ -4177,6 +4295,102 @@ juniBgpPeerGroupAddressFamilyNextHopUnchanged OBJECT-TYPE
         unchanged to this peer-group in this address-family."
     DEFVAL    { false }
     ::= { juniBgpPeerGroupAddressFamilyEntry 38 }
+
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- BGP Peer Group Address Family Conditional Advertisement attributes
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+--
+--  BGP Peer Group Address Family Conditional Advertisement Table
+--
+juniBgpPeerGroupAddressFamilyConditionalAdvTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF JuniBgpPeerGroupAddressFamilyConditionalAdvEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Juniper BGP Peer Group Address Family Conditional Advertisement 
+        Table describes the BGP conditional advertisement attributes in an 
+        Address Family for a peer-group."
+    ::= { juniBgpObjects 31 }
+
+juniBgpPeerGroupAddressFamilyConditionalAdvEntry OBJECT-TYPE
+    SYNTAX      JuniBgpPeerGroupAddressFamilyConditionalAdvEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The Juniper BGP Peer Group Address Family Conditional Advertisement 
+        Entry describes a specific conditional advertisement entry in an 
+        Address Family for a peer-group."
+    INDEX     { juniBgpPeerGroupAddressFamilyVrfName,
+                juniBgpPeerGroupAddressFamilyAfi,
+                juniBgpPeerGroupAddressFamilySafi,
+                juniBgpPeerGroupGroupAddressFamilyGroupName,
+                juniBgpPeerGroupAddressFamilyConditionalAdvAdvertiseMap }
+    ::= { juniBgpPeerGroupAddressFamilyConditionalAdvTable 1 }
+
+JuniBgpPeerGroupAddressFamilyConditionalAdvEntry::= SEQUENCE {
+    juniBgpPeerGroupAddressFamilyConditionalAdvAdvertiseMap  JuniBgpAdvertiseMapName,
+    juniBgpPeerGroupAddressFamilyConditionalAdvConditionMap  DisplayString,
+    juniBgpPeerGroupAddressFamilyConditionalAdvIsExistMap    TruthValue,
+    juniBgpPeerGroupAddressFamilyConditionalAdvSequenceNum   Integer32,
+    juniBgpPeerGroupAddressFamilyConditionalAdvStatus  JuniBgpConditionalAdvStatus,
+    juniBgpPeerGroupAddressFamilyConditionalAdvRowStatus     RowStatus }
+
+juniBgpPeerGroupAddressFamilyConditionalAdvAdvertiseMap OBJECT-TYPE
+    SYNTAX      JuniBgpAdvertiseMapName
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION
+        "The route-map for conditional advertisement."
+    ::= { juniBgpPeerGroupAddressFamilyConditionalAdvEntry 1 }
+
+juniBgpPeerGroupAddressFamilyConditionalAdvConditionMap OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The condition-map to apply for this conditional advertisement entry."
+    ::= { juniBgpPeerGroupAddressFamilyConditionalAdvEntry 2 }
+
+juniBgpPeerGroupAddressFamilyConditionalAdvIsExistMap OBJECT-TYPE
+    SYNTAX      TruthValue
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Set this value to true(1) if the condition-map specified should be 
+        applied as an exist-map. If the condition-map should be applied as a 
+        non-exist-map, set it to false(2). "
+    DEFVAL    { true }
+    ::= { juniBgpPeerGroupAddressFamilyConditionalAdvEntry 3 }
+
+juniBgpPeerGroupAddressFamilyConditionalAdvSequenceNum OBJECT-TYPE
+    SYNTAX      Integer32 (1..65535)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "The sequence number of this conditional advertisement entry."
+    ::= { juniBgpPeerGroupAddressFamilyConditionalAdvEntry 4 }
+
+juniBgpPeerGroupAddressFamilyConditionalAdvStatus OBJECT-TYPE
+    SYNTAX      JuniBgpConditionalAdvStatus
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "This value will be advertise(1) if the status of this advertise-map is evaluated 
+         as advertise based on the condition-map. Otherwise it is withdraw(2)."
+    ::= { juniBgpPeerGroupAddressFamilyConditionalAdvEntry 5 }
+
+juniBgpPeerGroupAddressFamilyConditionalAdvRowStatus OBJECT-TYPE
+    SYNTAX      RowStatus
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Controls creation/deletion of entries in this table according to the 
+        RowStatus textual convention, constrained to support the following 
+        values only:
+            createAndGo,
+            destroy "
+    ::= { juniBgpPeerGroupAddressFamilyConditionalAdvEntry 6 }
+
 
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- BGP Network attributes
@@ -7312,6 +7526,30 @@ juniBgpCompliance14  MODULE-COMPLIANCE
     ::= { juniBgpCompliances 14 }                                  -- JUNOSe 7.2
 
 juniBgpCompliance15  MODULE-COMPLIANCE
+    STATUS      obsolete
+    DESCRIPTION
+        "Obsolete compliance statement for entities which implement the Juniper 
+        BGP MIB. This statement became obsolete when support for conditional
+        advertisement was added."
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniBgpGeneralConfGroup6,
+            juniBgpStatisticsConfGroup,
+            juniBgpFourOctetConfederationPeerConfGroup,
+            juniBgpPeerConfGroup9,
+            juniBgpAfiSafiPeerConfGroup,
+            juniBgpPeerAddressFamilyConfGroup7,
+            juniBgpPeerGroupAddressFamilyConfGroup6,
+            juniBgpPeerGroupConfGroup9,
+            juniBgpNewRouteConfGroup4,
+            juniBgpNetworkConfGroup2,
+            juniBgpAggregateConfGroup2,
+            juniBgpVrfConfGroup7,
+            juniBgpAddressFamilyConfGroup7,
+            juniBgpPeerDynamicCapabilityConfGroup }
+    ::= { juniBgpCompliances 15 }                                  -- JUNOSe 8.0
+
+juniBgpCompliance16  MODULE-COMPLIANCE
     STATUS      current
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper BGP
@@ -7331,9 +7569,10 @@ juniBgpCompliance15  MODULE-COMPLIANCE
             juniBgpAggregateConfGroup2,
             juniBgpVrfConfGroup7,
             juniBgpAddressFamilyConfGroup7,
-            juniBgpPeerDynamicCapabilityConfGroup }
-    ::= { juniBgpCompliances 15 }                                  -- JUNOSe 8.0
-
+            juniBgpPeerDynamicCapabilityConfGroup,
+            juniBgpPeerAddressFamilyConditionalAdvConfGroup,
+            juniBgpPeerGroupAddressFamilyConditionalAdvConfGroup }
+    ::= { juniBgpCompliances 16 }                                  -- JUNOSe 9.0
 
 --
 -- units of conformance
@@ -9950,4 +10189,29 @@ juniBgpPeerGroupConfGroup9 OBJECT-GROUP
         Juniper product."
     ::= { juniBgpConfGroups 69 }                                   -- JUNOSe 8.0
 
+juniBgpPeerAddressFamilyConditionalAdvConfGroup OBJECT-GROUP
+    OBJECTS {
+        juniBgpPeerAddressFamilyConditionalAdvConditionMap,
+        juniBgpPeerAddressFamilyConditionalAdvIsExistMap,
+        juniBgpPeerAddressFamilyConditionalAdvSequenceNum,
+        juniBgpPeerAddressFamilyConditionalAdvStatus,
+        juniBgpPeerAddressFamilyConditionalAdvRowStatus }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing management of BGP Conditional 
+        Advertisement for peers in a Juniper product."
+    ::= { juniBgpConfGroups 70 }                                   -- JUNOSe 9.0
+
+juniBgpPeerGroupAddressFamilyConditionalAdvConfGroup OBJECT-GROUP
+    OBJECTS {
+        juniBgpPeerGroupAddressFamilyConditionalAdvConditionMap,
+        juniBgpPeerGroupAddressFamilyConditionalAdvIsExistMap,
+        juniBgpPeerGroupAddressFamilyConditionalAdvSequenceNum,
+        juniBgpPeerGroupAddressFamilyConditionalAdvStatus,
+        juniBgpPeerGroupAddressFamilyConditionalAdvRowStatus }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing management of BGP Conditional 
+        Advertisement for peer groups in a Juniper product."
+    ::= { juniBgpConfGroups 71 }                                   -- JUNOSe 9.0
 END

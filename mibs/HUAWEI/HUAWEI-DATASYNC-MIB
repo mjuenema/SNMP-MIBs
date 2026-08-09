@@ -1,9 +1,9 @@
 --==================================================================
--- Copyright (C) 2006 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Copyright (C) 2015 by  HUAWEI TECHNOLOGIES. All rights reserved.
 -- 
 -- Description: HUAWEI DATASYNC MIB
 -- Reference:
--- Version: V1.0
+-- Version: V2.03
 -- History:
 -- <author>,  <date>,  <contents>
 -- fengchong   2009-03-17
@@ -25,22 +25,31 @@
             TimeTicks, Integer32, Gauge32, OBJECT-TYPE, MODULE-IDENTITY, 
             NOTIFICATION-TYPE           
                 FROM SNMPv2-SMI         
-            RowStatus, TEXTUAL-CONVENTION           
+            DisplayString, RowStatus, TEXTUAL-CONVENTION           
                 FROM SNMPv2-TC;
     
-    
         hwDataSync MODULE-IDENTITY 
-            LAST-UPDATED "200903171027Z"        
+            LAST-UPDATED "201507161349Z"        
             ORGANIZATION 
                 "Huawei Technologies Co.,Ltd."
             CONTACT-INFO 
-                "VRP Team Huawei Technologies Co.,Ltd.
-                Huawei Bld.,NO.3 Xinxi Rd., 
-                Shang-Di Information Industry Base,
-                Hai-Dian District Beijing P.R. China
-                http://www.huawei.com
-                Zip:100085
+                "Huawei Industrial Base
+                  Bantian, Longgang
+                   Shenzhen 518129
+                   People's Republic of China
+                   Website: http://www.huawei.com
+                   Email: support@huawei.com
                 "
+              DESCRIPTION 
+                "Modified hwCfgChgTerminalID."
+
+             REVISION "201507161349Z"
+             DESCRIPTION 
+                "Add hwCfgChangeDetailNotify." 
+                        REVISION "201507161349Z"         
+            DESCRIPTION 
+                "Add hwCfgLastSaveFailNotify ."
+                        REVISION "201409041710Z"               
             DESCRIPTION 
                 "The MIB module for Data sync between host and netmanager."
                         REVISION "200903171027Z"        
@@ -91,6 +100,7 @@
         hwDataSyncScalarObjects OBJECT IDENTIFIER ::= { hwDataSync 1 }
         hwDataSyncTableObjects OBJECT IDENTIFIER ::= { hwDataSync 2 }
         hwDataSyncNotifications OBJECT IDENTIFIER ::= { hwDataSync 3 }
+        hwDataSyncConformance OBJECT IDENTIFIER ::= { hwDataSync 4 }
         
         hwCurrentCfgChgSeqID OBJECT-TYPE
             SYNTAX Integer32
@@ -108,8 +118,7 @@
             MAX-ACCESS read-only
             STATUS current
             DESCRIPTION
-                "The value of this object identifies the alarm ID.
-                The value ranges from 0 to 65535."
+                "The value of this object identifies the cycle count of the index of configuration change table."
             ::= { hwDataSyncScalarObjects 2 }            
          
          hwCfgChgTableMaxItem OBJECT-TYPE
@@ -117,13 +126,51 @@
             MAX-ACCESS read-only
             STATUS current
             DESCRIPTION
-                "The value of this object identifies the maximum number of entries in hwCfgChgTable. 
-                The value ranges from 0 to 65535."
+                "The value of this object identifies the maximum number of entries in hwCfgChgTable. "
             ::= { hwDataSyncScalarObjects 3 }   
             
             
+        hwCfgBaselineTime OBJECT-TYPE
+            SYNTAX DisplayString (SIZE (0..20))
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "Specifies the time of system confiuration was baseline."
+            ::= { hwDataSyncScalarObjects 4 }
+  
+        hwDataSyncGroups OBJECT IDENTIFIER ::= { hwDataSyncConformance 1 }
+      
+        hwDataSyncScalarObjectsGroup OBJECT-GROUP
+            OBJECTS { hwCurrentCfgChgSeqID, hwCfgChgSeqIDReveralCount, hwCfgChgTableMaxItem, hwCfgBaselineTime}
+            STATUS current
+            DESCRIPTION 
+                "A collection of objects on DataSync ScalarObjects Information."
+            ::= { hwDataSyncGroups 1 }          
+        
+        hwCfgChgNotifyGroup NOTIFICATION-GROUP
+            NOTIFICATIONS { hwCfgChgNotify}
+            STATUS current
+            DESCRIPTION 
+                "A collection of objects on Configuration Change Information."
+            ::= { hwDataSyncGroups 2 }        
+
+        hwDataSyncNotifyGroup NOTIFICATION-GROUP
+            NOTIFICATIONS { hwCfgLastSaveFailNotify }
+            STATUS current
+            DESCRIPTION 
+                "A collection of objects on synchronization Configuration Notify Information."
+            ::= { hwDataSyncGroups 3 }            
                   
-            
+        hwDataSyncCompliances OBJECT IDENTIFIER ::= { hwDataSyncConformance 2 }
+       
+        hwDataSyncCompliance MODULE-COMPLIANCE
+            STATUS current
+            DESCRIPTION 
+                "The compliance statement for 
+                entities that support the huawei DataSync MIB."
+            MODULE      -- this module
+            ::= { hwDataSyncCompliances 1 }     
+	    
         hwCfgChgTable OBJECT-TYPE
             SYNTAX SEQUENCE OF HwCfgChgEntry
             MAX-ACCESS not-accessible
@@ -161,6 +208,8 @@
                 hwCfgChgCmdID
                     Integer32,
                 hwCfgChgDetailInfo
+                    OCTET STRING,
+                hwCfgChgUserName
                     OCTET STRING
              }
 
@@ -191,7 +240,7 @@
             ::= { hwCfgChgEntry 3 }
          
         hwCfgChgTerminalID OBJECT-TYPE
-            SYNTAX Integer32 (0..15) 
+            SYNTAX Integer32 (0..2147483647) 
             MAX-ACCESS read-only
             STATUS current
             DESCRIPTION
@@ -236,6 +285,14 @@
                 For the SNMP operation, the object is the index of the MIB table.
                 When there are multiple indexes, the format of index1.index2.index3 is adopted."
             ::= { hwCfgChgEntry 8 }     
+
+        hwCfgChgUserName OBJECT-TYPE
+            SYNTAX OCTET STRING
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                "This object indicates the username in which the configuration change occurs."
+            ::= { hwCfgChgEntry 9 }  
             
         hwCollectTable OBJECT-TYPE
             SYNTAX SEQUENCE OF HwCollectEntry
@@ -256,22 +313,22 @@
             ::= { hwCollectTable 1 }        
         
         HwCollectEntry ::=
-        	SEQUENCE { 
-                	hwCollectIndex
-                    	Integer32,
-                	hwCollectNetManageId
-                    	Integer32,
-                	hwCollectOperation
-                    	INTEGER,
-                	hwCollectInScriptFile
-                    	OCTET STRING,
-                	hwCollectInResultFile
-                    	OCTET STRING,
-                	hwCollectState
-                    	INTEGER,
-                	hwCollectRowStatus
-                    	RowStatus
-             		}  
+            SEQUENCE { 
+                    hwCollectIndex
+                        Integer32,
+                    hwCollectNetManageId
+                        Integer32,
+                    hwCollectOperation
+                        INTEGER,
+                    hwCollectInScriptFile
+                        OCTET STRING,
+                    hwCollectInResultFile
+                        OCTET STRING,
+                    hwCollectState
+                        INTEGER,
+                    hwCollectRowStatus
+                        RowStatus
+                     }  
 
         hwCollectIndex OBJECT-TYPE
             SYNTAX Integer32 
@@ -334,13 +391,26 @@
             ::= { hwCollectEntry 7 }     
         
         hwCfgChgNotify NOTIFICATION-TYPE
-        OBJECTS {hwCurrentCfgChgSeqID, hwCfgChgSeqIDReveralCount,hwCfgChgTableMaxItem }
+        OBJECTS {hwCurrentCfgChgSeqID, hwCfgChgSeqIDReveralCount, hwCfgChgTableMaxItem, hwCfgBaselineTime}
         STATUS current
         DESCRIPTION 
             "This trap is generated when a configuration change occurs 
             on the device within a specified period."
-        ::= { hwDataSyncNotifications 1 }                     
-                             
+        ::= { hwDataSyncNotifications 1 }      
+        
+        hwCfgLastSaveFailNotify NOTIFICATION-TYPE
+        STATUS current
+        DESCRIPTION 
+            "The last save operation failed, please check the configuration."
+        ::= { hwDataSyncNotifications 2 } 
+
+        hwCfgChangeDetailNotify NOTIFICATION-TYPE
+        OBJECTS {hwCfgChgSeqID, hwCfgChgDetailInfo,hwCfgChgUserName}
+        STATUS current
+        DESCRIPTION 
+            "This trap is generated when a configuration change occurs on the device."
+        ::= { hwDataSyncNotifications 3 }      
+                    
     END
 
 --

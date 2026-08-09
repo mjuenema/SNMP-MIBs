@@ -26,7 +26,7 @@ IMPORTS
         FROM Juniper-MIBs;
 
 juniSysClockMIB  MODULE-IDENTITY
-    LAST-UPDATED "200512141401Z"  -- 14-Dec-05 10:01 AM EDT
+    LAST-UPDATED "201409151400Z"  -- 15-Sep-14 10:00 AM EDT
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -47,6 +47,13 @@ juniSysClockMIB  MODULE-IDENTITY
         client/server, which adheres to RFC 1305, the 'Network Time Protocol
         (Version 3) Specification, Implementation and Analysis'."
     -- Revision History
+    REVISION    "201409151400Z"  -- 15-Sep-14 10:00 AM EDT  - JUNOSe 15.1
+    DESCRIPTION
+        "Modified the description of juniNtpSysClockFrequencyError and 
+         juniNtpSysClockFrequencyErrorNew." 
+    REVISION    "200703221400Z"  -- 22-Mar-07 10:00 AM EDT  - JUNOSe7.1
+    DESCRIPTION
+        "Incorporate 2007 U.S.A. Daylight Saving Time changes."
     REVISION    "200512141401Z"  -- 14-Dec-05 10:01 AM EDT  - JUNOSe 7.0
     DESCRIPTION
         "Added juniNtpPeerLastUpdateTime to Peer Table."
@@ -242,8 +249,9 @@ juniSysClockTimeZoneName  OBJECT-TYPE
 -- This group of objects are used to manage day light saving time in two modes.
 -- 1. Absolute mode  - This can only be set for a single year at a time.
 -- 2. Recurrent mode - Remains in effect until it is reset.
+-- 3. RecognizedUS   - Use defaults for known USA timezones.
 --
--- The above two modes are mutually exclusive.
+-- The above modes are mutually exclusive.
 --
 --//////////////////////////////////////////////////////////////////////////////
 juniSysClockDstName  OBJECT-TYPE
@@ -270,7 +278,8 @@ juniSysClockDstStatus  OBJECT-TYPE
     SYNTAX      INTEGER {
                     off(0),
                     recurrent(1),
-                    absolute(2) }
+                    absolute(2),
+                    recognizedUS(3)}
     MAX-ACCESS  read-write
     STATUS      current
     DESCRIPTION
@@ -318,8 +327,8 @@ juniSysClockDstRecurStartMonth  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The start month for DST recurrence.  The default value is based on the
-        1987 law for the USA."
-    DEFVAL    { april }
+        2007 law for the USA."
+    DEFVAL    { march }
     ::= { juniSysClockDst 6 }
 
 juniSysClockDstRecurStartWeek  OBJECT-TYPE
@@ -328,8 +337,8 @@ juniSysClockDstRecurStartWeek  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The start week of the month for DST recurrence.  The default value is
-        based on the 1987 law for the USA."
-    DEFVAL    { weekOne }
+        based on the 2007 law for the USA."
+    DEFVAL    { weekTwo }
     ::= { juniSysClockDst 7 }
 
 juniSysClockDstRecurStartDay  OBJECT-TYPE
@@ -338,7 +347,7 @@ juniSysClockDstRecurStartDay  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The start day of the week for DST recurrence.  The default value is
-        based on the 1987 law for the USA."
+        based on the 2007 law for the USA."
     DEFVAL    { sunday }
     ::= { juniSysClockDst 8 }
 
@@ -348,7 +357,7 @@ juniSysClockDstRecurStartHour  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The start hour for DST recurrence.  The default value is based on the
-        1987 law for the USA."
+        2007 law for the USA."
     DEFVAL    { 1 }
     ::= { juniSysClockDst 9 }
 
@@ -358,7 +367,7 @@ juniSysClockDstRecurStartMinute  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The start minute for DST recurrence.  The default value is based on the
-        1987 law for the USA."
+        2007 law for the USA."
     DEFVAL    { 0 }
     ::= { juniSysClockDst 10 }
 
@@ -368,8 +377,8 @@ juniSysClockDstRecurStopMonth  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The stop month for DST recurrence.  The default value is based on the
-        1987 law for the USA."
-    DEFVAL    { october }
+        2007 law for the USA."
+    DEFVAL    { november }
     ::= { juniSysClockDst 11 }
 
 juniSysClockDstRecurStopWeek  OBJECT-TYPE
@@ -378,8 +387,8 @@ juniSysClockDstRecurStopWeek  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The stop week of the month for DST recurrence.  The default value is
-        based on the 1987 law for the USA."
-    DEFVAL    { weekLast }
+        based on the 2007 law for the USA."
+    DEFVAL    { weekFirst }
     ::= { juniSysClockDst 12 }
 
 juniSysClockDstRecurStopDay  OBJECT-TYPE
@@ -388,7 +397,7 @@ juniSysClockDstRecurStopDay  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The stop day of the week for DST recurrence.  The default value is
-        based on the 1987 law for the USA."
+        based on the 2007 law for the USA."
     DEFVAL    { sunday }
     ::= { juniSysClockDst 13 }
 
@@ -398,7 +407,7 @@ juniSysClockDstRecurStopHour  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The stop hour for DST recurrence.  The default value is based on the
-        1987 law for the USA."
+        2007 law for the USA."
     DEFVAL    { 2 }
     ::= { juniSysClockDst 14 }
 
@@ -408,7 +417,7 @@ juniSysClockDstRecurStopMinute  OBJECT-TYPE
     STATUS      current
     DESCRIPTION
         "The stop minutes for DST recurrence.  The default value is based on the
-        1987 law for the USA."
+        2007 law for the USA."
     DEFVAL    { 0 }
     ::= { juniSysClockDst 15 }
 
@@ -497,7 +506,7 @@ juniNtpSysClockFrequencyError  OBJECT-TYPE
         by parts per millionth of a second.
 
         For example, if the frequency error is 1ppm, it means the clock is ahead
-        by 0.864 second in a day, and therefore the clock will need to be
+        by 0.0864 second in a day, and therefore the clock will need to be
         corrected by that amount in the next 24 hours for the clock to be
         accurate.
 
@@ -602,7 +611,7 @@ juniNtpSysClockFrequencyErrorNew  OBJECT-TYPE
         by parts per millionth of a second.
 
         For example, if the frequency error is 1ppm, it means the clock is ahead
-        by 0.864 second in a day, and therefore the clock will need to be
+        by 0.0864 second in a day, and therefore the clock will need to be
         corrected by that amount in the next 24 hours for the clock to be
         accurate.
 

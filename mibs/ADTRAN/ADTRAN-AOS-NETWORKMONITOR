@@ -1,21 +1,20 @@
        ADTRAN-AOS-NETWORKMONITOR DEFINITIONS ::= BEGIN
 
        IMPORTS
-           TimeTicks, IpAddress, Integer32, Gauge32, Unsigned32, Counter32, Counter64, OBJECT-TYPE, MODULE-IDENTITY
+           TimeTicks, IpAddress, Integer32, Unsigned32, Counter32,
+           Counter64, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
                FROM SNMPv2-SMI
-           DisplayString, RowStatus, TruthValue, DateAndTime, TEXTUAL-CONVENTION
+           DisplayString, RowStatus, TruthValue, TEXTUAL-CONVENTION
                FROM SNMPv2-TC
-           MODULE-COMPLIANCE, OBJECT-GROUP
+           MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
                FROM SNMPv2-CONF
            adIdentity
                FROM ADTRAN-MIB
-           adGenAOSRouter
-               FROM  ADTRAN-AOS
-           adGenAOSConformance
+           adGenAOSConformance, adGenAOSRouter
                FROM ADTRAN-AOS;
 
        adGenAOSNetMonMib MODULE-IDENTITY
-        LAST-UPDATED "200806250000Z"  -- June 25, 2008 / YYYYMMDDHHMMZ
+        LAST-UPDATED "201010270000Z"  -- Oct 27, 2010 / YYYYMMDDHHMMZ
         ORGANIZATION "ADTRAN, Inc."
         CONTACT-INFO
                "Technical Support Dept.
@@ -28,22 +27,69 @@
                 E-mail: support@adtran.com"
 
             DESCRIPTION
-                        "This MIB contains network monitoring information."
+                "This MIB contains network monitoring information."
+
+            REVISION "201010270000Z"  -- Oct 27, 2010 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                "Added adGenAOSnmTrackTraps and a limited RO adGenAOSnmTrackTable
+                to allow OID support for the adGenAOSnmTrackStateChgFail
+                and adGenAOSnmTrackStateChgPass trap additions.
+                Changes by Joe Sieja."
+
+            REVISION "200901200000Z"  -- Jan 20, 2009 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                "Added adGenAOSnmICMPTSPktSentCount to the
+                adGenAOSnmICMPTSHistoryTable and adGenAOSnmTwPktSentCount to
+                the adGenAOSnmTwampHistoryTable.
+                Changes by Reba Holland."
+
+            REVISION "200809300000Z"  -- Sept 30, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                "Added adGenAOSnmICMPTSResponderStatsTable and
+                 adGenAOSnmTWAMPResponderStatsTable. These tables will be used
+                 to retrieve the statistics available for enabled responders.
+                 Changes by Reba Holland."
+
+            REVISION "200808120000Z"  -- Aug 12, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                "Changed adGenAOSNetMon to use adGenAOSnmIndex in all
+                tables that were using adGenAOSnmName.  Added ICMP Timestamp
+                and TWAMP responders. Removed adGenAOSnmICMPTSHistoryIndex and
+                adGenAOSnmTwHistoryIndex from the adGenAOSnmICMPTSHistoryTable
+                and adGenAOSnmTwampHistoryTable. Using adGenAOSnmICMPTsSeqNum
+                and adGenAOSnmTwSeqNum as indices in these tables instead.
+                Added adGenAOSnmProbeTableNextIndex. Changed adGenAOSnmIndex
+                to have a maximum value of 1000.
+                Changes by Reba Holland."
 
             REVISION "200806250000Z"  -- June 25, 2008 / YYYYMMDDHHMMZ
             DESCRIPTION
-                    "Changed adGenAOSNetMon to be under the adGenAOSRouter tree
-                    instead of the adGenAOSCommon tree.
-                    Changes by Reba Holland."
+                "Changed adGenAOSNetMon to be under the adGenAOSRouter tree
+                instead of the adGenAOSCommon tree.
+                Changes by Reba Holland."
+
+
             REVISION    "200708230000Z"  -- August 23, 2007
             DESCRIPTION
-                    "First Draft of ADTRAN-AOS-NETWORKMONITOR MIB module."
+                "First Draft of ADTRAN-AOS-NETWORKMONITOR MIB module."
+
 
           ::= { adIdentity 10000 53 2 2 }
 
       adGenAOSNetMon    OBJECT IDENTIFIER ::= { adGenAOSRouter 2 }
 
 -- ========================================================================
+
+     adGenAOSnmTrackTraps OBJECT IDENTIFIER ::= { adGenAOSNetMon 0 }
+
+     adGenAOSnmProbeTableNextIndex OBJECT-TYPE
+        SYNTAX      Integer32 (0..1000)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION
+        "This object contains an unused value for adGenAOSnmIndex in
+         the adGenAOSnmProbeTable, or a zero to indicate that none exist."
+        ::= { adGenAOSNetMon 1 }
 
      --
 
@@ -57,7 +103,7 @@
          STATUS   current
          DESCRIPTION
             "Create a network monitor probe."
-         ::= { adGenAOSNetMon 1 }
+         ::= { adGenAOSNetMon 2 }
 
      adGenAOSnmProbeEntry OBJECT-TYPE
          SYNTAX   AdGenAOSnmProbeEntry
@@ -79,14 +125,14 @@
 
 
      adGenAOSnmIndex OBJECT-TYPE
-         SYNTAX   Integer32
+         SYNTAX      Integer32 (0..1000)
          MAX-ACCESS   read-only
          STATUS   current
          DESCRIPTION
                 "Uniquely identifies a row in the adGenAOSnmProbeTable.
                 This is the index chosen by the management station for
-                row creation. If the adGenAOSnmIndex is already in use when attempting
-                to create a new row with a set operation, then an
+                row creation. If the adGenAOSnmIndex is already in use when
+                attempting to create a new row with a set operation, then an
                 error will be returned."
          ::= { adGenAOSnmProbeEntry 1 }
 
@@ -122,12 +168,13 @@
          MAX-ACCESS   read-create
          STATUS   current
          DESCRIPTION
-            "SNMP Version 2 Row Status Variable. The status of the conceptual row.
-            In order for this object to become active, the following
+            "SNMP Version 2 Row Status Variable. The status of the conceptual
+            row. In order for this object to become active, the following
             row objects MUST be defined: adGenAOSnmName and adGenAOSnmType.
             The control row objects adGenAOSnmName and adGenAOSnmType cannot be
-            modified once this conceptual row has been created.
-            This object can be set to 'destroy' from any value at any time."
+            modified once this conceptual row has been created. The value
+            'notInService' and 'createAndWait' will not be supported. This
+            object can be set to 'destroy' from any value at any time."
          ::= { adGenAOSnmProbeEntry 4 }
 
      --
@@ -142,14 +189,15 @@
          STATUS   current
          DESCRIPTION
             "Configure a network monitor probe."
-         ::= { adGenAOSNetMon 2 }
+         ::= { adGenAOSNetMon 3 }
 
      adGenAOSnmConfigProbeEntry OBJECT-TYPE
          SYNTAX   AdGenAOSnmConfigProbeEntry
          MAX-ACCESS   not-accessible
          STATUS   current
          DESCRIPTION
-            "The parameters used to configure a particular network monitor probe."
+            "The parameters used to configure a particular network monitor
+            probe."
          INDEX { adGenAOSnmIndex }
          ::= { adGenAOSnmConfigProbeTable 1 }
 
@@ -202,7 +250,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Time to wait for a response after which a packet is considered lost."
+            "Time to wait for a response after which a packet is considered
+            lost."
          ::= { adGenAOSnmConfigProbeEntry 4 }
 
      adGenAOSnmToleranceMode OBJECT-TYPE
@@ -241,8 +290,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies test size for rate calculations when the tolerance mode is
-            set to 'rate'."
+            "Specifies test size for rate calculations when the tolerance mode
+             is set to 'rate'."
          ::= { adGenAOSnmConfigProbeEntry 8 }
 
      adGenAOSnmClearCounters OBJECT-TYPE
@@ -252,8 +301,9 @@
         MAX-ACCESS  read-write
          STATUS  current
          DESCRIPTION
-            "Clear the probe counters and statistics history. This is a
-            write-only variable. A read will result in no action being taken."
+            "Clear the counters and statistics history of a probe.
+            This is a write-only variable. A read will result in no action
+            being taken."
          ::= { adGenAOSnmConfigProbeEntry 9 }
 
      --
@@ -268,7 +318,7 @@
          STATUS   current
          DESCRIPTION
             "View the status of a network monitor probe."
-         ::= { adGenAOSNetMon 3 }
+         ::= { adGenAOSNetMon 4 }
 
      adGenAOSnmProbeStatusEntry OBJECT-TYPE
          SYNTAX   AdGenAOSnmProbeStatusEntry
@@ -343,8 +393,8 @@
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-            "Specifies number of tests that passed or failed. Check 'adGenAOSnmTestStatus'
-            for test state."
+            "Specifies number of tests that passed or failed.
+            Check 'adGenAOSnmTestStatus' for test state."
          ::= { adGenAOSnmProbeStatusEntry 6 }
 
      adGenAOSnmTimeSinceLastStatusChange OBJECT-TYPE
@@ -368,15 +418,16 @@
          STATUS   current
          DESCRIPTION
             "Configure a network monitor TWAMP probe."
-         ::= { adGenAOSNetMon 4 }
+         ::= { adGenAOSNetMon 5 }
 
      adGenAOSnmCfgTwampProbeEntry OBJECT-TYPE
          SYNTAX   AdGenAOSnmCfgTwampProbeEntry
          MAX-ACCESS   not-accessible
          STATUS   current
          DESCRIPTION
-            "The parameters used to configure a particular network monitor TWAMP probe."
-         INDEX { adGenAOSnmCfgTwName }
+            "The parameters used to configure a particular network monitor
+            TWAMP probe."
+         INDEX { adGenAOSnmIndex }
          ::= { adGenAOSnmCfgTwampProbeTable 1 }
 
 
@@ -443,9 +494,10 @@
          MAX-ACCESS   read-only
          STATUS   current
          DESCRIPTION
-            "The name of the corresponding TWAMP probe entry. The probe identified
-            by a particular value of this index is the same probe as identified
-            by the same value as a adGenAOSnmName object instance."
+            "The name of the corresponding TWAMP probe entry. The probe
+            identified by a particular instance of this object is the same
+            probe as identified by the same value as a adGenAOSnmName
+            object instance."
          ::= { adGenAOSnmCfgTwampProbeEntry 1 }
 
      adGenAOSnmTwDestHostname OBJECT-TYPE
@@ -488,8 +540,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the DiffServ Code Point value that will be used on packets
-            sent and will be negotiated with the responder."
+            "Specifies the DiffServ Code Point value that will be used on
+            packets sent and will be negotiated with the responder."
          ::= { adGenAOSnmCfgTwampProbeEntry 6 }
 
      adGenAOSnmTwPaddingLen OBJECT-TYPE
@@ -503,8 +555,8 @@
      adGenAOSnmTwPaddingFormat OBJECT-TYPE
         SYNTAX  INTEGER
                 {
-                        hex (1),
-                        ascii (2)
+                        ascii (1),
+                        hex (2)
                 }
          MAX-ACCESS read-write
          STATUS  current
@@ -517,9 +569,10 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies data pattern to pad the packet. This can be an ascii or hexadecimal
-            pattern and must match the type set in adGenAOSnmTwPktFormat. In addition,
-            adGenAOSnmTwDataPadType must be set to 'custom'. "
+            "Specifies data pattern to pad the packet. This can be an ascii
+            or hexadecimal pattern and must match the type set in
+            adGenAOSnmTwPktFormat. In addition, adGenAOSnmTwDataPadType must be
+            set to 'custom'. "
          ::= { adGenAOSnmCfgTwampProbeEntry 9 }
 
      adGenAOSnmTwDataPadType OBJECT-TYPE
@@ -563,7 +616,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies in milliseconds the time between start of each packet send operation."
+            "Specifies in milliseconds the time between start of each packet
+            send operation."
          ::= { adGenAOSnmCfgTwampProbeEntry 13 }
 
      adGenAOSnmTwIpdvAbsInMinFail OBJECT-TYPE
@@ -571,8 +625,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the minimum inbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the minimum inbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 14 }
 
      adGenAOSnmTwIpdvAbsInAvgFail OBJECT-TYPE
@@ -580,8 +635,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the average inbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the average inbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 15 }
 
      adGenAOSnmTwIpdvAbsInMaxFail OBJECT-TYPE
@@ -589,8 +645,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the maximum inbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the maximum inbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 16 }
 
      adGenAOSnmTwIpdvAbsInMinPass OBJECT-TYPE
@@ -598,8 +655,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum inbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum inbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 17 }
 
      adGenAOSnmTwIpdvAbsInAvgPass OBJECT-TYPE
@@ -607,8 +665,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for average inbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average inbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 18 }
 
      adGenAOSnmTwIpdvAbsInMaxPass OBJECT-TYPE
@@ -616,8 +675,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum inbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum inbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 19 }
 
      adGenAOSnmTwIpdvAbsOutMinFail OBJECT-TYPE
@@ -625,8 +685,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the minimum outbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the minimum outbound absolute-value inter-packet
+            delay variation threshold in milliseconds that will cause the
+            probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 20 }
 
      adGenAOSnmTwIpdvAbsOutAvgFail OBJECT-TYPE
@@ -634,8 +695,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the average outbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the average outbound absolute-value inter-packet
+            delay variation threshold in milliseconds that will cause the
+            probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 21 }
 
      adGenAOSnmTwIpdvAbsOutMaxFail OBJECT-TYPE
@@ -643,8 +705,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the maximum outbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the maximum outbound absolute-value inter-packet
+            delay variation threshold in milliseconds that will cause the
+            probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 22 }
 
      adGenAOSnmTwIpdvAbsOutMinPass OBJECT-TYPE
@@ -652,8 +715,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum outbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum outbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 23 }
 
      adGenAOSnmTwIpdvAbsOutAvgPass OBJECT-TYPE
@@ -661,8 +725,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for average outbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average outbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 24 }
 
      adGenAOSnmTwIpdvAbsOutMaxPass OBJECT-TYPE
@@ -670,8 +735,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum outbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum outbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 25 }
 
      adGenAOSnmTwIpdvAbsRtMinFail OBJECT-TYPE
@@ -679,8 +745,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the minimum round-trip absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the minimum round-trip absolute-value inter-packet
+            delay variation threshold in milliseconds that will cause the
+            probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 26 }
 
      adGenAOSnmTwIpdvAbsRtAvgFail OBJECT-TYPE
@@ -688,8 +755,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the average round-trip absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the average round-trip absolute-value inter-packet
+            delay variation threshold in milliseconds that will cause the
+            probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 27 }
 
      adGenAOSnmTwIpdvAbsRtMaxFail OBJECT-TYPE
@@ -697,8 +765,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the maximum round-trip absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the maximum round-trip absolute-value inter-packet
+            delay variation threshold in milliseconds that will cause the
+            probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 28 }
 
      adGenAOSnmTwIpdvAbsRtMinPass OBJECT-TYPE
@@ -706,8 +775,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum round-trip absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum round-trip
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 29 }
 
      adGenAOSnmTwIpdvAbsRtAvgPass OBJECT-TYPE
@@ -715,8 +785,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for average round-trip absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average round-trip
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 30 }
 
      adGenAOSnmTwIpdvAbsRtMaxPass OBJECT-TYPE
@@ -724,8 +795,9 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum round-trip absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum round-trip
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 31 }
 
      adGenAOSnmTwDelayInMinFail OBJECT-TYPE
@@ -733,8 +805,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the minimum inbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the minimum inbound delay threshold in milliseconds that
+            will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 32 }
 
      adGenAOSnmTwDelayInAvgFail OBJECT-TYPE
@@ -742,8 +814,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the average inbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the average inbound delay threshold in milliseconds that
+            will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 33 }
 
      adGenAOSnmTwDelayInMaxFail OBJECT-TYPE
@@ -751,8 +823,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the maximum inbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the maximum inbound delay threshold in milliseconds that
+            will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 34 }
 
      adGenAOSnmTwDelayInMinPass OBJECT-TYPE
@@ -787,8 +859,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the minimum outbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the minimum outbound delay threshold in milliseconds that
+            will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 38 }
 
      adGenAOSnmTwDelayOutAvgFail OBJECT-TYPE
@@ -796,8 +868,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the average outbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the average outbound delay threshold in milliseconds that
+            will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 39 }
 
      adGenAOSnmTwDelayOutMaxFail OBJECT-TYPE
@@ -805,8 +877,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the maximum outbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the maximum outbound delay threshold in milliseconds that
+            will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 40 }
 
      adGenAOSnmTwDelayOutMinPass OBJECT-TYPE
@@ -841,8 +913,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the minimum round-trip delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the minimum round-trip delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 44 }
 
      adGenAOSnmTwDelayRtAvgFail OBJECT-TYPE
@@ -850,8 +922,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the average round-trip delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the average round-trip delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 45 }
 
      adGenAOSnmTwDelayRtMaxFail OBJECT-TYPE
@@ -859,8 +931,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the maximum round-trip delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the maximum round-trip delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 46 }
 
      adGenAOSnmTwDelayRtMinPass OBJECT-TYPE
@@ -868,8 +940,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum round-trip delay
-            that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum round-trip
+            delay that will allow the probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 47 }
 
      adGenAOSnmTwDelayRtAvgPass OBJECT-TYPE
@@ -877,8 +949,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for average round-trip delay
-            that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average round-trip
+            delay that will allow the probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 48 }
 
      adGenAOSnmTwDelayRtMaxPass OBJECT-TYPE
@@ -886,8 +958,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum round-trip delay
-            that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum round-trip
+            delay that will allow the probe operation to pass."
          ::= { adGenAOSnmCfgTwampProbeEntry 49 }
 
      adGenAOSnmTwPktRtLossFail OBJECT-TYPE
@@ -895,8 +967,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the round-trip packet-loss threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the round-trip packet-loss threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgTwampProbeEntry 50 }
 
      adGenAOSnmTwPktRtLossPass OBJECT-TYPE
@@ -904,8 +976,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies the round-trip packet-loss threshold in milliseconds that will
-            allow the probe operation to change to the pass state."
+            "Specifies the round-trip packet-loss threshold in milliseconds
+            that will allow the probe operation to change to the pass state."
          ::= { adGenAOSnmCfgTwampProbeEntry 51 }
 
      adGenAOSnmTwHistoryDepth OBJECT-TYPE
@@ -930,7 +1002,7 @@
          STATUS   current
          DESCRIPTION
             "Operation history for a network monitor TWAMP probe."
-         ::= { adGenAOSNetMon 5 }
+         ::= { adGenAOSNetMon 6 }
 
      adGenAOSnmTwampHistoryEntry OBJECT-TYPE
          SYNTAX   AdGenAOSnmTwampHistoryEntry
@@ -938,17 +1010,16 @@
          STATUS   current
          DESCRIPTION
             "The read-only history of a particular network monitor TWAMP probe."
-         INDEX { adGenAOSnmTwHistoryName, adGenAOSnmTwHistoryIndex }
+         INDEX { adGenAOSnmIndex, adGenAOSnmTwSeqNum }
          ::= { adGenAOSnmTwampHistoryTable 1 }
 
 
      AdGenAOSnmTwampHistoryEntry ::=
          SEQUENCE {
+             adGenAOSnmTwSeqNum              Integer32,
              adGenAOSnmTwHistoryName         OCTET STRING,
-             adGenAOSnmTwHistoryIndex        Counter32,
-             adGenAOSnmTwSeqNum              Counter32,
-             adGenAOSnmTwStartTime           DateAndTime,
-             adGenAOSnmTwEndTime             DateAndTime,
+             adGenAOSnmTwStartTime           DisplayString,
+             adGenAOSnmTwEndTime             DisplayString,
              adGenAOSnmTwLocalSyncState      TruthValue,
              adGenAOSnmTwLocalClkErr         Counter64,
              adGenAOSnmTwRemoteSyncState     TruthValue,
@@ -960,13 +1031,13 @@
              adGenAOSnmTwDelayRtMin          Integer32,
              adGenAOSnmTwDelayRtMax          Integer32,
              adGenAOSnmTwLossRoundTrip       Counter32,
-             adGenAOSnmTwDelayOutSum         Counter32,
+             adGenAOSnmTwDelayOutSum         Integer32,
              adGenAOSnmTwDelayOutSum2        Counter64,
              adGenAOSnmTwDelayOutNum         Counter32,
-             adGenAOSnmTwDelayInSum          Counter32,
+             adGenAOSnmTwDelayInSum          Integer32,
              adGenAOSnmTwDelayInSum2         Counter64,
              adGenAOSnmTwDelayInNum          Counter32,
-             adGenAOSnmTwDelayRtSum          Counter32,
+             adGenAOSnmTwDelayRtSum          Integer32,
              adGenAOSnmTwDelayRtSum2         Counter64,
              adGenAOSnmTwDelayRtNum          Counter32,
              adGenAOSnmTwIpvPosInMin         Counter32,
@@ -1013,52 +1084,45 @@
              adGenAOSnmTwIpvAbsRtMax         Counter32,
              adGenAOSnmTwIpvAbsRtSum         Counter32,
              adGenAOSnmTwIpvAbsRtSum2        Counter64,
-             adGenAOSnmTwIpvAbsRtNum         Counter32
-
+             adGenAOSnmTwIpvAbsRtNum         Counter32,
+             adGenAOSnmTwPktSentCount        Counter32
         }
+
+     adGenAOSnmTwSeqNum OBJECT-TYPE
+        SYNTAX   Integer32 (1..120)
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Along with adGenAOSnmTwHistoryName, uniquely identifies a
+                row in the adGenAOSTwampHistoryTable.  A sequence number of
+                '1' signifies the current history entry."
+         ::= { adGenAOSnmTwampHistoryEntry 1 }
+
      adGenAOSnmTwHistoryName OBJECT-TYPE
          SYNTAX     OCTET STRING (SIZE(1..40))
          MAX-ACCESS   read-only
          STATUS   current
          DESCRIPTION
-            "The name of the corresponding TWAMP probe entry. The probe identified
-            by a particular value of this index is the same probe as identified
-            by the same value as a adGenAOSnmName object instance."
-         ::= { adGenAOSnmTwampHistoryEntry 1 }
-
-     adGenAOSnmTwHistoryIndex OBJECT-TYPE
-        SYNTAX   Counter32
-        MAX-ACCESS read-only
-        STATUS  current
-        DESCRIPTION
-                "Along with adGenAOSnmTwHistoryName, uniquely identifies a row
-                in the adGenAOSnmTwampHistoryTable."
+            "The name of the corresponding TWAMP probe entry. The probe
+            identified by a particular value of this object is the same probe as
+            identified by the same value as a adGenAOSnmName object instance."
          ::= { adGenAOSnmTwampHistoryEntry 2 }
 
-     adGenAOSnmTwSeqNum OBJECT-TYPE
-        SYNTAX   Counter32
-        MAX-ACCESS read-only
-        STATUS  current
-        DESCRIPTION
-                "Sequence number of this row
-                in the adGenAOSnmTwampHistoryTable."
-         ::= { adGenAOSnmTwampHistoryEntry 3 }
-
      adGenAOSnmTwStartTime OBJECT-TYPE
-        SYNTAX      DateAndTime
+        SYNTAX      DisplayString
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "Date and time the probe operation started."
-         ::= { adGenAOSnmTwampHistoryEntry 4 }
+         ::= { adGenAOSnmTwampHistoryEntry 3 }
 
      adGenAOSnmTwEndTime OBJECT-TYPE
-        SYNTAX      DateAndTime
+        SYNTAX      DisplayString
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "Date and time the probe operation ended."
-         ::= { adGenAOSnmTwampHistoryEntry 5 }
+         ::= { adGenAOSnmTwampHistoryEntry 4 }
 
      adGenAOSnmTwLocalSyncState OBJECT-TYPE
         SYNTAX   TruthValue
@@ -1066,7 +1130,7 @@
         STATUS  current
         DESCRIPTION
                 "If return value is true, local clock is in sync."
-         ::= { adGenAOSnmTwampHistoryEntry 6 }
+         ::= { adGenAOSnmTwampHistoryEntry 5 }
 
      adGenAOSnmTwLocalClkErr OBJECT-TYPE
         SYNTAX   Counter64
@@ -1074,7 +1138,7 @@
         STATUS  current
         DESCRIPTION
                 "Local clock error estimate in nanoseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 7 }
+         ::= { adGenAOSnmTwampHistoryEntry 6 }
 
      adGenAOSnmTwRemoteSyncState OBJECT-TYPE
         SYNTAX   TruthValue
@@ -1082,7 +1146,7 @@
         STATUS  current
         DESCRIPTION
                 "If return value is true, remote clock is in sync."
-         ::= { adGenAOSnmTwampHistoryEntry 8 }
+         ::= { adGenAOSnmTwampHistoryEntry 7 }
 
      adGenAOSnmTwRemoteClkErr OBJECT-TYPE
         SYNTAX   Counter64
@@ -1090,7 +1154,7 @@
         STATUS  current
         DESCRIPTION
                 "Remote clock error estimate in nanoseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 9 }
+         ::= { adGenAOSnmTwampHistoryEntry 8 }
 
      adGenAOSnmTwDelayInMin OBJECT-TYPE
         SYNTAX   Integer32
@@ -1098,7 +1162,7 @@
         STATUS  current
         DESCRIPTION
                 "The inbound minimum delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 10 }
+         ::= { adGenAOSnmTwampHistoryEntry 9 }
 
      adGenAOSnmTwDelayInMax OBJECT-TYPE
         SYNTAX   Integer32
@@ -1106,7 +1170,7 @@
         STATUS  current
         DESCRIPTION
                 "The inbound maximum delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 11 }
+         ::= { adGenAOSnmTwampHistoryEntry 10 }
 
      adGenAOSnmTwDelayOutMin OBJECT-TYPE
         SYNTAX   Integer32
@@ -1114,7 +1178,7 @@
         STATUS  current
         DESCRIPTION
                 "The outbound minimum delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 12 }
+         ::= { adGenAOSnmTwampHistoryEntry 11 }
 
      adGenAOSnmTwDelayOutMax OBJECT-TYPE
         SYNTAX   Integer32
@@ -1122,7 +1186,7 @@
         STATUS  current
         DESCRIPTION
                 "The outbound maximum delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 13 }
+         ::= { adGenAOSnmTwampHistoryEntry 12 }
 
      adGenAOSnmTwDelayRtMin OBJECT-TYPE
         SYNTAX   Integer32
@@ -1130,7 +1194,7 @@
         STATUS  current
         DESCRIPTION
                 "The round-trip minimum delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 14 }
+         ::= { adGenAOSnmTwampHistoryEntry 13 }
 
      adGenAOSnmTwDelayRtMax OBJECT-TYPE
         SYNTAX   Integer32
@@ -1138,7 +1202,7 @@
         STATUS  current
         DESCRIPTION
                 "The round-trip maximum delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 15 }
+         ::= { adGenAOSnmTwampHistoryEntry 14 }
 
       adGenAOSnmTwLossRoundTrip OBJECT-TYPE
         SYNTAX   Counter32
@@ -1146,15 +1210,15 @@
         STATUS  current
         DESCRIPTION
                 "The round-trip packet loss."
-         ::= { adGenAOSnmTwampHistoryEntry 16 }
+         ::= { adGenAOSnmTwampHistoryEntry 15 }
 
       adGenAOSnmTwDelayOutSum OBJECT-TYPE
-        SYNTAX   Counter32
+        SYNTAX   Integer32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The sum of outbound delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 17 }
+         ::= { adGenAOSnmTwampHistoryEntry 16 }
 
       adGenAOSnmTwDelayOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1162,7 +1226,7 @@
         STATUS  current
         DESCRIPTION
                 "The sum of the squares of outbound delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 18 }
+         ::= { adGenAOSnmTwampHistoryEntry 17 }
 
       adGenAOSnmTwDelayOutNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -1170,15 +1234,15 @@
         STATUS  current
         DESCRIPTION
                 "The number of individual outbound delay samples."
-         ::= { adGenAOSnmTwampHistoryEntry 19 }
+         ::= { adGenAOSnmTwampHistoryEntry 18 }
 
       adGenAOSnmTwDelayInSum OBJECT-TYPE
-        SYNTAX   Counter32
+        SYNTAX   Integer32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The sum of inbound delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 20 }
+         ::= { adGenAOSnmTwampHistoryEntry 19 }
 
       adGenAOSnmTwDelayInSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1186,7 +1250,7 @@
         STATUS  current
         DESCRIPTION
                 "The sum of the squares of inbound delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 21 }
+         ::= { adGenAOSnmTwampHistoryEntry 20 }
 
       adGenAOSnmTwDelayInNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -1194,15 +1258,15 @@
         STATUS  current
         DESCRIPTION
                 "The number of individual inbound delay samples."
-         ::= { adGenAOSnmTwampHistoryEntry 22 }
+         ::= { adGenAOSnmTwampHistoryEntry 21 }
 
       adGenAOSnmTwDelayRtSum OBJECT-TYPE
-        SYNTAX   Counter32
+        SYNTAX   Integer32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The sum of round-trip delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 23 }
+         ::= { adGenAOSnmTwampHistoryEntry 22 }
 
       adGenAOSnmTwDelayRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1210,7 +1274,7 @@
         STATUS  current
         DESCRIPTION
                 "The sum of the squares of round-trip delay in milliseconds."
-         ::= { adGenAOSnmTwampHistoryEntry 24 }
+         ::= { adGenAOSnmTwampHistoryEntry 23 }
 
       adGenAOSnmTwDelayRtNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -1218,7 +1282,7 @@
         STATUS  current
         DESCRIPTION
                 "The number of individual round-trip delay samples."
-         ::= { adGenAOSnmTwampHistoryEntry 25 }
+         ::= { adGenAOSnmTwampHistoryEntry 24 }
 
       adGenAOSnmTwIpvPosInMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -1227,7 +1291,7 @@
         DESCRIPTION
                 "The minimum value in the set of positive inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 26 }
+         ::= { adGenAOSnmTwampHistoryEntry 25 }
 
       adGenAOSnmTwIpvPosInMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -1236,15 +1300,16 @@
         DESCRIPTION
                 "The maximum value in the set of positive inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 27 }
+         ::= { adGenAOSnmTwampHistoryEntry 26 }
 
       adGenAOSnmTwIpvPosInSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of positive inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 28 }
+                "The sum of positive inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 27 }
 
       adGenAOSnmTwIpvPosInSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1253,15 +1318,16 @@
         DESCRIPTION
                 "The sum of the squares of positive inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 29 }
+         ::= { adGenAOSnmTwampHistoryEntry 28 }
 
       adGenAOSnmTwIpvPosInNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of positive inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 30 }
+                "The number of positive inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 29 }
 
       adGenAOSnmTwIpvPosOutMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -1270,7 +1336,7 @@
         DESCRIPTION
                 "The minimum value in the set of positive outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 31 }
+         ::= { adGenAOSnmTwampHistoryEntry 30 }
 
       adGenAOSnmTwIpvPosOutMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -1279,15 +1345,16 @@
         DESCRIPTION
                 "The maximum value in the set of positive outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 32 }
+         ::= { adGenAOSnmTwampHistoryEntry 31 }
 
       adGenAOSnmTwIpvPosOutSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of positive outbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 33 }
+                "The sum of positive outbound inter-packet delay variation
+                 measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 32 }
 
       adGenAOSnmTwIpvPosOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1296,41 +1363,43 @@
         DESCRIPTION
                 "The sum of the squares of positive outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 34 }
+         ::= { adGenAOSnmTwampHistoryEntry 33 }
 
       adGenAOSnmTwIpvPosOutNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of positive outbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 35 }
+                "The number of positive outbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 34 }
 
       adGenAOSnmTwIpvPosRtMin OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The minimum value in the set of positive round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 36 }
+                "The minimum value in the set of positive round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 35 }
 
       adGenAOSnmTwIpvPosRtMax OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The maximum value in the set of positive round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 37 }
+                "The maximum value in the set of positive round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 36 }
 
       adGenAOSnmTwIpvPosRtSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of positive round-trip inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 38 }
+                "The sum of positive round-trip inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 37 }
 
       adGenAOSnmTwIpvPosRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1339,15 +1408,16 @@
         DESCRIPTION
                 "The sum of the squares of of positive round-trip inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 39 }
+         ::= { adGenAOSnmTwampHistoryEntry 38 }
 
       adGenAOSnmTwIpvPosRtNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of positive round-trip inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 40 }
+                "The number of positive round-trip inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 39 }
 
       adGenAOSnmTwIpvNegInMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -1356,7 +1426,7 @@
         DESCRIPTION
                 "The minimum value in the set of negative inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 41 }
+         ::= { adGenAOSnmTwampHistoryEntry 40 }
 
       adGenAOSnmTwIpvNegInMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -1365,15 +1435,16 @@
         DESCRIPTION
                 "The maximum value in the set of negative inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 42 }
+         ::= { adGenAOSnmTwampHistoryEntry 41 }
 
       adGenAOSnmTwIpvNegInSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of negative inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 43 }
+                "The sum of negative inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 42 }
 
       adGenAOSnmTwIpvNegInSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1382,15 +1453,16 @@
         DESCRIPTION
                 "The sum of the squares of negative inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 44 }
+         ::= { adGenAOSnmTwampHistoryEntry 43 }
 
       adGenAOSnmTwIpvNegInNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of negative inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 45 }
+                "The number of negative inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 44 }
 
       adGenAOSnmTwIpvNegOutMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -1399,7 +1471,7 @@
         DESCRIPTION
                 "The minimum value in the set of negative outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 46 }
+         ::= { adGenAOSnmTwampHistoryEntry 45 }
 
       adGenAOSnmTwIpvNegOutMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -1408,15 +1480,16 @@
         DESCRIPTION
                 "The maximum value in the set of negative outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 47 }
+         ::= { adGenAOSnmTwampHistoryEntry 46 }
 
       adGenAOSnmTwIpvNegOutSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of negative outbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 48 }
+                "The sum of negative outbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 47 }
 
       adGenAOSnmTwIpvNegOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1425,41 +1498,43 @@
         DESCRIPTION
                 "The sum of the squares of negative outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 49 }
+         ::= { adGenAOSnmTwampHistoryEntry 48 }
 
       adGenAOSnmTwIpvNegOutNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of negative outbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 50 }
+                "The number of negative outbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 49 }
 
       adGenAOSnmTwIpvNegRtMin OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The minimum value in the set of negative round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 51 }
+                "The minimum value in the set of negative round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 50 }
 
       adGenAOSnmTwIpvNegRtMax OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The maximum value in the set of negative round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 52 }
+                "The maximum value in the set of negative round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 51 }
 
       adGenAOSnmTwIpvNegRtSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of negative round-trip inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 53 }
+                "The sum of negative round-trip inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 52 }
 
       adGenAOSnmTwIpvNegRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1468,15 +1543,16 @@
         DESCRIPTION
                 "The sum of the squares of negative round-trip inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 54 }
+         ::= { adGenAOSnmTwampHistoryEntry 53 }
 
       adGenAOSnmTwIpvNegRtNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of negative round-trip inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 55 }
+                "The number of negative round-trip inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 54 }
 
       adGenAOSnmTwIpvAbsInMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -1485,7 +1561,7 @@
         DESCRIPTION
                 "The minimum value in the set of absolute inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 56 }
+         ::= { adGenAOSnmTwampHistoryEntry 55 }
 
       adGenAOSnmTwIpvAbsInMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -1494,15 +1570,16 @@
         DESCRIPTION
                 "The maximum value in the set of absolute inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 57 }
+         ::= { adGenAOSnmTwampHistoryEntry 56 }
 
       adGenAOSnmTwIpvAbsInSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of absolute inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 58 }
+                "The sum of absolute inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 57 }
 
       adGenAOSnmTwIpvAbsInSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1511,15 +1588,16 @@
         DESCRIPTION
                 "The sum of the squares of absolute inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 59 }
+         ::= { adGenAOSnmTwampHistoryEntry 58 }
 
       adGenAOSnmTwIpvAbsInNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of absolute inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 60 }
+                "The number of absolute inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 59 }
 
       adGenAOSnmTwIpvAbsOutMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -1528,7 +1606,7 @@
         DESCRIPTION
                 "The minimum value in the set of absolute outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 61 }
+         ::= { adGenAOSnmTwampHistoryEntry 60 }
 
       adGenAOSnmTwIpvAbsOutMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -1537,15 +1615,16 @@
         DESCRIPTION
                 "The maximum value in the set of absolute outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 62 }
+         ::= { adGenAOSnmTwampHistoryEntry 61 }
 
       adGenAOSnmTwIpvAbsOutSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of absolute outbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 63 }
+                "The sum of absolute outbound inter-packet delay variation
+                 measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 62 }
 
       adGenAOSnmTwIpvAbsOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1554,41 +1633,43 @@
         DESCRIPTION
                 "The sum of the squares of absolute outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 64 }
+         ::= { adGenAOSnmTwampHistoryEntry 63 }
 
       adGenAOSnmTwIpvAbsOutNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of absolute outbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 65 }
+                "The number of absolute outbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 64 }
 
       adGenAOSnmTwIpvAbsRtMin OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The minimum value in the set of absolute round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 66 }
+                "The minimum value in the set of absolute round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 65 }
 
       adGenAOSnmTwIpvAbsRtMax OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The maximum value in the set of absolute round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 67 }
+                "The maximum value in the set of absolute round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 66 }
 
       adGenAOSnmTwIpvAbsRtSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of absolute round-trip inter-packet delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 68 }
+                "The sum of absolute round-trip inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 67 }
 
       adGenAOSnmTwIpvAbsRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -1597,17 +1678,24 @@
         DESCRIPTION
                 "The sum of the squares of absolute round-trip inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmTwampHistoryEntry 69 }
+         ::= { adGenAOSnmTwampHistoryEntry 68 }
 
       adGenAOSnmTwIpvAbsRtNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of absolute round-trip inter-packet delay variation measurements."
+                "The number of absolute round-trip inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmTwampHistoryEntry 69 }
+
+      adGenAOSnmTwPktSentCount  OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "The number of packets sent."
          ::= { adGenAOSnmTwampHistoryEntry 70 }
-
-
      --
 
      --  Network Monitor Configure ICMP Timestamp Probe Table
@@ -1620,7 +1708,7 @@
          STATUS   current
          DESCRIPTION
             "Configure a network monitor ICMP timestamp probe."
-         ::= { adGenAOSNetMon 6 }
+         ::= { adGenAOSNetMon 7 }
 
      adGenAOSnmCfgICMPTSProbeEntry OBJECT-TYPE
          SYNTAX   AdGenAOSnmCfgICMPTSProbeEntry
@@ -1629,7 +1717,7 @@
          DESCRIPTION
             "The parameters used to configure a particular network monitor ICMP
             timestamp probe."
-         INDEX { adGenAOSnmCfgICMPTSName }
+         INDEX { adGenAOSnmIndex }
          ::= { adGenAOSnmCfgICMPTSProbeTable 1 }
 
 
@@ -1693,7 +1781,7 @@
          STATUS   current
          DESCRIPTION
             "The name of the corresponding ICMP timestamp probe entry.
-            The probe identified by a particular value of this index is the
+            The probe identified by a particular value of this object is the
             same probe as identified by the same value as a
             adGenAOSnmName object instance."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 1 }
@@ -1703,7 +1791,8 @@
          MAX-ACCESS   read-write
          STATUS   current
          DESCRIPTION
-            "Specifies the destination hostname or IP address as a string in dotted decimal format."
+            "Specifies the destination hostname or IP address as a string in
+            dotted decimal format."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 2 }
 
      adGenAOSnmICMPTSSrcIP OBJECT-TYPE
@@ -1719,8 +1808,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the DiffServ Code Point value that will be used on packets
-            sent and will be negotiated with the responder."
+            "Specifies the DiffServ Code Point value that will be used on
+            packets sent and will be negotiated with the responder."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 4 }
 
      adGenAOSnmICMPTSPaddingLen OBJECT-TYPE
@@ -1734,8 +1823,8 @@
      adGenAOSnmICMPTSPaddingFormat OBJECT-TYPE
         SYNTAX  INTEGER
                 {
-                        hex (1),
-                        ascii (2)
+                        ascii (1),
+                        hex (2)
                 }
          MAX-ACCESS read-write
          STATUS  current
@@ -1795,7 +1884,8 @@
         MAX-ACCESS read-write
         STATUS  current
         DESCRIPTION
-            "Specifies in milliseconds the time between start of each packet send operation."
+            "Specifies in milliseconds the time between start of each packet
+            send operation."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 11 }
 
      adGenAOSnmICMPTSIpdvAbsInMinFail OBJECT-TYPE
@@ -1803,8 +1893,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the minimum inbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the minimum inbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 12 }
 
      adGenAOSnmICMPTSIpdvAbsInAvgFail OBJECT-TYPE
@@ -1812,8 +1903,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the average inbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the average inbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+             operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 13 }
 
      adGenAOSnmICMPTSIpdvAbsInMaxFail OBJECT-TYPE
@@ -1821,8 +1913,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the maximum inbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the maximum inbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 14 }
 
      adGenAOSnmICMPTSIpdvAbsInMinPass OBJECT-TYPE
@@ -1830,8 +1923,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum inbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum inbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 15 }
 
      adGenAOSnmICMPTSIpdvAbsInAvgPass OBJECT-TYPE
@@ -1839,8 +1933,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for average inbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average inbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 16 }
 
      adGenAOSnmICMPTSIpdvAbsInMaxPass OBJECT-TYPE
@@ -1848,8 +1943,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum inbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum inbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 17 }
 
      adGenAOSnmICMPTSIpdvAbsOutMinFail OBJECT-TYPE
@@ -1857,8 +1953,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the minimum outbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the minimum outbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 18 }
 
      adGenAOSnmICMPTSIpdvAbsOutAvgFail OBJECT-TYPE
@@ -1866,8 +1963,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the average outbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the average outbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 19 }
 
      adGenAOSnmICMPTSIpdvAbsOutMaxFail OBJECT-TYPE
@@ -1875,8 +1973,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the maximum outbound absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the maximum outbound absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 20 }
 
      adGenAOSnmICMPTSIpdvAbsOutMinPass OBJECT-TYPE
@@ -1884,8 +1983,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum outbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum outbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 21 }
 
      adGenAOSnmICMPTSIpdvAbsOutAvgPass OBJECT-TYPE
@@ -1893,8 +1993,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for average outbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average outbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 22 }
 
      adGenAOSnmICMPTSIpdvAbsOutMaxPass OBJECT-TYPE
@@ -1902,8 +2003,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum outbound absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum outbound
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 23 }
 
      adGenAOSnmICMPTSIpdvAbsRtMinFail OBJECT-TYPE
@@ -1911,8 +2013,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the minimum round-trip absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the minimum round-trip absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 24 }
 
      adGenAOSnmICMPTSIpdvAbsRtAvgFail OBJECT-TYPE
@@ -1920,8 +2023,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the average round-trip absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the average round-trip absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 25 }
 
      adGenAOSnmICMPTSIpdvAbsRtMaxFail OBJECT-TYPE
@@ -1929,8 +2033,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the maximum round-trip absolute-value inter-packet delay variation
-             threshold in milliseconds that will cause the probe operation to fail."
+            "Specifies the maximum round-trip absolute-value inter-packet delay
+            variation threshold in milliseconds that will cause the probe
+            operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 26 }
 
      adGenAOSnmICMPTSIpdvAbsRtMinPass OBJECT-TYPE
@@ -1938,8 +2043,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum round-trip absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum round-trip
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 27 }
 
      adGenAOSnmICMPTSIpdvAbsRtAvgPass OBJECT-TYPE
@@ -1947,8 +2053,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for average round-trip absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average round-trip
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 28 }
 
      adGenAOSnmICMPTSIpdvAbsRtMaxPass OBJECT-TYPE
@@ -1956,8 +2063,9 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum round-trip absolute-value
-            inter-packet delay variation that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum round-trip
+            absolute-value inter-packet delay variation that will allow the
+            probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 29 }
 
      adGenAOSnmICMPTSDelayInMinFail OBJECT-TYPE
@@ -1965,8 +2073,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the minimum inbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the minimum inbound delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 30 }
 
      adGenAOSnmICMPTSDelayInAvgFail OBJECT-TYPE
@@ -1974,8 +2082,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the average inbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the average inbound delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 31 }
 
      adGenAOSnmICMPTSDelayInMaxFail OBJECT-TYPE
@@ -1983,8 +2091,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the maximum inbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the maximum inbound delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 32 }
 
      adGenAOSnmICMPTSDelayInMinPass OBJECT-TYPE
@@ -2019,8 +2127,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the minimum outbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the minimum outbound delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 36 }
 
      adGenAOSnmICMPTSDelayOutAvgFail OBJECT-TYPE
@@ -2028,8 +2136,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the average outbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the average outbound delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 37 }
 
      adGenAOSnmICMPTSDelayOutMaxFail OBJECT-TYPE
@@ -2037,8 +2145,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the maximum outbound delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the maximum outbound delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 38 }
 
      adGenAOSnmICMPTSDelayOutMinPass OBJECT-TYPE
@@ -2073,8 +2181,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the minimum round-trip delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the minimum round-trip delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 42 }
 
      adGenAOSnmICMPTSDelayRtAvgFail OBJECT-TYPE
@@ -2082,8 +2190,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the average round-trip delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the average round-trip delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 43 }
 
      adGenAOSnmICMPTSDelayRtMaxFail OBJECT-TYPE
@@ -2091,8 +2199,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the maximum round-trip delay threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the maximum round-trip delay threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 44 }
 
      adGenAOSnmICMPTSDelayRtMinPass OBJECT-TYPE
@@ -2100,8 +2208,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for minimum round-trip delay
-            that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for minimum round-trip
+            delay that will allow the probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 45 }
 
      adGenAOSnmICMPTSDelayRtAvgPass OBJECT-TYPE
@@ -2109,8 +2217,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for average round-trip delay
-            that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for average round-trip
+            delay that will allow the probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 46 }
 
      adGenAOSnmICMPTSDelayRtMaxPass OBJECT-TYPE
@@ -2118,8 +2226,8 @@
         MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the threshold in milliseconds for maximum round-trip delay
-            that will allow the probe operation to pass."
+            "Specifies the threshold in milliseconds for maximum round-trip
+            delay that will allow the probe operation to pass."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 47 }
 
      adGenAOSnmICMPTSPktRtLossFail OBJECT-TYPE
@@ -2127,8 +2235,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the round-trip packet-loss threshold in milliseconds that will
-            cause the probe operation to fail."
+            "Specifies the round-trip packet-loss threshold in milliseconds
+            that will cause the probe operation to fail."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 48 }
 
      adGenAOSnmICMPTSPktRtLossPass OBJECT-TYPE
@@ -2136,8 +2244,8 @@
          MAX-ACCESS read-write
          STATUS  current
          DESCRIPTION
-            "Specifies the round-trip packet-loss threshold in milliseconds that will
-             allow the probe operation to change to the pass state."
+            "Specifies the round-trip packet-loss threshold in milliseconds
+            that will allow the probe operation to change to the pass state."
          ::= { adGenAOSnmCfgICMPTSProbeEntry 49 }
 
      adGenAOSnmICMPTSHistoryDepth OBJECT-TYPE
@@ -2154,7 +2262,8 @@
 
      --  Network Monitor ICMP timestamp History Table
 
-     --  The variables that display the history for a NetMon ICMP timestampe probe.
+     --  The variables that display the history for a NetMon ICMP timestamp
+     --  probe.
 
      adGenAOSnmICMPTSHistoryTable OBJECT-TYPE
          SYNTAX   SEQUENCE OF AdGenAOSnmICMPTSHistoryEntry
@@ -2162,25 +2271,25 @@
          STATUS   current
          DESCRIPTION
             "Operation history for a network monitor ICMP timestamp probe."
-         ::= { adGenAOSNetMon 7 }
+         ::= { adGenAOSNetMon 8 }
 
      adGenAOSnmICMPTSHistoryEntry OBJECT-TYPE
          SYNTAX   AdGenAOSnmICMPTSHistoryEntry
          MAX-ACCESS   not-accessible
          STATUS   current
          DESCRIPTION
-            "The read-only history of a particular network monitor ICMP timestamp probe."
-         INDEX { adGenAOSnmICMPTSHistoryName, adGenAOSnmICMPTSHistoryIndex }
+            "The read-only history of a particular network monitor ICMP
+            timestamp probe."
+         INDEX { adGenAOSnmIndex, adGenAOSnmICMPTSSeqNum  }
          ::= { adGenAOSnmICMPTSHistoryTable 1 }
 
 
      AdGenAOSnmICMPTSHistoryEntry ::=
          SEQUENCE {
+             adGenAOSnmICMPTSSeqNum             Integer32,
              adGenAOSnmICMPTSHistoryName        OCTET STRING,
-             adGenAOSnmICMPTSHistoryIndex       Counter32,
-             adGenAOSnmICMPTSSeqNum             Counter32,
-             adGenAOSnmICMPTSStartTime          DateAndTime,
-             adGenAOSnmICMPTSEndTime            DateAndTime,
+             adGenAOSnmICMPTSStartTime          DisplayString,
+             adGenAOSnmICMPTSEndTime            DisplayString,
              adGenAOSnmICMPTSDelayInMin         Integer32,
              adGenAOSnmICMPTSDelayInMax         Integer32,
              adGenAOSnmICMPTSDelayOutMin        Integer32,
@@ -2188,13 +2297,13 @@
              adGenAOSnmICMPTSDelayRtMin         Integer32,
              adGenAOSnmICMPTSDelayRtMax         Integer32,
              adGenAOSnmICMPTSLossRoundTrip      Counter32,
-             adGenAOSnmICMPTSDelayOutSum        Counter32,
+             adGenAOSnmICMPTSDelayOutSum        Integer32,
              adGenAOSnmICMPTSDelayOutSum2       Counter64,
              adGenAOSnmICMPTSDelayOutNum        Counter32,
-             adGenAOSnmICMPTSDelayInSum         Counter32,
+             adGenAOSnmICMPTSDelayInSum         Integer32,
              adGenAOSnmICMPTSDelayInSum2        Counter64,
              adGenAOSnmICMPTSDelayInNum         Counter32,
-             adGenAOSnmICMPTSDelayRtSum         Counter32,
+             adGenAOSnmICMPTSDelayRtSum         Integer32,
              adGenAOSnmICMPTSDelayRtSum2        Counter64,
              adGenAOSnmICMPTSDelayRtNum         Counter32,
              adGenAOSnmICMPTSIpvPosInMin        Counter32,
@@ -2241,53 +2350,46 @@
              adGenAOSnmICMPTSIpvAbsRtMax        Counter32,
              adGenAOSnmICMPTSIpvAbsRtSum        Counter32,
              adGenAOSnmICMPTSIpvAbsRtSum2       Counter64,
-             adGenAOSnmICMPTSIpvAbsRtNum        Counter32
-
+             adGenAOSnmICMPTSIpvAbsRtNum        Counter32,
+             adGenAOSnmICMPTSPktSentCount       Counter32
         }
+
+     adGenAOSnmICMPTSSeqNum OBJECT-TYPE
+        SYNTAX   Integer32 (1..120)
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Along with adGenAOSnmICMPTSHistoryName, uniquely identifies a
+                row in the adGenAOSnmICMPTSHistoryTable. A sequence number of
+                '1' signifies the current history entry."
+         ::= { adGenAOSnmICMPTSHistoryEntry 1 }
+
      adGenAOSnmICMPTSHistoryName OBJECT-TYPE
          SYNTAX     OCTET STRING (SIZE(1..40))
          MAX-ACCESS   read-only
          STATUS   current
          DESCRIPTION
             "The name of the corresponding ICMP timestamp probe entry.
-            The probe identified by a particular value of this index is the
+            The probe identified by a particular value of this object is the
             same probe as identified by the same value as a
             adGenAOSnmName object instance."
-         ::= { adGenAOSnmICMPTSHistoryEntry 1 }
-
-     adGenAOSnmICMPTSHistoryIndex OBJECT-TYPE
-        SYNTAX   Counter32
-        MAX-ACCESS read-only
-        STATUS  current
-        DESCRIPTION
-                "Along with adGenAOSnmICMPTSHistoryName, uniquely identifies a row
-                in the adGenAOSnmICMPTSHistoryTable."
          ::= { adGenAOSnmICMPTSHistoryEntry 2 }
 
-     adGenAOSnmICMPTSSeqNum OBJECT-TYPE
-        SYNTAX   Counter32
-        MAX-ACCESS read-only
-        STATUS  current
-        DESCRIPTION
-                "Sequence number of this row
-                in the adGenAOSnmICMPTSHistoryTable."
-         ::= { adGenAOSnmICMPTSHistoryEntry 3 }
-
      adGenAOSnmICMPTSStartTime OBJECT-TYPE
-        SYNTAX      DateAndTime
+        SYNTAX      DisplayString
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The date and time the probe operation started."
-         ::= { adGenAOSnmICMPTSHistoryEntry 4 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 3 }
 
      adGenAOSnmICMPTSEndTime OBJECT-TYPE
-        SYNTAX      DateAndTime
+        SYNTAX      DisplayString
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The date and time the probe operation ended."
-         ::= { adGenAOSnmICMPTSHistoryEntry 5 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 4 }
 
      adGenAOSnmICMPTSDelayInMin OBJECT-TYPE
         SYNTAX   Integer32
@@ -2295,7 +2397,7 @@
         STATUS  current
         DESCRIPTION
                 "The inbound minimum delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 6 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 5 }
 
      adGenAOSnmICMPTSDelayInMax OBJECT-TYPE
         SYNTAX   Integer32
@@ -2303,7 +2405,7 @@
         STATUS  current
         DESCRIPTION
                 "The inbound maximum delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 7 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 6 }
 
      adGenAOSnmICMPTSDelayOutMin OBJECT-TYPE
         SYNTAX   Integer32
@@ -2311,7 +2413,7 @@
         STATUS  current
         DESCRIPTION
                 "The outbound minimum delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 8 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 7 }
 
      adGenAOSnmICMPTSDelayOutMax OBJECT-TYPE
         SYNTAX   Integer32
@@ -2319,7 +2421,7 @@
         STATUS  current
         DESCRIPTION
                 "The outbound maximum delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 9 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 8 }
 
      adGenAOSnmICMPTSDelayRtMin OBJECT-TYPE
         SYNTAX   Integer32
@@ -2327,7 +2429,7 @@
         STATUS  current
         DESCRIPTION
                 "The round-trip minimum delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 10 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 9 }
 
      adGenAOSnmICMPTSDelayRtMax OBJECT-TYPE
         SYNTAX   Integer32
@@ -2335,7 +2437,7 @@
         STATUS  current
         DESCRIPTION
                 "The round-trip maximum delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 11 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 10 }
 
       adGenAOSnmICMPTSLossRoundTrip OBJECT-TYPE
         SYNTAX   Counter32
@@ -2343,15 +2445,15 @@
         STATUS  current
         DESCRIPTION
                 "The round-trip packet loss."
-         ::= { adGenAOSnmICMPTSHistoryEntry 12 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 11 }
 
       adGenAOSnmICMPTSDelayOutSum OBJECT-TYPE
-        SYNTAX   Counter32
+        SYNTAX   Integer32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The sum of outbound delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 13 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 12 }
 
       adGenAOSnmICMPTSDelayOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -2359,7 +2461,7 @@
         STATUS  current
         DESCRIPTION
                 "The sum of the squares of outbound delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 14 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 13 }
 
       adGenAOSnmICMPTSDelayOutNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2367,15 +2469,15 @@
         STATUS  current
         DESCRIPTION
                 "The number of individual outbound delay samples."
-         ::= { adGenAOSnmICMPTSHistoryEntry 15 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 14 }
 
       adGenAOSnmICMPTSDelayInSum OBJECT-TYPE
-        SYNTAX   Counter32
+        SYNTAX   Integer32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The sum of inbound delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 16 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 15 }
 
       adGenAOSnmICMPTSDelayInSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -2383,7 +2485,7 @@
         STATUS  current
         DESCRIPTION
                 "The sum of the squares of inbound delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 17 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 16 }
 
       adGenAOSnmICMPTSDelayInNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2391,15 +2493,15 @@
         STATUS  current
         DESCRIPTION
                 "The number of individual inbound delay samples."
-         ::= { adGenAOSnmICMPTSHistoryEntry 18 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 17 }
 
       adGenAOSnmICMPTSDelayRtSum OBJECT-TYPE
-        SYNTAX   Counter32
+        SYNTAX   Integer32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
                 "The sum of round-trip delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 19 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 18 }
 
       adGenAOSnmICMPTSDelayRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -2407,7 +2509,7 @@
         STATUS  current
         DESCRIPTION
                 "The sum of the squares of round-trip delay in milliseconds."
-         ::= { adGenAOSnmICMPTSHistoryEntry 20 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 19 }
 
       adGenAOSnmICMPTSDelayRtNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2415,7 +2517,7 @@
         STATUS  current
         DESCRIPTION
                 "The number of individual round-trip delay samples."
-         ::= { adGenAOSnmICMPTSHistoryEntry 21 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 20 }
 
       adGenAOSnmICMPTSIpvPosInMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -2424,7 +2526,7 @@
         DESCRIPTION
                 "The minimum value in the set of positive inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 22 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 21 }
 
       adGenAOSnmICMPTSIpvPosInMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -2433,15 +2535,16 @@
         DESCRIPTION
                 "The maximum value in the set of positive inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 23 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 22 }
 
       adGenAOSnmICMPTSIpvPosInSum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of positive inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 24 }
+                "The sum of positive inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 23 }
 
       adGenAOSnmICMPTSIpvPosInSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -2450,15 +2553,16 @@
         DESCRIPTION
                 "The sum of the squares of positive inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 25 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 24 }
 
       adGenAOSnmICMPTSIpvPosInNum OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The number of positive inbound inter-packet delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 26 }
+                "The number of positive inbound inter-packet delay variation
+                measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 25 }
 
       adGenAOSnmICMPTSIpvPosOutMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -2467,7 +2571,7 @@
         DESCRIPTION
                 "The minimum value in the set of positive outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 27 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 26 }
 
       adGenAOSnmICMPTSIpvPosOutMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -2476,7 +2580,7 @@
         DESCRIPTION
                 "The maximum value in the set of positive outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 28 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 27 }
 
       adGenAOSnmICMPTSIpvPosOutSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2485,7 +2589,7 @@
         DESCRIPTION
                 "The sum of positive outbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 29 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 28 }
 
       adGenAOSnmICMPTSIpvPosOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
@@ -2494,7 +2598,7 @@
         DESCRIPTION
                 "The sum of the squares of positive outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 30 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 29 }
 
       adGenAOSnmICMPTSIpvPosOutNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2503,25 +2607,25 @@
         DESCRIPTION
                 "The number of positive outbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 31 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 30 }
 
       adGenAOSnmICMPTSIpvPosRtMin OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The minimum value in the set of positive round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 32 }
+                "The minimum value in the set of positive round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 31 }
 
       adGenAOSnmICMPTSIpvPosRtMax OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The maximum value in the set of positive round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 33 }
+                "The maximum value in the set of positive round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 32 }
 
       adGenAOSnmICMPTSIpvPosRtSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2530,16 +2634,16 @@
         DESCRIPTION
                 "The sum of positive round-trip inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 34 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 33 }
 
       adGenAOSnmICMPTSIpvPosRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of the squares of positive round-trip inter-packet delay variation
-                measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 35 }
+                "The sum of the squares of positive round-trip inter-packet
+                delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 34 }
 
       adGenAOSnmICMPTSIpvPosRtNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2548,7 +2652,7 @@
         DESCRIPTION
                 "The number of positive round-trip inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 36 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 35 }
 
       adGenAOSnmICMPTSIpvNegInMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -2557,7 +2661,7 @@
         DESCRIPTION
                 "The minimum value in the set of negative inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 37 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 36 }
 
       adGenAOSnmICMPTSIpvNegInMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -2566,7 +2670,7 @@
         DESCRIPTION
                 "The maximum value in the set of negative inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 38 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 37 }
 
       adGenAOSnmICMPTSIpvNegInSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2575,16 +2679,16 @@
         DESCRIPTION
                 "The sum of negative inbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 39 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 38 }
 
       adGenAOSnmICMPTSIpvNegInSum2 OBJECT-TYPE
         SYNTAX   Counter64
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of the squares of negative inbound inter-packet delay variation
-                measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 40 }
+                "The sum of the squares of negative inbound inter-packet delay
+                variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 39 }
 
       adGenAOSnmICMPTSIpvNegInNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2593,7 +2697,7 @@
         DESCRIPTION
                 "The number of negative inbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 41 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 40 }
 
       adGenAOSnmICMPTSIpvNegOutMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -2602,7 +2706,7 @@
         DESCRIPTION
                 "The minimum value in the set of negative outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 42 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 41 }
 
       adGenAOSnmICMPTSIpvNegOutMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -2611,7 +2715,7 @@
         DESCRIPTION
                 "The maximum value in the set of negative outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 43 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 42 }
 
       adGenAOSnmICMPTSIpvNegOutSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2620,16 +2724,16 @@
         DESCRIPTION
                 "The sum of negative outbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 44 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 43 }
 
       adGenAOSnmICMPTSIpvNegOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of the squares of negative outbound inter-packet delay variation
-                measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 45 }
+                "The sum of the squares of negative outbound inter-packet delay
+                variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 44 }
 
       adGenAOSnmICMPTSIpvNegOutNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2638,25 +2742,25 @@
         DESCRIPTION
                 "The number of negative outbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 46 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 45 }
 
       adGenAOSnmICMPTSIpvNegRtMin OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The minimum value in the set of negative round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 47 }
+                "The minimum value in the set of negative round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 46 }
 
       adGenAOSnmICMPTSIpvNegRtMax OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The maximum value in the set of negative round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 48 }
+                "The maximum value in the set of negative round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 47 }
 
       adGenAOSnmICMPTSIpvNegRtSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2665,16 +2769,16 @@
         DESCRIPTION
                 "The sum of negative round-trip inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 49 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 48 }
 
       adGenAOSnmICMPTSIpvNegRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of the squares of negative round-trip inter-packet delay variation
-                measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 50 }
+                "The sum of the squares of negative round-trip inter-packet
+                delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 49 }
 
       adGenAOSnmICMPTSIpvNegRtNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2683,7 +2787,7 @@
         DESCRIPTION
                 "The number of negative round-trip inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 51 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 50 }
 
       adGenAOSnmICMPTSIpvAbsInMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -2692,7 +2796,7 @@
         DESCRIPTION
                 "The minimum value in the set of absolute inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 52 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 51 }
 
       adGenAOSnmICMPTSIpvAbsInMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -2701,7 +2805,7 @@
         DESCRIPTION
                 "The maximum value in the set of absolute inbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 53 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 52 }
 
       adGenAOSnmICMPTSIpvAbsInSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2710,16 +2814,16 @@
         DESCRIPTION
                 "The sum of absolute inbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 54 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 53 }
 
       adGenAOSnmICMPTSIpvAbsInSum2 OBJECT-TYPE
         SYNTAX   Counter64
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of the squares of absolute inbound inter-packet delay variation
-                measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 55 }
+                "The sum of the squares of absolute inbound inter-packet delay
+                variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 54 }
 
       adGenAOSnmICMPTSIpvAbsInNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2728,7 +2832,7 @@
         DESCRIPTION
                 "The number of absolute inbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 56 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 55 }
 
       adGenAOSnmICMPTSIpvAbsOutMin OBJECT-TYPE
         SYNTAX   Counter32
@@ -2737,7 +2841,7 @@
         DESCRIPTION
                 "The minimum value in the set of absolute outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 57 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 56 }
 
       adGenAOSnmICMPTSIpvAbsOutMax OBJECT-TYPE
         SYNTAX   Counter32
@@ -2746,7 +2850,7 @@
         DESCRIPTION
                 "The maximum value in the set of absolute outbound inter-packet
                 delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 58 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 57 }
 
       adGenAOSnmICMPTSIpvAbsOutSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2755,16 +2859,16 @@
         DESCRIPTION
                 "The sum of absolute outbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 59 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 58 }
 
       adGenAOSnmICMPTSIpvAbsOutSum2 OBJECT-TYPE
         SYNTAX   Counter64
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of the squares of absolute outbound inter-packet delay variation
-                measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 60 }
+                "The sum of the squares of absolute outbound inter-packet delay
+                variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 59 }
 
       adGenAOSnmICMPTSIpvAbsOutNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2773,25 +2877,25 @@
         DESCRIPTION
                 "The number of absolute outbound inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 61 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 60 }
 
       adGenAOSnmICMPTSIpvAbsRtMin OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The minimum value in the set of absolute round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 62 }
+                "The minimum value in the set of absolute round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 61 }
 
       adGenAOSnmICMPTSIpvAbsRtMax OBJECT-TYPE
         SYNTAX   Counter32
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The maximum value in the set of absolute round-trip inter-packet
-                delay variation measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 63 }
+                "The maximum value in the set of absolute round-trip
+                inter-packet delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 62 }
 
       adGenAOSnmICMPTSIpvAbsRtSum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2800,16 +2904,16 @@
         DESCRIPTION
                 "The sum of absolute round-trip inter-packet delay variation
                 measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 64 }
+         ::= { adGenAOSnmICMPTSHistoryEntry 63 }
 
       adGenAOSnmICMPTSIpvAbsRtSum2 OBJECT-TYPE
         SYNTAX   Counter64
         MAX-ACCESS read-only
         STATUS  current
         DESCRIPTION
-                "The sum of the squares of absolute round-trip inter-packet delay variation
-                measurements."
-         ::= { adGenAOSnmICMPTSHistoryEntry 65 }
+                "The sum of the squares of absolute round-trip inter-packet
+                delay variation measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 64 }
 
       adGenAOSnmICMPTSIpvAbsRtNum OBJECT-TYPE
         SYNTAX   Counter32
@@ -2818,7 +2922,336 @@
         DESCRIPTION
                 "The number of absolute round-trip inter-packet delay variation
                 measurements."
+         ::= { adGenAOSnmICMPTSHistoryEntry 65 }
+
+      adGenAOSnmICMPTSPktSentCount  OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "The number of packets sent."
          ::= { adGenAOSnmICMPTSHistoryEntry 66 }
+     --
+     --  Network Monitor ICMP Timestamp Responder.
+     --
+     adGenAOSnmICMPTSResponder OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enabled (1),
+                  disabled (2)
+                }
+         MAX-ACCESS read-write
+         STATUS  current
+         DESCRIPTION
+            "Specifies ability to enable or disable the ICMP Timstamp
+            responder to respond to ICMP timestamp requests."
+         ::= { adGenAOSNetMon 9 }
+
+     --
+     --  Network Monitor TWAMP Responder.
+     --
+     adGenAOSnmTWAMPResponder OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enabled (1),
+                  disabled (2)
+                }
+         MAX-ACCESS read-write
+         STATUS  current
+         DESCRIPTION
+            "Specifies ability to enable or disable the TWAMP
+            responder to respond to ICMP timestamp requests."
+         ::= { adGenAOSNetMon 10 }
+     --
+
+     --  Network Monitor ICMP timestamp Responder Statistics Table
+
+     --  The variables that display the statistics for a NetMon ICMP timestamp
+     --  responder.
+
+     adGenAOSnmICMPTSResponderStatsTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSnmICMPTSResponderStatsEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "Operation history for a network monitor ICMP timestamp probe."
+         ::= { adGenAOSNetMon 11 }
+
+     adGenAOSnmICMPTSResponderStatsEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSnmICMPTSResponderStatsEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "The read-only statistics of the network monitor ICMP
+            timestamp responder."
+         INDEX { adGenAOSnmICMPTSResponderStatsIndex  }
+         ::= { adGenAOSnmICMPTSResponderStatsTable 1 }
+
+
+     AdGenAOSnmICMPTSResponderStatsEntry ::=
+         SEQUENCE {
+             adGenAOSnmICMPTSResponderStatsIndex        Unsigned32,
+             adGenAOSnmICMPTSResponderPacketsReceived   Counter32,
+             adGenAOSnmICMPTSResponderPacketsSent       Counter32,
+             adGenAOSnmClearICMPTSResponderCounters     INTEGER
+        }
+
+      adGenAOSnmICMPTSResponderStatsIndex OBJECT-TYPE
+        SYNTAX   Unsigned32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Uniquely identifies a row in the
+                adGenAOSnmICMPTSResponderStatsTable."
+         ::= { adGenAOSnmICMPTSResponderStatsEntry 1 }
+
+      adGenAOSnmICMPTSResponderPacketsReceived OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Number of packets received by the responder."
+         ::= { adGenAOSnmICMPTSResponderStatsEntry 2 }
+
+      adGenAOSnmICMPTSResponderPacketsSent OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Number of packets sent by the responder."
+         ::= { adGenAOSnmICMPTSResponderStatsEntry 3 }
+
+     adGenAOSnmClearICMPTSResponderCounters OBJECT-TYPE
+        SYNTAX INTEGER {
+                clear (1)
+        }
+        MAX-ACCESS  read-write
+         STATUS  current
+         DESCRIPTION
+            "Clear the counters of the ICMP timestamp responder.
+            This is a write-only variable. A read will result in no action
+            being taken."
+         ::= { adGenAOSnmICMPTSResponderStatsEntry 4 }
+
+     --
+
+     --  Network Monitor TWAMP Responder Statistics Table
+
+     --  The variables that display the statistics for a NetMon TWAMP
+     --  responder.
+
+     adGenAOSnmTwampResponderStatsTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSnmTwampResponderStatsEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "Operation history for a network monitor TWAMP probe."
+         ::= { adGenAOSNetMon 12 }
+
+     adGenAOSnmTwampResponderStatsEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSnmTwampResponderStatsEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "The read-only statistics of the network monitor TWAMP responder."
+         INDEX { adGenAOSnmTwampResponderStatsIndex  }
+         ::= { adGenAOSnmTwampResponderStatsTable 1 }
+
+
+     AdGenAOSnmTwampResponderStatsEntry ::=
+         SEQUENCE {
+                adGenAOSnmTwampResponderStatsIndex        Unsigned32,
+                adGenAOSnmTwampResponderPacketsReceived   Counter32,
+                adGenAOSnmTwampResponderPacketsSent       Counter32,
+                adGenAOSnmTwampResponderSessionClosed     Counter32,
+                adGenAOSnmTwampResponderSessionOpened     Counter32,
+                adGenAOSnmTwampResponderSessionRejected   Counter32,
+                adGenAOSnmClearTwampResponderCounters     INTEGER
+        }
+
+      adGenAOSnmTwampResponderStatsIndex OBJECT-TYPE
+        SYNTAX   Unsigned32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Uniquely identifies a row in the
+                adGenAOSnmTwampResponderStatsTable."
+         ::= { adGenAOSnmTwampResponderStatsEntry 1 }
+
+      adGenAOSnmTwampResponderPacketsReceived OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Number of packets received by the responder."
+         ::= { adGenAOSnmTwampResponderStatsEntry 2 }
+
+      adGenAOSnmTwampResponderPacketsSent OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Number of packets sent by the responder."
+         ::= { adGenAOSnmTwampResponderStatsEntry 3 }
+
+      adGenAOSnmTwampResponderSessionClosed OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Number of responder sessions closed."
+         ::= { adGenAOSnmTwampResponderStatsEntry 4 }
+
+      adGenAOSnmTwampResponderSessionOpened OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Number of responder sessions opened."
+         ::= { adGenAOSnmTwampResponderStatsEntry 5 }
+
+      adGenAOSnmTwampResponderSessionRejected OBJECT-TYPE
+        SYNTAX   Counter32
+        MAX-ACCESS read-only
+        STATUS  current
+        DESCRIPTION
+                "Number of responder sessions closed."
+         ::= { adGenAOSnmTwampResponderStatsEntry 6 }
+
+     adGenAOSnmClearTwampResponderCounters OBJECT-TYPE
+        SYNTAX INTEGER {
+                clear (1)
+        }
+        MAX-ACCESS  read-write
+         STATUS  current
+         DESCRIPTION
+            "Clear the counters of the TWAMP responder.
+            This is a write-only variable. A read will result in no action
+            being taken."
+         ::= { adGenAOSnmTwampResponderStatsEntry 7 }
+
+     --  Network Monitor Configure ICMP Echo Probe Table
+
+     --  The variables that configure a NetMon ICMP Echo probe.
+
+     adGenAOSnmCfgIEProbeTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSnmCfgIEProbeEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "Configure a network monitor ICMP echo probe."
+         ::= { adGenAOSNetMon 13 }
+
+     adGenAOSnmCfgIEProbeEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSnmCfgIEProbeEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "The parameters used to configure a particular network monitor ICMP
+            echo probe."
+         INDEX { adGenAOSnmIndex }
+         ::= { adGenAOSnmCfgIEProbeTable 1 }
+
+
+     AdGenAOSnmCfgIEProbeEntry ::=
+         SEQUENCE {
+             adGenAOSnmCfgIEName                    OCTET STRING,
+             adGenAOSnmIEDestHostname               DisplayString,
+             adGenAOSnmIESrcIP                      IpAddress,
+             adGenAOSnmIEPacketLength               INTEGER,
+             adGenAOSnmIEPacketPattern              OCTET STRING
+        }
+
+     adGenAOSnmCfgIEName OBJECT-TYPE
+         SYNTAX     OCTET STRING (SIZE(1..40))
+         MAX-ACCESS   read-only
+         STATUS   current
+         DESCRIPTION
+            "The name of the corresponding ICMP echo probe entry.
+            The probe identified by a particular value of this object is the
+            same probe as identified by the same value as a
+            adGenAOSnmName object instance."
+         ::= { adGenAOSnmCfgIEProbeEntry 1 }
+
+     adGenAOSnmIEDestHostname OBJECT-TYPE
+         SYNTAX     DisplayString
+         MAX-ACCESS   read-write
+         STATUS   current
+         DESCRIPTION
+            "Specifies the destination hostname or IP address as a string in
+            dotted decimal format."
+         ::= { adGenAOSnmCfgIEProbeEntry 2 }
+
+     adGenAOSnmIESrcIP OBJECT-TYPE
+       SYNTAX     IpAddress
+       MAX-ACCESS read-write
+       STATUS	  current
+       DESCRIPTION
+               "Specifies the source IPv4 address."
+         ::= { adGenAOSnmCfgIEProbeEntry 3 }
+
+     adGenAOSnmIEPacketLength OBJECT-TYPE
+        SYNTAX  INTEGER (0..1462)
+         MAX-ACCESS read-write
+         STATUS  current
+         DESCRIPTION
+            "Length of the ICMP packet."
+         ::= { adGenAOSnmCfgIEProbeEntry 4 }
+
+     adGenAOSnmIEPacketPattern OBJECT-TYPE
+         SYNTAX     OCTET STRING (SIZE(1..4))
+         MAX-ACCESS read-write
+         STATUS  current
+         DESCRIPTION
+            "Specifies the hexadecimal pattern for the ICMP packet."
+         ::= { adGenAOSnmCfgIEProbeEntry 5 }
+
+
+     --  Network Monitor Track Table
+
+     --  The variables that configure a NetMon Track.
+
+     adGenAOSnmTrackTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSnmTrackEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "Network monitor Track."
+         ::= { adGenAOSNetMon 14 }
+
+     adGenAOSnmTrackEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSnmTrackEntry
+         MAX-ACCESS   not-accessible
+         STATUS   current
+         DESCRIPTION
+            "Network monitor Track entry."
+         INDEX { adGenAOSnmTrackIndex }
+         ::= { adGenAOSnmTrackTable 1 }
+
+
+     AdGenAOSnmTrackEntry ::=
+         SEQUENCE {
+             adGenAOSnmTrackIndex                   Integer32,
+             adGenAOSnmTrackName                    OCTET STRING
+        }
+
+     adGenAOSnmTrackIndex OBJECT-TYPE
+         SYNTAX      Integer32 (0..1000)
+         MAX-ACCESS   read-only
+         STATUS   current
+         DESCRIPTION
+                "Uniquely identifies a row in the adGenAOSnmTrackTable."
+
+         ::= { adGenAOSnmTrackEntry 1 }
+
+     adGenAOSnmTrackName OBJECT-TYPE
+         SYNTAX     OCTET STRING (SIZE(1..40))
+         MAX-ACCESS   read-only
+         STATUS   current
+         DESCRIPTION
+            "The name of the corresponding Track entry."
+
+         ::= { adGenAOSnmTrackEntry 2 }
 
 
      -- conformance information
@@ -2846,6 +3279,19 @@
         MODULE  -- this module
         MANDATORY-GROUPS { adGenAOSnmProbeGroup }
 
+         GROUP adGenAOSnmProbeTableNextIndexGroup
+         DESCRIPTION
+            "This optional group is only required for systems
+             that support the creation of entries in
+             the adGenAOSnmProbeTable."
+
+         OBJECT      adGenAOSnmProbeTableNextIndex
+         MIN-ACCESS  read-only
+         DESCRIPTION
+            "This object is only required for systems
+             that support the creation of entries in
+             the adGenAOSnmProbeTable."
+
          GROUP  adGenAOSnmConfigProbeGroup
          DESCRIPTION
             "This optional group is used to configure the probes created with
@@ -2861,7 +3307,8 @@
 
         GROUP  adGenAOSnmTwampHistoryGroup
         DESCRIPTION
-        "This optional group is used to view the statistics of the TWAMP probes."
+        "This optional group is used to view the statistics of the TWAMP
+        probes."
 
         GROUP  adGenAOSnmCfgICMPTSProbeGroup
         DESCRIPTION
@@ -2869,24 +3316,59 @@
 
         GROUP  adGenAOSnmICMPTSHistoryGroup
         DESCRIPTION
-        "This optional group is used to view the statistics of the ICMP timestamp probes."
+        "This optional group is used to view the statistics of the ICMP
+        timestamp probes."
 
+        GROUP  adGenAOSnmICMPTSResponderGroup
+        DESCRIPTION
+        "This optional group is used to enable/disable the ICMP
+        timestamp responder."
+
+        GROUP  adGenAOSnmTWAMPResponderGroup
+        DESCRIPTION
+        "This optional group is used to enable/disable the TWAMP responder."
+
+        GROUP  adGenAOSnmICMPTSResponderStatsGroup
+        DESCRIPTION
+        "This optional group is used to ICMP responder statistics."
+
+        GROUP  adGenAOSnmTwampResponderStatsGroup
+        DESCRIPTION
+        "This optional group is used to TWAMP responder statistics."
+
+        GROUP  adGenAOSnmCfgIEProbeGroup
+        DESCRIPTION
+        "This optional group is used to configure the ICMP echo probes."
+
+        GROUP  adGenAOSnmTrackGroup
+        DESCRIPTION
+        "This optional group is used to retrieve track information."
 
         OBJECT       adGenAOSnmRowStatus
-        SYNTAX RowStatus { active(1) }
-        WRITE-SYNTAX RowStatus { active(1), createAndWait(5), destroy(6) }
+        SYNTAX       RowStatus { active(1), notInService(2) }
+        WRITE-SYNTAX RowStatus { active(1), createAndGo(4),
+                               destroy(6) }
         DESCRIPTION
-        "Support for createAndGo and notInService is not required."
+        "In order for this object to become active, the following
+         row objects MUST be defined: adGenAOSnmName and adGenAOSnmType.
+         The control row objects adGenAOSnmName and adGenAOSnmType cannot be
+         modified once this conceptual row has been created. Writes of the value
+         'notInService' and 'createAndWait' will not be supported. This
+         object can be set to 'destroy' from any value at any time."
 
         OBJECT       adGenAOSnmName
         MIN-ACCESS   read-only
         DESCRIPTION
-        "Must be set before adGenAOSnmRowStatus can be set to 'active'."
+        "Must be defined before adGenAOSnmRowStatus can be set to 'active'.
+        This object cannot be modified once the conceptual row has been
+        created."
 
         OBJECT       adGenAOSnmType
         MIN-ACCESS   read-only
         DESCRIPTION
-        "Must be set before adGenAOSnmRowStatus can be set to 'active'."
+        "Must be defined before adGenAOSnmRowStatus can be set to 'active'.
+        This object cannot be modified once the conceptual row has been
+        created."
 
          ::= { adGenAOSnmCompliances 1 }
 
@@ -2906,9 +3388,19 @@
 
         MODULE  -- this module
 
-         GROUP  adGenAOSnmProbeGroup
+         GROUP adGenAOSnmProbeTableNextIndexGroup
          DESCRIPTION
-            "This optional group is used to create a probe."
+            "This optional group is only required for systems
+             that support the creation of entries in
+             the adGenAOSnmProbeTable."
+
+         OBJECT      adGenAOSnmProbeTableNextIndex
+         MIN-ACCESS  read-only
+         DESCRIPTION
+            "This object is only required for systems
+             that support the creation of entries in
+             the adGenAOSnmProbeTable."
+
 
          GROUP  adGenAOSnmConfigProbeGroup
          DESCRIPTION
@@ -2925,7 +3417,8 @@
 
         GROUP  adGenAOSnmTwampHistoryGroup
         DESCRIPTION
-        "This optional group is used to view the statistics of the TWAMP probes."
+        "This optional group is used to view the statistics of the TWAMP
+        probes."
 
         GROUP  adGenAOSnmCfgICMPTSProbeGroup
         DESCRIPTION
@@ -2933,14 +3426,38 @@
 
         GROUP  adGenAOSnmICMPTSHistoryGroup
         DESCRIPTION
-        "This optional group is used to view the statistics of the ICMP timestamp probes."
+        "This optional group is used to view the statistics of the ICMP
+        timestamp probes."
+
+        GROUP  adGenAOSnmICMPTSResponderGroup
+        DESCRIPTION
+        "This optional group is used to enable/disable the ICMP
+        timestamp responder."
+
+        GROUP  adGenAOSnmTWAMPResponderGroup
+        DESCRIPTION
+        "This optional group is used to enable/disable the TWAMP responder."
+
+        GROUP  adGenAOSnmICMPTSResponderStatsGroup
+        DESCRIPTION
+        "This optional group is used to ICMP responder statistics."
+
+        GROUP  adGenAOSnmTwampResponderStatsGroup
+        DESCRIPTION
+        "This optional group is used to TWAMP responder statistics."
+
+        GROUP  adGenAOSnmCfgIEProbeGroup
+        DESCRIPTION
+        "This optional group is used to configure the ICMP echo probes."
+
+        GROUP  adGenAOSnmTrackGroup
+        DESCRIPTION
+        "This optional group is used to retrieve track information."
 
         OBJECT       adGenAOSnmRowStatus
-        SYNTAX       RowStatus { active(1) }
         MIN-ACCESS   read-only
         DESCRIPTION
-        "Write access is not allowed, and 'active' is the only status that
-        needs to be supported."
+        "Write access is not allowed."
 
         OBJECT       adGenAOSnmName
         MIN-ACCESS   read-only
@@ -2951,29 +3468,50 @@
         MIN-ACCESS   read-only
         DESCRIPTION
         "Write access is not allowed."
+
+         GROUP  adGenAOSnmNotificationGroup
+         DESCRIPTION
+            "This optional group defines the asynchronous
+            notifications generated by Network Monitoring Monitoring."
+
+
+
          ::= { adGenAOSnmCompliances 2 }
 
      -- units of conformance
 
+     adGenAOSnmProbeTableNextIndexGroup    OBJECT-GROUP
+         OBJECTS {
+                        adGenAOSnmProbeTableNextIndex
+                }
+         STATUS  current
+         DESCRIPTION
+            "The object necessary to get the next index for creation of the
+            network monitor probe."
+         ::= { adGenAOSnmGroups 1 }
+
      adGenAOSnmProbeGroup    OBJECT-GROUP
          OBJECTS {
-                        adGenAOSnmIndex, adGenAOSnmName, adGenAOSnmType, adGenAOSnmRowStatus
+                        adGenAOSnmIndex, adGenAOSnmName,
+                        adGenAOSnmType, adGenAOSnmRowStatus
                 }
          STATUS  current
          DESCRIPTION
             "The objects necessary to create the network monitor probe."
-         ::= { adGenAOSnmGroups 1 }
+         ::= { adGenAOSnmGroups 2 }
 
      adGenAOSnmConfigProbeGroup    OBJECT-GROUP
          OBJECTS {
-                        adGenAOSnmCfgName, adGenAOSnmAdminStatus, adGenAOSnmPollPeriod,
-                        adGenAOSnmTimeoutPeriod, adGenAOSnmToleranceMode, adGenAOSnmFailTolerance,
-                        adGenAOSnmPassTolerance,    adGenAOSnmToleranceTestSize, adGenAOSnmClearCounters
+                        adGenAOSnmCfgName, adGenAOSnmAdminStatus,
+                        adGenAOSnmPollPeriod, adGenAOSnmTimeoutPeriod,
+                        adGenAOSnmToleranceMode, adGenAOSnmFailTolerance,
+                        adGenAOSnmPassTolerance,    adGenAOSnmToleranceTestSize,
+                        adGenAOSnmClearCounters
                  }
          STATUS  current
          DESCRIPTION
             "The objects necessary to configure the network monitor probe."
-         ::= { adGenAOSnmGroups 2 }
+         ::= { adGenAOSnmGroups 3 }
 
 
      adGenAOSnmProbeStatusGroup    OBJECT-GROUP
@@ -2984,8 +3522,9 @@
                 }
          STATUS  current
          DESCRIPTION
-            "Objects designed to assist in retrieving the statistics of the probes."
-         ::= { adGenAOSnmGroups 3 }
+            "Objects designed to assist in retrieving the statistics of the
+            probes."
+         ::= { adGenAOSnmGroups 4 }
 
      adGenAOSnmCfgTwampProbeGroup    OBJECT-GROUP
          OBJECTS {
@@ -3019,12 +3558,13 @@
                 }
          STATUS  current
          DESCRIPTION
-            "The objects necessary to configure the network monitor TWAMP probe."
-         ::= { adGenAOSnmGroups 4 }
+            "The objects necessary to configure the network monitor TWAMP
+             probe."
+         ::= { adGenAOSnmGroups 5 }
 
      adGenAOSnmTwampHistoryGroup    OBJECT-GROUP
          OBJECTS {
-             adGenAOSnmTwHistoryName, adGenAOSnmTwSeqNum,
+             adGenAOSnmTwSeqNum, adGenAOSnmTwHistoryName,
              adGenAOSnmTwStartTime, adGenAOSnmTwEndTime,
              adGenAOSnmTwLocalSyncState, adGenAOSnmTwLocalClkErr,
              adGenAOSnmTwRemoteSyncState, adGenAOSnmTwRemoteClkErr,
@@ -3058,52 +3598,66 @@
              adGenAOSnmTwIpvAbsOutSum2, adGenAOSnmTwIpvAbsOutNum,
              adGenAOSnmTwIpvAbsRtMin, adGenAOSnmTwIpvAbsRtMax,
              adGenAOSnmTwIpvAbsRtSum, adGenAOSnmTwIpvAbsRtSum2,
-             adGenAOSnmTwIpvAbsRtNum
-                }
+             adGenAOSnmTwIpvAbsRtNum, adGenAOSnmTwPktSentCount
+         }
          STATUS  current
          DESCRIPTION
-            "Objects designed to assist in retrieving the statistics of the TWAMP
-            probe."
-         ::= { adGenAOSnmGroups 5 }
+            "Objects designed to assist in retrieving the statistics of the
+            TWAMP probe."
+         ::= { adGenAOSnmGroups 6 }
 
      adGenAOSnmCfgICMPTSProbeGroup    OBJECT-GROUP
          OBJECTS {
-                        adGenAOSnmCfgICMPTSName, adGenAOSnmICMPTSDestHostname,
-                        adGenAOSnmICMPTSSrcIP, adGenAOSnmICMPTSDscp,
-                        adGenAOSnmICMPTSPaddingLen, adGenAOSnmICMPTSPaddingFormat,
-                        adGenAOSnmICMPTSPaddingPattern, adGenAOSnmICMPTSDataPadType,
-                        adGenAOSnmICMPTSPktSendCnt, adGenAOSnmICMPTSSendScheduleType,
-                        adGenAOSnmICMPTSSendScheduleValue, adGenAOSnmICMPTSIpdvAbsInMinFail,
-                        adGenAOSnmICMPTSIpdvAbsInAvgFail, adGenAOSnmICMPTSIpdvAbsInMaxFail,
-                        adGenAOSnmICMPTSIpdvAbsInMinPass, adGenAOSnmICMPTSIpdvAbsInAvgPass,
-                        adGenAOSnmICMPTSIpdvAbsInMaxPass, adGenAOSnmICMPTSIpdvAbsOutMinFail,
-                        adGenAOSnmICMPTSIpdvAbsOutAvgFail, adGenAOSnmICMPTSIpdvAbsOutMaxFail,
-                        adGenAOSnmICMPTSIpdvAbsOutMinPass, adGenAOSnmICMPTSIpdvAbsOutAvgPass,
-                        adGenAOSnmICMPTSIpdvAbsOutMaxPass, adGenAOSnmICMPTSIpdvAbsRtMinFail,
-                        adGenAOSnmICMPTSIpdvAbsRtAvgFail, adGenAOSnmICMPTSIpdvAbsRtMaxFail,
-                        adGenAOSnmICMPTSIpdvAbsRtMinPass, adGenAOSnmICMPTSIpdvAbsRtAvgPass,
-                        adGenAOSnmICMPTSIpdvAbsRtMaxPass, adGenAOSnmICMPTSDelayInMinFail,
-                        adGenAOSnmICMPTSDelayInAvgFail, adGenAOSnmICMPTSDelayInMaxFail,
-                        adGenAOSnmICMPTSDelayInMinPass, adGenAOSnmICMPTSDelayInAvgPass,
-                        adGenAOSnmICMPTSDelayInMaxPass, adGenAOSnmICMPTSDelayOutMinFail,
-                        adGenAOSnmICMPTSDelayOutAvgFail, adGenAOSnmICMPTSDelayOutMaxFail,
-                        adGenAOSnmICMPTSDelayOutMinPass, adGenAOSnmICMPTSDelayOutAvgPass,
-                        adGenAOSnmICMPTSDelayOutMaxPass, adGenAOSnmICMPTSDelayRtMinFail,
-                        adGenAOSnmICMPTSDelayRtAvgFail, adGenAOSnmICMPTSDelayRtMaxFail,
-                        adGenAOSnmICMPTSDelayRtMinPass, adGenAOSnmICMPTSDelayRtAvgPass,
-                        adGenAOSnmICMPTSDelayRtMaxPass, adGenAOSnmICMPTSPktRtLossFail,
-                        adGenAOSnmICMPTSPktRtLossPass, adGenAOSnmICMPTSHistoryDepth
+                adGenAOSnmCfgICMPTSName, adGenAOSnmICMPTSDestHostname,
+                adGenAOSnmICMPTSSrcIP, adGenAOSnmICMPTSDscp,
+                adGenAOSnmICMPTSPaddingLen, adGenAOSnmICMPTSPaddingFormat,
+                adGenAOSnmICMPTSPaddingPattern, adGenAOSnmICMPTSDataPadType,
+                adGenAOSnmICMPTSPktSendCnt, adGenAOSnmICMPTSSendScheduleType,
+                adGenAOSnmICMPTSSendScheduleValue, adGenAOSnmICMPTSIpdvAbsInMinFail,
+                adGenAOSnmICMPTSIpdvAbsInAvgFail, adGenAOSnmICMPTSIpdvAbsInMaxFail,
+                adGenAOSnmICMPTSIpdvAbsInMinPass, adGenAOSnmICMPTSIpdvAbsInAvgPass,
+                adGenAOSnmICMPTSIpdvAbsInMaxPass, adGenAOSnmICMPTSIpdvAbsOutMinFail,
+                adGenAOSnmICMPTSIpdvAbsOutAvgFail, adGenAOSnmICMPTSIpdvAbsOutMaxFail,
+                adGenAOSnmICMPTSIpdvAbsOutMinPass, adGenAOSnmICMPTSIpdvAbsOutAvgPass,
+                adGenAOSnmICMPTSIpdvAbsOutMaxPass, adGenAOSnmICMPTSIpdvAbsRtMinFail,
+                adGenAOSnmICMPTSIpdvAbsRtAvgFail, adGenAOSnmICMPTSIpdvAbsRtMaxFail,
+                adGenAOSnmICMPTSIpdvAbsRtMinPass, adGenAOSnmICMPTSIpdvAbsRtAvgPass,
+                adGenAOSnmICMPTSIpdvAbsRtMaxPass, adGenAOSnmICMPTSDelayInMinFail,
+                adGenAOSnmICMPTSIpvPosInMin, adGenAOSnmICMPTSIpvPosInMax,
+                adGenAOSnmICMPTSIpvPosInSum, adGenAOSnmICMPTSIpvPosInSum2,
+                adGenAOSnmICMPTSIpvPosInNum, adGenAOSnmICMPTSIpvPosOutMin,
+                adGenAOSnmICMPTSIpvPosOutMax, adGenAOSnmICMPTSIpvPosOutSum,
+                adGenAOSnmICMPTSIpvPosOutSum2, adGenAOSnmICMPTSIpvPosOutNum,
+                adGenAOSnmICMPTSIpvPosRtMin, adGenAOSnmICMPTSIpvPosRtMax,
+                adGenAOSnmICMPTSIpvPosRtSum, adGenAOSnmICMPTSIpvPosRtSum2,
+                adGenAOSnmICMPTSIpvPosRtNum, adGenAOSnmICMPTSIpvNegInMin,
+                adGenAOSnmICMPTSIpvNegInMax, adGenAOSnmICMPTSIpvNegInSum,
+                adGenAOSnmICMPTSIpvNegInSum2, adGenAOSnmICMPTSIpvNegInNum,
+                adGenAOSnmICMPTSIpvNegOutMin,  adGenAOSnmICMPTSIpvNegOutMax,
+                adGenAOSnmICMPTSIpvNegOutSum, adGenAOSnmICMPTSIpvNegOutSum2,
+                adGenAOSnmICMPTSIpvNegOutNum, adGenAOSnmICMPTSIpvNegRtMin,
+                adGenAOSnmICMPTSIpvNegRtMax, adGenAOSnmICMPTSIpvNegRtSum,
+                adGenAOSnmICMPTSDelayInAvgFail, adGenAOSnmICMPTSDelayInMaxFail,
+                adGenAOSnmICMPTSDelayInMinPass, adGenAOSnmICMPTSDelayInAvgPass,
+                adGenAOSnmICMPTSDelayInMaxPass, adGenAOSnmICMPTSDelayOutMinFail,
+                adGenAOSnmICMPTSDelayOutAvgFail, adGenAOSnmICMPTSDelayOutMaxFail,
+                adGenAOSnmICMPTSDelayOutMinPass, adGenAOSnmICMPTSDelayOutAvgPass,
+                adGenAOSnmICMPTSDelayOutMaxPass, adGenAOSnmICMPTSDelayRtMinFail,
+                adGenAOSnmICMPTSDelayRtAvgFail, adGenAOSnmICMPTSDelayRtMaxFail,
+                adGenAOSnmICMPTSDelayRtMinPass, adGenAOSnmICMPTSDelayRtAvgPass,
+                adGenAOSnmICMPTSDelayRtMaxPass, adGenAOSnmICMPTSPktRtLossFail,
+                adGenAOSnmICMPTSPktRtLossPass, adGenAOSnmICMPTSHistoryDepth
 
-
-                }
+         }
          STATUS  current
          DESCRIPTION
-            "The objects necessary to configure the network monitor ICMP timestamp probe."
-         ::= { adGenAOSnmGroups 6 }
+            "The objects necessary to configure the network monitor ICMP
+            timestamp probe."
+         ::= { adGenAOSnmGroups 7 }
 
      adGenAOSnmICMPTSHistoryGroup    OBJECT-GROUP
          OBJECTS {
-             adGenAOSnmICMPTSHistoryName, adGenAOSnmICMPTSSeqNum,
+             adGenAOSnmICMPTSSeqNum, adGenAOSnmICMPTSHistoryName,
              adGenAOSnmICMPTSStartTime, adGenAOSnmICMPTSEndTime,
              adGenAOSnmICMPTSDelayInMin, adGenAOSnmICMPTSDelayInMax,
              adGenAOSnmICMPTSDelayOutMin, adGenAOSnmICMPTSDelayOutMax,
@@ -3135,14 +3689,114 @@
              adGenAOSnmICMPTSIpvAbsOutSum2, adGenAOSnmICMPTSIpvAbsOutNum,
              adGenAOSnmICMPTSIpvAbsRtMin, adGenAOSnmICMPTSIpvAbsRtMax,
              adGenAOSnmICMPTSIpvAbsRtSum, adGenAOSnmICMPTSIpvAbsRtSum2,
-             adGenAOSnmICMPTSIpvAbsRtNum
+             adGenAOSnmICMPTSIpvAbsRtNum, adGenAOSnmICMPTSPktSentCount
                 }
          STATUS  current
          DESCRIPTION
-            "Objects designed to assist in retrieving the statistics of the ICMP timestamp
-            probe."
-         ::= { adGenAOSnmGroups 7 }
+            "Objects designed to assist in retrieving the statistics of the
+            ICMP timestamp probe."
+         ::= { adGenAOSnmGroups 8 }
 
+
+         adGenAOSnmICMPTSResponderGroup OBJECT-GROUP
+         OBJECTS {
+                adGenAOSnmICMPTSResponder
+         }
+         STATUS  current
+         DESCRIPTION
+            "Object designed to assist in changing the state of the ICMP
+            timestamp responder."
+         ::= { adGenAOSnmGroups 9 }
+
+         adGenAOSnmTWAMPResponderGroup  OBJECT-GROUP
+         OBJECTS {
+                adGenAOSnmTWAMPResponder
+         }
+         STATUS  current
+         DESCRIPTION
+            "Object designed to assist in changing the state of the TWAMP
+            responder."
+         ::= { adGenAOSnmGroups 10 }
+
+         adGenAOSnmICMPTSResponderStatsGroup  OBJECT-GROUP
+         OBJECTS {
+             adGenAOSnmICMPTSResponderStatsIndex,
+             adGenAOSnmICMPTSResponderPacketsReceived,
+             adGenAOSnmICMPTSResponderPacketsSent,
+             adGenAOSnmClearICMPTSResponderCounters
+         }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the statistics of the
+            ICMP timestamp responder."
+         ::= { adGenAOSnmGroups 11 }
+
+         adGenAOSnmTwampResponderStatsGroup  OBJECT-GROUP
+         OBJECTS {
+                adGenAOSnmTwampResponderStatsIndex,
+                adGenAOSnmTwampResponderPacketsReceived,
+                adGenAOSnmTwampResponderPacketsSent,
+                adGenAOSnmTwampResponderSessionClosed,
+                adGenAOSnmTwampResponderSessionOpened,
+                adGenAOSnmTwampResponderSessionRejected,
+                adGenAOSnmClearTwampResponderCounters
+         }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the statistics of the
+            TWAMP responder."
+         ::= { adGenAOSnmGroups 12 }
+
+     adGenAOSnmCfgIEProbeGroup    OBJECT-GROUP
+         OBJECTS {
+                adGenAOSnmCfgIEName,
+                adGenAOSnmIEDestHostname,
+                adGenAOSnmIESrcIP,
+                adGenAOSnmIEPacketLength,
+                adGenAOSnmIEPacketPattern
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in configuring the ICMP echo probe."
+         ::= { adGenAOSnmGroups 13 }
+
+     adGenAOSnmTrackGroup    OBJECT-GROUP
+         OBJECTS {
+             adGenAOSnmTrackIndex,
+             adGenAOSnmTrackName
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving track information."
+         ::= { adGenAOSnmGroups 14 }
+
+     adGenAOSnmNotificationGroup NOTIFICATION-GROUP
+         NOTIFICATIONS { adGenAOSnmTrackStateChgFail,
+                         adGenAOSnmTrackStateChgPass }
+         STATUS  current
+         DESCRIPTION
+            "Traps which may be used to enhance event driven
+            management of Network Monitoring traps."
+         ::= { adGenAOSnmGroups 15 }
+
+
+ -- definition of track-related traps.
+
+	adGenAOSnmTrackStateChgFail NOTIFICATION-TYPE
+	    OBJECTS { adGenAOSnmTrackIndex, adGenAOSnmTrackName }
+	    STATUS  current
+	    DESCRIPTION
+	            "A stateChangeFail trap indicates that the specified track
+	            has changed states from Pass to Fail."
+	    ::= { adGenAOSnmTrackTraps 1 }
+
+    adGenAOSnmTrackStateChgPass NOTIFICATION-TYPE
+	    OBJECTS { adGenAOSnmTrackIndex, adGenAOSnmTrackName }
+	    STATUS  current
+	    DESCRIPTION
+	            "A stateChangePass trap indicates that the specified track
+	            has changed states from Fail to Pass."
+	    ::= { adGenAOSnmTrackTraps 2 }
      END
 
 

@@ -31,6 +31,41 @@
             DESCRIPTION
                         "This MIB contains QoS statistical information."
 
+	    	REVISION "201106170000Z"  -- June 17, 2011 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Changed description of adGenAOSQoSInterfaceTXQType.
+                    Changes by Michael Weir."
+                    
+            REVISION "201105170000Z"  -- May 17, 2011 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Added enumeration values to adGenAOSQosMapMatchType
+                    and adGenAOSQoSMapProtocolMatchType for QoS IPv6 
+                    configurations. Changes by Reba Holland."
+
+            REVISION "201005190000Z"  -- May 5, 2010 / YYYYMMDDHHMMZ  
+            DESCRIPTION
+                    "Added adGenAOSQoSMapPriorityStrictRateLimiting to
+                    adGenAOSQoSMapEntriesTable.
+                    Changes by David Wallace."
+
+            REVISION "200903040000Z"  -- March 4, 2009 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Added configuration information to
+                    adGenAOSQoSMapEntriesTable and shaping statistics to
+                    adGenAOSQoSInterfaceTable. Added
+                    adGenAOSQoSMapMatchTable and adGenAOSQoSMapShaperTable.
+                    Changes by Reba Holland."
+
+            REVISION "200809160000Z"  -- September 17, 2008 / YYYYMMDDHHMMZ
+            DESCRIPTION
+                    "Added rate statistics to
+                    adGenAOSQoSClassConvHistoryTable and
+                    adGenAOSQoSPriorityRateLimiterTable.  Added
+                    adGenAOSQoSMapClassifierStatsTable. The
+                    adGenAOSQoSMapClassifierStatsTable will initially display
+                    only default class information.
+                    Changes by Reba Holland."
+
             REVISION "200808200000Z"  -- August 20, 2008 / YYYYMMDDHHMMZ
             DESCRIPTION
                     "Changed name of OIDs adGenAOSQoSMapEntryActionType,
@@ -90,12 +125,12 @@
                      **********************************
                         QoS Overview
                      **********************************
-                     This MIB allows read-only access to quality of service (QoS)
-                     statistical information for QoS enabled ADTRAN products.  A
-                     QoS-policy is defined using a QoS map in the ADTRAN
-                     Operating System (AOS) command line interface (CLI).
+                     This MIB allows read-only access to quality of service
+                     (QoS)statistical information for QoS enabled ADTRAN
+                     products.  A QoS-policy is defined using a QoS map in the
+                     ADTRAN Operating System (AOS) command line interface (CLI).
                      The QoS map is a named list with sequenced entries.
-                     An entry contains a single match reference and one or more
+                     An entry contains match references and one or more
                      actions. Multiple map entries for the same QoS map are
                      differentiated by a sequence number. The sequence number
                      is used to assign match order. Once created, a QoS map must
@@ -103,12 +138,19 @@
                      traffic. Any traffic for the interface that does not
                      explicitly match a map entry is sent using the default
                      queuing method for the interface (such as weighted
-                     fair queuing (WFQ)). All QoS configuration must be done
+                     fair queuing (WFQ). All QoS configuration must be done
                      by the ADTRAN command line interface (CLI) or the WEB GUI."
 
           ::= { adIdentity 10000 53 2 1 }
 
       adGenAOSQos    OBJECT IDENTIFIER ::= { adGenAOSRouter 1 }
+-- Textual Conventions
+Unsigned64 ::= TEXTUAL-CONVENTION
+    STATUS          current
+    DESCRIPTION
+        "An unsigned 64-bit quantity. Currently using Counter64 SYNTAX for
+        encoding rules."
+    SYNTAX          Counter64
 
 -- ========================================================================
 
@@ -191,7 +233,8 @@
          MAX-ACCESS   not-accessible
          STATUS       current
          DESCRIPTION
-            "The parameters for a particular sequenced entry of a named QoS map."
+            "The parameters for a particular sequenced entry of a named QoS
+            map."
          INDEX { adGenAOSQoSMapSetId, adGenAOSQoSMapEntryId }
          ::= { adGenAOSQoSMapEntriesTable 1 }
 
@@ -203,8 +246,24 @@
              adGenAOSQoSMapChildSetName         DisplayString,
              adGenAOSQoSMapQueuingActionType    INTEGER,
              adGenAOSQoSMapQueuingBWType        INTEGER,
-             adGenAOSQoSMapQueuingBWValue       Unsigned32
-     }
+             adGenAOSQoSMapQueuingBWValue       Unsigned32,
+             adGenAOSQoSMapQueuingBurstValue    Unsigned32,
+             adGenAOSQoSMapMatchAll             INTEGER,
+             adGenAOSQoSMapDscpMarkState        INTEGER,
+             adGenAOSQoSMapDscpMarkValue        Unsigned32,
+             adGenAOSQoSMapDscpMarkString       DisplayString,
+             adGenAOSQoSMapPrecedenceMarkState  INTEGER,
+             adGenAOSQoSMapPrecedenceMarkValue  Unsigned32,
+             adGenAOSQoSMapCosMarkState         INTEGER,
+             adGenAOSQoSMapCosMarkValue         Unsigned32,
+             adGenAOSQoSMapShapeState           INTEGER,
+             adGenAOSQoSMapShapeValue           Unsigned32,
+             adGenAOSQoSMapShapeBurst           Unsigned32,
+             adGenAOSQoSMapShapeEthOverhead     INTEGER,
+             adGenAOSQoSMapClearCounters        INTEGER,
+             adGenAOSQoSMapPriorityStrictRateLimiting INTEGER
+             -- adGenAOSQoSMapEntryDescription     DisplayString,
+       }
 
      -- CID_QOS_MAP_ENTRY_ID
      adGenAOSQoSMapEntryId OBJECT-TYPE
@@ -284,8 +343,211 @@
          DESCRIPTION
             "Configured bandwidth for this map entry."
          ::= { adGenAOSQoSMapEntriesEntry 7 }
+        -- CID_QOS_MAP_BURST
+        adGenAOSQoSMapQueuingBurstValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Priority burst size in bytes."
+         ::= { adGenAOSQoSMapEntriesEntry 8 }
+
+        -- CID_QOS_MAP_MATCH_ALL_ENABLE
+        adGenAOSQoSMapMatchAll OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enable (1),
+                  disable (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "If enabled match case requires all of multiple conditions to be
+             met (logical AND). If disabled match case requires any of multiple
+             conditions to be met (logical OR)."
+         ::= { adGenAOSQoSMapEntriesEntry 9 }
+
+        -- CID_QOS_MAP_DSCP_MARK_ENABLE
+        adGenAOSQoSMapDscpMarkState OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enable (1),
+                  disable (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "State of packet IP DSCP field marking."
+         ::= { adGenAOSQoSMapEntriesEntry 10 }
+
+
+        -- CID_QOS_MAP_DSCP_MARK_VALUE
+        adGenAOSQoSMapDscpMarkValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Mark packet IP DSCP field with this value (0-63)."
+         ::= { adGenAOSQoSMapEntriesEntry 11 }
+
+        -- CID_QOS_MAP_DSCP_MARK_ALIAS
+        adGenAOSQoSMapDscpMarkString OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Mark packet IP DSCP field with this string value. Possible mark
+            values are:
+                af11    - AF11 dscp (001010)
+                af12    - AF12 dscp (001100)
+                af13    - AF13 dscp (001110)
+                af21    - AF21 dscp (010010)
+                af22    - AF22 dscp (010100)
+                af23    - AF23 dscp (010110)
+                af31    - AF31 dscp (011010)
+                af32    - AF32 dscp (011100)
+                af33    - AF33 dscp (011110)
+                af41    - AF41 dscp (100010)
+                af42    - AF42 dscp (100100)
+                af43    - AF43 dscp (100110)
+                cs1     - CS1(precedence 1) dscp (001000)
+                cs2     - CS2(precedence 2) dscp (010000)
+                cs3     - CS3(precedence 3) dscp (011000)
+                cs4     - CS4(precedence 4) dscp (100000)
+                cs5     - CS5(precedence 5) dscp (101000)
+                cs6     - CS6(precedence 6) dscp (110000)
+                cs7     - CS7(precedence 7) dscp (111000)
+                default - Default dscp (000000)
+                ef      - EF dscp (101110)"
+         ::= { adGenAOSQoSMapEntriesEntry 12 }
+
+        -- CID_QOS_MAP_PRECEDENCE_MARK_ENABLE
+        adGenAOSQoSMapPrecedenceMarkState OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enable (1),
+                  disable (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "State of packet IP precedence field marking."
+         ::= { adGenAOSQoSMapEntriesEntry 13 }
+
+        -- CID_QOS_MAP_PRECEDENCE_MARK_VALUE
+        adGenAOSQoSMapPrecedenceMarkValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Mark packet IP Precedence field with this value."
+         ::= { adGenAOSQoSMapEntriesEntry 14 }
+
+        -- CID_QOS_MAP_COS_MARK_ENABLE
+        adGenAOSQoSMapCosMarkState OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enable (1),
+                  disable (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "State of packet Ethernet VLAN Priority field marking."
+         ::= { adGenAOSQoSMapEntriesEntry 15 }
+
+        -- CID_QOS_MAP_COS_MARK_VALUE
+        adGenAOSQoSMapCosMarkValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Mark packet Ethernet VLAN Priority field with this value."
+         ::= { adGenAOSQoSMapEntriesEntry 16 }
+
+        -- CID_QOS_MAP_SHAPE_ENABLE
+        adGenAOSQoSMapShapeState OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enable (1),
+                  disable (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "State of traffic shaping."
+         ::= { adGenAOSQoSMapEntriesEntry 17 }
+
+        --CID_QOS_MAP_SHAPE_VALUE
+        adGenAOSQoSMapShapeValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Shaper's committed information rate in bps."
+         ::= { adGenAOSQoSMapEntriesEntry 18 }
+
+        --CID_QOS_MAP_SHAPE_BURST
+        adGenAOSQoSMapShapeBurst OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "Shaper's burst size in bytes."
+         ::= { adGenAOSQoSMapEntriesEntry 19 }
+
+        --CID_QOS_MAP_SHAPE_ETHERNET_OVERHEAD_ENABLE
+        adGenAOSQoSMapShapeEthOverhead OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enable (1),
+                  disable (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "State of inclusion of Ethernet CRC and VLAN tag bytes in the
+            packet size."
+         ::= { adGenAOSQoSMapEntriesEntry 20 }
+
+     -- CID_CLEAR_COUNTERS
+     adGenAOSQoSMapClearCounters OBJECT-TYPE
+        SYNTAX INTEGER {
+                clear (1)
+        }
+        MAX-ACCESS   read-write
+        STATUS       current
+        DESCRIPTION
+            "Clear the map entry statistics. This is a
+            write-only variable. A read will always return a value of '1'."
+         ::= { adGenAOSQoSMapEntriesEntry 21 }
+
+        --CID_QOS_MAP_PRIORITY_STRICT_RATE_LIMITING
+        adGenAOSQoSMapPriorityStrictRateLimiting OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                  enable (1),
+                  disable (2)
+                }
+         MAX-ACCESS read-only
+         STATUS  current
+         DESCRIPTION
+            "If enabled, all priority packets that exceed the configured bandwidth will be dropped."
+         ::= { adGenAOSQoSMapEntriesEntry 22 }
+
+     -- CID_QOS_MAP_ENTRY_DESCRIPTION
+--      adGenAOSQoSMapEntryDescription OBJECT-TYPE
+--         SYNTAX       DisplayString
+--         MAX-ACCESS   read-only
+--         STATUS       current
+--         DESCRIPTION
+--            "User defined string used to identify QoS map entry."
+--         ::= { adGenAOSQoSMapEntriesEntry 23 }
+
+
+
      --
-     --   QoS Class Based Conversation History Table
+     --   QoS Interface Table
 
      adGenAOSQoSInterfaceTable OBJECT-TYPE
          SYNTAX   SEQUENCE OF AdGenAOSQoSInterfaceEntry
@@ -323,7 +585,18 @@
              adGenAOSQoSInterfaceTXQAvailableBW              Unsigned32,
              adGenAOSQoSInterfaceTXQConvActive               Unsigned32,
              adGenAOSQoSInterfaceTXQConvMaxActive            Unsigned32,
-             adGenAOSQoSInterfaceTXQConvMaxTotal             Unsigned32
+             adGenAOSQoSInterfaceTXQConvMaxTotal             Unsigned32,
+             adGenAOSQoSInterfaceTrafficShapingRate          Unsigned32,
+             adGenAOSQoSInterfaceTrafficShapingBurst         Unsigned32,
+             adGenAOSQoSInterfaceShaperValue                 Unsigned32,
+             adGenAOSQoSInterfaceShaperCurrentBudgetSize     Unsigned32,
+             adGenAOSQoSInterfaceShaperMaxBudgetSize         Unsigned32,
+             adGenAOSQoSInterfaceShaperBytesPerTick          Unsigned32,
+             adGenAOSQoSInterfaceShaperTickRate              Unsigned32,
+             adGenAOSQoSInterfaceShaperQPktDepth             Unsigned32,
+             adGenAOSQoSInterfaceShaperQPktDrops             Unsigned32,
+             adGenAOSQoSInterfaceShaperQPktSent              Unsigned32,
+             adGenAOSQoSInterfaceShaperQPktDelayed           Unsigned32
              }
 
      -- Cid_IF_NAME
@@ -383,7 +656,7 @@
          MAX-ACCESS read-only
          STATUS  current
          DESCRIPTION
-            "Specifies queueing method for this interface."
+            "Specifies the effective queueing method for this interface."
          ::= { adGenAOSQoSInterfaceEntry 5 }
 
      --  Qos::CID_QOS_TXQ_SUBQ_PKT_LIMIT
@@ -392,7 +665,8 @@
          MAX-ACCESS   read-only
          STATUS       current
          DESCRIPTION
-            "Specifies output packet threshold for the subqueues on this interface."
+            "Specifies output packet threshold for the sub-queues on this
+            interface."
          ::= { adGenAOSQoSInterfaceEntry 6 }
 
      --  Qos::CID_QOS_TXQ_SIZE
@@ -476,6 +750,105 @@
             "Specifies max total conversations for this interface."
          ::= { adGenAOSQoSInterfaceEntry 15 }
 
+     --
+     adGenAOSQoSInterfaceTrafficShapingRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Outbound traffic shaping rate in bits per second."
+         ::= { adGenAOSQoSInterfaceEntry 16 }
+
+     adGenAOSQoSInterfaceTrafficShapingBurst OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Outbound traffic shaping burst in bytes."
+         ::= { adGenAOSQoSInterfaceEntry 17 }
+
+        -- QOS::CID_QOS_SHAPER_SHAPE_VALUE
+     adGenAOSQoSInterfaceShaperValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Shaper value for traffic on an interface."
+         ::= { adGenAOSQoSInterfaceEntry 18 }
+
+        -- QOS::CID_QOS_SHAPER_CURRENT_BUCKET_SIZE
+     adGenAOSQoSInterfaceShaperCurrentBudgetSize OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Current budget size of the interface shaper."
+         ::= { adGenAOSQoSInterfaceEntry 19 }
+
+        -- QOS::CID_QOS_SHAPER_MAX_BUCKET_SIZE
+     adGenAOSQoSInterfaceShaperMaxBudgetSize OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Maximum budget size of the interface shaper."
+         ::= { adGenAOSQoSInterfaceEntry 20 }
+
+        -- QOS::CID_QOS_SHAPER_BITS_PER_TICK
+     adGenAOSQoSInterfaceShaperBytesPerTick OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Bytes added to the budget."
+         ::= { adGenAOSQoSInterfaceEntry 21 }
+
+
+        -- QOS::CID_QOS_SHAPER_TICK_RATE
+     adGenAOSQoSInterfaceShaperTickRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "How often, in milliseconds, that bytes are added to the
+            budget."
+         ::= { adGenAOSQoSInterfaceEntry 22 }
+
+        -- QOS::CID_QOS_SHAPER_QUEUE_PKT_DEPTH
+     adGenAOSQoSInterfaceShaperQPktDepth OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Interface shaper queue depth."
+         ::= { adGenAOSQoSInterfaceEntry 23 }
+
+        -- QOS::CID_QOS_SHAPER_QUEUE_PKT_DROPS
+     adGenAOSQoSInterfaceShaperQPktDrops OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Interface shaper queue drops for this interface."
+         ::= { adGenAOSQoSInterfaceEntry 24 }
+
+        -- QOS::CID_QOS_SHAPER_QUEUE_PKT_SENT
+     adGenAOSQoSInterfaceShaperQPktSent OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Sent packets for this interface shaper queue."
+         ::= { adGenAOSQoSInterfaceEntry 25 }
+
+        -- QOS::CID_QOS_SHAPER_QUEUE_PKT_DELAYED
+     adGenAOSQoSInterfaceShaperQPktDelayed OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+            "Delayed packets for this interface shaper queue."
+         ::= { adGenAOSQoSInterfaceEntry 26 }
 
      --   QoS Class Based Conversation History Table
 
@@ -511,7 +884,11 @@
              adGenAOSQoSClassConvHistoryMatchesBytes         Counter64,
              adGenAOSQoSClassConvHistoryDiscardsBytes        Counter64,
              adGenAOSQoSClassConvHistoryDepth                Unsigned32,
-             adGenAOSQoSClassConvHistoryHighWater            Unsigned32
+             adGenAOSQoSClassConvHistoryHighWater            Unsigned32,
+             adGenAOSQoSClassConvHistoryByteMatchRate        Unsigned32,
+             adGenAOSQoSClassConvHistoryByteDiscardRate      Unsigned32,
+             adGenAOSQoSClassConvHistoryBitMatchRate         Unsigned64,
+             adGenAOSQoSClassConvHistoryBitDiscardRate       Unsigned64
      }
 
 
@@ -603,6 +980,41 @@
                 cleared."
          ::= { adGenAOSQoSClassConvHistoryEntry 9 }
 
+     -- CID_QOS_CONVERSATION_MATCH_RATE
+     adGenAOSQoSClassConvHistoryByteMatchRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes matched per second for this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 10 }
+
+     -- CID_QOS_CONVERSATION_DISCARD_RATE
+     adGenAOSQoSClassConvHistoryByteDiscardRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes discarded per second for this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 11 }
+
+     -- CID_QOS_CONVERSATION_MATCH_RATE*8
+     adGenAOSQoSClassConvHistoryBitMatchRate OBJECT-TYPE
+         SYNTAX       Unsigned64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bits matched per second for this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 12 }
+
+     -- CID_QOS_CONVERSATION_DISCARD_RATE
+     adGenAOSQoSClassConvHistoryBitDiscardRate OBJECT-TYPE
+         SYNTAX       Unsigned64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bits discarded per second for this sub-queue."
+         ::= { adGenAOSQoSClassConvHistoryEntry 13 }
      --
 
      --   QoS Conversation Table
@@ -615,7 +1027,7 @@
          STATUS       current
          DESCRIPTION
             "Displays real-time head-of-queue packets in the conversation
-            subqueue."
+            sub-queue."
          ::= { adGenAOSQos 5 }
 
      adGenAOSQoSConversationEntry OBJECT-TYPE
@@ -654,7 +1066,7 @@
          STATUS       current
          DESCRIPTION
                 "This is a unique number chosen by the system and is used in
-                conjuntion with adGenAOSQoSMapSetId, adGenAOSQoSMapEntryId, and
+                conjuntion with adGenAOSQoSMapConvParentEntryId, and
                 ifIndex to identify a unique row in the
                 AdGenAOSQoConversationTable."
          ::= { adGenAOSQoSConversationEntry 1 }
@@ -665,9 +1077,10 @@
          MAX-ACCESS   read-only
          STATUS       current
          DESCRIPTION
-                "This is a unique number chosen by the system and the parent
-                QoS map. This will always be zero for conversations in the base
-                interface queue."
+                "This is a unique number chosen by the system and is used in
+                conjuntion with adGenAOSQoSConvId, and
+                ifIndex to identify a unique row in the
+                AdGenAOSQoConversationTable."
          ::= { adGenAOSQoSConversationEntry 2 }
 
      -- CID_QOS_CONVERSATION_MATCHES
@@ -741,7 +1154,7 @@
          STATUS       current
          DESCRIPTION
                 "Length in bytes of the packet at the head of the conversation
-                subqueue."
+                sub-queue."
          ::= { adGenAOSQoSConversationEntry 10 }
 
      -- CID_QOS_CONVERSATION_PROTTYPE
@@ -756,7 +1169,7 @@
          STATUS     current
          DESCRIPTION
                 "Protocol type of the packet at the head of the conversation
-                subqueue."
+                sub-queue."
          ::= { adGenAOSQoSConversationEntry 11 }
 
      -- CID_QOS_CONVERSATION_SUBQUEUE_TYPE
@@ -773,7 +1186,7 @@
          STATUS     current
          DESCRIPTION
                 "What type of queueing has been configured for the conversation
-                 subqueue given by the conversation index.  It will correspond
+                 sub-queue given by the conversation index.  It will correspond
                  to the protocol type configured in the map entry for the map
                  applied to the interface."
          ::= { adGenAOSQoSConversationEntry 12 }
@@ -784,7 +1197,8 @@
          MAX-ACCESS read-only
          STATUS     current
          DESCRIPTION
-                "Header of the packet at the head of the conversation subqueue."
+                "Header of the packet at the head of the conversation
+                sub-queue."
          ::= { adGenAOSQoSConversationEntry 13 }
 
 
@@ -831,7 +1245,11 @@
              adGenAOSQoSPriorityRateLimiterDrops                Counter32,
              adGenAOSQoSPriorityRateLimiterMatchesBytes         Counter64,
              adGenAOSQoSPriorityRateLimiterDropsBytes           Counter64,
-             adGenAOSQoSPriorityRateLimiterClearCounters        INTEGER
+             adGenAOSQoSPriorityRateLimiterClearCounters        INTEGER,
+             adGenAOSQoSPriorityRateLimiterByteMatchRate        Unsigned32,
+             adGenAOSQoSPriorityRateLimiterByteDiscardRate      Unsigned32,
+             adGenAOSQoSPriorityRateLimiterBitMatchRate         Unsigned64,
+             adGenAOSQoSPriorityRateLimiterBitDiscardRate       Unsigned64
 
      }
 
@@ -949,7 +1367,476 @@
             write-only variable. A read will always return a value of '1'."
                 ::= { adGenAOSQoSPriorityRateLimiterEntry 12 }
 
+     -- CID_QOS_RATE_LIMITER_MATCH_RATE
+     adGenAOSQoSPriorityRateLimiterByteMatchRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes matched per second for this rate limiter."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 13 }
 
+     -- CID_QOS_RATE_LIMITER_DISCARD_RATE
+     adGenAOSQoSPriorityRateLimiterByteDiscardRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes discarded per second for this rate limiter."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 14 }
+
+     -- CID_QOS_RATE_LIMITER_MATCH_RATE * 8
+     adGenAOSQoSPriorityRateLimiterBitMatchRate OBJECT-TYPE
+         SYNTAX       Unsigned64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bits matched per second for this rate limiter."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 15 }
+
+     -- CID_QOS_RATE_LIMITER_DISCARD_RATE * 8
+     adGenAOSQoSPriorityRateLimiterBitDiscardRate OBJECT-TYPE
+         SYNTAX       Unsigned64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bits discarded per second for this rate limiter."
+              ::= { adGenAOSQoSPriorityRateLimiterEntry 16 }
+     --
+     --
+
+     --   EQoS Classifier Statistics Table
+
+     --  TID_EQOS_CLASS_STATS
+
+     adGenAOSQoSMapClassifierStatsTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSMapClassifierStatsEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Statistics for the class map entry."
+         ::= { adGenAOSQos 7 }
+
+     adGenAOSQoSMapClassifierStatsEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSMapClassifierStatsEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Displays the statistical information for the class map entry.
+            Statistics for parent and child maps do not overlap. Also the
+            adGenAOSQoSMapEntryId will always be 65535.  The
+            adGenAOSQoSMapClassifierStatsTable will initially display
+            only default class information."
+         INDEX { ifIndex, adGenAOSQoSMapEntryId,
+                adGenAOSQoSMapClassifierParentEntryId }
+         ::= { adGenAOSQoSMapClassifierStatsTable 1 }
+
+     AdGenAOSQoSMapClassifierStatsEntry ::=
+         SEQUENCE {
+             adGenAOSQoSMapClassifierParentEntryId    Unsigned32,
+             adGenAOSQoSClassifierMatches             Counter32,
+             adGenAOSQoSClassifierDrops               Counter32,
+             adGenAOSQoSClassifierMatchBytes          Counter64,
+             adGenAOSQoSClassifierDropBytes           Counter64,
+             adGenAOSQoSClassifierPktMatchRate        Unsigned32,
+             adGenAOSQoSClassifierPktDropRate         Unsigned32,
+             adGenAOSQoSClassifierByteMatchRate       Unsigned32,
+             adGenAOSQoSClassifierByteDropRate        Unsigned32,
+             adGenAOSQoSClassifierBitMatchRate        Unsigned64,
+             adGenAOSQoSClassifierBitDropRate         Unsigned64
+     }
+
+     -- CID_QOS_MAP_PARENT_ENTRY_ID
+     adGenAOSQoSMapClassifierParentEntryId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "This is a unique number chosen by the system and the parent
+                QoS map. This will always be zero for classes in the base
+                interface queue."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 1 }
+
+      -- Qos::CID_EQOS_CLASS_PACKET_MATCH_COUNT
+     adGenAOSQoSClassifierMatches OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of packets matched by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 2 }
+
+     -- Qos::CID_EQOS_CLASS_PACKET_DROP_COUNT
+     adGenAOSQoSClassifierDrops OBJECT-TYPE
+         SYNTAX     Counter32
+         MAX-ACCESS read-only
+         STATUS     current
+         DESCRIPTION
+                "Number of packets dropped by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 3 }
+
+     -- Qos::CID_EQOS_CLASS_OCTET_MATCH_COUNT
+     adGenAOSQoSClassifierMatchBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes matched by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 4 }
+
+     -- Qos::CID_EQOS_CLASS_OCTET_DROP_COUNT
+     adGenAOSQoSClassifierDropBytes OBJECT-TYPE
+         SYNTAX       Counter64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes dropped by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 5 }
+
+     -- Qos::CID_EQOS_CLASS_PACKET_MATCH_RATE
+     adGenAOSQoSClassifierPktMatchRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of packets matched per second by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 6 }
+
+     -- Qos::CID_EQOS_CLASS_PACKET_DROP_RATE
+     adGenAOSQoSClassifierPktDropRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of packets discarded per second by this classifier
+                entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 7 }
+
+     -- Qos::CID_EQOS_CLASS_OCTET_MATCH_RATE
+     adGenAOSQoSClassifierByteMatchRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes matched per second by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 8 }
+
+     -- Qos::CID_EQOS_CLASS_OCTET_DROP_RATE
+     adGenAOSQoSClassifierByteDropRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bytes discarded per second by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 9 }
+
+     -- Qos::CID_EQOS_CLASS_OCTET_MATCH_RATE*8
+     adGenAOSQoSClassifierBitMatchRate OBJECT-TYPE
+         SYNTAX       Unsigned64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bits matched per second by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 10 }
+
+     -- Qos::CID_EQOS_CLASS_OCTET_DROP_RATE*8
+     adGenAOSQoSClassifierBitDropRate OBJECT-TYPE
+         SYNTAX       Unsigned64
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Number of bits discarded per second by this classifier entry."
+         ::= { adGenAOSQoSMapClassifierStatsEntry 11 }
+
+     --
+
+     --   Qos Map Entry Match Table
+
+     --  TID_QOS_MAP_ENTRY_MATCH
+
+     adGenAOSQoSMapMatchTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSMapMatchEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "List of sequenced match entries for a named QoS map."
+         ::= { adGenAOSQos 8 }
+
+     adGenAOSQoSMapMatchEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSMapMatchEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Displays match configuration information for each map entry."
+         INDEX { adGenAOSQoSMapSetId, adGenAOSQoSMapEntryId,
+                adGenAOSQoSMapMatchEntryId }
+         ::= { adGenAOSQoSMapMatchTable 1 }
+
+
+     AdGenAOSQoSMapMatchEntry ::=
+         SEQUENCE {
+             adGenAOSQoSMapMatchEntryId                 Unsigned32,
+             adGenAOSQoSMapMatchType                    INTEGER,
+             adGenAOSQoSMapMatchACL                     DisplayString,
+             adGenAOSQoSMapRTPMatchStartPort            Unsigned32,
+             adGenAOSQoSMapRTPMatchEndPort              Unsigned32,
+             adGenAOSQoSMapRTPMatchPorts                INTEGER,
+             adGenAOSQoSMapDscpMatchValue               DisplayString,
+             adGenAOSQoSMapPrecedenceMatchValue         Unsigned32,
+             adGenAOSQoSMapProtocolMatchType            INTEGER,
+             adGenAOSQoSMapVlanMatchValue               Unsigned32,
+             adGenAOSQoSMapFrDlciMatchValue             Unsigned32
+
+     }
+     -- CID_QOS_MAP_ENTRY_MATCH_ID
+     adGenAOSQoSMapMatchEntryId OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Unique value used to identify the match map entry."
+        ::= { adGenAOSQoSMapMatchEntry 1 }
+
+     -- CID_QOS_MAP_MATCH_TYPE
+     adGenAOSQoSMapMatchType OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                   unknown (1),
+                   acl (2),
+                   ipRTP (3),
+                   protocol (4),
+                   dscp (5),
+                   precedence (6),
+                   vlan (7),
+                   frameRelayDLCI (8),
+                   any (10),
+                   dscpIpv4 (11),
+                   dscpIpv6 (12),
+                   precedenceIpv4 (13),
+                   precedenceIpv6 (14),
+                   aclIpv6 (15),
+                   ipRTPIpv6 (16)
+                }
+         MAX-ACCESS read-only
+         STATUS     current
+         DESCRIPTION
+                "What type of matching has been configured for the map entry."
+        ::= { adGenAOSQoSMapMatchEntry 2 }
+
+     -- CID_QOS_MAP_ACL_ID
+     adGenAOSQoSMapMatchACL OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Name of ACL used for ACL matching."
+        ::= { adGenAOSQoSMapMatchEntry 3 }
+
+     -- CID_QOS_MAP_IP_RTP_MATCH_START
+     adGenAOSQoSMapRTPMatchStartPort OBJECT-TYPE
+         SYNTAX       Unsigned32 (0..65535)
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Starting RTP destination port used for RTP packet matching."
+        ::= { adGenAOSQoSMapMatchEntry 4 }
+
+     -- CID_QOS_MAP_IP_RTP_MATCH_END
+     adGenAOSQoSMapRTPMatchEndPort OBJECT-TYPE
+         SYNTAX       Unsigned32 (0..65535)
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Ending RTP destination port used for RTP packet matching."
+        ::= { adGenAOSQoSMapMatchEntry 5 }
+
+     -- CID_QOS_MAP_IP_RTP_MATCH_ALL
+     adGenAOSQoSMapRTPMatchPorts OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                   even (1),
+                   odd (2),
+                   all (3)
+                }
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Defines which ports in the start-end port range are used
+                for matching. By default only even ports are use."
+        ::= { adGenAOSQoSMapMatchEntry 6 }
+
+     -- CID_QOS_MAP_DSCP_MATCH_VALUE
+     adGenAOSQoSMapDscpMatchValue OBJECT-TYPE
+         SYNTAX       DisplayString
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Configured IP packet DSCP values used for matching."
+        ::= { adGenAOSQoSMapMatchEntry 7 }
+
+     -- CID_QOS_MAP_PRECEDENCE_MATCH_VALUE
+     adGenAOSQoSMapPrecedenceMatchValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Configured precedence values used for matching."
+        ::= { adGenAOSQoSMapMatchEntry 8 }
+
+     -- CID_QOS_MAP_PROTOCOL_MATCH_TYPE
+     adGenAOSQoSMapProtocolMatchType OBJECT-TYPE
+        SYNTAX  INTEGER
+                {
+                   none (1),
+                   bridged (2),
+                   netBEIU (3),
+                   protocolIpv4 (4),
+                   protocolIpv6 (5)
+                }
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Defines a protocol to use for matching."
+        ::= { adGenAOSQoSMapMatchEntry 9 }
+
+     -- CID_QOS_MAP_VLAN_MATCH_VALUE
+     adGenAOSQoSMapVlanMatchValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "VLAN Id used for matching packets."
+        ::= { adGenAOSQoSMapMatchEntry 10 }
+
+     -- CID_QOS_MAP_FR_DLCI_MATCH_VALUE
+     adGenAOSQoSMapFrDlciMatchValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Frame-Relay DLCI used for matching packets."
+        ::= { adGenAOSQoSMapMatchEntry 11 }
+
+     --
+
+     --   QoS Shaper Table
+
+     --  TID_QOS_SHAPER
+
+     adGenAOSQoSMapShaperTable OBJECT-TYPE
+         SYNTAX   SEQUENCE OF AdGenAOSQoSMapShaperEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "List of class shapers for a named QoS map entry."
+         ::= { adGenAOSQos 9 }
+
+     adGenAOSQoSMapShaperEntry OBJECT-TYPE
+         SYNTAX   AdGenAOSQoSMapShaperEntry
+         MAX-ACCESS   not-accessible
+         STATUS       current
+         DESCRIPTION
+            "Displays class shaper configuration and statistic information for
+            a map entry."
+         INDEX { ifIndex, adGenAOSQoSMapEntryId }
+         ::= { adGenAOSQoSMapShaperTable 1 }
+
+
+     AdGenAOSQoSMapShaperEntry ::=
+         SEQUENCE {
+             adGenAOSQoSMapShaperShapeValue             Unsigned32,
+             adGenAOSQoSMapShaperCurrentBudgetSize      Unsigned32,
+             adGenAOSQoSMapShaperMaxBudgetSize          Unsigned32,
+             adGenAOSQoSMapShaperBytesPerTick           Unsigned32,
+             adGenAOSQoSMapShaperTickRate               Unsigned32,
+             adGenAOSQoSMapShaperQueuePktDepth          Counter32,
+             adGenAOSQoSMapShaperQueuePktDrops          Counter32,
+             adGenAOSQoSMapShaperQueuePktsSent          Counter32,
+             adGenAOSQoSMapShaperQueuePktsDelayed       Counter32
+
+     }
+
+     -- Qos::CID_QOS_SHAPER_SHAPE_VALUE,
+     adGenAOSQoSMapShaperShapeValue OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Configured shaper value used for shaping traffic."
+        ::= { adGenAOSQoSMapShaperEntry 1 }
+
+        -- Qos::CID_QOS_SHAPER_CURRENT_BUCKET_SIZE,
+     adGenAOSQoSMapShaperCurrentBudgetSize OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Current budget size of shaper."
+        ::= { adGenAOSQoSMapShaperEntry 2 }
+
+        -- Qos::CID_QOS_SHAPER_MAX_BUCKET_SIZE,
+     adGenAOSQoSMapShaperMaxBudgetSize OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Maximum budget size of shaper."
+        ::= { adGenAOSQoSMapShaperEntry 3 }
+
+        -- Qos::CID_QOS_SHAPER_BITS_PER_TICK,
+     adGenAOSQoSMapShaperBytesPerTick OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Bytes added to the budget."
+        ::= { adGenAOSQoSMapShaperEntry 4 }
+
+        -- Qos::CID_QOS_SHAPER_TICK_RATE,
+     adGenAOSQoSMapShaperTickRate OBJECT-TYPE
+         SYNTAX       Unsigned32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "How often, in milliseconds, that bytes are added to the
+                budget."
+        ::= { adGenAOSQoSMapShaperEntry 5 }
+
+        -- Qos::CID_QOS_SHAPER_QUEUE_PKT_DEPTH,
+     adGenAOSQoSMapShaperQueuePktDepth OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Shaper queue packet depth."
+        ::= { adGenAOSQoSMapShaperEntry 6 }
+
+        -- Qos::CID_QOS_SHAPER_QUEUE_PKT_DROPS,
+     adGenAOSQoSMapShaperQueuePktDrops OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Count of number of shaper queue packet drops."
+        ::= { adGenAOSQoSMapShaperEntry 7 }
+
+        -- Qos::CID_QOS_SHAPER_QUEUE_PKTS_SENT,
+     adGenAOSQoSMapShaperQueuePktsSent OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Count of number of shaper queue packets sent."
+        ::= { adGenAOSQoSMapShaperEntry 8 }
+
+        -- Qos::CID_QOS_SHAPER_QUEUE_PKTS_DELAYED,
+     adGenAOSQoSMapShaperQueuePktsDelayed OBJECT-TYPE
+         SYNTAX       Counter32
+         MAX-ACCESS   read-only
+         STATUS       current
+         DESCRIPTION
+                "Count of number of shaper queue packets delayed."
+        ::= { adGenAOSQoSMapShaperEntry 9 }
      -- conformance information
 
      adGenAOSQoSConformance OBJECT IDENTIFIER ::= { adGenAOSConformance 8 }
@@ -977,9 +1864,10 @@
 
          GROUP  adGenAOSQoSConversationGroup
          DESCRIPTION
-                "This optional group is used to retrieve conversation statistics
-                of a sequenced entry of a named QoS map.  Availability of data
-                is dependent upon configuration and interface activity."
+                "This optional group is used to retrieve conversation
+                statistics of a sequenced entry of a named QoS map.
+                Availability of data is dependent upon configuration and
+                interface activity."
 
          GROUP  adGenAOSQoSClassConvHistoryGroup
          DESCRIPTION
@@ -993,12 +1881,26 @@
                 "This optional group is used to retrieve rate limiter statistics
                 of a sequenced entry of a named QoS map.  Availability of data
                 is dependent upon configuration and interface activity."
+        GROUP adGenAOSQoSClassifierGroup
+         DESCRIPTION
+                "This optional group is used to retrieve the class
+                statistics."
+         GROUP  adGenAOSQoSMapMatchGroup
+         DESCRIPTION
+                "This optional group is used to retrieve map entry match
+                configuration."
+
+        GROUP adGenAOSQoSMapShaperGroup
+         DESCRIPTION
+                "This optional group is used to retrieve map entry shaper
+                configuration and statistics."
          ::= { adGenAOSQoSCompliances 1 }
      -- units of conformance
 
      adGenAOSQoSMapGroup    OBJECT-GROUP
          OBJECTS {
-                adGenAOSQoSMapSetId, adGenAOSQoSMapSetName, adGenAOSQoSMapIsChild
+                adGenAOSQoSMapSetId, adGenAOSQoSMapSetName,
+                adGenAOSQoSMapIsChild
                 }
          STATUS  current
          DESCRIPTION
@@ -1012,7 +1914,23 @@
                 adGenAOSQoSMapSeqNum,
                 adGenAOSQoSMapEntrySetName, adGenAOSQoSMapChildSetName,
                 adGenAOSQoSMapQueuingActionType, adGenAOSQoSMapQueuingBWType,
-                adGenAOSQoSMapQueuingBWValue
+                adGenAOSQoSMapQueuingBWValue,
+                adGenAOSQoSMapQueuingBurstValue,
+                adGenAOSQoSMapMatchAll,
+                adGenAOSQoSMapDscpMarkState,
+                adGenAOSQoSMapDscpMarkValue,
+                adGenAOSQoSMapDscpMarkString,
+                adGenAOSQoSMapPrecedenceMarkState,
+                adGenAOSQoSMapPrecedenceMarkValue,
+                adGenAOSQoSMapCosMarkState,
+                adGenAOSQoSMapCosMarkValue,
+                adGenAOSQoSMapShapeState,
+                adGenAOSQoSMapShapeValue,
+                adGenAOSQoSMapShapeBurst,
+                adGenAOSQoSMapShapeEthOverhead,
+                adGenAOSQoSMapClearCounters,
+                adGenAOSQoSMapPriorityStrictRateLimiting
+             -- adGenAOSQoSMapEntryDescription,
                 }
          STATUS  current
          DESCRIPTION
@@ -1036,7 +1954,18 @@
                 adGenAOSQoSInterfaceTXQAvailableBW,
                 adGenAOSQoSInterfaceTXQConvActive,
                 adGenAOSQoSInterfaceTXQConvMaxActive,
-                adGenAOSQoSInterfaceTXQConvMaxTotal
+                adGenAOSQoSInterfaceTXQConvMaxTotal,
+                adGenAOSQoSInterfaceTrafficShapingRate,
+                adGenAOSQoSInterfaceTrafficShapingBurst,
+                adGenAOSQoSInterfaceShaperValue,
+                adGenAOSQoSInterfaceShaperCurrentBudgetSize,
+                adGenAOSQoSInterfaceShaperMaxBudgetSize,
+                adGenAOSQoSInterfaceShaperBytesPerTick,
+                adGenAOSQoSInterfaceShaperTickRate,
+                adGenAOSQoSInterfaceShaperQPktDepth,
+                adGenAOSQoSInterfaceShaperQPktDrops,
+                adGenAOSQoSInterfaceShaperQPktSent,
+                adGenAOSQoSInterfaceShaperQPktDelayed
                 }
          STATUS  current
          DESCRIPTION
@@ -1051,8 +1980,14 @@
                 adGenAOSQoSHistoryClassConvId,
                 adGenAOSQoSClassConvHistoryMatches,
                 adGenAOSQoSClassConvHistoryDiscards,
+                adGenAOSQoSClassConvHistoryMatchesBytes,
+                adGenAOSQoSClassConvHistoryDiscardsBytes,
                 adGenAOSQoSClassConvHistoryDepth,
-                adGenAOSQoSClassConvHistoryHighWater
+                adGenAOSQoSClassConvHistoryHighWater,
+                adGenAOSQoSClassConvHistoryByteMatchRate,
+                adGenAOSQoSClassConvHistoryByteDiscardRate,
+                adGenAOSQoSClassConvHistoryBitMatchRate,
+                adGenAOSQoSClassConvHistoryBitDiscardRate
                 }
          STATUS  current
          DESCRIPTION
@@ -1067,6 +2002,8 @@
                 adGenAOSQoSMapConvParentEntryId,
                 adGenAOSQoSConvMatches,
                 adGenAOSQoSConvDiscards,
+                adGenAOSQoSConvMatchesBytes,
+                adGenAOSQoSConvDiscardsBytes,
                 adGenAOSQoSConvDepth,
                 adGenAOSQoSConvHighWater,
                 adGenAOSQoSConvWeight,
@@ -1092,7 +2029,13 @@
                 adGenAOSQoSPriorityRateLimiterMaxFillTime,
                 adGenAOSQoSPriorityRateLimiterMatches,
                 adGenAOSQoSPriorityRateLimiterDrops,
-                adGenAOSQoSPriorityRateLimiterClearCounters
+                adGenAOSQoSPriorityRateLimiterMatchesBytes,
+                adGenAOSQoSPriorityRateLimiterDropsBytes,
+                adGenAOSQoSPriorityRateLimiterClearCounters,
+                adGenAOSQoSPriorityRateLimiterByteMatchRate,
+                adGenAOSQoSPriorityRateLimiterByteDiscardRate,
+                adGenAOSQoSPriorityRateLimiterBitMatchRate,
+                adGenAOSQoSPriorityRateLimiterBitDiscardRate
                 }
          STATUS  current
          DESCRIPTION
@@ -1100,6 +2043,62 @@
             statistics of a particular sequenced entry of a named QoS map."
          ::= { adGenAOSQoSGroup 6 }
 
+     adGenAOSQoSClassifierGroup   OBJECT-GROUP
+         OBJECTS {
+             adGenAOSQoSMapClassifierParentEntryId,
+             adGenAOSQoSClassifierMatches,
+             adGenAOSQoSClassifierDrops,
+             adGenAOSQoSClassifierMatchBytes,
+             adGenAOSQoSClassifierDropBytes,
+             adGenAOSQoSClassifierPktMatchRate,
+             adGenAOSQoSClassifierPktDropRate,
+             adGenAOSQoSClassifierByteMatchRate,
+             adGenAOSQoSClassifierByteDropRate,
+             adGenAOSQoSClassifierBitMatchRate,
+             adGenAOSQoSClassifierBitDropRate
+         }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the class statistics."
+         ::= { adGenAOSQoSGroup 7 }
+     adGenAOSQoSMapMatchGroup    OBJECT-GROUP
+         OBJECTS {
+                adGenAOSQoSMapSetId, adGenAOSQoSMapSetName,
+                adGenAOSQoSMapMatchEntryId,
+                adGenAOSQoSMapMatchType,
+                adGenAOSQoSMapMatchACL,
+                adGenAOSQoSMapRTPMatchStartPort,
+                adGenAOSQoSMapRTPMatchEndPort,
+                adGenAOSQoSMapRTPMatchPorts,
+                adGenAOSQoSMapDscpMatchValue,
+                adGenAOSQoSMapPrecedenceMatchValue,
+                adGenAOSQoSMapProtocolMatchType,
+                adGenAOSQoSMapVlanMatchValue,
+                adGenAOSQoSMapFrDlciMatchValue
+                }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the match configuration of
+             the QoS maps."
+         ::= { adGenAOSQoSGroup 8 }
+
+     adGenAOSQoSMapShaperGroup   OBJECT-GROUP
+         OBJECTS {
+             adGenAOSQoSMapShaperShapeValue,
+             adGenAOSQoSMapShaperCurrentBudgetSize,
+             adGenAOSQoSMapShaperMaxBudgetSize,
+             adGenAOSQoSMapShaperBytesPerTick,
+             adGenAOSQoSMapShaperTickRate,
+             adGenAOSQoSMapShaperQueuePktDepth,
+             adGenAOSQoSMapShaperQueuePktDrops,
+             adGenAOSQoSMapShaperQueuePktsSent,
+             adGenAOSQoSMapShaperQueuePktsDelayed
+         }
+         STATUS  current
+         DESCRIPTION
+            "Objects designed to assist in retrieving the shaper configuration
+            and statistics of the QoS map entries."
+         ::= { adGenAOSQoSGroup 9 }
      END
 
 

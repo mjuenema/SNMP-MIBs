@@ -7,6 +7,7 @@
 --
 -- Copyright (c) 2001, 2002 Unisphere Networks, Inc.
 -- Copyright (c) 2002-2005 Juniper Networks, Inc.
+-- Copyright (c) 2008 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -25,7 +26,7 @@ IMPORTS
         FROM Juniper-TC;
 
 juniPppoeProfileMIB  MODULE-IDENTITY
-    LAST-UPDATED "200507131140Z"  -- 13-Jul-05 11:40 AM EDT  - JUNOSe 7.0.1
+    LAST-UPDATED "200806181029Z"  -- 18-Jun-08 03:59 PM EST
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -38,6 +39,9 @@ juniPppoeProfileMIB  MODULE-IDENTITY
         "The point-to-point protocol over Ethernet (PPPoE) profile MIB for the
         Juniper enterprise."
     -- Revision History
+    REVISION    "200806181029Z"  -- 18-Jun-08 03:59 PM EST  - JUNOSe 9.3
+    DESCRIPTION
+        "Added juniPppoeProfileMaxSessionOverride object."
     REVISION    "200507131140Z"  -- 13-Jul-05 11:40 AM EDT  - JUNOSe 7.0.1
     DESCRIPTION
         "Added MTU control object."
@@ -110,7 +114,8 @@ JuniPppoeProfileEntry ::= SEQUENCE {
     juniPppoeProfilePacketTrace      JuniEnable,
 	juniPppoeProfileServiceNameTableName DisplayString,
     juniPppoeProfilePadrRemoteCircuitIdCapture JuniEnable,
-    juniPppoeProfileMtu Integer32 }
+    juniPppoeProfileMtu Integer32,
+    juniPppoeProfileMaxSessionOverride INTEGER }
 
 juniPppoeProfileId  OBJECT-TYPE
     SYNTAX      Unsigned32
@@ -277,6 +282,22 @@ juniPppoeProfileMtu  OBJECT-TYPE
     DEFVAL    { 1494 }
     ::= { juniPppoeProfileEntry 12 }
 
+juniPppoeProfileMaxSessionOverride OBJECT-TYPE
+    SYNTAX      INTEGER {
+                 override(1),
+                 ignore(2) }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Configure the action to be taken by PPPoE when RADIUS server returns
+        the PPPoE max-session value:
+         override    Override the current PPPoE max-session value with the
+                     value returned by RADIUS server
+         Ignore      Ignore the max-session value returned by RADIUS server" 
+    DEFVAL    { ignore }
+    ::= { juniPppoeProfileEntry 13 }
+    
+
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 -- Notifications
 -- +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -352,15 +373,25 @@ juniPppoeCompliance5  MODULE-COMPLIANCE
     ::= { juniPppoeProfileCompliances 5 }                          -- JUNOSe 7.0
 
 juniPppoeCompliance6  MODULE-COMPLIANCE
+    STATUS      obsolete
+    DESCRIPTION
+        "Obsolete compliance statement for entities which implement the Juniper
+        PPPoE MIB.  This statement became obsolete when support was added for
+        juniPppoeProfileMaxSessionOverride."
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniPppoeProfileGroup6 }
+    ::= { juniPppoeProfileCompliances 6 }                          -- JUNOSe 7.1
+
+juniPppoeCompliance7  MODULE-COMPLIANCE
     STATUS      current
     DESCRIPTION
         "The compliance statement for entities which implement the Juniper PPPoE
         Profile MIB."
     MODULE   -- this module
         MANDATORY-GROUPS {
-            juniPppoeProfileGroup6 }
-    ::= { juniPppoeProfileCompliances 6 }                          -- JUNOSe 7.1
-
+            juniPppoeProfileGroup7 }
+    ::= { juniPppoeProfileCompliances 7 }                          -- JUNOSe 9.3
 
 --
 -- units of conformance
@@ -471,10 +502,31 @@ juniPppoeProfileGroup6  OBJECT-GROUP
         juniPppoeProfileServiceNameTableName,
 		juniPppoeProfilePadrRemoteCircuitIdCapture,
 		juniPppoeProfileMtu }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "A collection of objects providing management of profile functionality
         for PPPOE interfaces in a Juniper product."
     ::= { juniPppoeProfileGroups 6 }
 
+juniPppoeProfileGroup7  OBJECT-GROUP
+    OBJECTS {
+        juniPppoeProfileSetMap,
+
+        juniPppoeProfileMaxNumSessions,
+
+        juniPppoeProfileSubMotm,
+        juniPppoeProfileSubUrl,
+        juniPppoeProfileDupProtect,
+        juniPppoeProfileAcName,
+        juniPppoeProfilePadiFlag,
+        juniPppoeProfilePacketTrace,
+        juniPppoeProfileServiceNameTableName,
+        juniPppoeProfilePadrRemoteCircuitIdCapture,
+        juniPppoeProfileMtu,
+        juniPppoeProfileMaxSessionOverride }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing management of profile functionality
+        for PPPOE interfaces in a Juniper product."
+    ::= { juniPppoeProfileGroups 7 }
 END

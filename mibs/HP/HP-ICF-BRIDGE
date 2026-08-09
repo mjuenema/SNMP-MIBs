@@ -1,14 +1,14 @@
 --**MOD+***********************************************************************
 --* Module:    hpicfBridge.mib
 --*
---* Copyright (C) 2000-2014 Hewlett-Packard Development Company, L.P.
---* All Rights Reserved.
+--* Copyright (C) 2000-2013, 2018, 2020, 2021 Hewlett Packard Enterprise
+--* Development LP  All Rights Reserved.
 --*
 --* The contents of this software are proprietary and confidential
---* to the Hewlett-Packard Development Company, L.P.  No part of this
+--* to the Hewlett Packard Enterprise Development LP.  No part of this
 --* program may be photocopied, reproduced, or translated into another
 --* programming language without prior written consent of the
---* Hewlett-Packard Development Company, L.P.
+--* Hewlett Packard Enterprise Development LP.
 --*
 --* Purpose: This file contains MIB definition of HP-ICF-BRIDGE  MIB
 --*
@@ -18,7 +18,7 @@ HP-ICF-BRIDGE DEFINITIONS ::= BEGIN
 
     IMPORTS
         OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE, Integer32,
-        Counter32, Integer32
+        Counter32
             FROM SNMPv2-SMI
         TruthValue, TimeStamp, TEXTUAL-CONVENTION
             FROM SNMPv2-TC
@@ -43,19 +43,21 @@ HP-ICF-BRIDGE DEFINITIONS ::= BEGIN
 
 
     hpicfBridge MODULE-IDENTITY
-        LAST-UPDATED "201404270000Z"  -- April 27, 2014
+        LAST-UPDATED "202011180000Z"  -- November 18, 2020
         ORGANIZATION  "HP Networking"
         CONTACT-INFO "Hewlett-Packard Company
                       8000 Foothills Blvd.
                       Roseville, CA 95747"
         DESCRIPTION  "This MIB module contains HP proprietary
                       extensions to the standard Bridge MIBs."
-        
-        REVISION     "201404270000Z"  -- April 27, 2014
-        DESCRIPTION  "Added hpicfBridgeStpBpduThrottleStatus, 
-                      hpicfBridgeStpBpduThrottleValue,
-		      hpicfBridgeStpBpduThrottleConfigGroup and 
-                      hpicfBridgeStpBpduThrottleConfigCompliance"	
+
+        REVISION     "202011180000Z"  -- November 18, 2020
+        DESCRIPTION  "A new textual convention disableRx(4) is added for the
+                      hpicfBridgeLoopProtectPortReceiverAction MIB."
+
+        REVISION     "201811220000Z"  -- November 22, 2018
+        DESCRIPTION  "The range of the MIB object hpicfBridgeRstpPortPathCost
+                      is modified from 1..200000000 to 0..200000000."
 
         REVISION     "201310110000Z"  -- October 11, 2013
         DESCRIPTION  "The description of selected MIB objects is modified for  
@@ -475,12 +477,19 @@ HP-ICF-BRIDGE DEFINITIONS ::= BEGIN
         ::= { hpicfBridgeRstpPortEntry 5 }
 
     hpicfBridgeRstpPortPathCost OBJECT-TYPE
-        SYNTAX      Integer32 (1..200000000)
+        SYNTAX      Integer32 (0..200000000)
         MAX-ACCESS  read-write
         STATUS      current
-        DESCRIPTION "Rapid Reconfiguration Port Path Cost - 32 bit values"
+        DESCRIPTION "The administratively assigned value for the contribution
+                     of this port to the path cost of paths toward the spanning
+                     tree root.
+
+                     Writing a value of '0' assigns the automatically calculated
+                     default Path Cost value to the port.  If the default Path
+                     Cost is being used, this object returns '0' when read."
         REFERENCE
-             "IEEE 802.1w"
+                     "IEEE 802.1D-1998: Section 8.5.5.3"
+        DEFVAL      { 0 }
         ::= { hpicfBridgeRstpPortEntry 6 }
 
     hpicfBridgeRstpForceBpduMigrationCheck OBJECT-TYPE
@@ -559,18 +568,22 @@ HP-ICF-BRIDGE DEFINITIONS ::= BEGIN
               Protection Protocol packet can take.
             
               The disableTx(1) enumeration indicates that the sender of
-              the Loop Protect packet will be disabled. 
+              the Loop Protect packet will be disabled.
 
               The noDisable(2) enumeration indicates that no port is to
               be disabled.
 
               The disableTxRx(3) enumeration indicates that the senders
-              and receivers of the Loop Protect packets will be disabled."  
+              and receivers of the Loop Protect packets will be disabled.
+
+              The disableRx(4) enumeration indicates that the receiver of
+              the Loop Protect packet will be disabled."
     SYNTAX   INTEGER  
              {
                 disableTx(1),
                 noDisable(2),
-                disableTxRx(3)    
+                disableTxRx(3),
+                disableRx(4)
              }
 
 
@@ -700,12 +713,14 @@ HP-ICF-BRIDGE DEFINITIONS ::= BEGIN
         MAX-ACCESS  read-write
         STATUS      current
         DESCRIPTION "Controls the action taken when a Loop Protection packet is
-                     received on this port. 
+                     received on this port.
                      When set to 'disableTx' the port that transmitted the packet is disabled.
 
                      When set to 'noDisable' the transmitting port is not disabled.
 
-                     When set to 'disableTxRx' the ports transmitting and receiving the packets are disabled." 
+                     When set to 'disableTxRx' the ports transmitting and receiving the packets are disabled.
+
+                     When set to 'disableRx' the port that received the packet is disabled."
         ::= { hpicfBridgeLoopProtectPortEntry 5 }
 
    

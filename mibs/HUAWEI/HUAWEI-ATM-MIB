@@ -1,9 +1,9 @@
 -- ==================================================================
--- Copyright (C) 2011 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Copyright (C) 2018 by  HUAWEI TECHNOLOGIES. All rights reserved.
 --
 -- Description: HUAWEI Private ATM Interface MIB
 -- Reference:
--- Version: V1.2
+-- Version: V2.17
 -- History:
 --      V1.0 initial
 --      V1.1 add hwAtmPvcGroupTable and hwAtmPvcGroupMemTable for
@@ -15,6 +15,11 @@
 --      V2.11 add hwAtmPvcStatisticInputCellDrops,hwAtmPvcStatisticInputPktDrops,
 --           hwAtmPvcStatisticOutputCellDrops and hwAtmPvcStatisticOutputPktDrops
 --           for HwAtmPvcStatisticEntry.
+--      V2.12 modify the invalid value of hwAtmPvcServiceBuffer and hwAtmPvpServiceBuffer 
+--           from 4294967295 to -1. Modify the MAX-ACCESS of hwAtmVpcConnectivityTestRowStatus 
+--           and hwAtmVccConnectivityTestRowStatus from accessible-for-notify to read-create.
+
+
 -- ==================================================================
 -- ==================================================================
 --
@@ -27,23 +32,27 @@
         IMPORTS
             AtmVpIdentifier, AtmVcIdentifier
                 FROM ATM-TC-MIB
+            atmMIBObjects
+                FROM ATM-MIB
             hwDatacomm
                 FROM HUAWEI-MIB
             ifName, InterfaceIndex, InterfaceIndexOrZero
                 FROM IF-MIB
             OBJECT-GROUP, MODULE-COMPLIANCE
+            ,NOTIFICATION-GROUP
                 FROM SNMPv2-CONF
             IpAddress, Integer32, OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE,
-            Counter64, NOTIFICATION-GROUP
+            Counter64 
                 FROM SNMPv2-SMI
             RowStatus, TruthValue, DisplayString
-                FROM SNMPv2-TC;
-
+                FROM SNMPv2-TC
+	    hwFrameIndex, hwSlotIndex, hwPortIndex
+	    	FROM HUAWEI-DEVICE-MIB;
 
 --  October 17, 2007 at 22:30 GMT
 -- October 17, 2007 at 22:30 GMT
         hwAtmMIB MODULE-IDENTITY
-            LAST-UPDATED "201402180000Z"
+            LAST-UPDATED "201803160000Z"
             ORGANIZATION
                 "Huawei Technologies Co.,Ltd."
             CONTACT-INFO
@@ -58,6 +67,36 @@
                 "V1.3, add hwAtmPvcStatisticInputCellDrops,hwAtmPvcStatisticInputPktDrops,
                           hwAtmPvcStatisticOutputCellDrops and hwAtmPvcStatisticOutputPktDrops
                           for HwAtmPvcStatisticEntry."
+
+            REVISION     "201803160000Z"
+            DESCRIPTION
+                "V2.17, modify default value of hwAtmVccAal5EncapsType and hwAtmPvcDynamicAal5EncapsType."
+
+            REVISION     "201801130000Z"
+            DESCRIPTION
+                "V2.16, modify node description."
+				
+            REVISION     "201702170000Z"
+            DESCRIPTION
+                "V2.15, modify the description of hwAtmVpcConnectivityTestResultNotify and hwAtmVccConnectivityTestResultNotify."
+
+            REVISION     "201612270000Z"
+            DESCRIPTION
+                "V2.14, add trap node hwNoAtmResourceAlarmTrap of table hwAtmTraps."
+
+            REVISION     "201509300000Z"
+            DESCRIPTION
+                "V2.13, add hwAtmPvcQueueStatisticTable for pvc-queue."
+
+            REVISION     "201509300000Z"
+            DESCRIPTION
+                "Modify the MAX-ACCESS of hwAtmPvcTransmittalDirection from not-accessible to read-only."
+
+            REVISION     "201407280000Z"
+            DESCRIPTION
+                "Modify the invalid value of hwAtmPvcServiceBuffer and hwAtmPvpServiceBuffer  from 4294967295 to -1. 
+                 Modify the MAX-ACCESS of hwAtmVpcConnectivityTestRowStatus and hwAtmVccConnectivityTestRowStatus
+                 from accessible-for-notify to read-create"
 
             REVISION     "201402180000Z"
             DESCRIPTION
@@ -717,7 +756,7 @@ VPI."
                  input(1),
                  output(2)
             }
-            MAX-ACCESS  not-accessible
+            MAX-ACCESS  read-only
             STATUS      current
             DESCRIPTION
                "Indicates the input or output tpye of the service type."
@@ -733,7 +772,7 @@ VPI."
         ::= { hwAtmPvcServiceEntry 22 }
 
 	hwAtmPvcServiceBuffer OBJECT-TYPE
-		SYNTAX Integer32 (128..8192|4294967295)
+		SYNTAX Integer32  (128..8192|-1)
 		MAX-ACCESS read-write
 		STATUS current
 		DESCRIPTION
@@ -1002,7 +1041,7 @@ VPI."
             DEFVAL { 7 }
             ::= { hwAtmPvpServiceEntry 22 }
 	hwAtmPvpServiceBuffer OBJECT-TYPE
-		SYNTAX Integer32 (128..8192|4294967295)
+		SYNTAX Integer32 (128..8192|-1)
 		MAX-ACCESS read-write
 		STATUS current
 		DESCRIPTION
@@ -1086,7 +1125,7 @@ VPI."
         MAX-ACCESS not-accessible
         STATUS current
         DESCRIPTION
-            "Indicates the interface index."
+            "This object indicates the interface index."
         ::= { hwAtmPvcStatisticEntry 1 }
 
     
@@ -1096,9 +1135,9 @@ VPI."
         MAX-ACCESS not-accessible
         STATUS current
         DESCRIPTION
-            "Indicates the local VPI value. The value is an integer.
-            For UNI interface, VPI value ranging from 0 to 255;
-            For NNI interface, VPI value ranging from 0 to 4095."
+            "This object indicates the virtual path identifier (VPI) of ATM. The value is an integer. 
+            For a UNI, the value ranges from 0 to 255. 
+            For an NNI, the value ranges from 0 to 4095."
         ::= { hwAtmPvcStatisticEntry 2 }
 
     
@@ -1108,9 +1147,7 @@ VPI."
         MAX-ACCESS not-accessible
         STATUS current
         DESCRIPTION
-            "Indicates the local VCI value. VCI is short for Virtual Channel Identifier.
-            The VCI value ranges from 0 to 65535. Generally, the values 3, 4 and 65535
-            are reserved for specail use."
+            "This object indicates the virtual channel identifier (VCI) of ATM."
         ::= { hwAtmPvcStatisticEntry 3 }
 
     
@@ -1120,7 +1157,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the input packets for the pvc."
+            "This object indicates the number of received packets."
         ::= { hwAtmPvcStatisticEntry 11 }
 
     
@@ -1130,7 +1167,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the input bytes for the pvc."
+            "This object indicates the number of received bytes."
         ::= { hwAtmPvcStatisticEntry 12 }
 
     
@@ -1140,7 +1177,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the input packet errors for the pvc."
+            "This object indicates the number of received error packets."
         ::= { hwAtmPvcStatisticEntry 13 }
 
     
@@ -1150,7 +1187,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the input cells for the pvc."
+            "This object indicates the number of received cells."
         ::= { hwAtmPvcStatisticEntry 14 }
 
     
@@ -1160,7 +1197,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the input cell errors for the pvc."
+            "This object indicates the number of received error cells."
         ::= { hwAtmPvcStatisticEntry 15 }
 
     
@@ -1170,7 +1207,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the output packets for the pvc."
+            "This object indicates the number of sent packets."
         ::= { hwAtmPvcStatisticEntry 16 }
 
     
@@ -1180,7 +1217,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the output bytes for the pvc."
+            "This object indicates the number of sent bytes."
         ::= { hwAtmPvcStatisticEntry 17 }
 
     
@@ -1190,7 +1227,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the output packet errors for the pvc."
+            "This object indicates the number of sent error packets."
         ::= { hwAtmPvcStatisticEntry 18 }
 
     
@@ -1200,7 +1237,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the output cells for the pvc."
+            "This object indicates the number of sent cells."
         ::= { hwAtmPvcStatisticEntry 19 }
 
     
@@ -1210,7 +1247,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the output cell errors for the pvc."
+            "This object indicates the number of sent error cells."
         ::= { hwAtmPvcStatisticEntry 20 }
         
         
@@ -1220,7 +1257,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the input cell drops for the pvc."
+            "This object indicates the number of discarded received cells."
         ::= { hwAtmPvcStatisticEntry 21 }
         
         
@@ -1230,7 +1267,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the input packet drops for the pvc."
+            "This object indicates the number of discarded received packets."
         ::= { hwAtmPvcStatisticEntry 22 }
         
         
@@ -1240,7 +1277,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the output cell drops for the pvc."
+            "This object indicates the number of discarded sent cells."
         ::= { hwAtmPvcStatisticEntry 23 }
         
         
@@ -1250,7 +1287,7 @@ VPI."
         MAX-ACCESS read-only
         STATUS current
         DESCRIPTION
-            "Indicates the output packet drops for the pvc."
+            "This object indicates the number of discarded sent packets."
         ::= { hwAtmPvcStatisticEntry 24 }
         
     
@@ -1264,7 +1301,7 @@ VPI."
         MAX-ACCESS read-write
         STATUS current
         DESCRIPTION
-            "Reset the statistic information counter for the pvc."
+            "This object indicates cleared statistics."
         ::= { hwAtmPvcStatisticEntry 51 }
 
         hwAtmIfConfTable OBJECT-TYPE
@@ -1488,7 +1525,7 @@ VPI."
                 aal5nlpidietf: RFC1490 encapsulation type, which used to differentiate with aal5nlpid for ISIS.
                 aal5Auto: Auto encapsulation type.
                 "
-            DEFVAL { aal5snap }
+            DEFVAL { aal5Snap }
             ::= { hwAtmVclEntry 12 }
 
         hwAtmVclRowStatus OBJECT-TYPE
@@ -2177,7 +2214,7 @@ related VP parameters."
                 aal5nlpid: RFC1490 encapsulation type.
                 aal5nlpidietf: RFC1490 encapsulation type, which used to differentiate with aal5nlpid for ISIS.
                 aal5Auto: Auto encapsulation type."
-            DEFVAL { aal5snap }
+            DEFVAL { aal5Snap }
             ::= { hwAtmPvcDynamicEntry 7 }
 
         hwAtmPvcDynamicRowStatus OBJECT-TYPE
@@ -2426,7 +2463,7 @@ related VP parameters."
     -- 1.3.6.1.4.1.2011.5.25.156.1.25.1.51
     hwAtmVpcConnectivityTestRowStatus OBJECT-TYPE
         SYNTAX RowStatus
-        MAX-ACCESS accessible-for-notify
+        MAX-ACCESS read-create
         STATUS current
         DESCRIPTION
             "Indicates the status of the row."
@@ -2535,11 +2572,144 @@ related VP parameters."
     -- 1.3.6.1.4.1.2011.5.25.156.1.26.1.51
     hwAtmVccConnectivityTestRowStatus OBJECT-TYPE
         SYNTAX RowStatus
-        MAX-ACCESS accessible-for-notify
+        MAX-ACCESS read-create
         STATUS current
         DESCRIPTION
             "Indicates the status of the row."
         ::= { hwAtmVccConnectivityTestEntry 51 }
+
+-- hwAtmPvcQueueStatisticTable
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27
+    hwAtmPvcQueueStatisticTable OBJECT-TYPE
+        SYNTAX SEQUENCE OF HwAtmPvcQueueStatisticEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "This table is used to configure pvc-queue statistic including outputPackets,
+            outputBytes and outputDropPackets."
+        ::= { hwAtmObjects 27 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1
+    hwAtmPvcQueueStatisticEntry OBJECT-TYPE
+        SYNTAX HwAtmPvcQueueStatisticEntry
+        MAX-ACCESS not-accessible
+        STATUS current
+        DESCRIPTION
+            "This table is used to configure pvc-queue statistic including outputPackets,
+            outputBytes and outputDropPackets."
+        INDEX { hwAtmPvcQueueStatisticIfIndex,
+                hwAtmPvcQueueStatisticVpi,
+                hwAtmPvcQueueStatisticVci,
+                hwAtmPvcQueueStatisticQueueIndex }
+        ::= { hwAtmPvcQueueStatisticTable 1 }
+
+    HwAtmPvcQueueStatisticEntry ::=
+        SEQUENCE { 
+            hwAtmPvcQueueStatisticIfIndex
+                InterfaceIndex,
+            hwAtmPvcQueueStatisticVpi
+                AtmVpIdentifier,
+            hwAtmPvcQueueStatisticVci
+                AtmVcIdentifier,
+            hwAtmPvcQueueStatisticQueueIndex
+                INTEGER,
+            hwAtmPvcQueueStatisticReset
+                INTEGER,
+            hwAtmPvcQueueStatisticTxPks
+                Counter64,
+            hwAtmPvcQueueStatisticTxBytes
+                Counter64,
+            hwAtmPvcQueueStatisticTxDropPks
+                Counter64
+         }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.1
+    hwAtmPvcQueueStatisticIfIndex OBJECT-TYPE
+        SYNTAX InterfaceIndex
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "This object indicates the interface index."
+        ::= { hwAtmPvcQueueStatisticEntry 1 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.2
+    hwAtmPvcQueueStatisticVpi OBJECT-TYPE
+        SYNTAX AtmVpIdentifier
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "This object indicates the virtual path identifier (VPI) of ATM. The value is an integer. 
+            For a UNI, the value ranges from 0 to 255. 
+            For an NNI, the value ranges from 0 to 4095."
+        ::= { hwAtmPvcQueueStatisticEntry 2 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.3
+    hwAtmPvcQueueStatisticVci OBJECT-TYPE
+        SYNTAX AtmVcIdentifier
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "This object indicates the virtual channel identifier (VCI) of ATM."
+        ::= { hwAtmPvcQueueStatisticEntry 3 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.4
+    hwAtmPvcQueueStatisticQueueIndex OBJECT-TYPE
+        SYNTAX INTEGER
+          {
+            be(1),
+            af1(2), 
+            af2(3),
+            af3(4),
+            af4(5),
+            ef(6),
+            cs6(7),
+            cs7(8)
+          }
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+        " This object indicates the queue priority."
+        ::= { hwAtmPvcQueueStatisticEntry 4 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.5
+    hwAtmPvcQueueStatisticReset OBJECT-TYPE
+        SYNTAX INTEGER
+            {
+            reset(1),
+            ready(2)
+            }
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This object indicates cleared statistics."
+        ::= { hwAtmPvcQueueStatisticEntry 5 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.6
+    hwAtmPvcQueueStatisticTxPks OBJECT-TYPE
+        SYNTAX Counter64
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "This object indicates the number of sent packets."
+        ::= { hwAtmPvcQueueStatisticEntry 6 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.7
+    hwAtmPvcQueueStatisticTxBytes OBJECT-TYPE
+        SYNTAX Counter64
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "This object indicates the number of sent bytes."
+        ::= { hwAtmPvcQueueStatisticEntry 7 }
+
+    -- 1.3.6.1.4.1.2011.5.25.156.1.27.1.8
+    hwAtmPvcQueueStatisticTxDropPks OBJECT-TYPE
+        SYNTAX Counter64
+        MAX-ACCESS read-only
+        STATUS current
+        DESCRIPTION
+            "This object indicates the number of discarded sent packets."
+        ::= { hwAtmPvcQueueStatisticEntry 8 }
 
 
     -- 1.3.6.1.4.1.2011.5.25.156.2
@@ -2556,7 +2726,7 @@ related VP parameters."
              }
         STATUS current
         DESCRIPTION
-            "Description."
+            "This object indicates that the connectivity test on ATM VPC services is ended."
         ::= { hwVplTrap 1 }
 
 
@@ -2570,7 +2740,7 @@ related VP parameters."
             hwAtmVccConnectivityTestIfName }
         STATUS current
         DESCRIPTION
-            "Description."
+            "This object indicates that the connectivity test on ATM VCC services is ended."
         ::= { hwVclTrap 1 }
 
 
@@ -2762,7 +2932,8 @@ related VP parameters."
                         hwVcAis, hwVcAisResume,
                         hwVcRdi, hwVcRdiResume,
                         hwVpLoc, hwVpLocResume,
-                        hwVcLoc, hwVcLocResume                                   
+                        hwVcLoc, hwVcLocResume,
+                        hwNoAtmResourceAlarmTrap                                   
                       }
         STATUS current
         DESCRIPTION 
@@ -2876,6 +3047,16 @@ related VP parameters."
         "The CC-LOC alarm of the VC is cancelled."
       ::= { hwAtmTraps 12 }
 
+     hwNoAtmResourceAlarmTrap NOTIFICATION-TYPE
+       OBJECTS    {
+                  hwFrameIndex,  
+                  hwSlotIndex,
+                  hwPortIndex
+                  }         
+       STATUS current
+       DESCRIPTION
+           "When ATM resources of the system are insufficient, this trap will be generated."
+       ::= { hwAtmTraps 13 }      
 
     hwOamAlmDirection OBJECT-TYPE
       SYNTAX Integer32

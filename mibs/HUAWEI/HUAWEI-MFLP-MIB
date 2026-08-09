@@ -1,9 +1,9 @@
 -- ==================================================================
--- Copyright (C) 2007 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Copyright (C) 2019 by  HUAWEI TECHNOLOGIES. All rights reserved.
 -- 
 -- Description:  HUAWEI mac flapping management MIB
 -- Reference:
--- Version: V2.12
+-- Version: V2.23
 -- History:
 -- ==================================================================
 
@@ -32,7 +32,7 @@ IMPORTS
         FROM SNMPv2-SMI;                         
         
     hwMFlpMIB MODULE-IDENTITY 
-            LAST-UPDATED "201403150000Z"		
+            LAST-UPDATED "201907120000Z"
             ORGANIZATION
                   "Huawei Technologies Co.,Ltd."
             CONTACT-INFO 
@@ -43,8 +43,32 @@ IMPORTS
                      Website: http://www.huawei.com
                      Email: support@huawei.com
                    "
+			DESCRIPTION   "Modify disable to disabled"
+            REVISION     "201907120000Z"
+            DESCRIPTION   "Modify hwMflpBdLinkBlocked hwMflpBdLinkResumed"
+            REVISION     "201806290000Z"
+            DESCRIPTION "Modify hwMflpBdIndex"
+            REVISION     "201711130000Z"
+            DESCRIPTION
+            "Add Objects to hwMacHopTrafficSuppressVsiToken hwMacHopTrafficUnsuppressVsiToken hwMacHopTrafficSuppressVsiVlan hwMacHopTrafficUnsuppressVsiVlan."
+            REVISION     "201709140000Z"
+			DESCRIPTION  "Add Objects to hwMflpBdLinkBlocked hwMflpBdLinkResumed."
+            REVISION     "201704050000Z"
+             DESCRIPTION 
+             "Add Objects to hwMflpTrapGroup."
+             REVISION     "201703030000Z"
             DESCRIPTION 
-                  "Mac flapping management MIB."        
+            "Mac flapping management MIB."
+            REVISION     "201604270000Z"
+            DESCRIPTION  "Add Objects to hwMflpBdCfgTable."
+            REVISION     "201507170000Z"
+            DESCRIPTION  "Fix the errors."
+            REVISION     "201507140000Z"
+            DESCRIPTION  "Add Objects to hwMflpNewAlarm."
+            REVISION     "201412230000Z"
+            DESCRIPTION  "Add Objects to hwMflpLinkBlkedIfName."
+            REVISION     "201403150000Z"
+            DESCRIPTION  "Add Objects to hwMflpDefaultAlarm and hwMflpDefaultResume ."
             REVISION     "201403150000Z"
             DESCRIPTION  "Add Objects to hwMflpVsiAlarm."
             REVISION     "201309070000Z"
@@ -274,6 +298,8 @@ IMPORTS
                                 RowStatus,   
                         hwMflpVsiDetectMAC
                                 DisplayString,  
+			hwMflpLinkBlkedIfName
+                                DisplayString,
                         hwMflpVsiCfgAcNameEx1
                                 DisplayString,
                         hwMflpVsiCfgAcNameEx2
@@ -282,7 +308,7 @@ IMPORTS
         
         hwMflpVsiName OBJECT-TYPE
                 SYNTAX OCTET STRING (SIZE (1..32))
-                MAX-ACCESS not-accessible
+                MAX-ACCESS accessible-for-notify
                 STATUS current
                 DESCRIPTION
                         "The VSI name referring to the VSI which is correlative to the hwMflpVsiCfg table."
@@ -332,7 +358,7 @@ IMPORTS
                 MAX-ACCESS read-create
                 STATUS current
                 DESCRIPTION
-                        "The blocked time of the interface.
+                        "The blocked time of the interface .
                         When the value of hwMflpAction is 1, value of hwMflpBlockTime should be 
                         between 10 and 65535."
                 ::= { hwMflpVsiCfgEntry 6 }  
@@ -409,16 +435,16 @@ IMPORTS
 		            DESCRIPTION
 		                "The detect MAC, only used for trap."
 		            ::= { hwMflpVsiCfgEntry 14 }    
-		                            
-        hwMflpVsiCfgAcNameEx1 OBJECT-TYPE
+	
+        hwMflpLinkBlkedIfName OBJECT-TYPE
                     SYNTAX      DisplayString
                     MAX-ACCESS accessible-for-notify
                     STATUS current
                     DESCRIPTION
-                        "The AC interface name, only used for trap."
-                    ::= { hwMflpVsiCfgEntry 15 } 
+                        "MAC-Flapping association, only used for trap."
+                    ::= { hwMflpVsiCfgEntry 15 }
 					
-        hwMflpVsiCfgAcNameEx2 OBJECT-TYPE
+        hwMflpVsiCfgAcNameEx1 OBJECT-TYPE
                     SYNTAX      DisplayString
                     MAX-ACCESS accessible-for-notify
                     STATUS current
@@ -426,6 +452,233 @@ IMPORTS
                         "The AC interface name, only used for trap."
                     ::= { hwMflpVsiCfgEntry 16 } 
 					
+        hwMflpVsiCfgAcNameEx2 OBJECT-TYPE
+                    SYNTAX      DisplayString
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The AC interface name, only used for trap."
+                    ::= { hwMflpVsiCfgEntry 17 } 
+
+       hwMflpBdCfgTable OBJECT-TYPE
+                SYNTAX SEQUENCE OF HwMflpBdCfgEntry
+                MAX-ACCESS not-accessible
+                STATUS current
+                DESCRIPTION
+                        "The mac flapping table .The table that 
+                        contains the mac flapping information 
+                        currently operating in Bd mode on this device."
+                ::= { hwMflpObjects 3 }
+        
+        hwMflpBdCfgEntry OBJECT-TYPE
+                SYNTAX HwMflpBdCfgEntry
+                MAX-ACCESS not-accessible
+                STATUS current
+                DESCRIPTION
+                        "Entries of The mac flapping table in Bd mode."
+                INDEX { hwMflpBdIndex }
+                ::= { hwMflpBdCfgTable 1 }			
+				
+        HwMflpBdCfgEntry ::=
+                SEQUENCE { 
+                        hwMflpBdIndex
+                                Unsigned32,
+                        hwMflpBdCfgBlockTime
+                                Unsigned32,
+                        hwMflpBdCfgAcName
+                                DisplayString,
+                        hwMflpBdCfgAlarmReason
+                                DisplayString, 
+                        hwMflpBdDetectMAC
+                                DisplayString,    
+                        hwMflpBdCfgAcNameEx1
+                                DisplayString,
+                        hwMflpBdCfgAcNameEx2
+                                DisplayString,
+                        hwMflpBdCfgVsiName
+                                OCTET STRING,     
+                        hwMflpBdCfgIpAddr
+                                IpAddress,
+                        hwMflpBdCfgPwId
+                                Unsigned32				                          
+                 }				
+				
+        hwMflpBdIndex OBJECT-TYPE
+                SYNTAX Unsigned32 
+                MAX-ACCESS accessible-for-notify
+                STATUS current
+                DESCRIPTION
+                        "The Bd ID referring to the BD which is correlative to the hwMflpBdCfg table."
+                ::= { hwMflpBdCfgEntry 1 }
+                            
+        hwMflpBdCfgBlockTime OBJECT-TYPE
+                SYNTAX Unsigned32 (0..65535)
+                MAX-ACCESS accessible-for-notify
+                STATUS current
+                DESCRIPTION
+                        "The blocked time of the interface in units of seconds.
+                        When the value of hwMflpAction is 1, value of hwMflpBlockTime should be 
+                        between 10 and 65535."
+                ::= { hwMflpBdCfgEntry 2 }  
+                
+        hwMflpBdCfgAcName OBJECT-TYPE
+                    SYNTAX      DisplayString
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The AC interface name, only used for trap."
+                    ::= { hwMflpBdCfgEntry 3 } 
+                        
+        hwMflpBdCfgAlarmReason OBJECT-TYPE
+                    SYNTAX      DisplayString
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The alarm reason, only used for trap."
+                    ::= { hwMflpBdCfgEntry 4 }                                                                                                        
+
+        hwMflpBdDetectMAC OBJECT-TYPE
+		            SYNTAX      DisplayString
+		            MAX-ACCESS accessible-for-notify
+		            STATUS current
+		            DESCRIPTION
+		                "The detect MAC, only used for trap."
+		            ::= { hwMflpBdCfgEntry 5 }    
+					
+        hwMflpBdCfgAcNameEx1 OBJECT-TYPE
+                    SYNTAX      DisplayString
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The AC interface name, only used for trap."
+                    ::= { hwMflpBdCfgEntry 6 } 
+					
+        hwMflpBdCfgAcNameEx2 OBJECT-TYPE
+                    SYNTAX      DisplayString
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The AC interface name, only used for trap."
+                    ::= { hwMflpBdCfgEntry 7 } 
+		    
+        hwMflpBdCfgVsiName OBJECT-TYPE
+                SYNTAX OCTET STRING (SIZE (1..32))
+                MAX-ACCESS accessible-for-notify
+                STATUS current
+                DESCRIPTION
+                        "The VSI name referring to the VSI which is correlative to the hwMflpBdCfgEntry table."
+                ::= { hwMflpBdCfgEntry 8 }	
+			    	    
+        hwMflpBdCfgIpAddr OBJECT-TYPE
+                    SYNTAX IpAddress
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The peer IP address, only used for trap."
+                    ::= { hwMflpBdCfgEntry 9}  
+                    
+        hwMflpBdCfgPwId OBJECT-TYPE
+                    SYNTAX Unsigned32
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The PW ID, only used for trap."
+                    ::= { hwMflpBdCfgEntry 10 }    
+
+        hwMacHopTrafficSuppressCfgTable OBJECT-TYPE
+                SYNTAX SEQUENCE OF HwMacHopTrafficSuppressCfgEntry
+                MAX-ACCESS not-accessible
+                STATUS current
+                DESCRIPTION
+                        "The mac flapping Traffic Suppress table .
+	The table that contains the mac flapping information 
+                 currently operating when brodcasting traffic suppress 
+	occuring on this device."
+                ::= { hwMflpObjects 4 }
+        
+        hwMacHopTrafficSuppressCfgEntry OBJECT-TYPE
+                SYNTAX HwMacHopTrafficSuppressCfgEntry
+                MAX-ACCESS not-accessible
+                STATUS current
+                DESCRIPTION
+                        "Entries of The mac flapping Traffic Suppress table."
+                INDEX { hwMacHopTrafficSuppressDomainType }
+                ::= { hwMacHopTrafficSuppressCfgTable 1 }					
+        HwMacHopTrafficSuppressCfgEntry ::=
+                SEQUENCE { 
+                       hwMacHopTrafficSuppressDomainType
+                                OCTET STRING,                                
+                        hwMacHopTrafficSuppressDomainName
+                                OCTET STRING,
+                        hwMacHopTrafficSuppressIfName
+                                OCTET STRING,
+                        hwMacHopTrafficSuppressCmdType
+                                OCTET STRING,
+                        hwMacHopTrafficSuppressCir
+                                Unsigned32,                    
+                        hwMacHopTrafficSuppressPeerIp
+                                OCTET STRING,
+                        hwMacHopTrafficSuppressVcLabel
+                                Unsigned32                                               
+                 }
+	hwMacHopTrafficSuppressDomainType OBJECT-TYPE
+                    SYNTAX OCTET STRING
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The domain type, contains VSI and VLAN."
+                    ::= { hwMacHopTrafficSuppressCfgEntry 1 }
+					
+	hwMacHopTrafficSuppressDomainName OBJECT-TYPE
+                    SYNTAX OCTET STRING
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The domain name, only used for trap."
+                    ::= { hwMacHopTrafficSuppressCfgEntry 2 }
+					
+                    hwMacHopTrafficSuppressIfName OBJECT-TYPE
+                    SYNTAX OCTET STRING
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The interface name, only used for trap."
+                    ::= { hwMacHopTrafficSuppressCfgEntry 3 } 
+					
+	hwMacHopTrafficSuppressCmdType OBJECT-TYPE
+                    SYNTAX OCTET STRING
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The command type, only used for trap."
+                    ::= { hwMacHopTrafficSuppressCfgEntry 4 }
+					
+	hwMacHopTrafficSuppressCir OBJECT-TYPE
+                    SYNTAX Unsigned32
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The traffic rate , only used for trap."
+                    ::= { hwMacHopTrafficSuppressCfgEntry 5 }
+					
+	hwMacHopTrafficSuppressPeerIp OBJECT-TYPE
+                    SYNTAX OCTET STRING
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The peer device IP in VSI mode, only used for trap."
+                    ::= { hwMacHopTrafficSuppressCfgEntry 6 }
+					
+	hwMacHopTrafficSuppressVcLabel OBJECT-TYPE
+                    SYNTAX Unsigned32
+                    MAX-ACCESS accessible-for-notify
+                    STATUS current
+                    DESCRIPTION
+                        "The VC label in VSI mode, only used for trap."
+                    ::= { hwMacHopTrafficSuppressCfgEntry 7 }
+					
+					
+		
         hwMflpGeneralObjects OBJECT IDENTIFIER ::= { hwMFlpMIB 2 }        
                 
         hwMflpTrapEnable OBJECT-TYPE
@@ -434,8 +687,32 @@ IMPORTS
                 STATUS current
                 DESCRIPTION
                     "This object indicates the enable sign of MFLP notification."
-                DEFVAL { disable }
-                ::= { hwMflpGeneralObjects 1 }                
+                DEFVAL { disabled }
+                ::= { hwMflpGeneralObjects 1 }   
+
+        hwMflpBdId OBJECT-TYPE
+                SYNTAX Unsigned32
+                MAX-ACCESS accessible-for-notify
+                STATUS current
+                DESCRIPTION
+                    "The BdId of mac flapping, only used for trap."
+                ::= { hwMflpGeneralObjects 2 } 	
+        hwMflpIfName OBJECT-TYPE
+                SYNTAX DisplayString
+                MAX-ACCESS accessible-for-notify
+                STATUS current
+                DESCRIPTION
+                    "The interface name of mac flapping, only used for trap."
+                ::= { hwMflpGeneralObjects 3 } 
+
+        hwMflpAlarmReason OBJECT-TYPE
+                SYNTAX DisplayString
+                MAX-ACCESS accessible-for-notify
+                STATUS current
+                DESCRIPTION
+                    "The alarm reason of mac flapping, only used for trap."
+                ::= { hwMflpGeneralObjects 4 } 	 
+
 
 --           
 -- MFLP MIB Trap Definitions
@@ -498,14 +775,14 @@ IMPORTS
                 "This notification indicates alarm only when loop existed in vsi."
             ::= { hwMflpMIBTraps 8 }
 		
-		hwMflpMacAddrAlarm NOTIFICATION-TYPE
+         hwMflpMacAddrAlarm NOTIFICATION-TYPE
             OBJECTS { hwMflpVlanCfgMacAddr, hwMflpVlanCfgBlockTime, hwMflpVlanCfgPreIfName, hwMflpVlanCfgIfName, hwMflpVlanCfgAlarmReason }
             STATUS current
             DESCRIPTION 
                 "This notification indicates the MAC locked."
             ::= { hwMflpMIBTraps 9 }
 			
-		hwMflpMacAddrResume NOTIFICATION-TYPE
+            hwMflpMacAddrResume NOTIFICATION-TYPE
             OBJECTS { hwMflpVlanCfgMacAddr, hwMflpVlanCfgBlockTime, hwMflpVlanCfgPreIfName, hwMflpVlanCfgIfName, hwMflpVlanCfgAlarmReason }
             STATUS current
             DESCRIPTION 
@@ -539,7 +816,139 @@ IMPORTS
             DESCRIPTION 
                 "This notification indicates alarm only when loop existed in vlan."
             ::= { hwMflpMIBTraps 14 }      
-                            
+        hwMflpDefaultAlarm NOTIFICATION-TYPE
+            OBJECTS { hwMflpVlanId, hwMflpVsiName }
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates alarm only when loop existed."
+            ::= { hwMflpMIBTraps 15 }
+            
+        hwMflpDefaultResume NOTIFICATION-TYPE
+            OBJECTS { hwMflpVlanId, hwMflpVsiName }
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates alarm only when loop resumed."
+            ::= { hwMflpMIBTraps 16 } 
+
+        hwMflpBdAlarm NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdId, hwMflpIfName, hwMflpIfName, hwMflpIfName, hwMflpAlarmReason}
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates alarm only when loop existed in bd."
+            ::= { hwMflpMIBTraps 17 } 
+        
+        hwMflpBdAlarmResume NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdId, hwMflpIfName, hwMflpIfName, hwMflpIfName, hwMflpAlarmReason}
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates alarm only when loop existed in bd."
+            ::= { hwMflpMIBTraps 18 } 
+
+        hwMflpBdPeriodicTrap NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdId, hwMflpIfName, hwMflpIfName, hwMflpIfName, hwMflpAlarmReason}
+            STATUS current
+            DESCRIPTION 
+                "This notification only for bd mac flapping periodic send."
+            ::= { hwMflpMIBTraps 19 } 
+        
+        hwMflpVlanLoopPeriodicTrap NOTIFICATION-TYPE
+            OBJECTS { hwMflpVlanId, hwMflpVlanCfgPreIfName, hwMflpVlanCfgIfName,hwMflpVlanCfgIfName, hwMflpVlanCfgAlarmReason }
+            STATUS current
+            DESCRIPTION 
+                "This notification only for vlan mac flapping periodic send."
+            ::= { hwMflpMIBTraps 20 }  
+
+        hwMflpBdAcBlock NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdIndex, hwMflpBdCfgAcName, hwMflpBdCfgBlockTime, hwMflpBdCfgAlarmReason, hwMflpBdDetectMAC }
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates the interface blocked."
+            ::= { hwMflpMIBTraps 21 }  
+            
+        hwMflpBdAcResume NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdIndex, hwMflpBdCfgAcName, hwMflpBdCfgBlockTime, hwMflpBdCfgAlarmReason }
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates the interface resumed."
+            ::= { hwMflpMIBTraps 22 }      
+  
+        hwMflpBdPwBlock NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdIndex, hwMflpBdCfgVsiName, hwMflpBdCfgIpAddr, hwMflpBdCfgPwId, hwMflpBdCfgBlockTime, hwMflpBdCfgAlarmReason, hwMflpBdDetectMAC }
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates the interface blocked."
+            ::= { hwMflpMIBTraps 23 }  
+            
+        hwMflpBdPwResume NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdIndex, hwMflpBdCfgVsiName, hwMflpBdCfgIpAddr, hwMflpBdCfgPwId, hwMflpBdCfgBlockTime, hwMflpBdCfgAlarmReason }
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates the interface resumed."
+            ::= { hwMflpMIBTraps 24 }      
+
+        hwMflpBdAlarmOnly NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdIndex, hwMflpBdCfgAcName, hwMflpBdCfgAcNameEx1, hwMflpBdCfgAcNameEx2, hwMflpBdCfgAlarmReason, hwMflpBdDetectMAC}
+            STATUS current
+            DESCRIPTION 
+                "This notification indicates alarm only when loop existed in BD."
+            ::= { hwMflpMIBTraps 25 }  	
+
+	hwMflpLinkBlocked NOTIFICATION-TYPE
+            OBJECTS { hwMflpVsiName, hwMflpVsiCfgAcName, hwMflpLinkBlkedIfName, hwMflpVsiCfgBlockTime }
+            STATUS current
+            DESCRIPTION 
+                "The main interface has been blocked due to MAC-Flapping association."
+            ::= { hwMflpMIBTraps 26 }
+
+	hwMflpLinkResumed NOTIFICATION-TYPE
+            OBJECTS { hwMflpVsiName, hwMflpVsiCfgAcName, hwMflpLinkBlkedIfName }
+            STATUS current
+            DESCRIPTION 
+                "The main interface has been unblocked due to MAC-Flapping association."
+            ::= { hwMflpMIBTraps 27 }
+
+	hwMflpBdLinkBlocked NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdIndex, hwMflpBdCfgAcName, hwMflpBdCfgAcNameEx1, hwMflpBdCfgBlockTime }
+            STATUS current
+            DESCRIPTION 
+                "The main interface has been blocked due to MAC-Flapping association."
+            ::= { hwMflpMIBTraps 28 }
+
+	hwMflpBdLinkResumed NOTIFICATION-TYPE
+            OBJECTS { hwMflpBdIndex, hwMflpBdCfgAcName, hwMflpBdCfgAcNameEx1 }
+            STATUS current
+            DESCRIPTION 
+                "The main interface has been unblocked due to MAC-Flapping association."
+            ::= { hwMflpMIBTraps 29 }			
+
+        hwMacHopTrafficSuppressVsiVlan NOTIFICATION-TYPE
+            OBJECTS { hwMacHopTrafficSuppressDomainType,hwMacHopTrafficSuppressDomainName, hwMacHopTrafficSuppressIfName, hwMacHopTrafficSuppressCmdType, hwMacHopTrafficSuppressCir }
+            STATUS current
+            DESCRIPTION 
+                "Traffic-suppress takes effect."
+            ::= { hwMflpMIBTraps 30 }
+
+        hwMacHopTrafficUnsuppressVsiVlan NOTIFICATION-TYPE
+            OBJECTS { hwMacHopTrafficSuppressDomainType,hwMacHopTrafficSuppressDomainName, hwMacHopTrafficSuppressIfName, hwMacHopTrafficSuppressCmdType, hwMacHopTrafficSuppressCir }
+            STATUS current
+            DESCRIPTION 
+                "Traffic-suppress became ineffective."
+            ::= { hwMflpMIBTraps 31 }
+
+hwMacHopTrafficSuppressVsiToken NOTIFICATION-TYPE
+            OBJECTS {hwMacHopTrafficSuppressDomainType,hwMacHopTrafficSuppressDomainName, hwMacHopTrafficSuppressPeerIp, hwMacHopTrafficSuppressVcLabel, hwMacHopTrafficSuppressCmdType, hwMacHopTrafficSuppressCir }
+            STATUS current
+            DESCRIPTION 
+                "Traffic-suppress takes effect."
+            ::= { hwMflpMIBTraps 32 }
+
+ hwMacHopTrafficUnsuppressVsiToken NOTIFICATION-TYPE
+            OBJECTS {hwMacHopTrafficSuppressDomainType,hwMacHopTrafficSuppressDomainName, hwMacHopTrafficSuppressPeerIp, hwMacHopTrafficSuppressVcLabel, hwMacHopTrafficSuppressCmdType, hwMacHopTrafficSuppressCir }
+            STATUS current
+            DESCRIPTION 
+                "Traffic-suppress became ineffective."
+            ::= { hwMflpMIBTraps 33 }
+			
 -- IEEE 802.1Q MIB - Conformance Information
 
 hwMflpConformance OBJECT IDENTIFIER ::= { hwMFlpMIB 4 }
@@ -594,6 +1003,7 @@ hwMflpVsiCfgGroup OBJECT-GROUP
     		hwMflpVsiCfgPwId,
 		hwMflpVsiCfgRowstatus,
 		hwMflpVsiDetectMAC,
+		hwMflpLinkBlkedIfName,
     		hwMflpVsiCfgAcNameEx1,
     		hwMflpVsiCfgAcNameEx2
     }
@@ -604,7 +1014,7 @@ hwMflpVsiCfgGroup OBJECT-GROUP
     ::= { hwMflpGroups 2 }   
     
 hwMflpTrapEnableGroup OBJECT-GROUP
-    OBJECTS { hwMflpTrapEnable }
+    OBJECTS { hwMflpTrapEnable,  hwMflpBdId, hwMflpIfName, hwMflpAlarmReason}
         STATUS current
         DESCRIPTION 
             "The Mflp trap enable group."
@@ -625,11 +1035,50 @@ hwMflpTrapGroup NOTIFICATION-GROUP
 	hwMflpQuitVlanAlarm,
         hwMflpQuitVlanResume,
         hwMflpVlanLoopAlarm,
-        hwMflpVlanLoopAlarmResume
+        hwMflpVlanLoopAlarmResume,
+	hwMflpDefaultAlarm,
+	hwMflpDefaultResume,
+        hwMflpBdAlarm,
+        hwMflpBdAlarmResume,
+        hwMflpBdPeriodicTrap,
+        hwMflpVlanLoopPeriodicTrap,
+        hwMflpBdAcBlock, 
+        hwMflpBdAcResume, 
+        hwMflpBdPwBlock, 
+        hwMflpBdPwResume,
+        hwMflpBdAlarmOnly,
+	hwMflpLinkBlocked,
+        hwMflpLinkResumed,
+        hwMflpBdLinkBlocked,
+        hwMflpBdLinkResumed,
+       hwMacHopTrafficSuppressVsiVlan,
+        hwMacHopTrafficUnsuppressVsiVlan,
+        hwMacHopTrafficSuppressVsiToken,
+        hwMacHopTrafficUnsuppressVsiToken
         }
         STATUS current
         DESCRIPTION 
             "Mflp Trap Group."
         ::= { hwMflpGroups 4 }      
+  
+hwMflpBdCfgGroup OBJECT-GROUP
+    OBJECTS {
+		hwMflpBdCfgBlockTime,                   
+		hwMflpBdCfgAcName,
+		hwMflpBdCfgAlarmReason,
+		hwMflpBdDetectMAC,
+		hwMflpBdCfgAcNameEx1,
+		hwMflpBdCfgAcNameEx2,
+    		hwMflpBdCfgVsiName,
+    		hwMflpBdCfgIpAddr,
+    		hwMflpBdCfgPwId,		
+    		hwMflpVsiCfgPwId
+
+    }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing information about 
+        BD mac flapping table."
+    ::= { hwMflpGroups 5 }          
                 
 END

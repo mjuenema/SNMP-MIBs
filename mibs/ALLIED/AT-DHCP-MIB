@@ -16,32 +16,38 @@ IMPORTS
     MODULE-IDENTITY, 
     OBJECT-TYPE, 
     NOTIFICATION-TYPE
-    	FROM SNMPv2-SMI
+        FROM SNMPv2-SMI
 
     DisplayString,
     TruthValue
         FROM SNMPv2-TC
 
-	ifIndex
-		FROM IF-MIB
+    ifIndex
+        FROM IF-MIB
 
-	modules,
-	DisplayStringUnsized
-		FROM AT-SMI-MIB
+    modules,
+    DisplayStringUnsized
+        FROM AT-SMI-MIB
 ;
                                  
-dhcp	MODULE-IDENTITY
-	    LAST-UPDATED "200606281222Z"
-    	ORGANIZATION "Allied Telesis, Inc"
-		CONTACT-INFO
-		    "http://www.alliedtelesis.com"
-		DESCRIPTION
-		    "This MIB file contains definitions of managed objects for the
-	    	DHCP module. "
+dhcp    MODULE-IDENTITY
+        LAST-UPDATED "200904010200Z" -- April 1, 2009
+        ORGANIZATION "Allied Telesis, Inc"
+        CONTACT-INFO
+            "http://www.alliedtelesis.com"
+        DESCRIPTION
+            "This MIB file contains definitions of managed objects for the
+            DHCP module. "
 
-	    REVISION "200606281222Z"
-		DESCRIPTION
-			"Initial Revision"
+        REVISION "200904010200Z" -- April 1, 2009
+        DESCRIPTION
+            "Added a new TRAP (dhcpRangeExceededThresholdTrap) which will be 
+            generated when the number of clients allocated for that range exceeds
+            a preset threshold."
+
+        REVISION "200606281222Z" -- June 28, 2006
+        DESCRIPTION
+            "Initial Revision"
 
 ::= { modules 70 }
 									  
@@ -185,16 +191,75 @@ dhcpRangeExhaustedInterface OBJECT-TYPE
             and from which the allocation should have been made."
     ::= { dhcpTrapVariable 2 }
 
+dhcpRangeExceededRange OBJECT-TYPE
+    SYNTAX      DisplayStringUnsized (SIZE (1..15))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+            "Whenever a DHCP client attempts to lease an IP address and
+            the DHCP server has exceeded a pre-defined threshold this variable
+            is set to the name of the range which received the DHCP request."
+    ::= { dhcpTrapVariable 3 }
+	
+dhcpRangeExceededClients OBJECT-TYPE
+    SYNTAX      INTEGER (1..1024)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+            "The number of IP addresses statically defined for a range upon creation. 
+            Based on the starting IP address for a range, this number determines the
+            upper bound of IP addresses which can be allocated to devices requesting
+            an IP address via DHCP."
+    ::= { dhcpTrapVariable 4 }
+	
+dhcpRangeExceededRemaining OBJECT-TYPE
+    SYNTAX      INTEGER (1..1024)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+            "The number of IP addresses still available to be allocated in this
+            range."
+    ::= { dhcpTrapVariable 5 }
+
+dhcpRangeExceededPercentage OBJECT-TYPE
+    SYNTAX      INTEGER (0..100)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+            "The percentage of IP addresses in a range that are currently in use."
+    ::= { dhcpTrapVariable 6 }
 
 dhcpTraps	OBJECT IDENTIFIER ::= { dhcp 0 }
 dhcpRangeExhaustedTrap NOTIFICATION-TYPE
-    OBJECTS   	{ dhcpRangeExhaustedGateway, dhcpRangeExhaustedInterface }
+    OBJECTS   	{ dhcpRangeExhaustedGateway , dhcpRangeExhaustedInterface }
 	STATUS		current
     DESCRIPTION
                 "This trap is generated when a DHCP client makes a request for
                 an IP address and the request cannot be satisfied because all
                 addresses in the range are already allocated to other devices."
     ::= { dhcpTraps 1 }
+	
+dhcpRangeExceededThresholdTrap NOTIFICATION-TYPE
+    OBJECTS   	{ dhcpRangeExhaustedInterface, dhcpRangeExceededRange,
+				  dhcpRangeExceededClients, dhcpRangeExceededRemaining,
+				  dhcpRangeExceededPercentage }
+	STATUS		current
+    DESCRIPTION
+                "This trap is generated when a DHCP client makes a request for
+                an IP address and a pre-defined usage threshold has been exceeded.
+                The IP addresses will continue to be allocated until the range
+                is exhausted."
+    ::= { dhcpTraps 2 }
+
+dhcpRangeExceededThresholdClearTrap NOTIFICATION-TYPE
+    OBJECTS   	{ dhcpRangeExhaustedInterface, dhcpRangeExceededRange,
+				  dhcpRangeExceededClients, dhcpRangeExceededRemaining,
+				  dhcpRangeExceededPercentage }
+	STATUS		current
+    DESCRIPTION
+                "This trap is generated when the number of allocated clients  
+                in a designated range falls below a pre-defined usage threshold."
+    ::= { dhcpTraps 3 }
 
 -- The DHCP client status table. Each entry in the table gives information about 
 -- ip addresses currently configured on created ranges on the switch/router.

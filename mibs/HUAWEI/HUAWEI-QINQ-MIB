@@ -1,9 +1,9 @@
 --==================================================================
--- Copyright (C) 2006 by  HUAWEI TECHNOLOGIES. All rights reserved.
+-- Copyright (C) 2020 by  HUAWEI TECHNOLOGIES. All rights reserved.
 -- 
 -- Description: HUAWEI Q(802.1Q) IN Q(802.1Q) MIB
 -- Reference:
--- Version: V1.0
+-- Version: V2.07
 --          V1.1
 --          V1.2
 -- History: modified by xieyuan  2006-10-11
@@ -30,13 +30,13 @@ IMPORTS
     MODULE-IDENTITY, OBJECT-TYPE, Integer32, OBJECT-IDENTITY, IpAddress, Counter64, Unsigned32
         FROM SNMPv2-SMI  
     
-    OBJECT-GROUP                        
+    OBJECT-GROUP, MODULE-COMPLIANCE                         
         FROM SNMPv2-CONF    
         
     hwDatacomm
         FROM HUAWEI-MIB
         
-    VlanId
+    VlanIdOrNone, VlanId
         FROM Q-BRIDGE-MIB
            
     InterfaceIndex
@@ -50,24 +50,44 @@ IMPORTS
         FROM HUAWEI-L2IF-MIB; 
     
     hwQinQ MODULE-IDENTITY
-        LAST-UPDATED "200612141629Z"        
+        LAST-UPDATED "202012291538Z"        
          ORGANIZATION 
-          "Huawei Technologies co.,Ltd."
+          "Huawei Technologies Co.,Ltd."
          CONTACT-INFO 
-          "VRP PlatForm Team Huawei Technologies co.,Ltd.
-          Huawei Bld.,NO.3 Xinxi Rd., 
-          Shang-Di Information Industry Base,
-          Hai-Dian District Beijing P.R. China
-            http://www.huawei.com
-           Zip:100085
-                "
-                DESCRIPTION
-            "The QinQ MIB module is defined to manage the configuration under system or interface view."
+          "Huawei Industrial Base
+            Bantian, Longgang
+             Shenzhen 518129
+             People's Republic of China
+             Website: http://www.huawei.com
+             Email: support@huawei.com
+           "
+        DESCRIPTION "Modify  hwQinQAsymmetryUserMode hwQinQSwapCfgFlag hwQinQGroupStat DEFVAL ."
+
+        REVISION  "202012291538Z"
+        DESCRIPTION  "Modify the description of hwQinQSubIfTermCeVlanAny at 2020-12-29."
+		
+        REVISION  "202005261538Z"
+        DESCRIPTION  "Modify the SYNTAX of hwQinQSubIfTermCEVlanStart at 2020-05-26."
+            
+        REVISION  "202005181538Z"
+        DESCRIPTION  "Add the hwQinQSubIfTermCeVlanAny node."
+		
+        REVISION  "201909061538Z"
+        DESCRIPTION  "Modify the REVISION and DESCRIPTION format."
+	
+        REVISION  "201712201538Z"
+        DESCRIPTION  "The QinQ MIB module is defined to manage the configuration under system or interface view."
+        
+        REVISION  "201708171538Z"
+        DESCRIPTION "Modify the description of hwQinQSubIfStackingStatCEVlan at 2017-08-17"
+         
+        REVISION  "201406101538Z"
+        DESCRIPTION "Modify the description of hwQinQSystemWellKnowMac at 2014-06-10"
             ::= {  hwDatacomm  116}
     
--- -------------------------------------------------------------
+-- =======================================
 -- Textual Conventions
--- -------------------------------------------------------------
+-- =======================================
 
 BpduIndex ::= TEXTUAL-CONVENTION
     STATUS      current
@@ -142,9 +162,9 @@ BpduIndex ::= TEXTUAL-CONVENTION
                       MAX-ACCESS read-write
                       STATUS current
                       DESCRIPTION
-                            "The destination  MAC address that is replaced the original destination
-                            macAddress is a wellknown multicast macAddress  to hide the inner details of the BPDU
-                            in order to that it can be transmitted with a tag through the services'network."
+                            "The destination MAC address replacing the original destination macAddress is a well-known
+                             multicast address. This well-known multicast address shields BPDUs inner details to allow
+                             these BPDUs to be transmitted with a tag through the carrier's network."
              ::= { hwQinQSystemBase 1 }
         
         
@@ -480,8 +500,7 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         MAX-ACCESS not-accessible
                         STATUS current
                         DESCRIPTION
-                            "Inner vlan in packets which input the QinQ sub interface,
-                            used to indicate the packets as an index."
+                            "This object indicates the CE VLAN ID of the sub-interface configured with VLAN stacking."
                         ::= { hwQinQSubIfStackingStatEntry 2 }
         
                  hwQinQSubIfStackStatGroupId OBJECT-TYPE
@@ -598,15 +617,15 @@ BpduIndex ::= TEXTUAL-CONVENTION
                             hwQinQSubIfTermPEVlan
                                 VlanId,
                             hwQinQSubIfTermCEVlanStart
-                                VlanId,
+                                VlanIdOrNone,
                             hwQinQSubIfTermCEVlanEnd
                                 VlanId,
                             hwQinQSubIfTermGroupId
                                 Integer32,
                             hwQinQSubIfTermRowStatus
-                                RowStatus,    
-                            hwQinQSubIfTermSubscriberGroupName
-                                OCTET STRING                                
+                                RowStatus,
+                            hwQinQSubIfTermCeVlanAny
+                                INTEGER								
                          }
 
                 hwQinQSubIfTermIfIndex OBJECT-TYPE
@@ -614,7 +633,7 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         MAX-ACCESS not-accessible
                         STATUS current
                         DESCRIPTION
-                            "Index number of the QinQ-termination interface."
+                            "Index number of the QinQ VLAN tag termination sub-interface."
                         ::= { hwQinQSubIfTermEntry 1 }
                           
        
@@ -623,16 +642,16 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         MAX-ACCESS not-accessible
                         STATUS current
                         DESCRIPTION
-                            "Outer vlan id of the packets which have two tags before being terminated."
+                            "Outer VLAN ID of the packets which have two tags before being terminated."
                         ::= { hwQinQSubIfTermEntry 2 }
         
                hwQinQSubIfTermCEVlanStart OBJECT-TYPE
-                        SYNTAX VlanId
+                        SYNTAX VlanIdOrNone
                         MAX-ACCESS not-accessible
                         STATUS current
                         DESCRIPTION
-                            "When configure ce vlan as a range, hwQinQSubIfTermCEVlanStart
-                            is the start vlan id and hwQinQSubIfTermCEVlanEnd is the end vlan id."
+                            "When configure CE VLAN as a range, hwQinQSubIfTermCEVlanStart
+                            is the start VLAN ID and hwQinQSubIfTermCEVlanEnd is the end VLAN ID."
                         ::= { hwQinQSubIfTermEntry 3 }
         
                 hwQinQSubIfTermCEVlanEnd OBJECT-TYPE
@@ -640,8 +659,8 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         MAX-ACCESS read-create
                         STATUS current
                         DESCRIPTION
-                            "When configure ce vlan as a range, hwQinQSubIfTermCEVlanStart is 
-                            the start vlan id and hwQinQSubIfTermCEVlanEnd is the end vlan id."
+                            "When configure CE VLAN as a range, hwQinQSubIfTermCEVlanStart is 
+                            the start VLAN ID and hwQinQSubIfTermCEVlanEnd is the end VLAN ID."
                         ::= { hwQinQSubIfTermEntry 4 }
                              
                 hwQinQSubIfTermGroupId OBJECT-TYPE
@@ -666,14 +685,17 @@ BpduIndex ::= TEXTUAL-CONVENTION
                             in hwQinQSubIfTermTable pointing to the row, the agent must also
                             destroy the corresponding entries in hwQinQSubIfTermTable."
                         ::= { hwQinQSubIfTermEntry 6 }
-        
-        
-                hwQinQSubIfTermSubscriberGroupName OBJECT-TYPE
-                        SYNTAX OCTET STRING (SIZE (0..31))
-                        MAX-ACCESS read-create
+						
+                hwQinQSubIfTermCeVlanAny OBJECT-TYPE
+                        SYNTAX INTEGER
+                            {
+                            anyother(1)
+                            }
+                        MAX-ACCESS  read-create
                         STATUS current
                         DESCRIPTION
-                            "Name of Subscriber Group."
+                            "The QinQ VLAN tag termination sub-interface permits
+                            packets carrying any inner VLAN tag."
                         ::= { hwQinQSubIfTermEntry 7 }
         
         
@@ -1470,7 +1492,7 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         DESCRIPTION
                             "The service type of the sub interface, by setting hwQinQFlexibleFlag to the value (flexibleenable),
                             the flexible attribute enabled; 
-                            So if you set hwQinQSubIfType to be dot1q type, you can not specify hwQinQFlexibleFlag as flexibledisable."
+                            So if you set hwQinQSubIfType to be dot1q type, you can not specify hwQinQFlexibleFlag as flexibleenable."
                         ::= { hwQinQCtrlVlanCfgEntry 6 }         
                         
                   hwQinQGroupCfgTable  OBJECT-TYPE
@@ -1542,7 +1564,7 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         STATUS current
                         DESCRIPTION
                             "Whether the statistic function is enabled."
-                        DEFVAL{ DISABLE }
+                        DEFVAL{ disabled }
                         ::= { hwQinQGroupCfgEntry 4 }
                         
                         
@@ -1610,7 +1632,7 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         STATUS current
                         DESCRIPTION
                             "The user mode attribute of the QinQ-termination sub interface."
-                        DEFVAL{ disable }
+                        DEFVAL{ disabled }
                         ::= { hwQinQAsymmetryCfgEntry 3 }                        
                         
                   hwQinQRemarkCfgTable  OBJECT-TYPE
@@ -2106,7 +2128,7 @@ BpduIndex ::= TEXTUAL-CONVENTION
             STATUS current
             DESCRIPTION 
                 "QinQ swap flag of the interface, which indicates whether to swap the two vlan tags or not when the interface receives a packet with two 802.1q tags."
-            DEFVAL{ disable }
+            DEFVAL{ disabled }
             ::= { hwQinQSwapCfgEntry 2 }
 
         hwQinQSubIfMapTable OBJECT-TYPE
@@ -2348,16 +2370,34 @@ BpduIndex ::= TEXTUAL-CONVENTION
                 "This object indicates the RowStatus of hwQinQStackingVlanTable."
             ::= { hwQinQStackingVlanCfgEntry 50 }  
 
---  -------------------------------------------------------------
+--  =======================================
 -- HUAWEI-QINQ-MIB MIB - Conformance Information
--- -------------------------------------------------------------
+-- =======================================
         hwQinQConformance OBJECT IDENTIFIER ::= { hwQinQ 3 }
         
         hwQinQGroups OBJECT IDENTIFIER ::= { hwQinQConformance 1 }
         
---  -------------------------------------------------------------
+        hwQinQCompliances  OBJECT IDENTIFIER ::= { hwQinQConformance 2 }
+                
+        hwQinQCompliance MODULE-COMPLIANCE
+            STATUS current
+        DESCRIPTION
+                "The core compliance statement for all implementations."
+        MODULE -- this module
+        MANDATORY-GROUPS  {
+        hwQinQSystemBaseGroup,
+        hwQinQBpduTunnelGroup,
+        hwQinQSubIfVlanStackingGroup,
+        hwQinQSubIfStackingStatGroup, 
+        hwQinQSubIfTermGroup,
+        hwQinQSubIfTermStatGroup                                                        
+        }
+        ::= { hwQinQCompliances 1 } 
+                
+        
+--  =======================================
 -- units of conformance
--- -------------------------------------------------------------
+-- =======================================
                  hwQinQSystemBaseGroup OBJECT-GROUP
                         OBJECTS { hwQinQSystemWellKnowMac, hwQinQSystemBridgeRole, hwBpduSystemDropPacketSta, hwQinQSystemEtherType }
                         STATUS current
@@ -2394,7 +2434,7 @@ BpduIndex ::= TEXTUAL-CONVENTION
                         ::= { hwQinQGroups 4 }
         
                   hwQinQSubIfTermGroup OBJECT-GROUP
-                        OBJECTS { hwQinQSubIfTermCEVlanEnd, hwQinQSubIfTermGroupId,  hwQinQSubIfTermRowStatus,hwQinQSubIfTermSubscriberGroupName }
+                        OBJECTS { hwQinQSubIfTermCEVlanEnd, hwQinQSubIfTermGroupId,  hwQinQSubIfTermRowStatus, hwQinQSubIfTermCeVlanAny }
                         STATUS current
                         DESCRIPTION 
                             "A collection of objects providing device level control

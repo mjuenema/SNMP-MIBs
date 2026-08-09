@@ -8,6 +8,7 @@
 -- Copyright (c) 1999 Redstone Communications, Inc.
 -- Copyright (c) 2000, 2002 Unisphere Networks, Inc.
 -- Copyright (c) 2002-2005 Juniper Networks, Inc.
+-- Copyright (c) 2008 Juniper Networks, Inc.
 --   All Rights Reserved.
 -- *****************************************************************************
 
@@ -28,7 +29,7 @@ IMPORTS
         FROM Juniper-TC;
 
 juniPPPoEMIB  MODULE-IDENTITY
-    LAST-UPDATED "200508032058Z"  -- 03-Aug-05 04:58 PM EDT
+    LAST-UPDATED "200811271023Z"  -- 27-Nov-08 03:53 PM EST
     ORGANIZATION "Juniper Networks, Inc."
     CONTACT-INFO
         "       Juniper Networks, Inc.
@@ -47,6 +48,12 @@ juniPPPoEMIB  MODULE-IDENTITY
         effect of creating/deleting corresponding entries in the IF-MIB
         ifTable/ifXTable, and in the Juniper-UNI-IF-MIB.juniIfTable."
     -- Revision History
+    REVISION    "200811271023Z"  -- 27-Nov-08 03:53 PM EST  - JUNOSe 10.1
+    DESCRIPTION
+        "Added juniPPPoEServiceNameTableUnknownAction object."
+    REVISION    "200806180942Z"  -- 18-Jun-08 03:12 PM EST  - JUNOSe 9.3
+    DESCRIPTION
+        "Added juniPPPoEMaxSessionVsa object."
     REVISION    "200508032058Z"  -- 03-Aug-05 04:58 PM EDT  - JUNOSe 7.2
     DESCRIPTION
         "Added Interface Lockout configuration and state support."
@@ -191,7 +198,8 @@ JuniPPPoEIfEntry ::= SEQUENCE {
     juniPPPoEIfPadrRemoteCircuitIdCapture JuniEnable,
     juniPPPoEIfMtu               Integer32,
     juniPPPoEIfLockoutMin        Integer32,
-    juniPPPoEIfLockoutMax        Integer32 }
+    juniPPPoEIfLockoutMax        Integer32,
+    juniPPPoEMaxSessionVsa       INTEGER }
 
 juniPPPoEIfIfIndex OBJECT-TYPE
     SYNTAX      InterfaceIndex
@@ -390,6 +398,22 @@ juniPPPoEIfLockoutMax OBJECT-TYPE
         debugging purposes or when this interface supports more than one session."
     DEFVAL    { 0 }
 	::= { juniPPPoEIfEntry 13 }
+
+
+juniPPPoEMaxSessionVsa OBJECT-TYPE
+    SYNTAX      INTEGER {
+                    override(1),
+                    ignore(2) }
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION
+        "Configure the action to be taken by PPPoE when RADIUS server returns
+        the PPPoE max-session value:
+        override    Override the current PPPoE max-session value with the value
+                    returned by RADIUS server.
+        Ignore      Ignore the max-session value returned by RADIUS server"
+    DEFVAL    { ignore }
+    ::= { juniPPPoEIfEntry 14 }
 
 --
 -- The PPPoE Interface Statistics Table
@@ -909,10 +933,11 @@ juniPPPoEServiceNameTableEntry OBJECT-TYPE
     ::= { juniPPPoEServiceNameTableTable 1 }
 
 JuniPPPoEServiceNameTableEntry ::= SEQUENCE {
-    juniPPPoEServiceNameTableIndex       Unsigned32,
-    juniPPPoEServiceNameTableName        DisplayString,
-    juniPPPoEServiceNameTableEmptyAction JuniPPPoEServiceNameAction,
-    juniPPPoEServiceNameTableRowStatus   RowStatus }
+    juniPPPoEServiceNameTableIndex         Unsigned32,
+    juniPPPoEServiceNameTableName          DisplayString,
+    juniPPPoEServiceNameTableEmptyAction   JuniPPPoEServiceNameAction,
+    juniPPPoEServiceNameTableRowStatus     RowStatus,
+    juniPPPoEServiceNameTableUnknownAction JuniPPPoEServiceNameAction}
 
 juniPPPoEServiceNameTableIndex OBJECT-TYPE
     SYNTAX      Unsigned32
@@ -956,8 +981,9 @@ juniPPPoEServiceNameTableRowStatus OBJECT-TYPE
             juniPPPoEServiceNameTableName
 
         Optionally,
-            juniPPPoEServiceNameTableEmptyAction may be specified (default is
-            terminate).
+            juniPPPoEServiceNameTableEmptyAction (default is terminate) or 
+            juniPPPoEServiceNameTableUnknownAction (default is drop) may be 
+            specified .
            
         In addition, when creating an entry the following conditions must hold:
             A value for juniPPPoEServiceNameTableIndex must have been determined
@@ -966,6 +992,15 @@ juniPPPoEServiceNameTableRowStatus OBJECT-TYPE
         A corresponding entry in juniServiceNameTable is created or destroyed
         as a result of creating or destroying an entry in this table."
     ::= { juniPPPoEServiceNameTableEntry 4 }
+
+juniPPPoEServiceNameTableUnknownAction OBJECT-TYPE
+    SYNTAX      JuniPPPoEServiceNameAction
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION
+        "Identifies the behavior when the unknown (unconfigured) Service-name tag
+        is received in a PADI frame."
+    ::= { juniPPPoEServiceNameTableEntry 5 }
 
 juniPPPoEServiceNameTable OBJECT-TYPE
     SYNTAX      SEQUENCE OF JuniPPPoEServiceNameEntry
@@ -1000,11 +1035,11 @@ juniPPPoEServiceName OBJECT-TYPE
 
 juniPPPoEServiceNameAction OBJECT-TYPE
     SYNTAX      JuniPPPoEServiceNameAction
-    MAX-ACCESS  read-only
+    MAX-ACCESS  read-create
     STATUS      current
     DESCRIPTION
-        "Identifies the behavior when the the Service-name tag is received in a
-        PADI frame."
+        "Identifies the behavior when the Service-name tag is received in a
+        PADI/PADR frame."
     ::= { juniPPPoEServiceNameEntry 2 }
 
 juniPPPoEServiceNameRowStatus OBJECT-TYPE
@@ -1431,10 +1466,11 @@ juniPPPoECompliance10  MODULE-COMPLIANCE
     ::= { juniPPPoECompliances 10 }                                -- JUNOSe 7.0.1
 
 juniPPPoECompliance11  MODULE-COMPLIANCE
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
-        "The compliance statement for entities which implement the Juniper PPPoE
-        MIB."
+        "Obsolete compliance statement for entities which implement the Juniper
+        PPPoE MIB.  This statement became obsolete when support was added for
+        juniPPPoEMaxSessionVsa."
     MODULE   -- this module
         MANDATORY-GROUPS {
             juniPPPoEGroup9,
@@ -1443,6 +1479,35 @@ juniPPPoECompliance11  MODULE-COMPLIANCE
             juniPPPoEServiceNameTableGroup,
 			juniPPPoELockoutTableGroup }
     ::= { juniPPPoECompliances 11 }                                 -- JUNOSe 7.2
+
+juniPPPoECompliance12  MODULE-COMPLIANCE
+    STATUS      obsolete
+    DESCRIPTION
+        "The compliance statement for entities which implement the Juniper PPPoE
+        MIB. This statement became obsolete when support was added for 
+	juniPPPoEServiceNameTableUnknownAction"
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniPPPoEGroup10,
+            juniPPPoESubIfGroup2,
+            juniPPPoESummaryGroup,
+            juniPPPoEServiceNameTableGroup,
+			juniPPPoELockoutTableGroup }
+    ::= { juniPPPoECompliances 12 }                                 -- JUNOSe 9.3
+
+juniPPPoECompliance13  MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION
+        "The compliance statement for entities which implement the Juniper PPPoE
+        MIB."
+    MODULE   -- this module
+        MANDATORY-GROUPS {
+            juniPPPoEGroup10,
+            juniPPPoESubIfGroup2,
+            juniPPPoESummaryGroup,
+            juniPPPoEServiceNameTableGroup1,
+			juniPPPoELockoutTableGroup }
+    ::= { juniPPPoECompliances 13 }                                 -- JUNOSe 10.1
 
 
 --
@@ -1731,11 +1796,13 @@ juniPPPoEServiceNameTableGroup  OBJECT-GROUP
         juniPPPoEServiceNameTableRowStatus,
         juniPPPoEServiceNameAction,
         juniPPPoEServiceNameRowStatus }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "A collection of objects providing management of PPPoE service-name
-        tables in a Juniper product."
+        tables in a Juniper product. This group became obsolete when 
+        juniPPPoEServiceNameTableUnknownAction object is added"
     ::= { juniPPPoEGroups 11 }
+
 
 juniPPPoEGroup7  OBJECT-GROUP
     OBJECTS {
@@ -1869,10 +1936,69 @@ juniPPPoEGroup9  OBJECT-GROUP
         juniPPPoEIfStatsRxInvPadRSession,
 
         juniPPPoEGlobalMotm }
-    STATUS      current
+    STATUS      obsolete
     DESCRIPTION
         "A collection of objects providing management of PPPoE interfaces in a
         Juniper product."
     ::= { juniPPPoEGroups 15 }
 
+juniPPPoEGroup10  OBJECT-GROUP
+    OBJECTS {
+        juniPPPoENextIfIndex,
+
+        juniPPPoEIfIfIndex,
+        juniPPPoEIfMaxNumSessions,
+        juniPPPoEIfRowStatus,
+        juniPPPoEIfLowerIfIndex,
+        juniPPPoEIfAcName,
+        juniPPPoEIfDupProtect,
+        juniPPPoEIfPADIFlag,
+        juniPPPoEIfAutoconfig,
+        juniPPPoEIfServiceNameTable,
+        juniPPPoEIfPadrRemoteCircuitIdCapture,
+        juniPPPoEIfMtu,
+        juniPPPoEIfLockoutMin,
+        juniPPPoEIfLockoutMax,
+        juniPPPoEMaxSessionVsa,
+
+        juniPPPoEIfStatsRxPADI,
+        juniPPPoEIfStatsTxPADO,
+        juniPPPoEIfStatsRxPADR,
+        juniPPPoEIfStatsTxPADS,
+        juniPPPoEIfStatsRxPADT,
+        juniPPPoEIfStatsTxPADT,
+        juniPPPoEIfStatsRxInvVersion,
+        juniPPPoEIfStatsRxInvCode,
+        juniPPPoEIfStatsRxInvTags,
+        juniPPPoEIfStatsRxInvTagLength,
+        juniPPPoEIfStatsRxInvLength,
+        juniPPPoEIfStatsRxInvTypes,
+        juniPPPoEIfStatsRxInvPackets,
+        juniPPPoEIfStatsRxInsufficientResources,
+        juniPPPoEIfStatsTxPADM,
+        juniPPPoEIfStatsTxPADN,
+        juniPPPoEIfStatsRxInvPadISession,
+        juniPPPoEIfStatsRxInvPadRSession,
+
+        juniPPPoEGlobalMotm }
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing management of PPPoE interfaces in a
+        Juniper product."
+    ::= { juniPPPoEGroups 16 }                                     -- JUNOSe 9.3 
+
+juniPPPoEServiceNameTableGroup1  OBJECT-GROUP
+    OBJECTS {
+        juniPPPoEServiceNameTableNextIndex,
+        juniPPPoEServiceNameTableName,
+        juniPPPoEServiceNameTableEmptyAction,
+        juniPPPoEServiceNameTableRowStatus,
+        juniPPPoEServiceNameAction,
+        juniPPPoEServiceNameRowStatus,
+        juniPPPoEServiceNameTableUnknownAction}
+    STATUS      current
+    DESCRIPTION
+        "A collection of objects providing management of PPPoE service-name
+        tables in a Juniper product."
+    ::= { juniPPPoEGroups 17 }                                    -- JUNOSe 10.1
 END

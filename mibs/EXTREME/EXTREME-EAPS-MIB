@@ -1,3 +1,5 @@
+-- ################################################################################
+
 EXTREME-EAPS-MIB DEFINITIONS ::= BEGIN
 
         IMPORTS
@@ -204,6 +206,14 @@ EXTREME-EAPS-MIB DEFINITIONS ::= BEGIN
                               down             (4)
                             }
 
+    EapsDomainPriority
+    ::= TEXTUAL-CONVENTION
+        STATUS      current
+        DESCRIPTION "Indicates the configured priority of an EAPS domain."
+        SYNTAX      INTEGER { normal (0),
+                              high   (1)
+                            }
+
     extremeEapsTable OBJECT-TYPE
         SYNTAX SEQUENCE OF ExtremeEapsEntry
         MAX-ACCESS not-accessible
@@ -240,6 +250,7 @@ EXTREME-EAPS-MIB DEFINITIONS ::= BEGIN
         extremeEapsPrimaryStatus            EapsDomainPortStatus,
         extremeEapsSecondaryStatus          EapsDomainPortStatus,
         extremeEapsProtectedVlansCount      INTEGER,
+        extremeEapsPriority                 EapsDomainPriority,
         extremeEapsRowStatus                RowStatus
     }
 
@@ -382,6 +393,14 @@ EXTREME-EAPS-MIB DEFINITIONS ::= BEGIN
         ::= { extremeEapsEntry 16 }
 
 
+    extremeEapsPriority OBJECT-TYPE
+        SYNTAX      EapsDomainPriority
+        MAX-ACCESS  read-create
+        STATUS      current
+        DESCRIPTION "This gives the priority of the domain. Used along with spatial re-use to prioritize
+                     handling of domains during a topology change."
+        ::= { extremeEapsEntry 17 }
+
     extremeEapsPrevState OBJECT-TYPE
         SYNTAX      EapsDomainState
         MAX-ACCESS  accessible-for-notify
@@ -445,6 +464,38 @@ EXTREME-EAPS-MIB DEFINITIONS ::= BEGIN
 		     extremeEapsFailTimerExpFlagSet
 		     extremeEapsFailTimerExpFlagClear."
         ::= { extremeEapsGlobalInfo 5 }
+	
+    extremeEapsGlobalMulticastAddRingPorts OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "Ring ports are added to existing multicast groups for protected
+                     vlans on a topology change event."
+      
+        ::= { extremeEapsGlobalInfo 6 }
+
+    extremeEapsGlobalMulticastSendIGMPQuery OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "IGMP Query is sent out on all protected vlans on a topology change 
+                     event."
+        ::= { extremeEapsGlobalInfo 7 }
+
+    extremeEapsGlobalMulticastTempFlooding OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "Temporary Multicast flooding occurs on all protected vlans on a 
+                     topology change event."
+        ::= { extremeEapsGlobalInfo 8 }
+
+    extremeEapsGlobalMulticastTempFloodingDuration OBJECT-TYPE
+        SYNTAX      Unsigned32
+        MAX-ACCESS  read-write
+        STATUS      current
+        DESCRIPTION "The duration at which temporary Multicast flooding will occur."
+        ::= { extremeEapsGlobalInfo 9 }
 
     extremeEapsMbrVlanTable OBJECT-TYPE    
         SYNTAX      SEQUENCE OF ExtremeEapsMbrVlanEntry
@@ -528,14 +579,19 @@ EXTREME-EAPS-MIB DEFINITIONS ::= BEGIN
         extremeEapsSharedPortIfIndex   EapsRingPort,
         extremeEapsSharedPortMode      EapsSharedPortMode,
         extremeEapsSharedPortLinkId    INTEGER,
-        extremeEapsSharedPortSegmentTimerExpiryAction EapsSharedPortSegmentTimerExpiryAction,
-        extremeEapsSharedPortState                EapsSharedPortState,
-        extremeEapsSharedPortNbrStatus            EapsSharedPortNeighborStatus,
-        extremeEapsSharedPortDomainsCount         INTEGER,
-        extremeEapsSharedPortProtectedVlansCount  INTEGER,
-        extremeEapsSharedPortRootBlockerStatus    EapsSharedPortRootBlockerStatus,
-        extremeEapsSharedPortRootBlockerId        INTEGER,
-        extremeEapsSharedPortRowStatus            RowStatus
+        extremeEapsSharedPortSegmentTimerExpiryAction    EapsSharedPortSegmentTimerExpiryAction,
+        extremeEapsSharedPortState                       EapsSharedPortState,
+        extremeEapsSharedPortNbrStatus                   EapsSharedPortNeighborStatus,
+        extremeEapsSharedPortDomainsCount                INTEGER,
+        extremeEapsSharedPortProtectedVlansCount         INTEGER,
+        extremeEapsSharedPortRootBlockerStatus           EapsSharedPortRootBlockerStatus,
+        extremeEapsSharedPortRootBlockerId               INTEGER,
+        extremeEapsSharedPortRowStatus                   RowStatus,
+        extremeEapsSharedPortSegmentHealthInterval       INTEGER,
+        extremeEapsSharedPortSegmentTimeout              INTEGER,	
+        extremeEapsSharedPortCommonPathFailedFlag        TruthValue,
+        extremeEapsSharedPortCommonPathHealthInterval    INTEGER,
+        extremeEapsSharedPortCommonPathTimeout           INTEGER
     }
 
     extremeEapsSharedPortIfIndex OBJECT-TYPE
@@ -648,6 +704,47 @@ EXTREME-EAPS-MIB DEFINITIONS ::= BEGIN
         DESCRIPTION "The status of this entry as per standard RowStatus 
                      conventions."
         ::= { extremeEapsSharedPortEntry 11 }
+
+
+    extremeEapsSharedPortSegmentHealthInterval OBJECT-TYPE
+        SYNTAX      INTEGER (0..15)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Interval at which health check PDUs are sent out each segment port."
+        ::= { extremeEapsSharedPortEntry 12 }
+
+
+    extremeEapsSharedPortSegmentTimeout OBJECT-TYPE
+        SYNTAX      INTEGER (3..30)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION  "Time in seconds where segment fail timer expires, fail flag is set, and
+                      expiry action is taken."
+        ::= { extremeEapsSharedPortEntry 13 }
+
+    extremeEapsSharedPortCommonPathFailedFlag OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Shared port link fail timer expired, but our shared port link is up."
+        ::= { extremeEapsSharedPortEntry 14 }
+
+    extremeEapsSharedPortCommonPathHealthInterval OBJECT-TYPE
+        SYNTAX      INTEGER (1..10)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "Interval at which health check PDUs are sent out shared port."
+        ::= { extremeEapsSharedPortEntry 15 }
+
+    extremeEapsSharedPortCommonPathTimeout OBJECT-TYPE
+        SYNTAX      INTEGER (3..30)
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION  "Time in seconds where shared link fail timer expires and fail flag is set"
+        ::= { extremeEapsSharedPortEntry 16 }
+
+
+
 
 
     extremeEapsSharedPortSegmentTable OBJECT-TYPE    

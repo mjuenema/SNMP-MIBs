@@ -1,13 +1,12 @@
 -- ============================================================================
--- Copyright (C) 2007 by HUAWEI TECHNOLOGIES. All rights reserved.
+-- Copyright (C) 2021 by HUAWEI TECHNOLOGIES. All rights reserved.
 -- 
 -- Description: hwIpMcast.my , this MIB module for management 
 --              of IP Multicast, including multicast routing, data
 --              forwarding, and data reception.
 -- Reference: This MIB was extracted from RFC 2934 
--- Version: V1.0
+-- Version: V2.06
 -- History:
---    Created by caibenrui 2007-04-12
 -- 
 -- ============================================================================
 
@@ -37,7 +36,7 @@ hwMcast  OBJECT IDENTIFIER  ::= { hwDatacomm 149 }
 
 
 hwIpMcastMib MODULE-IDENTITY
-    LAST-UPDATED "201308280000Z" -- 28 Aug 2007
+    LAST-UPDATED "202104250000Z" -- 25 Apr 2021
     ORGANIZATION "Huawei Technologies Co.,Ltd."
     CONTACT-INFO 
             "Huawei Industrial Base
@@ -53,7 +52,36 @@ hwIpMcastMib MODULE-IDENTITY
             Huawei Technologies Co.,Ltd . Supplementary information may
             be available at:
             http://www.huawei.com" 
-            
+
+    REVISION "202104250000Z" -- 25 Apr 2021
+    DESCRIPTION 
+            "Modify comment."
+
+    REVISION "202104190000Z" -- 19 Apr 2021
+    DESCRIPTION 
+            "Modify comment."
+
+    REVISION "201805040000Z" -- 4 May 2018
+    DESCRIPTION 
+            "1.Add hwMcastEntryExceed trap.
+             2.Add hwMcastEntryExceedClear trap.
+            "
+
+     REVISION "201407010000Z" -- 1 July 2014
+    DESCRIPTION 
+            "1.Modify the description of hwIpMcastSGThresholdExceed.
+             2.Modify the description of hwIpMcastSGThresholdExceedClear.
+             3.Modify the description of hwIpMcastSGExceedClear. 
+            "       
+ 
+    REVISION "201406200000Z" -- 20 Jun 2014
+    DESCRIPTION 
+            "1.Add hwIpMcastSGThresholdExceed trap.
+             2.Add hwIpMcastSGThresholdExceedClear trap.
+             3.Add hwIpMcastSGExceed trap.
+             4.Add hwIpMcastSGExceedClear trap.
+            "
+   
     REVISION "201308280000Z" -- 28 Aug 2007
     DESCRIPTION 
             "Modify import mibs"
@@ -1250,7 +1278,6 @@ hwIpMcastChannelInterfaceName OBJECT-TYPE
            "The name of interface on which this router most recently sent or received a CAC trap."
     ::= { hwIpMcast 18 }
 
--- Added by tanxin
     
 hwIpMcastCfgTotalLimit OBJECT-TYPE
     SYNTAX     Unsigned32 (1..65535)
@@ -1554,6 +1581,73 @@ hwIpMcastOverloadGroup  OBJECT-TYPE
             "The OverloadGroup of the trap."
     ::= { hwIpMcast 29 }
     
+hwIpMcastSGCurrentCount  OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..262144)   
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION                                                                
+             "The current number of multicast routing (S, G) entries of all instances." 
+    ::= { hwIpMcast 30 } 
+
+hwIpMcastSGThreshold  OBJECT-TYPE
+    SYNTAX      Unsigned32 (1..100)   
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION                                                                
+             "The threshold value of multicast routing (S, G) entries uppper limit(%) of all instances." 
+    ::= { hwIpMcast 31 } 	    
+
+hwIpMcastSGTotalCount  OBJECT-TYPE
+    SYNTAX      Unsigned32 (0..262144)   
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION                                                                
+             "The total number of multicast routing (S, G) entries of all instances." 
+    ::= { hwIpMcast 32 }
+
+hwMcastEntryLimitType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                         starG(1),
+                         sG(2)
+    }						 
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION                                                                
+             "The limit type:
+             1:star-group;
+             2:source-group;"
+    ::= { hwIpMcast 33 }
+		
+hwMcastNotificationAddressType OBJECT-TYPE
+    SYNTAX      InetAddressType   
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION                                                                
+             "The address type of the multicast group address."
+    ::= { hwIpMcast 34 }
+	
+hwMcastEntryTotalCount OBJECT-TYPE
+    SYNTAX      Unsigned32 
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION                                                                
+             "The limit of multicast routing total entries." 
+    ::= { hwIpMcast 35 }
+              
+hwMcastEntryLimitReasonType OBJECT-TYPE
+    SYNTAX      INTEGER {
+                         entryDeleted(1),
+                         configurationChanged(2),
+                         alarmClear(100)
+    }   
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION                                                                
+             "The reason for trap sending:
+             1:entry is deleted;
+             2:configuration is changed;
+             100:Alarm Clear" 
+    ::= { hwIpMcast 36 }
 
 --
 -- MCAC TRAP NODE
@@ -1744,7 +1838,64 @@ hwMFIBEntryOifOverloadSusResume   NOTIFICATION-TYPE
               This notification is generated whenever the MFIB entry changes from the overload suspension state to 
               the normal state."                                                                     
     ::= { hwIpMcastNotifications 12 }
-                                         
+          
+  hwIpMcastSGThresholdExceed NOTIFICATION-TYPE
+    OBJECTS { hwIpMcastSGCurrentCount,
+              hwIpMcastSGThreshold,
+              hwIpMcastSGTotalCount
+            }
+    STATUS      current
+    DESCRIPTION
+            "A hwIpMcastSGThresholdExceed notification signifies that multicast routing (S, G) entries count of all instances reached the upper threshold."
+      ::= { hwIpMcastNotifications 13 }
+
+hwIpMcastSGThresholdExceedClear NOTIFICATION-TYPE
+    OBJECTS { hwIpMcastSGCurrentCount,
+              hwIpMcastSGThreshold,
+              hwIpMcastSGTotalCount
+            }
+    STATUS      current
+    DESCRIPTION
+            "A hwIpMcastSGThresholdExceedClear notification signifies that multicast routing (S, G) entries count of all instances fell below the lower threshold."
+      ::= { hwIpMcastNotifications 14 }
+
+hwIpMcastSGExceed NOTIFICATION-TYPE
+    OBJECTS { hwIpMcastSGTotalCount 
+            }
+    STATUS      current
+    DESCRIPTION
+            "A hwIpMcastSGExceed notification signifies that multicast routing (S, G) entries count of all instances reached the limit."
+      ::= { hwIpMcastNotifications 15 }
+
+hwIpMcastSGExceedClear NOTIFICATION-TYPE
+    OBJECTS { hwIpMcastSGTotalCount
+            }
+    STATUS      current
+    DESCRIPTION
+            "A hwIpMcastSGExceedClear notification signifies that multicast routing (S, G) entries count of all instances fell below the limit."
+      ::= { hwIpMcastNotifications 16 }
+
+hwMcastEntryExceed NOTIFICATION-TYPE
+    OBJECTS { hwMcastEntryLimitType,
+              hwMcastNotificationAddressType,
+              hwMcastEntryTotalCount
+            }
+    STATUS      current
+    DESCRIPTION
+            "A hwMcastEntryExceed notification signifies that multicast routing entries count of all instances reached the limit."
+      ::= { hwIpMcastNotifications 17 }
+
+hwMcastEntryExceedClear NOTIFICATION-TYPE
+    OBJECTS { hwMcastEntryLimitType,
+              hwMcastNotificationAddressType,
+              hwMcastEntryTotalCount,
+              hwMcastEntryLimitReasonType
+            }
+    STATUS      current
+    DESCRIPTION
+            "A hwMcastEntryExceedClear notification signifies that multicast routing entries count of  all instances fell below the limit."
+      ::= { hwIpMcastNotifications 18 }
+	                             
 --
 -- Conformance information
 --
@@ -2018,7 +2169,14 @@ hwIpMcastMibNotificationObjects OBJECT-GROUP
               hwBoardIndex,
               hwIpMcastOverloadAddressType,
               hwIpMcastOverloadSource,
-              hwIpMcastOverloadGroup              
+              hwIpMcastOverloadGroup,
+              hwIpMcastSGCurrentCount,  
+              hwIpMcastSGThreshold,  
+              hwIpMcastSGTotalCount,
+              hwMcastEntryLimitType,
+              hwMcastNotificationAddressType,
+              hwMcastEntryTotalCount,
+              hwMcastEntryLimitReasonType         
             }
     STATUS  current
     DESCRIPTION
@@ -2038,7 +2196,13 @@ hwIpMcastMibNotificationGroup NOTIFICATION-GROUP
                     hwMFIBEntryOverloadSuspend,
                     hwMFIBEntryOverloadSusResume,
                     hwMFIBEntryOifOverloadSuspend,
-                    hwMFIBEntryOifOverloadSusResume
+                    hwMFIBEntryOifOverloadSusResume,
+                    hwIpMcastSGThresholdExceed,
+                    hwIpMcastSGThresholdExceedClear,
+                    hwIpMcastSGExceed,
+                    hwIpMcastSGExceedClear,
+                    hwMcastEntryExceed,
+                    hwMcastEntryExceedClear
                   }
     STATUS  current
     DESCRIPTION
