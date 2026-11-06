@@ -9,26 +9,52 @@ import json
 import sys
 
 with bz2.open('mibs.json.bz2', 'rt') as fp:
-    mibdata = json.load(fp)
+    MIBDATA = json.load(fp)
 
-mibs = set(sys.argv[1:])
-oldlen = len(mibs)
-newlen = 0
 
-while oldlen != newlen:
-    oldlen = len(mibs)
-    for mib in mibs:
-        try:
-            mibs.union(mibdata['imports'][mib])
-        except KeyError:
-            print(f"*{mib}")
-    newlen = len(mibs)
+def resolve(mibname):
+    global IMPORTS
 
-for mib in mibs:
-    try:
-        print(mibdata['filepaths'][mib])
-    except KeyError:
-        print(f"*{mib}")
+    if mibname not in IMPORTS:
+        IMPORTS.add(mibname)
+
+        for mibname in MIBDATA['imports'][mibname]:
+            resolve(mibname)
+
+
+IMPORTS = set()
+
+for mibname in sys.argv[1:]:
+#mibname = sys.argv[1]
+    resolve(mibname)
+
+for mibname in IMPORTS:
+    print(mibname.upper())
+
+
+
+#mibs = set(sys.argv[1:])
+
+
+
+
+#oldlen = len(mibs)
+#newlen = 0
+#
+#while oldlen != newlen:
+#    oldlen = len(mibs)
+#    for mib in mibs:
+#        try:
+#            mibs.union(mibdata['imports'][mib])
+#        except KeyError:
+#            print(f"*{mib}")
+#    newlen = len(mibs)
+
+#for mib in mibs:
+#    try:
+#        print(mibdata['imports'][mib])
+#    except KeyError:
+#        print(f"*{mib}")
 
 
 
